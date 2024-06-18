@@ -13,8 +13,8 @@ library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the Ripley's K function: Kest
 
-#downloading fixed_field_data_processed as csv to help import into google maps and google earth
-write.csv(fixed_field_data_processed, "~/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/analyses/fixed_field_data_processed.csv")
+
+fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv")
 
 #### Creating fixed_field_data_processed dataframes for each population ####
 
@@ -27,19 +27,88 @@ LC_fixed_field_data_processed <- fixed_field_data_processed %>%
 SD_fixed_field_data_processed <- fixed_field_data_processed %>%
   filter(Locality == "SD")
 
-#### Importing Shapefile and creating PPP file ####
+#### Importing Shapefile #### 
+
+#turn the BCS polygon into a shapefile and visualize its outline
+BCS_polygon <- st_as_sf(BCS_polygon)
+plot(BCS_polygon$geometry)
+
+fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+                                       coords = c("long", "lat"), crs = 4326)
+
+#### Plot the Baja Polygons ####
+
+#plotting the BCS polygon with the tree points
+ggplot(data = BCS_polygon) +
+  geom_sf() +
+  geom_sf(data = fixed_field_data_processed_sf, aes(color = Locality)) + 
+  coord_sf(xlim = c(min_all_locality_long, max_all_locality_long), 
+           ylim = c(min_all_locality_lat, max_all_locality_lat))+
+  theme_classic()
+
+#finding minimum and maximum lat and long values
+min_all_locality_long <- min(fixed_field_data_processed$long)*1.0002
+max_all_locality_long <- max(fixed_field_data_processed$long) - (max(fixed_field_data_processed$long) *.0002)
+min_all_locality_lat <- min(fixed_field_data_processed$lat)*1.02
+max_all_locality_lat <- max(fixed_field_data_processed$lat) - (max(fixed_field_data_processed$lat)*.02)
+
+#plotting the BCS LM polygon with the tree points
+ggplot(data = BCS_polygon) +
+  geom_sf() +
+  geom_sf(data = fixed_field_data_processed_sf, aes(color = Locality)) + 
+  coord_sf(xlim = c(LM_min_all_locality_long, LM_max_all_locality_long), 
+           ylim = c(LM_min_all_locality_lat, LM_max_all_locality_lat))+
+  theme_classic()
+
+#finding minimum and maximum lat and long values for lM
+
+LM_min_all_locality_long <- min(LM_fixed_field_data_processed$long)#*1.0002
+LM_max_all_locality_long <- max(LM_fixed_field_data_processed$long)# - (max(LM_fixed_field_data_processed$long) *.0002)
+LM_min_all_locality_lat <- min(LM_fixed_field_data_processed$lat)#*1.002
+LM_max_all_locality_lat <- max(LM_fixed_field_data_processed$lat) #- (max(LM_fixed_field_data_processed$lat)*.002)
+
+#plotting the BCS LC polygon with the tree points
+ggplot(data = BCS_polygon) +
+  geom_sf() +
+  geom_sf(data = fixed_field_data_processed_sf, aes(color = Locality)) + 
+  coord_sf(xlim = c(LC_min_all_locality_long, LC_max_all_locality_long), 
+           ylim = c(LC_min_all_locality_lat, LC_max_all_locality_lat))+
+  theme_classic()
+
+#finding minimum and maximum lat and long values for LC
+
+LC_min_all_locality_long <- min(LC_fixed_field_data_processed$long)#*1.0002
+LC_max_all_locality_long <- max(LC_fixed_field_data_processed$long)# - (max(LM_fixed_field_data_processed$long) *.0002)
+LC_min_all_locality_lat <- min(LC_fixed_field_data_processed$lat)#*1.002
+LC_max_all_locality_lat <- max(LC_fixed_field_data_processed$lat) #- (max(LM_fixed_field_data_processed$lat)*.002)
+
+
+#plotting the BCS SD polygon with the tree points
+ggplot(data = BCS_polygon) +
+  geom_sf() +
+  geom_sf(data = fixed_field_data_processed_sf, aes(color = Locality)) + 
+  coord_sf(xlim = c(SD_min_all_locality_long, SD_max_all_locality_long), 
+           ylim = c(SD_min_all_locality_lat, SD_max_all_locality_lat))+
+  theme_classic()
+
+#finding minimum and maximum lat and long values for SD
+
+SD_min_all_locality_long <- min(SD_fixed_field_data_processed$long)#*1.0002
+SD_max_all_locality_long <- max(SD_fixed_field_data_processed$long)# - (max(LM_fixed_field_data_processed$long) *.0002)
+SD_min_all_locality_lat <- min(SD_fixed_field_data_processed$lat)#*1.002
+SD_max_all_locality_lat <- max(SD_fixed_field_data_processed$lat) #- (max(LM_fixed_field_data_processed$lat)*.002)
+
+
+
+#### creating PPP file ####
 
 # read in baja california sur polygon
-BCS_polygon <- st_read("bcs_entidad.shp")
+BCS_polygon_sp <- st_read("./data/Shapefiles/BCS_Polygon/bcs_entidad.shp")
 
 #turning the shapefile into a spatial object and then an owin (a window)
-BCS_polygon <- as_Spatial(BCS_polygon) #converts the shapefile into spatial object 
-W <- owin(BCS_polygon) # convert the BCS sp into the owin class and setting the x and y ranges, the "bbox"
+BCS_polygon_sp <- as_Spatial(BCS_polygon_sp) #converts the shapefile into spatial object 
+W <- owin(BCS_polygon_sp) # convert the BCS sp into the owin class and setting the x and y ranges, the "bbox"
 plot(W)
-
-BCS_polygon$co
-View(BCS_polygon)
-
 
 #creating the ppp for the entire extent of points
 BCS_ppp <- ppp(x = fixed_field_data_processed$long, y = fixed_field_data_processed$lat, window = W) #creating the poisson point pattern

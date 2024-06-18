@@ -65,6 +65,10 @@ fixed_field_data_processed <- field_data_processed %>%
          long = as.numeric(long)) %>% # Make sure the lat and the long columns are numeric rather than charaters
   select(!c(lat.y, lat.x, long.y, long.x)) # Get rid of the lat and long columns that aren't all in decimal degree
 
+
+#downloading fixed_field_data_processed as csv to help import into google maps and google earth
+write.csv(fixed_field_data_processed, "./analyses/fixed_field_data_processed.csv")
+
 # Make an sf object with all the associated data for each individual
 fixed_field_data_sf <- st_as_sf(fixed_field_data_processed, coords = c("long", "lat"), crs= 4326) # Turn the fixed_field_data_processed df into an sf object with the coordinate reference system (crs) of lat/long coords (4326)
 
