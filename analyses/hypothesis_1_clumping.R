@@ -1,8 +1,4 @@
-#for this analysis we will be using the dataframe 
-#created in analyzing_morpho_data_cleaned: fixed_field_data_processed
-#so to run this file you should first run "analyzing_morpho_data_cleaned"
-
-#### Loading libraries and relevant data####
+#### Loading libraries and relevant data ####
 
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
@@ -14,7 +10,7 @@ library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the Ripley's K function: Kest
 
 
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv")
+fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #### Creating fixed_field_data_processed dataframes for each population ####
 
@@ -53,6 +49,14 @@ ggplot(data = BCS_polygon) +
   coord_sf(xlim = c(min_all_locality_long, max_all_locality_long), 
            ylim = c(min_all_locality_lat, max_all_locality_lat))+
   theme_classic()
+
+#creating entire boundary shapefile
+fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+  st_as_sfc()
+
+fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
+  st_bbox %>%
+  st_as_sfc()
 
 #finding minimum and maximum lat and long values for lM
 LM_min_all_locality_long <- min(LM_fixed_field_data_processed$long)#*1.0002
@@ -102,7 +106,6 @@ LC_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %
   st_bbox %>%
   st_as_sfc()
 
-
 #finding minimum and maximum lat and long values for SD
 SD_min_all_locality_long <- min(SD_fixed_field_data_processed$long)#*1.0002
 SD_max_all_locality_long <- max(SD_fixed_field_data_processed$long)# - (max(LM_fixed_field_data_processed$long) *.0002)
@@ -127,65 +130,43 @@ SD_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %
   st_bbox %>%
   st_as_sfc()
 
+#### Ripley's K Annalysis ####
 
+#Ripley's K for all points 
+win <- as.owin(fixed_field_data_processed_box)
+ppp <- as.ppp(st_coordinates(fixed_field_data_processed_sf), W = win) #creating the poisson point pattern for lm
+plot(ppp, pch = 16, cex = 0.5)
+K <- Kest(ppp, correction = "Ripley")
+plot(K, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
-#### Ripley's K ####
-
-#running the Ripley's K analysis for all points
-#creating the ppp for the entire extent of points
-BCS_ppp <- ppp(x = fixed_field_data_processed$long, y = fixed_field_data_processed$lat, window = W) #creating the poisson point pattern
-plot(BCS_ppp)
-K_BCS <- Kest(BCS_ppp, correction = "Ripley") #focuses on the K poisson value, the Ripley's K
-K_BCS <- Kest(BCS_ppp) #includes the edge corrections
-plot(K_BCS, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
-plot(K_BCS, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE, inset=c(1.01, 0) )) #legend outside of the plot
-
-ggplot(data = LM_fixed_field_data_processed_sf)+
-  geom_sf()
-View(LM_fixed_field_data_processed_sf)
-
-
-#### Ripley's K for LM ####
+#Ripley's K for LM 
 LM_win <- as.owin(LM_fixed_field_data_processed_box)
 LM_ppp <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win) #creating the poisson point pattern for lm
 plot(LM_ppp, pch = 16, cex = 0.5)
 LM_k <- Kest(LM_ppp, correction = "Ripley")
 plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
+#Ripley's K for LC 
+LC_win <- as.owin(LC_fixed_field_data_processed_box)
+LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win) #creating the poisson point pattern for lm
+plot(LC_ppp, pch = 16, cex = 0.5)
+LC_k <- Kest(LC_ppp, correction = "Ripley")
+plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
-#creating the ppp for LC
-LC_ppp <- ppp(x = LC_fixed_field_data_processed$long, y = LC_fixed_field_data_processed$lat, window = W) #creating the poisson point pattern for lm
-plot(LC_ppp)
+#Ripley's K for SD
+SD_win <- as.owin(SD_fixed_field_data_processed_box)
+SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win) #creating the poisson point pattern for lm
+plot(SD_ppp, pch = 16, cex = 0.5)
+SD_k <- Kest(LC_ppp, correction = "Ripley")
+plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
-#creating the ppp for SD
-SD_ppp <- ppp(x = SD_fixed_field_data_processed$long, y = SD_fixed_field_data_processed$lat, window = W) #creating the poisson point pattern for lm
-plot(SD_ppp)
-
-
-#running the Ripley's K analysis for LC
-K_LC <- Kest(LC_ppp, correction = "Ripley") #focuses on the K poisson value, the Ripley's K
-K_LC <- Kest(LC_ppp) #includes the edge corrections
-plot(K_LC, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
-plot(K_LC, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE, inset=c(1.01, 0) )) #legend outside of the plot
-
-#running the Ripley's K analysis for SD
-K_SD <- Kest(SD_ppp, correction = "Ripley") #focuses on the K poisson value, the Ripley's K
-K_SD <- Kest(SD_ppp) #includes the edge corrections
-plot(K_SD, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
-plot(K_SD, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE, inset=c(1.01, 0) )) #legend outside of the plot
 
 
 #### Ripley's L ####
 
-#Ripley's L
-L <- Lest(BCS_ppp, main=NULL)
-L <- Lest(BCS_ppp, main=NULL, correction = "Ripley")
-plot(L, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE, inset=c(1.01, 0) ))
-
 
 #### ANN Analysis (test for clustering/dispersion) ####
 
-ann.p
 
 #### Moran's I ####
 
