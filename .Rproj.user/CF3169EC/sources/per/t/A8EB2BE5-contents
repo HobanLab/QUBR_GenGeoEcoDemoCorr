@@ -12,18 +12,6 @@ library(spatstat) # to run the Ripley's K function: Kest
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#upload river shapefile
-rivers <- st_read("./data/QUBR Trees (5).kml", "Rivers", crs = 4326)
-river_LC <- filter(rivers, Name == "River LC")
-river_SD <- filter(rivers, Name == "River SD")
-river_LM <- filter(rivers, Name == "LM River")
-
-#### convex ####
-
-river_LC_convex_hull <- st_convex_hull(st_union(LM_fixed_field_data_processed_sf, river_LC))
-ggplot(river_LC_convex_hull)+
-  geom_sf()
-
 #### Creating fixed_field_data_processed dataframes for each population ####
 
 LM_fixed_field_data_processed <- fixed_field_data_processed %>%
@@ -38,7 +26,6 @@ SD_fixed_field_data_processed <- fixed_field_data_processed %>%
 #### Importing Shapefile #### 
 
 #turn the BCS polygon into a shapefile and visualize its outline
-BCS_polygon <- read_sf("./data/Shapefiles/BCS_Polygon/bcs_entidad.shp")
 BCS_polygon <- st_as_sf(BCS_polygon)
 plot(BCS_polygon$geometry)
 
