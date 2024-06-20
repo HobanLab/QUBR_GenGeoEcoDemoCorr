@@ -13,16 +13,11 @@ library(spatstat) # to run the Ripley's K function: Kest
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #upload river shapefile
-rivers <- st_read("./data/QUBR Trees (5).kml", "Rivers", crs = 4326)
+rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
 river_LC <- filter(rivers, Name == "River LC")
 river_SD <- filter(rivers, Name == "River SD")
 river_LM <- filter(rivers, Name == "LM River")
 
-#### convex ####
-
-river_LC_convex_hull <- st_convex_hull(st_union(LM_fixed_field_data_processed_sf, river_LC))
-ggplot(river_LC_convex_hull)+
-  geom_sf()
 
 #### Creating fixed_field_data_processed dataframes for each population ####
 
@@ -143,7 +138,21 @@ SD_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %
   st_bbox %>%
   st_as_sfc()
 
-#### Ripley's K Annalysis ####
+
+#### Creating Convex Hulls ####
+river_LM_convex_hull <- st_convex_hull(st_union(LM_fixed_field_data_processed_sf)) #LM_fixed_field_data_processed_sf
+ggplot(river_LM_convex_hull)+
+  geom_sf()
+
+river_LC_convex_hull <- st_convex_hull(st_union(LC_fixed_field_data_processed_sf)) #LM_fixed_field_data_processed_sf
+ggplot(river_LC_convex_hull)+
+  geom_sf()
+
+river_SD_convex_hull <- st_convex_hull(st_union(SD_fixed_field_data_processed_sf)) #LM_fixed_field_data_processed_sf
+ggplot(river_SD_convex_hull)+
+  geom_sf()
+
+#### Ripley's K Analysis ####
 
 #Ripley's K for all points 
 win <- as.owin(fixed_field_data_processed_box)
@@ -159,9 +168,23 @@ plot(LM_ppp, pch = 16, cex = 0.5)
 LM_k <- Kest(LM_ppp, correction = "Ripley")
 plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
+#Ripley's K for LM with Convex Hull
+LM_win_convex <- as.owin(river_LM_convex_hull)
+LM_ppp <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_convex) #creating the poisson point pattern for lm
+plot(LM_ppp, pch = 16, cex = 0.5)
+LM_k <- Kest(LM_ppp, correction = "Ripley")
+plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+
 #Ripley's K for LC 
 LC_win <- as.owin(LC_fixed_field_data_processed_box)
 LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win) #creating the poisson point pattern for lm
+plot(LC_ppp, pch = 16, cex = 0.5)
+LC_k <- Kest(LC_ppp, correction = "Ripley")
+plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+
+#Ripley's K for LC with Convex Hull
+LC_win_convex <- as.owin(river_LC_convex_hull)
+LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win_convex) #creating the poisson point pattern for lm
 plot(LC_ppp, pch = 16, cex = 0.5)
 LC_k <- Kest(LC_ppp, correction = "Ripley")
 plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
@@ -173,6 +196,12 @@ plot(SD_ppp, pch = 16, cex = 0.5)
 SD_k <- Kest(LC_ppp, correction = "Ripley")
 plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
+#Ripley's K for SD with Convex Hull
+SD_win_convex <- as.owin(river_SD_convex_hull)
+SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_convex) #creating the poisson point pattern for lm
+plot(SD_ppp, pch = 16, cex = 0.5)
+SD_k <- Kest(SD_ppp, correction = "Ripley")
+plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
 
 #### Ripley's L ####
