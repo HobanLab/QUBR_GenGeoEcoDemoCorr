@@ -24,7 +24,7 @@ river_LM_trans <- st_transform(river_LM, crs = 26912) #equal area projection, us
 river_LC_trans <- st_transform(river_LC, crs = 26912)
 river_SD_trans <- st_transform(river_SD, crs = 26912)
 
-#### Creating 20 m buffer around river polygons ####
+#### Creating buffer around river polygons ####
 
 river_buffer_LM<- st_buffer(river_LM_trans, 200)
 ggplot(river_buffer_LM)+
