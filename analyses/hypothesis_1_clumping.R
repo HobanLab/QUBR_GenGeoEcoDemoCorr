@@ -277,7 +277,7 @@ p
 #turning river polygon into multipoints and then into a raster
 river_LM_trans_points <- st_cast(river_LM_trans, "MULTIPOINT")
 
-river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points)
+river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #create raster of lake edge points
 plot(river_LM_trans_point_raster)
 plot(as.im(river_LM_trans_point_raster))
 
@@ -288,7 +288,7 @@ for (i in 1:n){
   rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull,
                    f = as.im(river_LM_trans_point_raster))
   ann.r[i] <- mean(nndist(rand.p, k=1))
-} #for the length of the number of points at LM, it assigns a random point within the convex hull window
+} #for the length of the number of points at LM, it assigns a random point within the convex hull window while controlling for the river's edge
 plot(rand.p)
 
 Window(rand.p) <- as.owin(river_LM_trans)
