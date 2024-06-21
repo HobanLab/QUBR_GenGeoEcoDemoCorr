@@ -19,6 +19,8 @@ fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
 
 fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
 
+#### Computing Average Nearest Neighbors for each tree ####
+
 #add average nearest neighbor for each individual column
 fixed_field_data_processed_NN <- fixed_field_data_processed %>%
   mutate(dist1 = nndist(X = long, Y= lat, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
@@ -34,7 +36,6 @@ mean(c(1.374369e-05,3.064129e-05,8.661858e-05,2.288619e-04, 2.312526e-04)) #Aver
 View(fixed_field_data_processed_NN)
 
 
-
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
 
 LM_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
@@ -45,3 +46,94 @@ LC_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
 
 SD_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
   filter(Locality == "SD")
+
+#### Descriptive Summary ####
+
+#histograms
+ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+hist(fixed_field_data_processed_NN$Canopy_short, main = "Distribution of Short Canopy Axis")
+hist(fixed_field_data_processed_NN$Canopy_long, main = "Distribution of Long Canopy Axis")
+hist(fixed_field_data_processed_NN$Crown_spread, main = "Distribution of Canopy Spread")
+hist(fixed_field_data_processed_NN$Canopy_area, main = "Distribution of Canopy Area")
+hist(fixed_field_data_processed_NN$DBH_ag, main = "Distribution of DBH") # slight tail
+
+#Summaries
+# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
+field_data_summarized <- fixed_field_data_processed_NN %>%
+  dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
+  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
+View(field_data_summarized)
+
+#### Linear Model ####
+
+#Linear Model for all points
+
+#conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA, lineaerity condition is not well met
+ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_short, y=ANN)))+
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Short Canopy Axis")+
+  ylab("ANN")
+
+plot(fixed_field_data_processed_NN$Canopy_short, fixed_field_data_processed_NN$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
+lm_LM_ANN <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
+abline(lm_LM_ANN)
+
+
+#checking residuals#checking normality
+ggplot(lm_LM_ANN, aes(x= lm_LM_ANN$residuals))+
+  geom_histogram()+
+  labs("Distribution of Residuals for Short Canopy Axis vs. ANN")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+qqnorm(lm_LM_ANN$residuals)
+
+#checking equal variance
+ggplot(data = lm_LM_ANN, aes(x = fitted.values, y = residuals))
+
+plot(lm_LM_ANN$residuals ~ lm_LM_ANN$fitted.values, 
+     xlab = "Fitted Values",
+     ylab = "Residuals",
+     main = "Residuals vs. Fitted Values")
+abline(0,0)
+
+
+#plotting the linear model in ggplot for LCA
+ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_short, y=ANN)))+
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Short Canopy Axis")+
+  ylab("ANN")
+
+plot(fixed_field_data_processed_NN$Canopy_short, fixed_field_data_processed_NN$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
+lm_LM_ANN <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
+abline(lm_LM_ANN)
