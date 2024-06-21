@@ -8,6 +8,7 @@ library(ggpmisc)
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the Ripley's K function: Kest
+library(stars) # for sf_rasterize function
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -19,7 +20,7 @@ river_LC <- filter(rivers_2d, Name == "River LC")
 river_SD <- filter(rivers_2d, Name == "River SD")
 river_LM <- filter(rivers_2d, Name == "LM River")
 
-river_LM_trans <- st_transform(river_LM, crs = 26912)
+river_LM_trans <- st_transform(river_LM, crs = 26912) #equal area projection, uses meters as distance measurement
 river_LC_trans <- st_transform(river_LC, crs = 26912)
 river_SD_trans <- st_transform(river_SD, crs = 26912)
 
@@ -242,13 +243,80 @@ plot(SD_ppp_buffer, pch = 16, cex = 0.5)
 SD_k_buffer <- Kest(SD_ppp_buffer, correction = "Ripley")
 plot(SD_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
-
-#### Ripley's L ####
-
-
 #### ANN Analysis (test for clustering/dispersion) ####
 
+#test for LM
+ann.p <- mean(nndist(LM_ppp, k=1))
+ann.p
 
-#### Moran's I ####
+n <- 599L #defines the number of simulations
+ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
+for (i in 1:n){
+  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull) #river_LM_trans
+  ann.r[i] <- mean(nndist(rand.p, k=1))
+} #for the length of the number of points at LM, it assigns a random point within the convex hull window
+plot(rand.p)
+
+hist(ann.r, main = NULL, las=1, breaks = 40, col = "light blue", xlim = range(ann.p, ann.r))
+abline(v=ann.p, col = "red")
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(ann.r)){
+  if (ann.r[i] < ann.p){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
+
+#to calculate 1 sided pseudo p-value the way done by Manny, I am unsure why he added 1s
+N.greater <- sum(ann.r > ann.p)
+p <- min(N.greater + 1, n + 1 - N.greater) / (n +1)
+p
+
+#turning river polygon into multipoints and then into a raster
+river_LM_trans_points <- st_cast(river_LM_trans, "MULTIPOINT")
+
+river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points)
+plot(river_LM_trans_point_raster)
+plot(as.im(river_LM_trans_point_raster))
+
+#ANN analysis controlling for river
+n <- 599L #defines the number of simulations
+ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
+for (i in 1:n){
+  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull,
+                   f = as.im(river_LM_trans_point_raster))
+  ann.r[i] <- mean(nndist(rand.p, k=1))
+} #for the length of the number of points at LM, it assigns a random point within the convex hull window
+plot(rand.p)
+
+Window(rand.p) <- as.owin(river_LM_trans)
+plot(rand.p)
+ggplot()+ # ask about the ggplot
+  geom_sf(LM_fixed_field_data_processed_sf)+
+  geom_sf(river_LM_trans)
+plot(LM_fixed_field_data_processed_sf)
+hist(ann.r, main = NULL, las=1, breaks = 40, col = "light blue", xlim = range(ann.p, ann.r))
+abline(v=ann.p, col = "red")
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(ann.r)){
+  if (ann.r[i] < ann.p){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
+
+#test for LC
+
+
+
+#Test for SD
+
+#### PPM analysis ####
+
+PPM1 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ log(river_LM_trans_points))
 
 
