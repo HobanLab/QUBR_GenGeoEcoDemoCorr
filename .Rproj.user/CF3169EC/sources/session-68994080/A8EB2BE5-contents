@@ -318,5 +318,5 @@ for (i in 1:length(ann.r)){
 #### PPM analysis ####
 
 PPM1 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ log(river_LM_trans_points))
-
+PPM1
 
