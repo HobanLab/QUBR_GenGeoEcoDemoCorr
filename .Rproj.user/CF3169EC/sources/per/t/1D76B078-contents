@@ -7,9 +7,6 @@ library(smatr)
 library(ggpmisc)
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
-library(spatstat) # to run the Ripley's K function: Kest
-library(stars) # for sf_rasterize function
-
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
