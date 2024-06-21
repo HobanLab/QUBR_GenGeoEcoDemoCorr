@@ -104,36 +104,171 @@ ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_short, y=ANN)))+
   ylab("ANN")
 
 plot(fixed_field_data_processed_NN$Canopy_short, fixed_field_data_processed_NN$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
-lm_LM_ANN <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
-abline(lm_LM_ANN)
+lm_ANN_Canopy_short <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
+abline(lm_ANN_Canopy_short)
 
-
-#checking residuals#checking normality
-ggplot(lm_LM_ANN, aes(x= lm_LM_ANN$residuals))+
+#checking normality of residuals
+ggplot(lm_ANN_Canopy_short, aes(x= lm_ANN_Canopy_short$residuals))+
   geom_histogram()+
-  labs("Distribution of Residuals for Short Canopy Axis vs. ANN")+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. ANN")+
   xlab("Residuals")+
   ylab("Frequency")
 
-qqnorm(lm_LM_ANN$residuals)
+qqnorm(lm_ANN_Canopy_short$residuals)
 
 #checking equal variance
-ggplot(data = lm_LM_ANN, aes(x = fitted.values, y = residuals))
-
-plot(lm_LM_ANN$residuals ~ lm_LM_ANN$fitted.values, 
-     xlab = "Fitted Values",
-     ylab = "Residuals",
-     main = "Residuals vs. Fitted Values")
-abline(0,0)
-
+ggplot(data = lm_ANN_Canopy_short, aes(x = lm_ANN_Canopy_short$fitted.values, y = lm_ANN_Canopy_short$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for ANN and SCA")
+  
+#Slope Test visible in summary of the lm
+summary(lm_ANN_Canopy_short)
 
 #plotting the linear model in ggplot for LCA
-ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_short, y=ANN)))+
+
+#checking linearity 
+
+#plotting the linear model in ggplot for LCA, lineaerity condition is not well met
+ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_long, y=ANN)))+
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Short Canopy Axis")+
+  xlab("Long Canopy Axis")+
   ylab("ANN")
 
-plot(fixed_field_data_processed_NN$Canopy_short, fixed_field_data_processed_NN$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
-lm_LM_ANN <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
-abline(lm_LM_ANN)
+plot(fixed_field_data_processed_NN$Canopy_long, fixed_field_data_processed_NN$ANN, xlab = "Long Canopy Axis", ylab = "ANN")
+lm_ANN_Canopy_long <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_long)
+abline(lm_ANN_Canopy_long)
+
+
+#checking normality of residuals
+ggplot(lm_ANN_Canopy_long, aes(x= lm_ANN_Canopy_long$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. ANN")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+qqnorm(lm_ANN_Canopy_long$residuals)
+
+#checking equal variance
+ggplot(data = lm_ANN_Canopy_long, aes(x = lm_ANN_Canopy_long$fitted.values, y = lm_ANN_Canopy_long$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for ANN and LCA")
+
+#Slope Test visible in summary of the lm
+summary(lm_ANN_Canopy_long)
+
+#plotting the linear model in ggplot for CA
+
+#checking linearity 
+
+#plotting the linear model in ggplot for LCA, lineaerity condition is not well met
+ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_area, y=ANN)))+
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Canopy Area")+
+  ylab("ANN")
+
+plot(fixed_field_data_processed_NN$Canopy_area, fixed_field_data_processed_NN$ANN, xlab = "Canopy Area", ylab = "ANN")
+lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_area)
+abline(lm_ANN_Canopy_Area)
+
+
+#checking normality of residuals
+ggplot(lm_ANN_Canopy_Area, aes(x= lm_ANN_Canopy_Area$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. ANN")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+qqnorm(lm_ANN_Canopy_Area$residuals)
+
+#checking equal variance
+ggplot(data = lm_ANN_Canopy_Area, aes(x = lm_ANN_Canopy_Area$fitted.values, y = lm_ANN_Canopy_Area$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for ANN and CA")
+
+#Slope Test visible in summary of the lm
+summary(lm_ANN_Canopy_Area)
+
+#plotting the linear model in ggplot for CS
+
+#checking linearity 
+
+#plotting the linear model in ggplot for CS, lineaerity condition is not well met
+ggplot(data = fixed_field_data_processed_NN, (aes(x=Crown_spread, y=ANN)))+
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Crown Spread")+
+  ylab("ANN")
+
+plot(fixed_field_data_processed_NN$Crown_spread, fixed_field_data_processed_NN$ANN, xlab = "Crown Spread", ylab = "ANN")
+lm_ANN_Crown_Spread <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Crown_spread)
+abline(lm_ANN_Crown_Spread)
+
+
+#checking normality of residuals
+ggplot(lm_ANN_Crown_Spread, aes(x= lm_ANN_Crown_Spread$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. ANN")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+qqnorm(lm_ANN_Crown_Spread$residuals)
+
+#checking equal variance
+ggplot(data = lm_ANN_Crown_Spread, aes(x = lm_ANN_Crown_Spread$fitted.values, y = lm_ANN_Crown_Spread$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for ANN and CS")
+
+#Slope Test visible in summary of the lm
+summary(lm_ANN_Crown_Spread)
+
+#plotting the linear model in ggplot for DBH_ag
+
+#checking linearity 
+
+#plotting the linear model in ggplot for DBH_ag, lineaerity condition is not well met
+ggplot(data = fixed_field_data_processed_NN, (aes(x=DBH_ag, y=ANN)))+
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Crown Spread")+
+  ylab("ANN")
+
+plot(fixed_field_data_processed_NN$DBH_ag, fixed_field_data_processed_NN$ANN, xlab = "Aggregated DBH", ylab = "ANN")
+lm_ANN_DBH_ag <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$DBH_ag)
+abline(lm_ANN_DBH_ag)
+
+
+#checking normality of residuals
+ggplot(lm_ANN_DBH_ag, aes(x= lm_ANN_DBH_ag$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Aggregated DBH vs. ANN")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+qqnorm(lm_ANN_DBH_ag$residuals)
+
+#checking equal variance
+ggplot(data = lm_ANN_DBH_ag, aes(x = lm_ANN_DBH_ag$fitted.values, y = lm_ANN_DBH_ag$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for ANN and Aggregated DBH")
+
+#Slope Test visible in summary of the lm
+summary(lm_ANN_DBH_ag)
+
+
