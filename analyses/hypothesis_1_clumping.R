@@ -12,12 +12,30 @@ library(spatstat) # to run the Ripley's K function: Kest
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#upload river shapefile
+#upload river shapefile and filter out polygons for each population
 rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
-river_LC <- filter(rivers, Name == "River LC")
-river_SD <- filter(rivers, Name == "River SD")
-river_LM <- filter(rivers, Name == "LM River")
+rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so we got rid of it because it was giving us weird errors and disrupting later statistics
+river_LC <- filter(rivers_2d, Name == "River LC")
+river_SD <- filter(rivers_2d, Name == "River SD")
+river_LM <- filter(rivers_2d, Name == "LM River")
 
+river_LM_trans <- st_transform(river_LM, crs = 26912)
+river_LC_trans <- st_transform(river_LC, crs = 26912)
+river_SD_trans <- st_transform(river_SD, crs = 26912)
+
+#### Creating 20 m buffer around river polygons ####
+
+river_buffer_LM<- st_buffer(river_LM_trans, 200)
+ggplot(river_buffer_LM)+
+  geom_sf()
+
+river_buffer_LC<- st_buffer(river_LC_trans, 230)
+ggplot(river_buffer_LC)+
+  geom_sf()
+
+river_buffer_SD<- st_buffer(river_SD_trans, 120)
+ggplot(river_buffer_SD)+
+  geom_sf()
 
 #### Creating fixed_field_data_processed dataframes for each population ####
 
@@ -152,7 +170,7 @@ river_SD_convex_hull <- st_convex_hull(st_union(SD_fixed_field_data_processed_sf
 ggplot(river_SD_convex_hull)+
   geom_sf()
 
-#### Ripley's K Analysis ####
+#### Ripley's K Analysis (version with box, convex hull, and 20 m buffer around river) ####
 
 #Ripley's K for all points 
 win <- as.owin(fixed_field_data_processed_box)
@@ -170,10 +188,17 @@ plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside 
 
 #Ripley's K for LM with Convex Hull
 LM_win_convex <- as.owin(river_LM_convex_hull)
-LM_ppp <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_convex) #creating the poisson point pattern for lm
-plot(LM_ppp, pch = 16, cex = 0.5)
-LM_k <- Kest(LM_ppp, correction = "Ripley")
-plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+LM_ppp_convex <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_convex) #creating the poisson point pattern for lm
+plot(LM_ppp_convex, pch = 16, cex = 0.5)
+LM_k_convex <- Kest(LM_ppp_convex, correction = "Ripley")
+plot(LM_k_convex, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+
+#Ripley's K for LM with Buffer River 20 m
+LM_win_buffer <- as.owin(river_buffer_LM)
+LM_ppp_buffer <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_buffer) #creating the poisson point pattern for lm
+plot(LM_ppp_buffer, pch = 16, cex = 0.5)
+LM_k_buffer <- Kest(LM_ppp_buffer, correction = "Ripley")
+plot(LM_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
 #Ripley's K for LC 
 LC_win <- as.owin(LC_fixed_field_data_processed_box)
@@ -189,6 +214,13 @@ plot(LC_ppp, pch = 16, cex = 0.5)
 LC_k <- Kest(LC_ppp, correction = "Ripley")
 plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
+#Ripley's K for LC with Buffer River 20 m
+LC_win_buffer <- as.owin(river_buffer_LC)
+LC_ppp_buffer <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win_buffer) #creating the poisson point pattern for lm
+plot(LC_ppp_buffer, pch = 16, cex = 0.5)
+LC_k_buffer <- Kest(LC_ppp_buffer, correction = "Ripley")
+plot(LC_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+
 #Ripley's K for SD
 SD_win <- as.owin(SD_fixed_field_data_processed_box)
 SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win) #creating the poisson point pattern for lm
@@ -202,6 +234,13 @@ SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_co
 plot(SD_ppp, pch = 16, cex = 0.5)
 SD_k <- Kest(SD_ppp, correction = "Ripley")
 plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+
+#Ripley's K for SD with Buffer River 20 m
+SD_win_buffer <- as.owin(river_buffer_SD)
+SD_ppp_buffer <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_buffer) #creating the poisson point pattern for lm
+plot(SD_ppp_buffer, pch = 16, cex = 0.5)
+SD_k_buffer <- Kest(SD_ppp_buffer, correction = "Ripley")
+plot(SD_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
 
 #### Ripley's L ####
