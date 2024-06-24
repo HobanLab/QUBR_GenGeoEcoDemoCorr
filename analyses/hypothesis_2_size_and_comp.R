@@ -7,6 +7,9 @@ library(smatr)
 library(ggpmisc)
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
+library(spatstat) # to run the nndist function
+library(spdep) # to use lag.listw
+library(ape) # for computing the Moran's I stat
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -18,8 +21,27 @@ fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_proce
 
 #### Computing Average Nearest Neighbors for each tree ####
 
+#create dataframe with X and Y UTM coordinates
+fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
 #add average nearest neighbor for each individual column
-fixed_field_data_processed_NN <- fixed_field_data_processed %>%
+fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordinates %>%  #creates a dataframe with the ANN of the closest 5 individual trees for each individual
+  mutate(dist1 = nndist(X = X.1, Y= Y, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
+  mutate(dist2 = nndist(X = X.1, Y= Y, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
+  mutate(dist3 = nndist(X = X.1, Y= Y, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
+  mutate(dist4 = nndist(X = X.1, Y= Y, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
+  mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
+  rowwise()%>% #so that in the next part we take the averages across rows
+  mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5))) %>% #creates a column of the average distances (1-5) of each individual
+  select(!c(dist1, dist2, dist3, dist4, dist5)) #removes the excess columns with the 5 nearest neighbor distances
+
+mean(c(1.405577,3.354128,8.840866,25.245919,25.470333))
+View(fixed_field_data_processed_NN_UTM)
+
+
+fixed_field_data_processed_NN_latlon <- fixed_field_data_processed %>% 
   mutate(dist1 = nndist(X = long, Y= lat, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
   mutate(dist2 = nndist(X = long, Y= lat, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
   mutate(dist3 = nndist(X = long, Y= lat, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
@@ -35,57 +57,61 @@ View(fixed_field_data_processed_NN)
 
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
 
-LM_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
+LM_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
   filter(Locality == "LM")
 
-LC_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
+LC_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
   filter(Locality == "LC")
 
-SD_fixed_field_data_processed <- fixed_field_data_processed_NN %>%
+SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
   filter(Locality == "SD")
 
 #### Descriptive Summary ####
 
 #histograms
-ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_NN) + # Generate the base plot
+ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
-hist(fixed_field_data_processed_NN$Canopy_short, main = "Distribution of Short Canopy Axis")
-hist(fixed_field_data_processed_NN$Canopy_long, main = "Distribution of Long Canopy Axis")
-hist(fixed_field_data_processed_NN$Crown_spread, main = "Distribution of Canopy Spread")
-hist(fixed_field_data_processed_NN$Canopy_area, main = "Distribution of Canopy Area")
-hist(fixed_field_data_processed_NN$DBH_ag, main = "Distribution of DBH") # slight tail
+hist(fixed_field_data_processed_NN_UTM$Canopy_short, main = "Distribution of Short Canopy Axis")
+hist(fixed_field_data_processed_NN_UTM$Canopy_long, main = "Distribution of Long Canopy Axis")
+hist(fixed_field_data_processed_NN_UTM$Crown_spread, main = "Distribution of Canopy Spread")
+hist(fixed_field_data_processed_NN_UTM$Canopy_area, main = "Distribution of Canopy Area")
+hist(fixed_field_data_processed_NN_UTM$DBH_ag, main = "Distribution of DBH") # slight tail
 
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-field_data_summarized <- fixed_field_data_processed_NN %>%
+field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
 
 #### Linear Model ####
+
+fixed_field_data_processed_NN_UTM_log <- fixed_field_data_processed_NN_UTM %>%
+  mutate(Canopy_short_lg = log(Canopy_short))
+View(fixed_field_data_processed_NN_UTM_log)
 
 #Linear Model for all points
 
@@ -94,14 +120,14 @@ View(field_data_summarized)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_short, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_short, y=ANN)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Short Canopy Axis")+
   ylab("ANN")
 
-plot(fixed_field_data_processed_NN$Canopy_short, fixed_field_data_processed_NN$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
-lm_ANN_Canopy_short <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_short)
+plot(fixed_field_data_processed_NN_UTM_log$Canopy_short_lg, fixed_field_data_processed_NN_UTM_log$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
+lm_ANN_Canopy_short <- lm(fixed_field_data_processed_NN_UTM_log$ANN ~ fixed_field_data_processed_NN_UTM_log$Canopy_short_lg)
 abline(lm_ANN_Canopy_short)
 
 #checking normality of residuals
@@ -129,14 +155,14 @@ summary(lm_ANN_Canopy_short)
 #checking linearity 
 
 #plotting the linear model in ggplot for LCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_long, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_long, y=ANN)))+
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Long Canopy Axis")+
   ylab("ANN")
 
-plot(fixed_field_data_processed_NN$Canopy_long, fixed_field_data_processed_NN$ANN, xlab = "Long Canopy Axis", ylab = "ANN")
-lm_ANN_Canopy_long <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_long)
+plot(fixed_field_data_processed_NN_UTM$Canopy_long, fixed_field_data_processed_NN_UTM$ANN, xlab = "Long Canopy Axis", ylab = "ANN")
+lm_ANN_Canopy_long <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Canopy_long)
 abline(lm_ANN_Canopy_long)
 
 
@@ -165,14 +191,14 @@ summary(lm_ANN_Canopy_long)
 #checking linearity 
 
 #plotting the linear model in ggplot for LCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN, (aes(x=Canopy_area, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_area, y=ANN)))+
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Canopy Area")+
   ylab("ANN")
 
-plot(fixed_field_data_processed_NN$Canopy_area, fixed_field_data_processed_NN$ANN, xlab = "Canopy Area", ylab = "ANN")
-lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Canopy_area)
+plot(fixed_field_data_processed_NN_UTM$Canopy_area, fixed_field_data_processed_NN_UTM$ANN, xlab = "Canopy Area", ylab = "ANN")
+lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Canopy_area)
 abline(lm_ANN_Canopy_Area)
 
 
@@ -201,14 +227,14 @@ summary(lm_ANN_Canopy_Area)
 #checking linearity 
 
 #plotting the linear model in ggplot for CS, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN, (aes(x=Crown_spread, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Crown_spread, y=ANN)))+
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Crown Spread")+
   ylab("ANN")
 
-plot(fixed_field_data_processed_NN$Crown_spread, fixed_field_data_processed_NN$ANN, xlab = "Crown Spread", ylab = "ANN")
-lm_ANN_Crown_Spread <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$Crown_spread)
+plot(fixed_field_data_processed_NN_UTM$Crown_spread, fixed_field_data_processed_NN_UTM$ANN, xlab = "Crown Spread", ylab = "ANN")
+lm_ANN_Crown_Spread <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Crown_spread)
 abline(lm_ANN_Crown_Spread)
 
 
@@ -268,4 +294,23 @@ ggplot(data = lm_ANN_DBH_ag, aes(x = lm_ANN_DBH_ag$fitted.values, y = lm_ANN_DBH
 #Slope Test visible in summary of the lm
 summary(lm_ANN_DBH_ag)
 
+
+#### Moran's I ####
+
+#checking for duplicates
+fixed_field_data_processed_NN_UTM$X.1[c(115, 116, 117, 118)]
+duplicates <- fixed_field_data_processed_NN_UTM %>%
+  filter(duplicated(X.1) == TRUE) %>%
+  filter(duplicated(Y) == TRUE)
+View(duplicates)
+which(duplicated(fixed_field_data_processed_NN_UTM$X.1))
+which(duplicated(fixed_field_data_processed_NN_UTM$Y))
+
+Moran.I(fixed_field_data_processed_NN_UTM$Canopy_short, fixed_field_data_processed_NN_UTM$)
+
+nb <- knearneigh(fixed_field_data_processed_NN_UTM) # continous neighbor policy
+lw <- nb2listw(nb, style="W", zero.policy=T)
+fixed_field_data_processed_sf_transformed$lag <- 
+  lag.listw(lw, fixed_field_data_processed_sf_transformed$Canopy_short)
+View(fixed_field_data_processed_NN_UTM)
 

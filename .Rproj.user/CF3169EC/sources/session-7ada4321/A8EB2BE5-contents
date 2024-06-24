@@ -252,7 +252,7 @@ ann.p
 n <- 599L #defines the number of simulations
 ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
 for (i in 1:n){
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull) #river_LM_trans
+  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_buffer_LM) #river_LM_trans. #river_LM_convex_hull
   ann.r[i] <- mean(nndist(rand.p, k=1))
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window
 plot(rand.p)
@@ -317,6 +317,11 @@ for (i in 1:length(ann.r)){
 
 #### PPM analysis ####
 
-PPM1 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ log(river_LM_trans_points))
+PPM1 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ as.im(river_LM_trans_point_raster)) 
 PPM1
 
+PPM0 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ 1)
+PPM0
+
+
+anova(PPM0, PPM1, test="LRT")
