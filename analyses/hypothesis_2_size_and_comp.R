@@ -13,10 +13,11 @@ library(ape) # for computing the Moran's I stat
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#transforming the data into shapefiles with either WGS84 or equal area projection UTM 12N
+#transforming the data into shapefiles with either WGS84 
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
                                           coords = c("long", "lat"), crs = 4326)
 
+#transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
 fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
 
 #### Computing Average Nearest Neighbors for each tree ####
@@ -80,12 +81,6 @@ ggplot(fixed_field_data_processed_NN_UTM) + # Generate the base plot
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
-hist(fixed_field_data_processed_NN_UTM$Canopy_short, main = "Distribution of Short Canopy Axis")
-hist(fixed_field_data_processed_NN_UTM$Canopy_long, main = "Distribution of Long Canopy Axis")
-hist(fixed_field_data_processed_NN_UTM$Crown_spread, main = "Distribution of Canopy Spread")
-hist(fixed_field_data_processed_NN_UTM$Canopy_area, main = "Distribution of Canopy Area")
-hist(fixed_field_data_processed_NN_UTM$DBH_ag, main = "Distribution of DBH") # slight tail
-
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
@@ -93,11 +88,49 @@ field_data_summarized <- fixed_field_data_processed %>%
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
 
+#checking for duplicates
+duplicates <- fixed_field_data_processed_NN_UTM %>% #creates a dataframe called duplicates that filters out X.1 and Y if they have duplicates
+  filter(duplicated(X.1) == TRUE) %>%
+  filter(duplicated(Y) == TRUE)
+View(duplicates)
+which(duplicated(fixed_field_data_processed_NN_UTM$X.1)) #finds which rows have duplicates and returns the row number
+which(duplicated(fixed_field_data_processed_NN_UTM$Y))  #finds which rows have duplicates and returns the row number
+
 #### Linear Model ####
 
+#creating columns with transformations: logged all of the variables
 fixed_field_data_processed_NN_UTM_log <- fixed_field_data_processed_NN_UTM %>%
-  mutate(Canopy_short_lg = log(Canopy_short))
+  mutate(Canopy_short_lg = log(Canopy_short))%>%
+  mutate(Canopy_long_lg = log(Canopy_long))%>%
+  mutate(Canopy_area_lg = log(Canopy_area))%>%
+  mutate(Crown_spread_lg = log(Crown_spread))%>%
+  mutate(DBH_ag_lg = log(DBH_ag))%>%
+  mutate(ANN = log(ANN))
 View(fixed_field_data_processed_NN_UTM_log)
+
+#creating columns with transformations: square root all of the variables
+fixed_field_data_processed_NN_UTM_sqrt <- fixed_field_data_processed_NN_UTM %>%
+  mutate(Canopy_short_lg = sqrt(Canopy_short))%>%
+  mutate(Canopy_long_lg = sqrt(Canopy_long))%>%
+  mutate(Canopy_area_lg = sqrt(Canopy_area))%>%
+  mutate(Crown_spread_lg = sqrt(Crown_spread))%>%
+  mutate(DBH_ag_lg = sqrt(DBH_ag))%>%
+  mutate(ANN = sqrt(ANN))
+View(fixed_field_data_processed_NN_UTM_sqrt)
+
+#creating columns with transformations: square root all of the variables
+fixed_field_data_processed_NN_UTM_inverse <- fixed_field_data_processed_NN_UTM %>%
+  mutate(Canopy_short_lg = 1/(Canopy_short))%>%
+  mutate(Canopy_long_lg = 1/(Canopy_long))%>%
+  mutate(Canopy_area_lg = 1/(Canopy_area))%>%
+  mutate(Crown_spread_lg = 1/(Crown_spread))%>%
+  mutate(DBH_ag_lg = 1/(DBH_ag))%>%
+  mutate(ANN = 1/(ANN))
+View(fixed_field_data_processed_NN_UTM_inverse)
+
+
+fixed_field_data_processed_NN_UTM$
+
 
 #Linear Model for all points
 
@@ -106,17 +139,17 @@ View(fixed_field_data_processed_NN_UTM_log)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_short, y=ANN)))+ 
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Short Canopy Axis")+
-  ylab("ANN")
+  xlab("ANN")+
+  ylab("Short Canopy Axis")
 
-plot(fixed_field_data_processed_NN_UTM_log$Canopy_short_lg, fixed_field_data_processed_NN_UTM_log$ANN, xlab = "Short Canopy Axis", ylab = "ANN")
-lm_ANN_Canopy_short <- lm(fixed_field_data_processed_NN_UTM_log$ANN ~ fixed_field_data_processed_NN_UTM_log$Canopy_short_lg)
-abline(lm_ANN_Canopy_short)
+#creating the linear regression
+lm_ANN_Canopy_short <- lm(fixed_field_data_processed_NN_UTM_log$Canopy_short ~ fixed_field_data_processed_NN_UTM_log$ANN)
 
-#checking normality of residuals
+
+#checking normality of residuals with a histogram and qqnorm plot
 ggplot(lm_ANN_Canopy_short, aes(x= lm_ANN_Canopy_short$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. ANN")+
@@ -125,7 +158,6 @@ ggplot(lm_ANN_Canopy_short, aes(x= lm_ANN_Canopy_short$residuals))+
 
 ggplot(lm_ANN_Canopy_short, aes(sample = lm_ANN_Canopy_short$residuals))+
   geom_qq()
-qqnorm(lm_ANN_Canopy_short$residuals)
 
 #checking equal variance
 ggplot(data = lm_ANN_Canopy_short, aes(x = lm_ANN_Canopy_short$fitted.values, y = lm_ANN_Canopy_short$residuals))+
@@ -143,25 +175,24 @@ summary(lm_ANN_Canopy_short)
 #checking linearity 
 
 #plotting the linear model in ggplot for LCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_long, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Canopy_long)))+
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Long Canopy Axis")+
-  ylab("ANN")
+  xlab("ANN")+
+  ylab("Long Canopy Axis")
 
-plot(fixed_field_data_processed_NN_UTM$Canopy_long, fixed_field_data_processed_NN_UTM$ANN, xlab = "Long Canopy Axis", ylab = "ANN")
-lm_ANN_Canopy_long <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Canopy_long)
-abline(lm_ANN_Canopy_long)
+#creating the linear regression
+lm_ANN_Canopy_long <- lm(fixed_field_data_processed_NN_UTM$Canopy_long ~ fixed_field_data_processed_NN_UTM$ANN)
 
-
-#checking normality of residuals
+#checking normality of residuals with the histogram and a qqnorm plot
 ggplot(lm_ANN_Canopy_long, aes(x= lm_ANN_Canopy_long$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. ANN")+
+  labs(title = "Distribution of Residuals for ANN vs. Long Canopy Axis")+
   xlab("Residuals")+
   ylab("Frequency")
 
-qqnorm(lm_ANN_Canopy_long$residuals)
+ggplot(lm_ANN_Canopy_long, aes(sample = lm_ANN_Canopy_long$residuals))+
+  geom_qq()
 
 #checking equal variance
 ggplot(data = lm_ANN_Canopy_long, aes(x = lm_ANN_Canopy_long$fitted.values, y = lm_ANN_Canopy_long$residuals))+
@@ -185,19 +216,18 @@ ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Canopy_area)))+
   xlab("ANN")+
   ylab("Canopy Area")
 
-plot(fixed_field_data_processed_NN_UTM$Canopy_area, fixed_field_data_processed_NN_UTM$ANN, xlab = "Canopy Area", ylab = "ANN")
-lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Canopy_area)
-abline(lm_ANN_Canopy_Area)
+#creating the linear regression
+lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN_UTM$Canopy_area ~ fixed_field_data_processed_NN_UTM$ANN)
 
-
-#checking normality of residuals
+#checking normality of residuals with a histogram and qqnorm plot
 ggplot(lm_ANN_Canopy_Area, aes(x= lm_ANN_Canopy_Area$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. ANN")+
+  labs(title = "Distribution of Residuals for ANN vs. Canopy Area")+
   xlab("Residuals")+
   ylab("Frequency")
 
-qqnorm(lm_ANN_Canopy_Area$residuals)
+ggplot(lm_ANN_Canopy_Area, aes(sample = lm_ANN_Canopy_Area$residuals))+
+  geom_qq()
 
 #checking equal variance
 ggplot(data = lm_ANN_Canopy_Area, aes(x = lm_ANN_Canopy_Area$fitted.values, y = lm_ANN_Canopy_Area$residuals))+
@@ -207,7 +237,7 @@ ggplot(data = lm_ANN_Canopy_Area, aes(x = lm_ANN_Canopy_Area$fitted.values, y = 
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for ANN and CA")
 
-#Slope Test visible in summary of the lm
+#Slope Test visible in summary of the LM
 summary(lm_ANN_Canopy_Area)
 
 #plotting the linear model in ggplot for CS
@@ -221,19 +251,19 @@ ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Crown_spread)))+
   xlab("ANN")+
   ylab("Crown Spread")
 
-
+#creating the linear regression
 lm_ANN_Crown_Spread <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Crown_spread)
-abline(lm_ANN_Crown_Spread)
 
-
-#checking normality of residuals
+#checking normality of residuals with histograms and qq norm plots
 ggplot(lm_ANN_Crown_Spread, aes(x= lm_ANN_Crown_Spread$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Crown Spread vs. ANN")+
+  labs(title = "Distribution of Residuals for ANN vs. Crown Spread")+
   xlab("Residuals")+
   ylab("Frequency")
 
-qqnorm(lm_ANN_Crown_Spread$residuals)
+
+ggplot(lm_ANN_Crown_Spread, aes(sample = lm_ANN_Crown_Spread$residuals))+
+  geom_qq()
 
 #checking equal variance
 ggplot(data = lm_ANN_Crown_Spread, aes(x = lm_ANN_Crown_Spread$fitted.values, y = lm_ANN_Crown_Spread$residuals))+
@@ -257,20 +287,18 @@ ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=DBH_ag)))+
   xlab("ANN")+
   ylab("DBH_ag")
 
-
-
+#creating the linear regression
 lm_ANN_DBH_ag <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$DBH_ag)
-abline(lm_ANN_DBH_ag)
 
-
-#checking normality of residuals
+#checking normality of residuals with histogram and qq norm plot
 ggplot(lm_ANN_DBH_ag, aes(x= lm_ANN_DBH_ag$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Aggregated DBH vs. ANN")+
+  labs(title = "Distribution of Residuals for Aggregated ANN vs. DBH")+
   xlab("Residuals")+
   ylab("Frequency")
 
-qqnorm(lm_ANN_DBH_ag$residuals)
+ggplot(lm_ANN_DBH_ag, aes(sample = lm_ANN_DBH_ag$residuals))+
+  geom_qq()
 
 #checking equal variance
 ggplot(data = lm_ANN_DBH_ag, aes(x = lm_ANN_DBH_ag$fitted.values, y = lm_ANN_DBH_ag$residuals))+
@@ -286,20 +314,16 @@ summary(lm_ANN_DBH_ag)
 
 #### Moran's I ####
 
-#checking for duplicates
-fixed_field_data_processed_NN_UTM$X.1[c(115, 116, 117, 118)]
-duplicates <- fixed_field_data_processed_NN_UTM %>%
-  filter(duplicated(X.1) == TRUE) %>%
-  filter(duplicated(Y) == TRUE)
-View(duplicates)
-which(duplicated(fixed_field_data_processed_NN_UTM$X.1))
-which(duplicated(fixed_field_data_processed_NN_UTM$Y))
+tree.dist <- as.matrix(dist(cbind(fixed_field_data_processed_NN_UTM$X.1, 
+                                  fixed_field_data_processed_NN_UTM$Y))) #making a matrix of the distances between trees
+View(tree.dist)
+tree.dist.inv <- 1/tree.dist #makes it so closer trees are higher in the matrix
+diag(tree.dist.inv) <- 0 #makes so trees have a 0 distance with themselves
+View(tree.dist.inv)
 
-Moran.I(fixed_field_data_processed_NN_UTM$Canopy_short, fixed_field_data_processed_NN_UTM$)
+tree.dist.inv[is.infinite(tree.dist.inv)] <- 0 
+Moran.I(fixed_field_data_processed_NN_UTM$Canopy_short, tree.dist.inv)
 
-nb <- knearneigh(fixed_field_data_processed_NN_UTM) # continous neighbor policy
-lw <- nb2listw(nb, style="W", zero.policy=T)
-fixed_field_data_processed_sf_transformed$lag <- 
-  lag.listw(lw, fixed_field_data_processed_sf_transformed$Canopy_short)
-View(fixed_field_data_processed_NN_UTM)
+#Monte Carlo
 
+MC<- moran.mc(fixed_field_data_processed_NN_UTM$Canopy_short, tree.dist.inv, nsim = 999)
