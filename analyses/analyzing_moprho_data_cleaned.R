@@ -21,7 +21,7 @@ field_data_processed <- field_data_raw %>%
   mutate(DBH_ag = sqrt(rowSums(across(starts_with("DBH")), na.rm = T))) %>% # ->  sum all the the new DBH values -> then take the squareroot the sum --> this is the aggregated DBH (DBH_ag) which is how people in the US tend to calculate a single DBH from multi-stem dbh's (which is what 167 of these trees are)
   mutate(multistemmed = case_when(is.na(DBH2) ~ F, 
                                   !is.na(DBH2) ~ T)) %>% # Create a column that is a logical vector (True/False) that describes if the tree has multiple stems (T) or not (F)
-  select(!c(DBH1, DBH2, DBH3, DBH4, DBH5, DBH6)) %>% # Now that we have the aggregated DBH, we can remove all other DBH columns
+  select(!c(DBH1, DBH2, DBH3, DBH4, DBH5, DBxH6)) %>% # Now that we have the aggregated DBH, we can remove all other DBH columns
   filter(DBH_ag != 0) %>% # Filter to keep only individuals with DBH measurements (if DBH_ag = 0, then there were only NAs in all DBH columns to start)
   mutate(Canopy_short = case_when(Canopy1 <= Canopy2 ~ Canopy1, 
                                   Canopy2 < Canopy1 ~ Canopy2,), 

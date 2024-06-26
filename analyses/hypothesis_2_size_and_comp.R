@@ -35,24 +35,10 @@ fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordin
   mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
   rowwise()%>% #so that in the next part we take the averages across rows
   mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5))) %>% #creates a column of the average distances (1-5) of each individual
-  select(!c(dist1, dist2, dist3, dist4, dist5)) #removes the excess columns with the 5 nearest neighbor distances
+  dplyr::select(!c(dist1, dist2, dist3, dist4, dist5)) #removes the excess columns with the 5 nearest neighbor distances
 
 mean(c(1.405577,3.354128,8.840866,25.245919,25.470333))
 View(fixed_field_data_processed_NN_UTM)
-
-
-fixed_field_data_processed_NN_latlon <- fixed_field_data_processed %>% 
-  mutate(dist1 = nndist(X = long, Y= lat, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
-  mutate(dist2 = nndist(X = long, Y= lat, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
-  mutate(dist3 = nndist(X = long, Y= lat, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
-  mutate(dist4 = nndist(X = long, Y= lat, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
-  mutate(dist5 = nndist(X = long, Y= lat, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
-  rowwise()%>% #so that in the next part we take the averages across rows
-  mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5)))%>% #creates a column of the average distances (1-5) of each individual
-  select(!c(dist1, dist2, dist3, dist4, dist5)) #removes the excess columns with the 5 nearest neighbor distances
-
-mean(c(1.374369e-05,3.064129e-05,8.661858e-05,2.288619e-04, 2.312526e-04)) #Average nearest neighbors for first row
-View(fixed_field_data_processed_NN)
 
 
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
@@ -137,6 +123,8 @@ ggplot(lm_ANN_Canopy_short, aes(x= lm_ANN_Canopy_short$residuals))+
   xlab("Residuals")+
   ylab("Frequency")
 
+ggplot(lm_ANN_Canopy_short, aes(sample = lm_ANN_Canopy_short$residuals))+
+  geom_qq()
 qqnorm(lm_ANN_Canopy_short$residuals)
 
 #checking equal variance
@@ -191,11 +179,11 @@ summary(lm_ANN_Canopy_long)
 #checking linearity 
 
 #plotting the linear model in ggplot for LCA, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Canopy_area, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Canopy_area)))+
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Canopy Area")+
-  ylab("ANN")
+  xlab("ANN")+
+  ylab("Canopy Area")
 
 plot(fixed_field_data_processed_NN_UTM$Canopy_area, fixed_field_data_processed_NN_UTM$ANN, xlab = "Canopy Area", ylab = "ANN")
 lm_ANN_Canopy_Area <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Canopy_area)
@@ -227,13 +215,13 @@ summary(lm_ANN_Canopy_Area)
 #checking linearity 
 
 #plotting the linear model in ggplot for CS, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=Crown_spread, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=Crown_spread)))+
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Crown Spread")+
-  ylab("ANN")
+  xlab("ANN")+
+  ylab("Crown Spread")
 
-plot(fixed_field_data_processed_NN_UTM$Crown_spread, fixed_field_data_processed_NN_UTM$ANN, xlab = "Crown Spread", ylab = "ANN")
+
 lm_ANN_Crown_Spread <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$Crown_spread)
 abline(lm_ANN_Crown_Spread)
 
@@ -263,14 +251,15 @@ summary(lm_ANN_Crown_Spread)
 #checking linearity 
 
 #plotting the linear model in ggplot for DBH_ag, lineaerity condition is not well met
-ggplot(data = fixed_field_data_processed_NN, (aes(x=DBH_ag, y=ANN)))+
+ggplot(data = fixed_field_data_processed_NN_UTM, (aes(x=ANN, y=DBH_ag)))+
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Crown Spread")+
-  ylab("ANN")
+  xlab("ANN")+
+  ylab("DBH_ag")
 
-plot(fixed_field_data_processed_NN$DBH_ag, fixed_field_data_processed_NN$ANN, xlab = "Aggregated DBH", ylab = "ANN")
-lm_ANN_DBH_ag <- lm(fixed_field_data_processed_NN$ANN ~ fixed_field_data_processed_NN$DBH_ag)
+
+
+lm_ANN_DBH_ag <- lm(fixed_field_data_processed_NN_UTM$ANN ~ fixed_field_data_processed_NN_UTM$DBH_ag)
 abline(lm_ANN_DBH_ag)
 
 

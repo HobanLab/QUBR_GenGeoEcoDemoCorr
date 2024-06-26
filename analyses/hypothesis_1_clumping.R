@@ -9,6 +9,7 @@ library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the Ripley's K function: Kest
 library(stars) # for sf_rasterize function
+library(raster) #to use crop
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -249,16 +250,24 @@ plot(SD_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend 
 ann.p <- mean(nndist(LM_ppp, k=1))
 ann.p
 
-n <- 599L #defines the number of simulations
+n <- 566L #nrow(LM_fixed_field_data_processed) #defines the number of simulations
 ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
 for (i in 1:n){
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_buffer_LM) #river_LM_trans. #river_LM_convex_hull
+  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull) #river_buffer_LM  #river_LM_trans. #river_LM_convex_hull
   ann.r[i] <- mean(nndist(rand.p, k=1))
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window
 plot(rand.p)
 
-hist(ann.r, main = NULL, las=1, breaks = 40, col = "light blue", xlim = range(ann.p, ann.r))
-abline(v=ann.p, col = "red")
+
+#creating a histogram of the ANN Simulation Results
+as_tibble(ann.r) %>%
+  ggplot()+
+    geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
+    xlim(range(ann.p, ann.r)) +
+    geom_vline(xintercept=ann.p, col = "red") +
+    xlab("ANN")+
+  theme_classic()
+
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -281,24 +290,37 @@ river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #create raste
 plot(river_LM_trans_point_raster)
 plot(as.im(river_LM_trans_point_raster))
 
+river_LM_trans_point_raster_crop <- st_crop(river_LM_trans_point_raster, river_LM_convex_hull)
+plot(river_LM_trans_point_raster_crop)
 #ANN analysis controlling for river
 n <- 599L #defines the number of simulations
 ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
 for (i in 1:n){
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull,
-                   f = as.im(river_LM_trans_point_raster))
+  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf),
+                   f = as.im(river_LM_trans_point_raster_crop), forcewin = T, win=as.owin(river_LM_convex_hull))
   ann.r[i] <- mean(nndist(rand.p, k=1))
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window while controlling for the river's edge
 plot(rand.p)
 
-Window(rand.p) <- as.owin(river_LM_trans)
-plot(rand.p)
-ggplot()+ # ask about the ggplot
-  geom_sf(LM_fixed_field_data_processed_sf)+
-  geom_sf(river_LM_trans)
-plot(LM_fixed_field_data_processed_sf)
-hist(ann.r, main = NULL, las=1, breaks = 40, col = "light blue", xlim = range(ann.p, ann.r))
-abline(v=ann.p, col = "red")
+rand.p.crs <- rand.p %>% #adding the UTM 12 crs to rand.p
+  st_as_sf()%>%
+  st_set_crs(26912)
+
+ggplot()+
+  #geom_sf(data=river_LM_convex_hull, aes(alpha = 0))+
+  geom_sf(data=rand.p.crs)+
+  geom_sf(data=river_LM_trans, aes(alpha = 0))+
+  geom_sf(data=LM_fixed_field_data_processed, aes(col = "red", alpha = 0.5))
+  
+
+as_tibble(ann.r) %>%
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
+  xlim(range(ann.p, ann.r)) +
+  geom_vline(xintercept=ann.p, col = "red") +
+  xlab("ANN")+
+  theme_classic()
+
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -308,6 +330,7 @@ for (i in 1:length(ann.r)){
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 (total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
+
 
 #test for LC
 
