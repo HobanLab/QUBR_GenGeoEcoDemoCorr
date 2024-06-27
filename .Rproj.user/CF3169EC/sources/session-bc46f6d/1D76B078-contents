@@ -8,7 +8,7 @@ library(ggpmisc)
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the nndist function
-library(spdep) # to use lag.listw
+library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -314,6 +314,8 @@ summary(lm_ANN_DBH_ag)
 
 #### Moran's I ####
 
+#regular Moran's I
+
 tree.dist <- as.matrix(dist(cbind(fixed_field_data_processed_NN_UTM$X.1, 
                                   fixed_field_data_processed_NN_UTM$Y))) #making a matrix of the distances between trees
 View(tree.dist)
@@ -321,9 +323,65 @@ tree.dist.inv <- 1/tree.dist #makes it so closer trees are higher in the matrix
 diag(tree.dist.inv) <- 0 #makes so trees have a 0 distance with themselves
 View(tree.dist.inv)
 
-tree.dist.inv[is.infinite(tree.dist.inv)] <- 0 
+ggplot()+
+  geom_sf(data=river_LC_trans)+
+  geom_sf(data=LC_fixed_field_data_processed, aes(color=DBH_ag, size = DBH_ag), alpha = .5) +
+  scale_color_viridis_c()
+
+
+tree.dist.inv[is.infinite(tree.dist.inv)] <- 0 # solves problem presented by duplicated GPS points for trees that were very close to one another
 Moran.I(fixed_field_data_processed_NN_UTM$Canopy_short, tree.dist.inv)
 
-#Monte Carlo
+#Moran's I and Monte Carlo, using Lags, requires package: spdep
 
-MC<- moran.mc(fixed_field_data_processed_NN_UTM$Canopy_short, tree.dist.inv, nsim = 999)
+tree.coord.matrix <- as.matrix(cbind(fixed_field_data_processed_NN_UTM$X.1, 
+                                  fixed_field_data_processed_NN_UTM$Y))
+
+max(fixed_field_data_processed_NN_UTM$X.1)
+
+#creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
+knn <- knearneigh(tree.coord.matrix, k = 5) #I have playing around with the k, trying to include all or half of the trees for example
+#turns knn into neighbors list
+nb <- knn2nb(knn, row.names = NULL, sym = FALSE)
+#assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
+lw <- nb2listw(nb,zero.policy=TRUE, style="W")
+
+#checks the neighbor weights for the first tree
+lw$weights[1]
+
+#creating lags, which computes the average neighboring short canopy axis for each tree
+fixed_field_data_processed_NN_UTM$lag.canopy.short <- lag.listw(lw, fixed_field_data_processed_NN_UTM$Canopy_short)
+# Create a regression model
+M <- lm(lag.canopy.short ~ Canopy_short, fixed_field_data_processed_NN_UTM)
+
+# Plot the lagged variable vs. the variable 
+ggplot(data=fixed_field_data_processed_NN_UTM, aes(x=Canopy_short, y=lag.canopy.short))+
+  geom_point()+
+  geom_smooth(method = lm, col="blue")+
+  xlab("Short Canopy Axis")+
+  ylab("Lagged Short Canopy Axis")
+
+#computing the moran's I statistic
+moran(fixed_field_data_processed_NN_UTM$Canopy_short, listw = lw, n = length(nb), S0 = Szero(lw))
+
+#assessing statistical significance 
+MC<- moran.mc(fixed_field_data_processed_NN_UTM$Canopy_short, lw, nsim = 999)
+MC
+
+plot(MC, main="", las=1)
+MC$p.value
+
+#Local Moran's I 
+
+MC_local <- localmoran_perm(fixed_field_data_processed_NN_UTM$Canopy_short, lw, nsim = 9999, alternative = "greater")
+plot(MC_local)
+moran.plot(MC_local)
+
+MC_local.df <- as.data.frame(MC_local)
+fixed_field_data_processed_NN_UTM$p  <- MC_local.df$`Pr(folded) Sim`
+
+LM_box <- st_bbox(river_LM_trans)
+ggplot() +
+  geom_sf(data =river_LM_trans) +
+  geom_sf(data =fixed_field_data_processed_NN_UTM, aes(color = p)) +
+  coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))

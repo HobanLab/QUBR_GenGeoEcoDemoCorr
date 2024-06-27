@@ -11,7 +11,8 @@ library(spatstat) # to run the Ripley's K function: Kest
 library(stars) # for sf_rasterize function
 library(raster) #to use crop
 library(starsExtra) #to use dist_to_nearest
-
+library(geostatsp)
+library(tmaptools)
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -511,7 +512,7 @@ river_LC_trans_points <- st_cast(river_LC_trans, "MULTIPOINT") #turns the polyli
 river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #create raster of lake edge points
 plot(river_LC_trans_point_raster)
 
-river_buffer_LC_points <- st_cast(river_buffer_LC, "MULTIPOINT") #turns the polyline of the river buffer into a multipoint object
+river_buffer_LC_points <- st_cast(river_buffer_LC, "MULTIPOINT") #turns the polyline of the river buffer into a multipoint object in stars
 river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #create raster of lake edge points
 plot(river_buffer_LC_point_raster)
 
@@ -643,10 +644,10 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   xlab("ANN") +
   theme_classic()
 
-#calculating pseudo p-value for 
+#calculating pseudo p-value for the disperse mean ANN value
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] > ann.p){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -672,7 +673,7 @@ plot(dist_near_river_buffer_SD_inverse)
 #creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a new stars object with new defined values for distance
   st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 30 ~ 1, 
+  mutate(d = case_when(d <= 60 ~ 1, 
                        d > 1 ~ 1/d)) %>% #assigning cells less than 30 m away from rivers edge with value of 1 and taking 1/distance for all other cells
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_SD_inverse)
@@ -802,13 +803,21 @@ for (i in 1:length(ann.r)){
 
 #### PPM analysis ####
 
-plot(as.im(dist_near_river_buffer_LM_inverse))
+#creating the image of the distance to river stars
+dist_near_river_buffer_LM_inverse_im <- as.im(dist_near_river_buffer_LM_inverse)
 
-PPM1 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LM_inverse) 
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = as.ppp(LM_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LM_inverse_im) #as.im(dist_near_river_buffer_LM_inverse))
 PPM1
 
+#null hypothesis, no change in the trend of the points
 PPM0 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ 1)
 PPM0
 
-
+#using a likelihood ratio test to compare the alternative and null models
 anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im", se.fit = TRUE), main = "Distance to River",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+
