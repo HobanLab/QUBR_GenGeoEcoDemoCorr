@@ -271,6 +271,18 @@ for (i in 1:n){
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window
 plot(rand.p)
 
+#adding the UTM 12 crs to rand.p
+rand.p.crs <- rand.p %>% 
+  st_as_sf()%>%
+  st_set_crs(26912)
+
+#plotting the randomly generated points, tree points, and the river
+ggplot()+ 
+  geom_sf(data=river_LM_trans)+ #plotting the river
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
+
+
 #creating a histogram of the ANN Simulation Results
 as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
   ggplot()+
@@ -303,6 +315,18 @@ for (i in 1:n){
   ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window
 plot(rand.p)
+
+#adding the UTM 12 crs to rand.p
+rand.p.crs <- rand.p %>% 
+  st_as_sf()%>%
+  st_set_crs(26912)
+
+#plotting the randomly generated points, tree points, and the river
+ggplot()+ 
+  geom_sf(data=river_LC_trans)+ #plotting the river 
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
+
 
 #creating a histogram of the ANN Simulation Results
 as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
@@ -342,7 +366,7 @@ rand.p.crs <- rand.p %>%
   st_as_sf()%>%
   st_set_crs(26912)
 
-#plotting the randomly generated points, tree points, and probability/distance raster
+#plotting the randomly generated points, tree points, and the river
 ggplot()+ 
   geom_sf(data=river_SD_trans)+ #plotting the river edge raster
   geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
