@@ -337,6 +337,17 @@ for (i in 1:n){
 } #for the length of the number of points at LM, it assigns a random point within the convex hull window
 plot(rand.p)
 
+#adding the UTM 12 crs to rand.p
+rand.p.crs <- rand.p %>% 
+  st_as_sf()%>%
+  st_set_crs(26912)
+
+#plotting the randomly generated points, tree points, and probability/distance raster
+ggplot()+ 
+  geom_sf(data=river_SD_trans)+ #plotting the river edge raster
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
+
 #creating a histogram of the ANN Simulation Results
 as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
   ggplot()+
@@ -803,6 +814,8 @@ for (i in 1:length(ann.r)){
 
 #### PPM analysis ####
 
+#Test for LM
+
 #creating the image of the distance to river stars
 dist_near_river_buffer_LM_inverse_im <- as.im(dist_near_river_buffer_LM_inverse)
 
@@ -818,6 +831,45 @@ PPM0
 anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
-plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im", se.fit = TRUE), main = "Distance to River",
+plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im", se.fit = TRUE), main = "Distance to River of Las Matancitas",
      ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
 
+#Test for LC
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_LC_inverse_im <- as.im(dist_near_river_buffer_LC_inverse)
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = as.ppp(LC_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LC_inverse_im) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(as.ppp(LC_fixed_field_data_processed_sf) ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im", se.fit = TRUE), main = "Distance to River of La Cobriza",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+
+#Test for SD
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_SD_inverse_im <- as.im(dist_near_river_buffer_SD_inverse)
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = as.ppp(SD_fixed_field_data_processed_sf) ~ dist_near_river_buffer_SD_inverse_im) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(as.ppp(SD_fixed_field_data_processed_sf) ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im", se.fit = TRUE), main = "Distance to River of San Dionisio",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
