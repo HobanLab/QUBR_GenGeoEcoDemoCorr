@@ -856,7 +856,7 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im", se.fit = TRUE), main = "Distance to River of Las Matancitas",
-     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
 
 #Test for LC
 
@@ -876,7 +876,7 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im", se.fit = TRUE), main = "Distance to River of La Cobriza",
-     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
 
 #Test for SD
 
@@ -896,4 +896,4 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im", se.fit = TRUE), main = "Distance to River of San Dionisio",
-     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
