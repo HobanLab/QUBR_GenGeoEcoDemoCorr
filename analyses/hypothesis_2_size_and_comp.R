@@ -11,6 +11,7 @@ library(spatstat) # to run the nndist function
 library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
+library(igraph) #to use create the overlaps between the buffers, find adjacencies, and find largest number of cliques
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -1260,19 +1261,21 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 
 #Creating buffers
 
-LM_tree_buffers <- st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_fixed_field_data_processed$dbh_ag))
+LM_tree_buffers <- st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_fixed_field_data_processed$DBH_ag))
 ggplot()+
   geom_sf(data=LM_tree_buffers)+
   geom_sf(data=LM_fixed_field_data_processed$geometry)
 
+#finds the buffer points that overlap
 LM_tree_buffers_overlaps <- st_overlaps(LM_tree_buffers, sparse = FALSE) * 1
 LM_tree_buffers_overlaps <- 1 - LM_tree_buffers_overlaps 
 
-LM_tree_buffers_overlaps_crop <- st_crop(LM_tree_buffers)
 
-library(igraph)
+
+#creates a matrix that shows whether the buffers of the points overlap and how many times
 LM_tree_buffers_overlaps_adjmatrix <- graph_from_adjacency_matrix(LM_tree_buffers_overlaps)
-max_cliques(LM_tree_buffers_overlaps_adjmatrix)
+max_cliques(LM_tree_buffers_overlaps_adjmatrix, min = 50)
+largest_cliques(LM_tree_buffers_overlaps_adjmatrix)
 cliques(LM_tree_buffers_overlaps_adjmatrix)
 
 plot(LM_tree_buffers_overlaps)
