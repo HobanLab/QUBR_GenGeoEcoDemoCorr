@@ -1279,6 +1279,35 @@ largest_cliques(LM_tree_buffers_overlaps_adjmatrix)
 cliques(LM_tree_buffers_overlaps_adjmatrix)
 
 plot(LM_tree_buffers_overlaps)
+
+#Creating a grid over the tree points
+LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
+
+ggplot()+
+  geom_sf(data=LM_tree_grid)+
+  geom_sf(data=LM_fixed_field_data_processed_sf)
+
+#filter out the grid to just get the grid with the points, then filter out points in grids, randomly select points, then make a columne with trues for those points
+for (i in length(LM_tree_grid)){
+  LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid[i], sparse = F)
+  if LM_tree_grid_points_within
+}
+
+LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid[163], sparse = F)
+selected_tree <- sample(LM_tree_grid_points_within, size = 1, replace = F)
+View(LM_tree_grid_points_within)
+for (i in length(LM_tree_grid)){
+  LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid)
+  selected_tree <- sample(LM_tree_grid_points_within, replace = F)
+  LM_fixed_field_data_processed_sf_selected_trees <- LM_fixed_field_data_processed_sf %>%
+    add-column(selected_trees = NA) %>%
+    mutate(selected_trees = case_when(selected_tree ==  ~ lat.x,
+}
+
+View(LM_tree_grid_points_within)
+
+
+st_sample(LM_fixed_field_data_processed_sf, size = 1, by_polygon = T)
   
 #Creating columns for the size/distance focally
 
