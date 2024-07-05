@@ -69,6 +69,18 @@ LC_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
 SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
   filter(Locality == "SD")
 
+#upload river shapefile and filter out polygons for each population
+rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
+rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so we got rid of it because it was giving us weird errors and disrupting later statistics
+river_LC <- filter(rivers_2d, Name == "River LC")
+river_SD <- filter(rivers_2d, Name == "River SD")
+river_LM <- filter(rivers_2d, Name == "LM River")
+
+#changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+river_LM_trans <- st_transform(river_LM, crs = 26912) 
+river_LC_trans <- st_transform(river_LC, crs = 26912)
+river_SD_trans <- st_transform(river_SD, crs = 26912)
+
 #### Descriptive Summary ####
 
 #histograms
@@ -263,7 +275,7 @@ ggplot(data=MC_local.LM.canopy.short.df)+
   theme_gray()
 
 #calculating the p-values for each individual tree Moran's I, observed vs. expected
-LM_fixed_field_data_processed$p.canopy.short  <- MC_local.LM.df$`Pr(folded) Sim`
+LM_fixed_field_data_processed$p.canopy.short  <- MC_local.LM.canopy.short.df$`Pr(folded) Sim`
 #adjusting the p-vlaues to take into account multiple tests
 LM_fixed_field_data_processed$p.canopy.short.adjusted <- p.adjust(LM_fixed_field_data_processed$p.canopy.short, 
                                                                   method = "fdr", n=length(LM_fixed_field_data_processed$p.canopy.short))
@@ -1259,19 +1271,6 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 
 #LM
 
-#Creating buffers
-
-LM_tree_buffers <- st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_fixed_field_data_processed$DBH_ag))
-ggplot()+
-  geom_sf(data=LM_tree_buffers)+
-  geom_sf(data=LM_fixed_field_data_processed$geometry)
-
-#finds the buffer points that overlap
-LM_tree_buffers_overlaps <- st_overlaps(LM_tree_buffers, sparse = FALSE) * 1
-LM_tree_buffers_overlaps <- 1 - LM_tree_buffers_overlaps 
-
-
-
 #creates a matrix that shows whether the buffers of the points overlap and how many times
 LM_tree_buffers_overlaps_adjmatrix <- graph_from_adjacency_matrix(LM_tree_buffers_overlaps)
 max_cliques(LM_tree_buffers_overlaps_adjmatrix, min = 50)
@@ -1283,14 +1282,72 @@ plot(LM_tree_buffers_overlaps)
 #Creating a grid over the tree points
 LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
 
+#plotting the grid and the tree points
 ggplot()+
   geom_sf(data=LM_tree_grid)+
   geom_sf(data=LM_fixed_field_data_processed_sf)
 
+#create a tibble with the sum of how many trees fall in each grid, assign them t
+LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_processed_sf, sparse =F) %>%
+  rowSums() %>%
+  as_tibble() %>%
+  mutate(row = row_number()) %>%
+  filter(value > 0)
+  
+
+LM_tree_grid_inside <- LM_tree_grid %>%
+  st_as_sf() %>%
+  mutate(row = row_number()) %>%
+  filter(row %in% LM_tree_grid_points_within$row)
+
+#selecting the random points from each grid cell to be a focal point
+set.seed(25)
+focal_pts <- c()
+for (i in 1:nrow(LM_tree_grid_inside)){
+  LM_tree_grid_inside_df <- as.data.frame(LM_tree_grid_inside)
+  LM_tree_grid_inside_df_i <- LM_tree_grid_inside_df[i,]
+  LM_tree_grid_inside_sf_i <- st_as_sf(LM_tree_grid_inside_df_i)
+  all_pts <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F)
+  possible_pts <- which(all_pts == T)
+  focal_pt <- sample(possible_pts, size = 1, replace = F) #row number of tree that will be the focal tree for that grid cell
+  focal_pts <- c(focal_pts, focal_pt)
+}
+
+#filtering out point data to be just the focal points
+LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
+  filter(X %in% focal_pts) 
+
+LM_focal_tree_buffers <- st_buffer(LM_fixed_field_data_processed_focal$geometry, 40*mean(LM_fixed_field_data_processed_focal$DBH_ag))
+ggplot()+
+  geom_sf(data=LM_focal_tree_buffers)+
+  geom_sf(data=LM_fixed_field_data_processed_focal$geometry)+
+  geom_sf(data=LM_fixed_field_data_processed_sf)
+
+
+
+
+plot(river_LM_trans)
+View(LM_tree_grid_inside)
+ggplot()+
+  geom_sf(data=LM_tree_grid)+
+  geom_sf(data=LM_tree_grid_inside, fill = "blue")
+  
+plot(LM_tree_grid_inside)
+
+sum(LM_tree_grid_points_within)
+
+replicate(1, sample(nrow(LM_fixed_field_data_processed)))
+
+LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid, sparse = F)
+
+sample(LM_fixed_field_data_processed, 1)
+
 #filter out the grid to just get the grid with the points, then filter out points in grids, randomly select points, then make a columne with trues for those points
 for (i in length(LM_tree_grid)){
   LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid[i], sparse = F)
-  if LM_tree_grid_points_within
+  if (LM_tree_grid_points_within == T){
+    
+  }
 }
 
 LM_tree_grid_points_within <- st_within(LM_fixed_field_data_processed_sf, LM_tree_grid[163], sparse = F)

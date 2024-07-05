@@ -11,7 +11,7 @@ library(spatstat) # to run the Ripley's K function: Kest
 library(stars) # for sf_rasterize function
 library(raster) #to use crop
 library(starsExtra) #to use dist_to_nearest
-library(geostatsp)
+library(geostatsp) 
 library(tmaptools)
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
