@@ -181,10 +181,10 @@ ggplot(data=fixed_field_data_processed_NN_UTM, aes(x=Canopy_short, y=lag.canopy.
   ylab("Lagged Short Canopy Axis")
 
 #computing the Moran's I statistic
-moran(fixed_field_data_processed_NN_UTM$Canopy_short, listw = lw, n = length(nb), S0 = Szero(lw))
+moran(fixed_field_data_processed_NN_UTM$Canopy_short, listw = lw.dist, n = length(lw.dist$neighbours), S0 = Szero(lw.dist))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC<- moran.mc(fixed_field_data_processed_NN_UTM$Canopy_short, lw, nsim = 999)
+MC<- moran.mc(fixed_field_data_processed_NN_UTM$Canopy_short, lw.dist, nsim = 999)
 MC
 
 #plot of simulated Moran's I values against our value
@@ -194,7 +194,7 @@ MC$p.value
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local <- localmoran_perm(fixed_field_data_processed_NN_UTM$Canopy_short, lw, nsim = 9999, alternative = "greater")
+MC_local <- localmoran_perm(fixed_field_data_processed_NN_UTM$Canopy_short, lw.dist, nsim = 9999, alternative = "greater")
 MC_local.df <- as.data.frame(MC_local)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -230,20 +230,31 @@ LM.tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed$X.1,
 
 #creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
 knn.LM <- knearneigh(LM.tree.coord.matrix, k = 5, longlat = F) #I have playing around with the k, trying to include all or half of the trees for example
+#creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
+knn.dist.LM <- dnearneigh(LM.tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
+
+
 #turns knn into neighbors list
 nb.LM <- knn2nb(knn.LM, row.names = NULL, sym = FALSE)
+nb.dist.LM <- knn2nb(knn.dist, row.names = NULL, sym = FALSE) # does not work, not needed becuase knn.dist is a neighbors list
+
 
 #assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
 #lw <- nb2listw(nb,zero.policy=TRUE, style="W")
 #inverse distance weighting with raw distance-based weights without applying any normalisation
-lw.LM <- nb2listwdist(nb.LM, LM_fixed_field_data_processed, type="idw", style="W", 
-                   alpha = 1, dmax = NULL, longlat = F, zero.policy=NULL) #it converts it to latlon and then takes the distance because that is also more accurate
+lw.LM <- nb2listwdist(nb.LM, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
+                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
+View(lw.dist)
+lw.dist.LM <- nb2listwdist(knn.dist.LM, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
+                        alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
+View(lw.dist.LM)
 
 #checks the neighbor weights for the first tree
-sum(lw.LM$weights[[1]])
+lw.LM$weights[1]
+lw.dist.LM$weights[1]
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LM_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.LM, LM_fixed_field_data_processed$Canopy_short)
+LM_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Canopy_short)
 # Create a regression model
 M.LM <- lm(lag.canopy.short ~ Canopy_short, LM_fixed_field_data_processed)
 
@@ -290,10 +301,13 @@ LM_box <- st_bbox(river_LM_trans)
 LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
   mutate(pval_sig = p.canopy.short.adjusted <= .05)
 
+LM_fixed_field_data_processed_sign <- LM_fixed_field_data_processed %>%
+  filter(pval_sig == T)
+
 ggplot() +
   geom_sf(data =river_LM_trans) +
   geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.short.adjusted)) +
-  geom_sf(data = LM_fixed_field_data_processed %>% filter(pval_sig == T), color = "red") +
+  geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for SCA")
 
