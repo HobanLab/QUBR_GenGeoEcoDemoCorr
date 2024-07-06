@@ -150,21 +150,26 @@ max(fixed_field_data_processed_NN_UTM$X.1)
 
 #creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
 knn <- knearneigh(tree.coord.matrix, k = 5) #I have playing around with the k, trying to include all or half of the trees for example
+
+#creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
+knn.dist <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
+
 #turns knn into neighbors list
 nb <- knn2nb(knn, row.names = NULL, sym = FALSE)
+nb.dist <- knn2nb(knn.dist, row.names = NULL, sym = FALSE)
 
-
-#assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
-      #lw <- nb2listw(nb,zero.policy=TRUE, style="W")
 #inverse distance weighting with raw distance-based weights without applying any normalisation
 lw <- nb2listwdist(nb, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
                    alpha = 1, dmax = NULL, longlat = NULL, zero.policy=NULL)
-
+lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
+                        alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
+View(lw.dist)
 #checks the neighbor weights for the first tree
 lw$weights[1]
-
+lw.dist$weights[1]
 #creating lags, which computes the average neighboring short canopy axis for each tree
-fixed_field_data_processed_NN_UTM$lag.canopy.short <- lag.listw(lw, fixed_field_data_processed_NN_UTM$Canopy_short)
+fixed_field_data_processed_NN_UTM$lag.canopy.short <- lag.listw(lw.dist, fixed_field_data_processed_NN_UTM$Canopy_short)
+
 # Create a regression model
 M <- lm(lag.canopy.short ~ Canopy_short, fixed_field_data_processed_NN_UTM)
 
@@ -1314,8 +1319,8 @@ LM_focal_tree_buffers <- st_buffer(LM_fixed_field_data_processed_focal$geometry,
 ggplot()+
   geom_sf(data=river_LM_trans)+
   geom_sf(data=LM_focal_tree_buffers)+
-  geom_sf(data=LM_fixed_field_data_processed_focal$geometry)+
-  geom_sf(data=LM_fixed_field_data_processed_sf)
+  geom_sf(data=LM_fixed_field_data_processed_sf)+
+  geom_sf(data=LM_fixed_field_data_processed_focal$geometry, fill ="red")
   
 
 
