@@ -11,7 +11,7 @@ library(spatstat) # to run the nndist function
 library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
-library(igraph) #to use create the overlaps between the buffers, find adjacencies, and find largest number of cliques
+library(lme4) #to use the linear mixed effects model function
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -1282,13 +1282,18 @@ fixed_field_data_processed_NN_UTM_inverse <- fixed_field_data_processed_NN_UTM %
 View(fixed_field_data_processed_NN_UTM_inverse)
 
   
-  
 #Linear Model for all points
   
 #The conditions for the linear effects model are that:
 #there is lineary, the constant variation in the error, independent errors, and normally distributed errors
 
 #LM
+
+#creating a grid over the points with a 10 m edge buffer
+LM_box <- st_bbox(LM_fixed_field_data_processed_sf) #st_bbox(river_LM_trans)
+LM_fixed_field_data_processed_sf_cropped <- st_crop(LM_fixed_field_data_processed_sf, xmin= (LM_box[1]+10), ymin = (LM_box[2]+10), xmax = (LM_box[3]-10), ymax = (LM_box[4]-10))
+
+
 #Creating a grid over the tree points 
 LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
 
@@ -1303,7 +1308,7 @@ LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_proc
   as_tibble() %>% 
   mutate(row = row_number()) %>% #assign a new column with row numbers 
   filter(value > 0) #filter out any grids without trees in them
-  
+
 #filter out the grids to only have the grid cells that contain trees
 LM_tree_grid_inside <- LM_tree_grid %>%
   st_as_sf() %>% 
@@ -1329,12 +1334,157 @@ LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
 
 
 #creating the buffer around the focal points
-LM_focal_tree_buffers <- st_buffer(LM_fixed_field_data_processed_focal$geometry, 40*mean(LM_fixed_field_data_processed_focal$DBH_ag))
+LM_focal_tree_buffers <-st_buffer(LM_fixed_field_data_processed_focal$geometry, 40*mean(LM_fixed_field_data_processed_focal$DBH_ag))
 ggplot()+
   geom_sf(data=river_LM_trans)+
   geom_sf(data=LM_focal_tree_buffers)+
   geom_sf(data=LM_fixed_field_data_processed_sf)+
   geom_sf(data=LM_fixed_field_data_processed_focal$geometry, fill ="red")
-  
 
+#calculating the size/distance for focal trees and neighbors within buffers for buffers with only the focal tree and with more 
+
+#create a tibble with the the number of trees within the buffers that contain trees
+LM_tree_buffers_points_within_0 <- st_contains(LM_focal_tree_buffers, LM_fixed_field_data_processed_sf, sparse =F) %>%
+  rowSums() %>% #find how many trees are within each grid
+  as_tibble() %>% 
+  mutate(row = row_number()) %>% #assign a new column with row numbers 
+  filter(value > 0) #filter out any buffers with only the focal tree
+
+#filter out the buffers to only have the buffers that contain trees
+LM_tree_buffer_inside_0 <- LM_focal_tree_buffers %>%
+  st_as_sf() %>% 
+  mutate(row = row_number()) %>% #create a column with row numbers
+  filter(row %in% LM_tree_buffers_points_within_0$row) #only keep polygons that match the row number of the grid cells with trees within them 
+
+#calculating the size/distance for focal trees and neighbors within buffers for buffers with more than just the focal tree
+
+#create a tibble with the the number of trees within the buffers that contain trees
+LM_tree_buffers_points_within <- st_contains(LM_focal_tree_buffers, LM_fixed_field_data_processed_sf, sparse =F) %>%
+  rowSums() %>% #find how many trees are within each grid
+  as_tibble() %>% 
+  mutate(row = row_number()) %>% #assign a new column with row numbers 
+  filter(value > 1) #filter out any buffers with only the focal tree
+
+#filter out the buffers to only have the buffers that contain trees
+LM_tree_buffer_inside <- LM_focal_tree_buffers %>%
+  st_as_sf() %>% 
+  mutate(row = row_number()) %>% #create a column with row numbers
+  filter(row %in% LM_tree_buffers_points_within$row) #only keep buffers that match the row number of the buffers cells with trees within them 
+
+#plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
+ggplot()+
+  geom_sf(data=river_LM_trans)+
+  geom_sf(data=LM_tree_buffer_inside_0)+
+  geom_sf(data=LM_tree_buffer_inside, fill = "red")+
+  geom_sf(data=LM_fixed_field_data_processed_sf)
+
+
+#create a dataframe with the column for all of the focal distances
+LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed %>%
+  add_column(focal_distance = NA) #add a column for distances of neighbors to focal tree
+
+#calculating the distances of each tree within the buffer to the focal tree
+for (i in 1:nrow(LM_tree_buffer_inside)){ #for the length of the buffers with trees inside of them
+  LM_tree_buffer_inside_df <- as.data.frame(LM_tree_buffer_inside)
+  LM_tree_buffer_inside_df_i <- LM_tree_buffer_inside_df[i,] #isolate a row of the buffer dataframe
+  LM_tree_buffer_inside_sf_i <- st_as_sf(LM_tree_buffer_inside_df_i) #set the row as a simple feature
+  all_pts_buffer <- st_contains(LM_tree_buffer_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
+  possible_pts_buffer <- which(all_pts_buffer == T) #keep only the rows of trees that are within the polygon
+  LM_fixed_field_data_processed_trees <- LM_fixed_field_data_processed %>%
+    filter(X %in% possible_pts_buffer) #filtering to the data to only be the trees within the buffer
+  LM_fixed_field_data_focal_tree <- LM_fixed_field_data_processed_focal %>%
+    filter(X %in% LM_fixed_field_data_processed_trees$X) #create a dataframe with only the focal tree
+  for (i in 1:nrow(LM_fixed_field_data_processed_trees)){ #for each tree in each buffer, calculate the distance from the tree to the focal tree
+    LM_fixed_field_data_processed_focal_dist$focal_distance[LM_fixed_field_data_processed_trees[i,]$X] <- crossdist(LM_fixed_field_data_processed_trees[i,]$X.1, LM_fixed_field_data_processed_trees[i,]$Y, 
+                                                    LM_fixed_field_data_focal_tree$X.1, LM_fixed_field_data_focal_tree$Y)
+  }
+}
+
+View(LM_fixed_field_data_processed_focal_dist)
+
+#create columns with the size values divided by the distance to the focal tree values and turning infinite values into their regular values
+LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed_focal_dist %>%
+  mutate(SCA_over_distance = Canopy_short/focal_distance) %>% #creating a column with the short canopy axis size value divided by the tree's distance from the focal tree
+  mutate(SCA_over_distance = case_when(is.infinite(SCA_over_distance) ~ NA,!is.infinite(SCA_over_distance) ~ SCA_over_distance)) %>% #if the SCA_over_distance value is infinite because it is dividing by a zero, we set it to NA and if not, it remains the value it was before
+  mutate(LCA_over_distance = Canopy_long/focal_distance) %>%
+  mutate(LCA_over_distance = case_when(is.infinite(LCA_over_distance) ~ NA,!is.infinite(LCA_over_distance) ~ LCA_over_distance)) %>%
+  mutate(CA_over_distance = Canopy_area/focal_distance) %>%
+  mutate(CA_over_distance = case_when(is.infinite(CA_over_distance) ~ NA,!is.infinite(CA_over_distance) ~ CA_over_distance)) %>%
+  mutate(CS_over_distance = Crown_spread/focal_distance) %>%
+  mutate(CS_over_distance = case_when(is.infinite(CS_over_distance) ~ NA,!is.infinite(CS_over_distance) ~ CS_over_distance)) %>%
+  mutate(DBH_over_distance = DBH_ag/focal_distance) %>%
+  mutate(DBH_over_distance = case_when(is.infinite(DBH_over_distance) ~ NA,!is.infinite(DBH_over_distance) ~ DBH_over_distance))
+
+#descriptive statistics
+
+#histograms
+ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
+  geom_histogram(aes(x = SCA_over_distance))+
+  xlab("Short Canopy Axis over Distance")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
+  geom_histogram(aes(x = LCA_over_distance))+
+  xlab("Long Canopy Axis over Distance")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
+  geom_histogram(aes(x = CS_over_distance))+
+  xlab("Canopy Spread over Distance")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
+  geom_histogram(aes(x = CA_over_distance))+
+  xlab("Canopy Area over Distance")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
+  geom_histogram(aes(x = DBH_over_distance))+
+  xlab("Aggregated DBH over Distance")+
+  ylab("Frequency")
+
+#Summaries
+# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
+LM_field_data_summarized_focal <- LM_fixed_field_data_processed_focal_dist %>%
+  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
+  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
+View(field_data_summarized)
+
+#conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_focal_dist, (aes(x=SCA_over_distance, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("SCA over Distance")+
+  ylab("Short Canopy Axis")
+
+#creating the linear regression
+LM_lmem_focal_SCA <- lm(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance)
+
+#creating the linear mixed effects model
+LM_lmem_focal_SCA <- lmer(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lmem_focal_SCA, aes(x= LM_lmem_focal_SCA$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lmem_focal_SCA, aes(sample = LM_lmem_focal_SCA$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lmem_focal_SCA, aes(x = LM_lmem_focal_SCA$fitted.values, y = LM_lmem_focal_SCA$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
+
+#Slope Test visible in summary of the lm
+summary(LM_lmem_focal_SCA)
 
