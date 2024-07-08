@@ -251,7 +251,7 @@ View(lw.dist.LM)
 
 #checks the neighbor weights for the first tree
 lw.LM$weights[1]
-lw.dist.LM$weights[1]
+lw.dist.LM$weights[129]
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
 LM_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Canopy_short)
@@ -1291,7 +1291,35 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 
 #creating a grid over the points with a 10 m edge buffer
 LM_box <- st_bbox(LM_fixed_field_data_processed_sf) #st_bbox(river_LM_trans)
-LM_fixed_field_data_processed_sf_cropped <- st_crop(LM_fixed_field_data_processed_sf, xmin= (LM_box[1]+10), ymin = (LM_box[2]+10), xmax = (LM_box[3]-10), ymax = (LM_box[4]-10))
+
+LM_fixed_field_data_processed_spatial <- as(LM_fixed_field_data_processed_sf, 'Spatial')
+LM_fixed_field_data_processed_spatial_cropped_10 <- crop(LM_fixed_field_data_processed_sf_spatial, extent((LM_box[1]+10), (LM_box[3]-10), (LM_box[2]+10), (LM_box[4]-10)))
+LM_fixed_field_data_processed_sf_cropped_10 <- LM_fixed_field_data_processed_spatial_cropped_10 %>%
+  st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_10)
+
+poly <- st_polygon(c((LM_box[1]+10), (LM_box[2]+10), (LM_box[3]-10), (LM_box[4]-10)))
+st_intersection(LM_fixed_field_data_processed_sf, )
+
+ggplot()+
+  geom_sf(data=LM_fixed_field_data_processed_sf)+
+  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_10, color = 'red')+
+  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20, color = "blue")+
+  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_40, color = "green")
+
+
+#attempt to make a cropping by cutting out x and y values 
+LM_fixed_field_data_processed_sf_cropped_2 <- LM_fixed_field_data_processed %>%
+  mutate(X.1 = case_when(X.1 > (LM_box[1]+10) | X.1 < (LM_box[3]-10) ~ X.1,
+                           X.1 < (LM_box[1]+10) | X.1 > (LM_box[3]-10) ~ NA)) %>%
+  mutate(X.1 = case_when(Y > (LM_box[2]+10) | Y < (LM_box[4]-10) ~ Y,
+                           Y < (LM_box[2]+10) | Y > (LM_box[4]-10) ~ NA)) %>%
+  st_as_sfc()
+View(LM_fixed_field_data_processed_sf_cropped_2)
+which(LM_fixed_field_data_processed$X.1 < (LM_box[2]+10))
+ggplot()+
+  geom_sf(data = LM_fixed_field_data_processed_sf_cropped_2, color = 'red')+
+  geom_sf(data=LM_fixed_field_data_processed_sf)
+  
 
 
 #Creating a grid over the tree points 
@@ -1452,6 +1480,23 @@ View(field_data_summarized)
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
 
+#calculate leverage for each observation in the model
+leverage <- as.data.frame(hatvalues(LM_lmem_focal_SCA))
+levarage <- leverage %>%
+  mutate(row = row_number())
+plot(hatvalues(LM_lmem_focal_SCA), type = 'h')
+mean(hatvalues(LM_lmem_focal_SCA))
+unusual_lev <- 4/nrow(LM_fixed_field_data_processed_focal_dist)
+which(leverage > unusual)
+which(leverage$`hatvalues(LM_lmem_focal_SCA)` > .025)
+
+#Cook's D
+cookd(LM_lmem_focal_SCA)
+cooksD <- cooks.distance(LM_lmem_focal_SCA)
+plot(cooksD, type = 'h')
+unsual_cooksD <- 0.5
+which(cooksD > unsual_cooksD)
+
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
@@ -1462,7 +1507,8 @@ ggplot(data = LM_fixed_field_data_processed_focal_dist, (aes(x=SCA_over_distance
   ylab("Short Canopy Axis")
 
 #creating the linear regression
-LM_lmem_focal_SCA <- lm(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance)
+LM_lmem_focal_SCA <- lm(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance, na.omit = T)
+View(LM_fixed_field_data_processed_focal_dist)
 
 #creating the linear mixed effects model
 LM_lmem_focal_SCA <- lmer(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance)
