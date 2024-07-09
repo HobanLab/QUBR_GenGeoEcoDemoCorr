@@ -311,6 +311,20 @@ ggplot() +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for SCA")
 
+#attempting to zoom on the sizes of the significant point
+ggplot() +
+  geom_sf(data =river_LM_trans) +
+  geom_sf(data =LM_fixed_field_data_processed, aes(size = Canopy_short)) +
+  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.short.adjusted))+
+  geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
+  xlim(c(585700.6, 585903.6))+
+  ylim(c(2654803,2654983))
+max(LM_fixed_field_data_processed$X.1)
+max(LM_fixed_field_data_processed$Y)
+
+#looking at whether similarity is larger or smaller values 
+
+
 ###Long Canopy Axis
 
 #global Moran's I
@@ -1297,8 +1311,7 @@ LM_fixed_field_data_processed_spatial_cropped_10 <- crop(LM_fixed_field_data_pro
 LM_fixed_field_data_processed_sf_cropped_10 <- LM_fixed_field_data_processed_spatial_cropped_10 %>%
   st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_10)
 
-poly <- st_polygon(c((LM_box[1]+10), (LM_box[2]+10), (LM_box[3]-10), (LM_box[4]-10)))
-st_intersection(LM_fixed_field_data_processed_sf, )
+LM_fixed_field_data_processed_sf_cropped <- st_crop(LM_fixed_field_data_processed_sf, xmin= (LM_box[1]+10), xmax = (LM_box[3]-10), ymin = (LM_box[2]+10), ymax = (LM_box[4]-10))
 
 ggplot()+
   geom_sf(data=LM_fixed_field_data_processed_sf)+
