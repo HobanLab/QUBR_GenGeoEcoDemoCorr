@@ -68,6 +68,18 @@ river_LM_trans <- st_transform(river_LM, crs = 26912)
 river_LC_trans <- st_transform(river_LC, crs = 26912)
 river_SD_trans <- st_transform(river_SD, crs = 26912)
 
+##Load in environmental rasters 
+
+#soil textures
+clay_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_05cm_mgw/cly_05cm_mgw.tif"))
+clay_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_200cm_mgw/cly_200cm_mgw.tif"))
+silt_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_05cm_pgw/slt_05cm_pgw.tif"))
+silt_200 <-raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_200cm_pgw/slt_200cm_pgw.tif"))
+sand_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /snd_05cm_mgw/snd_05cm_mgw.tif"))
+sand_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /snd_200cm_mgw/snd_200cm_mgw.tif"))
+
+
+
 
 #### Descriptive Summary ####
 
