@@ -13,6 +13,8 @@ library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
 library(lme4) #to use the linear mixed effects model function
 
+`%notin%` <- Negate(`%in%`) # Make a function that is the opposite of the %in% function
+
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #transforming the data into shapefiles with either WGS84 
@@ -1456,40 +1458,80 @@ LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed_focal_
   mutate(DBH_over_distance = DBH_ag/focal_distance) %>%
   mutate(DBH_over_distance = case_when(is.infinite(DBH_over_distance) ~ NA,!is.infinite(DBH_over_distance) ~ DBH_over_distance))
 
+View(LM_fixed_field_data_processed_focal_dist)
+
+#creating a dataframe with  the sum of the neighbors sizes/their distances for each buffer/focal tree 
+
+LM_fixed_field_data_all_focal_trees <- tibble()#creating the empty tibble 
+
+for (i in 1:nrow(LM_tree_buffer_inside)){  #for the length of the buffers with trees inside of them
+  LM_tree_buffer_inside_df <- as.data.frame(LM_tree_buffer_inside)
+  LM_tree_buffer_inside_df_i <- LM_tree_buffer_inside_df[i,] #isolate a row of the buffer dataframe
+  LM_tree_buffer_inside_sf_i <- st_as_sf(LM_tree_buffer_inside_df_i) #set the row as a simple feature
+  all_pts_buffer <- st_contains(LM_tree_buffer_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
+  possible_pts_buffer <- which(all_pts_buffer == T) #keep only the rows of trees that are within the polygon
+  LM_fixed_field_data_processed_trees <- LM_fixed_field_data_processed_focal_dist %>%
+    filter(X %in% possible_pts_buffer) #filtering to the data to only be the trees within the buffer
+  LM_fixed_field_data_focal_tree <- LM_fixed_field_data_processed_focal %>%
+    filter(X %in% LM_fixed_field_data_processed_trees$X) #create a dataframe with only the focal tree
+  LM_fixed_field_data_processed_neighbors <- LM_fixed_field_data_processed_trees %>%
+    filter(X %notin%  LM_fixed_field_data_focal_tree$X) #create a dataframe with only the neighbors within each buffer
+  sum_SCA_over_distance = 0 #create a new variable for short canopy axis over distance to focal tree set to 0
+  sum_LCA_over_distance = 0 #create a new variable for long canopy axis over distance to focal tree set to 0
+  sum_CA_over_distance = 0 #create a new variable for canopy area over distance to focal tree set to 0
+  sum_CS_over_distance = 0 #create a new variable for crown spread over distance to focal tree set to 0
+  sum_DBH_over_distance = 0 #create a new variable for DBH over distance to focal tree set to 0
+
+  for (i in 1:nrow(LM_fixed_field_data_processed_neighbors)){ #adding the size values of each neighbor to a sum total of the neighbors size values
+    sum_SCA_over_distance = sum_SCA_over_distance + LM_fixed_field_data_processed_neighbors$SCA_over_distance[i] #summing the SCA of each neighbor
+    sum_LCA_over_distance = sum_LCA_over_distance + LM_fixed_field_data_processed_neighbors$LCA_over_distance[i] #summing the LCA of each neighbor
+    sum_CA_over_distance = sum_CA_over_distance + LM_fixed_field_data_processed_neighbors$CA_over_distance[i] #summing the CA of each neighbor
+    sum_CS_over_distance = sum_CS_over_distance + LM_fixed_field_data_processed_neighbors$CS_over_distance[i] #summing the CS of each neighbor
+    sum_DBH_over_distance = sum_DBH_over_distance + LM_fixed_field_data_processed_neighbors$DBH_over_distance[i] #summing the DBH of each neighbor
+  }
+  
+  #creating a tibble with all of the calculated sizes over distances 
+  all_vals_tibble <- tibble(sum_SCA_over_distance, sum_LCA_over_distance, sum_CS_over_distance, sum_CA_over_distance, sum_DBH_over_distance)
+  LM_fixed_field_data_focal_tree <- cbind(LM_fixed_field_data_focal_tree, all_vals_tibble) #bind the sizes over distances values within each buffer to the focal trees
+  LM_fixed_field_data_all_focal_trees <- rbind(LM_fixed_field_data_all_focal_trees, LM_fixed_field_data_focal_tree) #add the focal trees with sum of size over distance values to the originally empty tibble
+
+}
+
+
 #descriptive statistics
 
 #histograms
-ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
-  geom_histogram(aes(x = SCA_over_distance))+
-  xlab("Short Canopy Axis over Distance")+
+ggplot(LM_fixed_field_data_all_focal_trees) + # Generate the base plot
+  geom_histogram(aes(x = sum_SCA_over_distance))+
+  xlab("Sum of Short Canopy Axis over Distance")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
-  geom_histogram(aes(x = LCA_over_distance))+
-  xlab("Long Canopy Axis over Distance")+
+ggplot(LM_fixed_field_data_all_focal_trees) + # Generate the base plot
+  geom_histogram(aes(x = sum_LCA_over_distance))+
+  xlab("Sum of Long Canopy Axis over Distance")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
-  geom_histogram(aes(x = CS_over_distance))+
-  xlab("Canopy Spread over Distance")+
+ggplot(LM_fixed_field_data_all_focal_trees) + # Generate the base plot
+  geom_histogram(aes(x = sum_CS_over_distance))+
+  xlab("Sum of Canopy Spread over Distance")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
-  geom_histogram(aes(x = CA_over_distance))+
-  xlab("Canopy Area over Distance")+
+ggplot(LM_fixed_field_data_all_focal_trees) + # Generate the base plot
+  geom_histogram(aes(x = sum_CA_over_distance))+
+  xlab("Sum of Canopy Area over Distance")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_focal_dist) + # Generate the base plot
-  geom_histogram(aes(x = DBH_over_distance))+
-  xlab("Aggregated DBH over Distance")+
+ggplot(LM_fixed_field_data_all_focal_trees) + # Generate the base plot
+  geom_histogram(aes(x = sum_DBH_over_distance))+
+  xlab("Sum of Aggregated DBH over Distance")+
   ylab("Frequency")
 
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-LM_field_data_summarized_focal <- LM_fixed_field_data_processed_focal_dist %>%
-  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
+LM_field_data_focal_summarized_focal <- LM_fixed_field_data_all_focal_trees %>%
+  dplyr::select(sum_SCA_over_distance, sum_LCA_over_distance, sum_CS_over_distance, sum_CA_over_distance, sum_DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(field_data_summarized)
+View(LM_field_data_focal_summarized_focal)
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
 
@@ -1524,8 +1566,12 @@ LM_lmem_focal_SCA <- lm(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ 
 View(LM_fixed_field_data_processed_focal_dist)
 
 #creating the linear mixed effects model
-LM_lmem_focal_SCA <- lmer(LM_fixed_field_data_processed_focal_dist$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$SCA_over_distance)
+LM_lmem_focal_SCA <- lmer(LM_fixed_field_data_all_focal_trees$Canopy_short ~ LM_fixed_field_data_processed_focal_dist$sum_SCA_over_distance)
 
+#creating the generalized linear effects model
+LM_gls_focal_SCA <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), data = LM_fixed_field_data_all_focal_trees)
+LM_fixed_field_data_all_focal_trees$sum_SCA_over_distance
+View(LM_fixed_field_data_all_focal_trees)
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lmem_focal_SCA, aes(x= LM_lmem_focal_SCA$residuals))+
   geom_histogram()+
