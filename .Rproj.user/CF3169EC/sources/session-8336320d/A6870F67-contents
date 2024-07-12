@@ -1,0 +1,169 @@
+rm(list=ls())
+setwd("~/Desktop/Wessinger/Range_mapping_project/")
+#setwd("~/Desktop/range_mapping_project/")
+
+library(dismo) #raster manipulation
+library(ecospat) # climate pca and niche equivalency
+library(factoextra) #biplot
+library(distances) # euclidean distances
+library(ContourFunctions) #make title with multiple colors
+library(weights) #weighted chi squared
+library(gdalUtils) #to reproject large rasters faster
+library(rgdal) #needed to get the soil data
+library(XML) #needed to get the soil data
+library(tidyverse)
+
+####all bioclim rasters####
+
+#getting the biolcim data at .5 arc seconds and then knitting the tiles to cover all of our space (then cropping them lol)
+#using gdalwarp I am able to set the output extent(te), crs(t_srs), and res(tr) in one QUICK command, requires that you have gdal installed with brew, this ensures that all rasters have the same extent, crs, and res, regardless of source
+
+
+env_0.5_1 = getData("worldclim", var="bio", res=0.5, lon=-125, lat=21,path = "./raster_data/small_tiles")
+extent(env_0.5_1)
+
+env_0.5_2 = getData("worldclim", var="bio", res=0.5, lon=-125, lat=50, path = "./raster_data/small_tiles")
+extent(env_0.5_2)
+
+env_0.5_3 = getData("worldclim", var="bio", res=0.5, lon=-100, lat=21, path = "./raster_data/small_tiles")
+extent(env_0.5_3)
+
+env_0.5_4 = getData("worldclim", var="bio", res=0.5, lon=-100, lat=50, path = "./raster_data/small_tiles")
+extent(env_0.5_4)
+
+env_0.5_5 = getData("worldclim", var="bio", res=0.5, lon=-85, lat=21, path = "./raster_data/small_tiles")
+extent(env_0.5_5)
+
+env_0.5_6 = getData("worldclim", var="bio", res=0.5, lon=-85, lat=50, path = "./raster_data/small_tiles")
+extent(env_0.5_6)
+
+#faster to merge them one at a time and then restack
+bioclim_layer_list <- c(1:19)
+
+for (i in bioclim_layer_list) {
+  layer_num <- i
+  name_1 <- list(paste0("env_0.5_1"), (paste0("21")))
+  name_2 <- list(paste0("env_0.5_2"), (paste0("11")))
+  name_3 <- list(paste0("env_0.5_3"), (paste0("22")))
+  name_4 <- list(paste0("env_0.5_4"), (paste0("12")))
+  name_5 <- list(paste0("env_0.5_5"), (paste0("23")))
+  name_6 <- list(paste0("env_0.5_6"), (paste0("13")))
+  bio_name <- paste0("bio", layer_num, sep = "")
+  final_name <- paste0(name_1[1], "$", bio_name, "_", name_1[2])
+  print(final_name)
+  mosiac <- mosaic(eval(parse(text = paste0(name_1[1], "$", bio_name, "_", name_1[2]))), eval(parse(text = paste0(name_2[1], "$", bio_name, "_", name_2[2]))), eval(parse(text = paste0(name_3[1], "$", bio_name, "_", name_3[2]))), eval(parse(text = paste0(name_4[1], "$", bio_name, "_", name_4[2]))), eval(parse(text = paste0(name_5[1], "$", bio_name, "_", name_5[2]))), eval(parse(text = paste0(name_6[1], "$", bio_name, "_", name_6[2]))),  fun=mean)
+  cropped<- crop(mosiac, extent(-125, -87, 21, 52))
+  writeRaster(cropped, paste0("./raster_data/small_tiles/cropped_", bio_name, ".tif"), format = "GTiff", overwrite=TRUE)
+  gdalwarp(srcfile = paste0("./raster_data/small_tiles/cropped_", bio_name, ".tif"), dstfile = paste0("./raster_data/small_tiles/", bio_name, "_reproj_diffextent.gtiff"), s_srs = '+proj=longlat +datum=WGS84 +no_defs', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE)
+}
+
+
+
+#to read in any bioclim raster
+bio1 <- raster("./raster_data/small_tiles/bio1_reproj_diffextent.gtiff")
+bio2 <- raster("./raster_data/small_tiles/bio2_reproj_diffextent.gtiff")
+bio3 <- raster("./raster_data/small_tiles/bio3_reproj_diffextent.gtiff")
+bio4 <- raster("./raster_data/small_tiles/bio4_reproj_diffextent.gtiff")
+bio5 <- raster("./raster_data/small_tiles/bio5_reproj_diffextent.gtiff")
+bio6 <- raster("./raster_data/small_tiles/bio6_reproj_diffextent.gtiff")
+bio7 <- raster("./raster_data/small_tiles/bio7_reproj_diffextent.gtiff")
+bio8 <- raster("./raster_data/small_tiles/bio8_reproj_diffextent.gtiff")
+bio9 <- raster("./raster_data/small_tiles/bio9_reproj_diffextent.gtiff")
+bio10 <- raster("./raster_data/small_tiles/bio10_reproj_diffextent.gtiff")
+bio11 <- raster("./raster_data/small_tiles/bio11_reproj_diffextent.gtiff")
+bio12 <- raster("./raster_data/small_tiles/bio12_reproj_diffextent.gtiff")
+bio13 <- raster("./raster_data/small_tiles/bio13_reproj_diffextent.gtiff")
+bio14 <- raster("./raster_data/small_tiles/bio14_reproj_diffextent.gtiff")
+bio15 <- raster("./raster_data/small_tiles/bio15_reproj_diffextent.gtiff")
+bio16 <- raster("./raster_data/small_tiles/bio16_reproj_diffextent.gtiff")
+bio17 <- raster("./raster_data/small_tiles/bio17_reproj_diffextent.gtiff")
+bio18 <- raster("./raster_data/small_tiles/bio18_reproj_diffextent.gtiff")
+bio19 <- raster("./raster_data/small_tiles/bio19_reproj_diffextent.gtiff")
+
+
+####dem layer, also make the slope and aspect rasters here####
+mex <- raster::getData('alt', country= "MEX", level = 0, mask=F, path = "./raster_data")
+us <- raster::getData('alt', country= "USA",level = 0, mask=F, path = "./raster_data")
+ca <- raster::getData('alt', country= "CAN",level = 0, mask=F, path = "./raster_data")
+usmexca_elev_mosaic <- mosaic(us[[1]], mex, ca, fun=mean)
+cropped_usmexca_elev_mosaic <- raster::crop(usmexca_elev_mosaic, extent(-125, -87, 21, 52)) #all about 2 degrees more extreme than our mins and maxs
+reproj_usmexca_elev_mosaic <- projectRaster(cropped_usmexca_elev_mosaic, crs = "+init=esri:102003")
+extent(reproj_usmexca_elev_mosaic)
+writeRaster(cropped_usmexca_elev_mosaic, "./raster_data/cropped_usmexca_elev.gtiff", format = "GTiff", overwrite=TRUE)
+gdalwarp(srcfile = "./raster_data/cropped_usmexca_elev.tif", dstfile = "./raster_data/reproj_diff_extent_elev.gtiff", s_srs = '+proj=longlat +datum=WGS84 +no_defs ', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE) #the te is the extent set for cropped elev mosaic just in albers equal area projection instead of lat, this is a lowery max but it's fine because there's still a large dist btw the border and our most northern point
+#read in and make slope and aspect
+elev <- raster("./raster_data/reproj_diff_extent_elev.gtiff")
+
+
+slope_deg <- terrain(elev, opt= "slope", unit= "degrees")
+writeRaster(slope_deg, "./raster_data/slope_deg.gtiff", format = "GTiff", overwrite=TRUE)
+
+aspect_deg<- terrain(elev, opt= "aspect", unit= "degrees") #getting replaces with Northness and Eastness bc these are more ecologically relevant and are not a circle 
+writeRaster(aspect_deg, "./raster_data/aspect_deg.gtiff", format = "GTiff", overwrite=TRUE)
+
+aspect_rad<- terrain(elev, opt= "aspect", unit= "radians")
+writeRaster(aspect_rad, "./raster_data/aspect_rad.gtiff", format = "GTiff", overwrite=TRUE)
+
+northness <- cos(aspect_rad)
+writeRaster(northness, "./raster_data/northness.gtiff", format = "GTiff", overwrite=TRUE)
+
+eastness <- sin(aspect_rad)
+writeRaster(eastness, "./raster_data/eastness.gtiff", format = "GTiff", overwrite=TRUE)
+
+#####soil layers... ####
+#below from https://git.wur.nl/isric/soilgrids/soilgrids.notebooks/-/blob/master/markdown/webdav_from_R.md... works for ghana.. doesn't work when I try to change the bounding box to anything that isn't on thier website... it then fails by telling me the computed -srcwin has a negative width or height... and computes the same srcwin every time... not sure why.... WORKED WHEN I DONT USE A BBOX AND DOWNLOAD ALL TEH DATA (admittedly huge file but can be deleted once I have my cropped one so :) )
+####ph!
+voi = "phh2o" # variable of interest
+depth = "5-15cm"
+quantile = "Q0.5" #quantile with the least uncertainty I think???
+voi_layer = paste(voi,depth,quantile, sep="_") # layer of interest 
+
+sg_url="/vsicurl/https://files.isric.org/soilgrids/latest/data/phh2o/"
+gdal_translate(paste0(sg_url, voi, "/", voi_layer,'.vrt'),
+               "./raster_data/phh2o_igh_r.tif",
+               verbose=TRUE)
+gdalwarp(srcfile = "./phh2o_igh_r.tif", dstfile = "./raster_data/reproj_diff_extent_ph.gtiff", s_srs = '+proj=igh +lat_0=0 +lon_0=0 +datum=WGS84 +units=m +no_defs', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE) #the te is the extent set for cropped elev mosaic just in albers equal area projection instead of lat
+#read in and make slope and aspect
+ph <- raster("./raster_data/reproj_diff_extent_ph.gtiff")
+plot(ph)
+
+####soil carbon
+voi = "soc" # variable of interest
+depth = "5-15cm"
+quantile = "Q0.5" #quantile with the least uncertainty I think???
+voi_layer = paste(voi,depth,quantile, sep="_") # layer of interest 
+
+sg_url="/vsicurl/https://files.isric.org/soilgrids/latest/data/"
+gdal_translate(paste0(sg_url, voi, "/", voi_layer,'.vrt'),
+               "./raster_data/soc_igh_r.tif",
+               verbose=TRUE) #this takes 9ish hours to run
+gdalwarp(srcfile = "./raster_data/soc_igh_r.tif", dstfile = "./raster_data/reproj_diff_extent_soc.gtiff", s_srs = '+proj=igh +lat_0=0 +lon_0=0 +datum=WGS84 +units=m +no_defs', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE) #the te is the extent set for cropped elev mosaic just in albers equal area projection instead of lat
+#read in and make slope and aspect
+soc <- raster("./raster_data/reproj_diff_extent_soc.gtiff")
+plot(soc)
+
+
+
+####clay content, proxy for soil wettness
+voi = "clay" # variable of interest
+depth = "5-15cm"
+quantile = "Q0.5" #quantile with the least uncertainty I think???
+voi_layer = paste(voi,depth,quantile, sep="_") # layer of interest 
+
+sg_url="/vsicurl/https://files.isric.org/soilgrids/latest/data/"
+gdal_translate(paste0(sg_url, voi, "/", voi_layer,'.vrt'),
+               "./raster_data/clay_igh_r.tif",
+               verbose=TRUE) #this takes 9ish hours to run
+gdalwarp(srcfile = "./raster_data/clay_igh_r.tif", dstfile = "./raster_data/reproj_diff_extent_clay.gtiff", s_srs = '+proj=igh +lat_0=0 +lon_0=0 +datum=WGS84 +units=m +no_defs', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE) #the te is the extent set for cropped elev mosaic just in albers equal area projection instead of lat
+#read in and make slope and aspect
+clay <- raster("./raster_data/reproj_diff_extent_clay.gtiff")
+plot(clay)
+
+
+
+####OLD####
+
+#canopy layer from USGA, NOT USING because creates NAs (which get points removed) anywhere that's not in the continental US
+gdalwarp(srcfile = "./raster_data/usfs_carto_CONUS_2016/usfs_2016_treecanopy_cartographic_12-14-2018.img", dstfile = "./raster_data/usfs_carto_CONUS_2016/usfs_2016_treecanopy_cartographic_reproj_diffextent.gtiff", s_srs = '+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m', t_srs= '+proj=aea +lat_0=37.5 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs ', te = c(-3032240, -1828145, 963576.5, 1659279), tr = c(1000, 1000), output_Raster=TRUE, overwrite=TRUE, verbose=TRUE)
+new_canopy <- raster("./raster_data/usfs_carto_CONUS_2016/usfs_2016_treecanopy_cartographic_reproj_diffextent.gtiff")
+values(new_canopy)[values(new_canopy) == 255] = NA #set the 255 values to be NA's

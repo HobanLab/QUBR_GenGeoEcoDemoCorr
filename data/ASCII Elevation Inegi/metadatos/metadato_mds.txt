@@ -1,0 +1,27 @@
+Identifier: 
+
+Title: Modelo digital de elevación tipo superficie con 5m de resolución derivado de datos de sensores remotos satelitales y aerotransportados.
+
+Description: Los Modelos Digitales de Elevación de Tipo superficie elaborados con insumos de imágenes ópticas de satélite, son el resultado de la aplicación de procesos especializados de clasificación y filtrado a puntos de altimetría obtenidos de la aplicación de procesos de orientación y correlación fotogramétrica a las imágenes de satélite de alta resolución captadas en modo estereoscópico. Los Modelos Digitales de Elevación tienen una cobertura territorial conforme al formato cartográfico a Escala 1:10 000 y consisten en una matriz de elevaciones de las formas del terreno sobre el nivel medio del mar calculadas a intervalos regulares.
+
+Modified: 2016-03-31  
+
+Publisher: Instituto Nacional de Estadística y Geografía, INEGI
+
+Mbox: atención.usuarios@inegi.org.mx
+
+License: Términos de Libre Uso de la Información del INEGI http://www.inegi.org.mx/terminos/terminos_info.aspx
+
+DataDictionary: No aplica
+
+Keyword: Altimetría, Elevación, Hipsografía, Fotogrametría, MDE, MDS, MDT, Modelo Digital de Elevación, Modelo Digital de Superficie, Modelo Digital de Terreno, Relieve, Sombreado, Superficie, Terreno, TIN.
+
+ContactPoint: Lic. José de Jesús Esquivel de la Rosa, 01800 111 4634
+
+Temporal: 2012 - indeterminado 
+
+Spatial: Estados Unidos Mexicanos
+
+AccrualPeriodicity: de 3 a 10 años, de acuerdo al cambio en el relieve y del propio relieve.
+
+Distribution: http://buscador.inegi.org.mx/search?q=modelos+digitales+de+superficie&client=ProductosR&proxystylesheet=ProductosR&num=10&getfields=*&sort=meta%3Aedicion%3AD%3AE%3A%3A%3AD&entsp=a__inegi_politica_p72&lr=lang_es%7Clang_en&oe=UTF-8&ie=UTF-8&ip=10.210.100.253&entqr=3&filter=0&site=ProductosBuscador&tlen=260

@@ -12,6 +12,9 @@ library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster)
 
+library(gdalUtils) #to reproject large rasters faster
+library(rgdal) #needed to get the soil data
+library(XML) #needed to get the soil data
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -111,7 +114,28 @@ SD_box <- st_bbox(river_SD_trans)
 
 ##Load in environmental rasters 
 
-#loading in soil textures
+#####soil layers... ####
+#downloading soil rasters from soil grid
+#below from https://git.wur.nl/isric/soilgrids/soilgrids.notebooks/-/blob/master/markdown/webdav_from_R.md... works for ghana.. doesn't work when I try to change the bounding box to anything that isn't on thier website... it then fails by telling me the computed -srcwin has a negative width or height... and computes the same srcwin every time... not sure why.... WORKED WHEN I DONT USE A BBOX AND DOWNLOAD ALL TEH DATA (admittedly huge file but can be deleted once I have my cropped one so :) )
+####ph!
+voi = "Organic carbon density" # variable of interest
+depth = "5-5"
+Value = "mean" #mean
+voi_layer = paste(voi,depth,quantile, sep="_") # layer of interest 
+
+sg_url= "https://soilgrids.org/"
+gdal_translate(paste0(sg_url, voi, "/", voi_layer,'.vrt'),
+               "./raster_data/phh2o_igh_r.tif",
+               verbose=TRUE)
+
+#load in xyz ASCII from INEGI on elevation
+elevation_xyz <- read.table("./data/ASCII Elevation Inegi/conjunto_de_datos/f12b43b4_ms.xyz")
+View(elevation_xyz)
+plot(elevation_xyz)
+elevation_sf <-st_as_sf(elevation_xyz, 
+                        coords = c("long", "lat"), crs = 4326)
+
+#loading in soil textures from CONABIO
 clay_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_05cm_mgw/cly_05cm_mgw.tif"))
 clay_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_200cm_mgw/cly_200cm_mgw.tif"))
 silt_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_05cm_pgw/slt_05cm_pgw.tif"))
