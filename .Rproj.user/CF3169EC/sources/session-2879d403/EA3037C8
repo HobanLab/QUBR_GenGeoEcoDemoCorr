@@ -1,0 +1,28 @@
+{
+    "id": "EA3037C8",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1720812844068.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "id": "279be8e5fbd74d318dc73bd89018dddc",
+        "name": "LM_fixed_field_data_processed_sf_cropped[1]",
+        "title": "LM_fixed_field_data_processed_sf_cropped[1]",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 46,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720812844068,
+    "read_only": false,
+    "read_only_alternatives": []
+}

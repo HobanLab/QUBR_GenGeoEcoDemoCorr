@@ -151,24 +151,14 @@ tree.coord.matrix <- as.matrix(cbind(fixed_field_data_processed_NN_UTM$X.1,
 
 max(fixed_field_data_processed_NN_UTM$X.1)
 
-#creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
-knn <- knearneigh(tree.coord.matrix, k = 5) #I have playing around with the k, trying to include all or half of the trees for example
-
 #creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
 knn.dist <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
 
-#turns knn into neighbors list
-nb <- knn2nb(knn, row.names = NULL, sym = FALSE)
-nb.dist <- knn2nb(knn.dist, row.names = NULL, sym = FALSE)
-
 #inverse distance weighting with raw distance-based weights without applying any normalisation
-lw <- nb2listwdist(nb, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
-                   alpha = 1, dmax = NULL, longlat = NULL, zero.policy=NULL)
 lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
                         alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
 View(lw.dist)
 #checks the neighbor weights for the first tree
-lw$weights[1]
 lw.dist$weights[1]
 #creating lags, which computes the average neighboring short canopy axis for each tree
 fixed_field_data_processed_NN_UTM$lag.canopy.short <- lag.listw(lw.dist, fixed_field_data_processed_NN_UTM$Canopy_short)
@@ -231,29 +221,16 @@ Moran.I(LM_fixed_field_data_processed$Canopy_short, LM.tree.dist.inv)
 LM.tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed$X.1, 
                                      LM_fixed_field_data_processed$Y))
 
-#creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
-knn.LM <- knearneigh(LM.tree.coord.matrix, k = 5, longlat = F) #I have playing around with the k, trying to include all or half of the trees for example
 #creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
 knn.dist.LM <- dnearneigh(LM.tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
 
 
-#turns knn into neighbors list
-nb.LM <- knn2nb(knn.LM, row.names = NULL, sym = FALSE)
-nb.dist.LM <- knn2nb(knn.dist.LM, row.names = NULL, sym = FALSE) # does not work, not needed becuase knn.dist is a neighbors list
-
-
-#assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
-#lw <- nb2listw(nb,zero.policy=TRUE, style="W")
 #inverse distance weighting with raw distance-based weights without applying any normalisation
-lw.LM <- nb2listwdist(nb.LM, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
-                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
-View(lw.dist)
 lw.dist.LM <- nb2listwdist(knn.dist.LM, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
                         alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
 View(lw.dist.LM)
 
 #checks the neighbor weights for the first tree
-lw.LM$weights[4]
 lw.dist.LM$weights[4]
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
@@ -269,10 +246,12 @@ ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.shor
   ylab("Lagged Short Canopy Axis")
 
 #computing the Moran's I statistic
-moran(LM_fixed_field_data_processed$Canopy_short, listw = lw.LM, n = length(nb.LM), S0 = Szero(lw.LM))
+moran(LM_fixed_field_data_processed$Canopy_short, listw = lw.dist.LM, n = length(lw.dist.LM$neighbours), S0 = Szero(lw.dist.LM))
+View(sum(lw.dist.LM$weights))
+by(lw.dist.LM$weights[4])
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LM.canopy.short <- moran.mc(LM_fixed_field_data_processed$Canopy_short, lw.LM, nsim = 999)
+MC.LM.canopy.short <- moran.mc(LM_fixed_field_data_processed$Canopy_short, lw.dist.LM, nsim = 999)
 MC.LM.canopy.short
 
 #plot of simulated Moran's I values against our value
@@ -282,7 +261,7 @@ MC.LM.canopy.short$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LM.canopy.short <- localmoran_perm(LM_fixed_field_data_processed$Canopy_short, lw.LM, nsim = 9999, alternative = "greater")
+MC_local.LM.canopy.short <- localmoran_perm(LM_fixed_field_data_processed$Canopy_short, lw.dist.LM, nsim = 9999, alternative = "greater")
 MC_local.LM.canopy.short.df <- as.data.frame(MC_local.LM.canopy.short)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -336,7 +315,7 @@ max(LM_fixed_field_data_processed$Y)
 Moran.I(LM_fixed_field_data_processed$Canopy_long, LM.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LM_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.LM, LM_fixed_field_data_processed$Canopy_long)
+LM_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Canopy_long)
 # Create a regression model
 M.LM.Canopy.Long <- lm(lag.canopy.long ~ Canopy_long, LM_fixed_field_data_processed)
 
@@ -348,10 +327,10 @@ ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long)
   ylab("Lagged Long Canopy Axis")
 
 #computing the Moran's I statistic
-moran(LM_fixed_field_data_processed$Canopy_long, listw = lw.LM, n = length(nb.LM), S0 = Szero(lw.LM))
+moran(LM_fixed_field_data_processed$Canopy_long, listw = lw.dist.LM, n = length(lw.dist.LM$neighbours), S0 = Szero(lw.dist.LM))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LM.canopy.long <- moran.mc(LM_fixed_field_data_processed$Canopy_long, lw.LM, nsim = 999)
+MC.LM.canopy.long <- moran.mc(LM_fixed_field_data_processed$Canopy_long, lw.dist.LM, nsim = 999)
 MC.LM.canopy.long
 
 #plot of simulated Moran's I values against our value
@@ -361,7 +340,7 @@ MC.LM.canopy.long$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LM.canopy.long <- localmoran_perm(LM_fixed_field_data_processed$Canopy_long, lw.LM, nsim = 9999, alternative = "greater")
+MC_local.LM.canopy.long <- localmoran_perm(LM_fixed_field_data_processed$Canopy_long, lw.dist.LM, nsim = 9999, alternative = "greater")
 MC_local.LM.canopy.long.df <- as.data.frame(MC_local.LM.canopy.long)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -399,7 +378,7 @@ ggplot() +
 Moran.I(LM_fixed_field_data_processed$Crown_spread, LM.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LM_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.LM, LM_fixed_field_data_processed$Crown_spread)
+LM_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Crown_spread)
 # Create a regression model
 M.LM.crown.spread <- lm(lag.crown.spread ~ Crown_spread, LM_fixed_field_data_processed)
 
@@ -411,10 +390,10 @@ ggplot(data=LM_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.sprea
   ylab("Lagged Crown Spread")
 
 #computing the Moran's I statistic
-moran(LM_fixed_field_data_processed$Crown_spread, listw = lw.LM, n = length(nb.LM), S0 = Szero(lw.LM))
+moran(LM_fixed_field_data_processed$Crown_spread, listw = lw.dist.LM, n = length(lw.dist.LM$neighbours), S0 = Szero(lw.dist.LM))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LM.crown.spread <- moran.mc(LM_fixed_field_data_processed$Crown_spread, lw.LM, nsim = 999)
+MC.LM.crown.spread <- moran.mc(LM_fixed_field_data_processed$Crown_spread, lw.dist.LM, nsim = 999)
 MC.LM.crown.spread
 
 #plot of simulated Moran's I values against our value
@@ -424,7 +403,7 @@ MC.LM.crown.spread$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LM.crown.spread <- localmoran_perm(LM_fixed_field_data_processed$Crown_spread, lw.LM, nsim = 9999, alternative = "greater")
+MC_local.LM.crown.spread <- localmoran_perm(LM_fixed_field_data_processed$Crown_spread, lw.dist.LM, nsim = 9999, alternative = "greater")
 MC_local.LM.crown.spread.df <- as.data.frame(MC_local.LM.crown.spread)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -462,7 +441,7 @@ ggplot() +
 Moran.I(LM_fixed_field_data_processed$Canopy_area, LM.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LM_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.LM, LM_fixed_field_data_processed$Canopy_area)
+LM_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Canopy_area)
 # Create a regression model
 M.LM.canopy.area <- lm(lag.canopy.area ~ Canopy_area, LM_fixed_field_data_processed)
 
@@ -474,10 +453,10 @@ ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area)
   ylab("Lagged Canopy Area")
 
 #computing the Moran's I statistic
-moran(LM_fixed_field_data_processed$Canopy_area, listw = lw.LM, n = length(nb.LM), S0 = Szero(lw.LM))
+moran(LM_fixed_field_data_processed$Canopy_area, listw = lw.dist.LM, n = length(lw.dist.LM$neighbours), S0 = Szero(lw.dist.LM))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LM.canopy.area <- moran.mc(LM_fixed_field_data_processed$Canopy_area, lw.LM, nsim = 999)
+MC.LM.canopy.area <- moran.mc(LM_fixed_field_data_processed$Canopy_area, lw.dist.LM, nsim = 999)
 MC.LM.canopy.area
 
 #plot of simulated Moran's I values against our value
@@ -487,7 +466,7 @@ MC.LM.canopy.area$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LM.canopy.area <- localmoran_perm(LM_fixed_field_data_processed$Canopy_area, lw.LM, nsim = 9999, alternative = "greater")
+MC_local.LM.canopy.area <- localmoran_perm(LM_fixed_field_data_processed$Canopy_area, lw.dist.LM, nsim = 9999, alternative = "greater")
 MC_local.LM.canopy.area.df <- as.data.frame(MC_local.LM.canopy.area)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -537,10 +516,10 @@ ggplot(data=LM_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
   ylab("Lagged DBH")
 
 #computing the Moran's I statistic
-moran(LM_fixed_field_data_processed$DBH_ag, listw = lw.LM, n = length(nb.LM), S0 = Szero(lw.LM))
+moran(LM_fixed_field_data_processed$DBH_ag, listw = lw.dist.LM, n = length(lw.dist.LM$neighbours), S0 = Szero(lw.dist.LM))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LM.dbh.ag <- moran.mc(LM_fixed_field_data_processed$DBH_ag, lw.LM, nsim = 999)
+MC.LM.dbh.ag <- moran.mc(LM_fixed_field_data_processed$DBH_ag, lw.dist.LM, nsim = 999)
 MC.LM.dbh.ag
 
 #plot of simulated Moran's I values against our value
@@ -550,7 +529,7 @@ MC.LM.dbh.ag$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LM.dbh.ag <- localmoran_perm(LM_fixed_field_data_processed$DBH_ag, lw.LM, nsim = 9999, alternative = "greater")
+MC_local.LM.dbh.ag <- localmoran_perm(LM_fixed_field_data_processed$DBH_ag, lw.dist.LM, nsim = 9999, alternative = "greater")
 MC_local.LM.dbh.ag.df <- as.data.frame(MC_local.LM.dbh.ag)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -601,22 +580,21 @@ Moran.I(LC_fixed_field_data_processed$Canopy_short, LC.tree.dist.inv)
 LC.tree.coord.matrix <- as.matrix(cbind(LC_fixed_field_data_processed$X.1, 
                                         LC_fixed_field_data_processed$Y))
 
-#creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
-knn.LC <- knearneigh(LC.tree.coord.matrix, k = 5, longlat = F) #I have playing around with the k, trying to include all or half of the trees for example
-#turns knn into neighbors list
-nb.LC <- knn2nb(knn.LC, row.names = NULL, sym = FALSE)
 
-#assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
-#lw <- nb2listw(nb,zero.policy=TRUE, style="W")
+#creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
+knn.dist.LC <- dnearneigh(LC.tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
+
+
 #inverse distance weighting with raw distance-based weights without applying any normalisation
-lw.LC <- nb2listwdist(nb.LC, LC_fixed_field_data_processed, type="idw", style="W", 
-                      alpha = 1, dmax = NULL, longlat = F, zero.policy=NULL) #it converts it to latlon and then takes the distance because that is also more accurate
+lw.dist.LC <- nb2listwdist(knn.dist.LC, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
+                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
+View(lw.dist.LC)
 
 #checks the neighbor weights for the first tree
-sum(lw.LC$weights[[1]])
+lw.dist.LC$weights[1]
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LC_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.LC, LC_fixed_field_data_processed$Canopy_short)
+LC_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.dist.LC, LC_fixed_field_data_processed$Canopy_short)
 # Create a regression model
 M.LC <- lm(lag.canopy.short ~ Canopy_short, LC_fixed_field_data_processed)
 
@@ -628,10 +606,10 @@ ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.shor
   ylab("Lagged Short Canopy Axis")
 
 #computing the Moran's I statistic
-moran(LC_fixed_field_data_processed$Canopy_short, listw = lw.LC, n = length(nb.LC), S0 = Szero(lw.LC))
+moran(LC_fixed_field_data_processed$Canopy_short, listw = lw.dist.LC, n = length(lw.dist.LC$neighbours), S0 = Szero(lw.dist.LC))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LC.canopy.short <- moran.mc(LC_fixed_field_data_processed$Canopy_short, lw.LC, nsim = 999)
+MC.LC.canopy.short <- moran.mc(LC_fixed_field_data_processed$Canopy_short, lw.dist.LC, nsim = 999)
 MC.LC.canopy.short
 
 #plot of simulated Moran's I values against our value
@@ -641,7 +619,7 @@ MC.LC.canopy.short$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LC.canopy.short <- localmoran_perm(LC_fixed_field_data_processed$Canopy_short, lw.LC, nsim = 9999, alternative = "greater")
+MC_local.LC.canopy.short <- localmoran_perm(LC_fixed_field_data_processed$Canopy_short, lw.dist.LC, nsim = 9999, alternative = "greater")
 MC_local.LC.canopy.short.df <- as.data.frame(MC_local.LC.canopy.short)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -678,7 +656,7 @@ ggplot() +
 Moran.I(LC_fixed_field_data_processed$Canopy_long, LC.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LC_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.LC, LC_fixed_field_data_processed$Canopy_long)
+LC_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.dist.LC, LC_fixed_field_data_processed$Canopy_long)
 # Create a regression model
 M.LC.Canopy.Long <- lm(lag.canopy.long ~ Canopy_long, LC_fixed_field_data_processed)
 
@@ -690,10 +668,10 @@ ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long)
   ylab("Lagged Long Canopy Axis")
 
 #computing the Moran's I statistic
-moran(LC_fixed_field_data_processed$Canopy_long, listw = lw.LC, n = length(nb.LC), S0 = Szero(lw.LC))
+moran(LC_fixed_field_data_processed$Canopy_long, listw = lw.dist.LC, n = length(lw.dist.LC$neighbours), S0 = Szero(lw.dist.LC))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LC.canopy.long <- moran.mc(LC_fixed_field_data_processed$Canopy_long, lw.LC, nsim = 999)
+MC.LC.canopy.long <- moran.mc(LC_fixed_field_data_processed$Canopy_long, lw.dist.LC, nsim = 999)
 MC.LC.canopy.long
 
 #plot of simulated Moran's I values against our value
@@ -703,7 +681,7 @@ MC.LC.canopy.long$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LC.canopy.long <- localmoran_perm(LC_fixed_field_data_processed$Canopy_long, lw.LC, nsim = 9999, alternative = "greater")
+MC_local.LC.canopy.long <- localmoran_perm(LC_fixed_field_data_processed$Canopy_long, lw.dist.LC, nsim = 9999, alternative = "greater")
 MC_local.LC.canopy.long.df <- as.data.frame(MC_local.LC.canopy.long)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -741,7 +719,7 @@ ggplot() +
 Moran.I(LC_fixed_field_data_processed$Crown_spread, LC.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LC_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.LC, LC_fixed_field_data_processed$Crown_spread)
+LC_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.dist.LC, LC_fixed_field_data_processed$Crown_spread)
 # Create a regression model
 M.LC.crown.spread <- lm(lag.crown.spread ~ Crown_spread, LC_fixed_field_data_processed)
 
@@ -753,10 +731,10 @@ ggplot(data=LC_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.sprea
   ylab("Lagged Crown Spread")
 
 #computing the Moran's I statistic
-moran(LC_fixed_field_data_processed$Crown_spread, listw = lw.LC, n = length(nb.LC), S0 = Szero(lw.LC))
+moran(LC_fixed_field_data_processed$Crown_spread, listw = lw.dist.LC, n = length(lw.dist.LC$neighbours), S0 = Szero(lw.dist.LC))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LC.crown.spread <- moran.mc(LC_fixed_field_data_processed$Crown_spread, lw.LC, nsim = 999)
+MC.LC.crown.spread <- moran.mc(LC_fixed_field_data_processed$Crown_spread, lw.dist.LC, nsim = 999)
 MC.LC.crown.spread
 
 #plot of simulated Moran's I values against our value
@@ -766,7 +744,7 @@ MC.LC.crown.spread$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LC.crown.spread <- localmoran_perm(LC_fixed_field_data_processed$Crown_spread, lw.LC, nsim = 9999, alternative = "greater")
+MC_local.LC.crown.spread <- localmoran_perm(LC_fixed_field_data_processed$Crown_spread, lw.dist.LC, nsim = 9999, alternative = "greater")
 MC_local.LC.crown.spread.df <- as.data.frame(MC_local.LC.crown.spread)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -804,7 +782,7 @@ ggplot() +
 Moran.I(LC_fixed_field_data_processed$Canopy_area, LC.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LC_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.LC, LC_fixed_field_data_processed$Canopy_area)
+LC_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.dist.LC, LC_fixed_field_data_processed$Canopy_area)
 # Create a regression model
 M.LC.canopy.area <- lm(lag.canopy.area ~ Canopy_area, LC_fixed_field_data_processed)
 
@@ -816,10 +794,10 @@ ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area)
   ylab("Lagged Canopy Area")
 
 #computing the Moran's I statistic
-moran(LC_fixed_field_data_processed$Canopy_area, listw = lw.LC, n = length(nb.LC), S0 = Szero(lw.LC))
+moran(LC_fixed_field_data_processed$Canopy_area, listw = lw.dist.LC, n = length(lw.dist.LC$neighbours), S0 = Szero(lw.dist.LC))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LC.canopy.area <- moran.mc(LC_fixed_field_data_processed$Canopy_area, lw.LC, nsim = 999)
+MC.LC.canopy.area <- moran.mc(LC_fixed_field_data_processed$Canopy_area, lw.dist.LC, nsim = 999)
 MC.LC.canopy.area
 
 #plot of simulated Moran's I values against our value
@@ -829,7 +807,7 @@ MC.LC.canopy.area$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LC.canopy.area <- localmoran_perm(LC_fixed_field_data_processed$Canopy_area, lw.LC, nsim = 9999, alternative = "greater")
+MC_local.LC.canopy.area <- localmoran_perm(LC_fixed_field_data_processed$Canopy_area, lw.dist.LC, nsim = 9999, alternative = "greater")
 MC_local.LC.canopy.area.df <- as.data.frame(MC_local.LC.canopy.area)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -867,7 +845,7 @@ ggplot() +
 Moran.I(LC_fixed_field_data_processed$DBH_ag, LC.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-LC_fixed_field_data_processed$lag.dbh.ag <- lag.listw(lw.LC, LC_fixed_field_data_processed$DBH_ag)
+LC_fixed_field_data_processed$lag.dbh.ag <- lag.listw(lw.dist.LC, LC_fixed_field_data_processed$DBH_ag)
 # Create a regression model
 M.LC.canopy.area <- lm(lag.dbh.ag ~ DBH_ag, LC_fixed_field_data_processed)
 
@@ -879,10 +857,10 @@ ggplot(data=LC_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
   ylab("Lagged DBH")
 
 #computing the Moran's I statistic
-moran(LC_fixed_field_data_processed$DBH_ag, listw = lw.LC, n = length(nb.LC), S0 = Szero(lw.LC))
+moran(LC_fixed_field_data_processed$DBH_ag, listw = lw.dist.LC, n = length(lw.dist.LC$neighbours), S0 = Szero(lw.dist.LC))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.LC.dbh.ag <- moran.mc(LC_fixed_field_data_processed$DBH_ag, lw.LC, nsim = 999)
+MC.LC.dbh.ag <- moran.mc(LC_fixed_field_data_processed$DBH_ag, lw.dist.LC, nsim = 999)
 MC.LC.dbh.ag
 
 #plot of simulated Moran's I values against our value
@@ -892,7 +870,7 @@ MC.LC.dbh.ag$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.LC.dbh.ag <- localmoran_perm(LC_fixed_field_data_processed$DBH_ag, lw.LC, nsim = 9999, alternative = "greater")
+MC_local.LC.dbh.ag <- localmoran_perm(LC_fixed_field_data_processed$DBH_ag, lw.dist.LC, nsim = 9999, alternative = "greater")
 MC_local.LC.dbh.ag.df <- as.data.frame(MC_local.LC.dbh.ag)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -944,22 +922,20 @@ Moran.I(SD_fixed_field_data_processed$Canopy_short, SD.tree.dist.inv)
 SD.tree.coord.matrix <- as.matrix(cbind(SD_fixed_field_data_processed$X.1, 
                                         SD_fixed_field_data_processed$Y))
 
-#creates nearest neighbor knn using a matrix of the tree coordinates and k = 1, means the distance to the nearbor is conputed only for the nearest one
-knn.SD <- knearneigh(SD.tree.coord.matrix, k = 5, longlat = F) #I have playing around with the k, trying to include all or half of the trees for example
-#turns knn into neighbors list
-nb.SD <- knn2nb(knn.SD, row.names = NULL, sym = FALSE)
+#creates nearest neighbor knn using a matrix of the tree coordinates within a specific radius of each tree
+knn.dist.SD <- dnearneigh(SD.tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
 
-#assigning weights to each neighbor, W style assigns weight to be 1/# of neighbors
-#lw <- nb2listw(nb,zero.policy=TRUE, style="W")
+
 #inverse distance weighting with raw distance-based weights without applying any normalisation
-lw.SD <- nb2listwdist(nb.SD, SD_fixed_field_data_processed, type="idw", style="W", 
-                      alpha = 1, dmax = NULL, longlat = F, zero.policy=NULL) #it converts it to latlon and then takes the distance because that is also more accurate
+lw.dist.SD <- nb2listwdist(knn.dist.SD, fixed_field_data_processed_NN_UTM, type="idw", style="raw", 
+                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
+View(lw.dist.SD)
 
 #checks the neighbor weights for the first tree
-sum(lw.SD$weights[[1]])
+lw.dist.SD$weights[1]
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-SD_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.SD, SD_fixed_field_data_processed$Canopy_short)
+SD_fixed_field_data_processed$lag.canopy.short <- lag.listw(lw.dist.SD, SD_fixed_field_data_processed$Canopy_short)
 # Create a regression model
 M.SD <- lm(lag.canopy.short ~ Canopy_short, SD_fixed_field_data_processed)
 
@@ -971,10 +947,10 @@ ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.shor
   ylab("Lagged Short Canopy Axis")
 
 #computing the Moran's I statistic
-moran(SD_fixed_field_data_processed$Canopy_short, listw = lw.SD, n = length(nb.SD), S0 = Szero(lw.SD))
+moran(SD_fixed_field_data_processed$Canopy_short, listw = lw.dist.SD, n = length(lw.dist.SD$neighbours), S0 = Szero(lw.dist.SD))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.SD.canopy.short <- moran.mc(SD_fixed_field_data_processed$Canopy_short, lw.SD, nsim = 999)
+MC.SD.canopy.short <- moran.mc(SD_fixed_field_data_processed$Canopy_short, lw.dist.SD, nsim = 999)
 MC.SD.canopy.short
 
 #plot of simulated Moran's I values against our value
@@ -984,7 +960,7 @@ MC.SD.canopy.short$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.SD.canopy.short <- localmoran_perm(SD_fixed_field_data_processed$Canopy_short, lw.SD, nsim = 9999, alternative = "greater")
+MC_local.SD.canopy.short <- localmoran_perm(SD_fixed_field_data_processed$Canopy_short, lw.dist.SD, nsim = 9999, alternative = "greater")
 MC_local.SD.canopy.short.df <- as.data.frame(MC_local.SD.canopy.short)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -1021,7 +997,7 @@ ggplot() +
 Moran.I(SD_fixed_field_data_processed$Canopy_long, SD.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-SD_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.SD, SD_fixed_field_data_processed$Canopy_long)
+SD_fixed_field_data_processed$lag.canopy.long <- lag.listw(lw.dist.SD, SD_fixed_field_data_processed$Canopy_long)
 # Create a regression model
 M.SD.Canopy.Long <- lm(lag.canopy.long ~ Canopy_long, SD_fixed_field_data_processed)
 
@@ -1033,10 +1009,10 @@ ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long)
   ylab("Lagged Long Canopy Axis")
 
 #computing the Moran's I statistic
-moran(SD_fixed_field_data_processed$Canopy_long, listw = lw.SD, n = length(nb.SD), S0 = Szero(lw.SD))
+moran(SD_fixed_field_data_processed$Canopy_long, listw = lw.dist.SD, n = length(lw.dist.SD$neighbours), S0 = Szero(lw.dist.SD))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.SD.canopy.long <- moran.mc(SD_fixed_field_data_processed$Canopy_long, lw.SD, nsim = 999)
+MC.SD.canopy.long <- moran.mc(SD_fixed_field_data_processed$Canopy_long, lw.dist.SD, nsim = 999)
 MC.SD.canopy.long
 
 #plot of simulated Moran's I values against our value
@@ -1046,7 +1022,7 @@ MC.SD.canopy.long$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.SD.canopy.long <- localmoran_perm(SD_fixed_field_data_processed$Canopy_long, lw.SD, nsim = 9999, alternative = "greater")
+MC_local.SD.canopy.long <- localmoran_perm(SD_fixed_field_data_processed$Canopy_long, lw.dist.SD, nsim = 9999, alternative = "greater")
 MC_local.SD.canopy.long.df <- as.data.frame(MC_local.SD.canopy.long)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -1084,7 +1060,7 @@ ggplot() +
 Moran.I(SD_fixed_field_data_processed$Crown_spread, SD.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-SD_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.SD, SD_fixed_field_data_processed$Crown_spread)
+SD_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.dist.SD, SD_fixed_field_data_processed$Crown_spread)
 # Create a regression model
 M.SD.crown.spread <- lm(lag.crown.spread ~ Crown_spread, SD_fixed_field_data_processed)
 
@@ -1096,10 +1072,10 @@ ggplot(data=SD_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.sprea
   ylab("Lagged Crown Spread")
 
 #computing the Moran's I statistic
-moran(SD_fixed_field_data_processed$Crown_spread, listw = lw.SD, n = length(nb.SD), S0 = Szero(lw.SD))
+moran(SD_fixed_field_data_processed$Crown_spread, listw = lw.dist.SD, n = length(lw.dist.SD$neighbours), S0 = Szero(lw.dist.SD))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.SD.crown.spread <- moran.mc(SD_fixed_field_data_processed$Crown_spread, lw.SD, nsim = 999)
+MC.SD.crown.spread <- moran.mc(SD_fixed_field_data_processed$Crown_spread, lw.dist.SD, nsim = 999)
 MC.SD.crown.spread
 
 #plot of simulated Moran's I values against our value
@@ -1109,7 +1085,7 @@ MC.SD.crown.spread$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.SD.crown.spread <- localmoran_perm(SD_fixed_field_data_processed$Crown_spread, lw.SD, nsim = 9999, alternative = "greater")
+MC_local.SD.crown.spread <- localmoran_perm(SD_fixed_field_data_processed$Crown_spread, lw.dist.SD, nsim = 9999, alternative = "greater")
 MC_local.SD.crown.spread.df <- as.data.frame(MC_local.SD.crown.spread)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -1147,7 +1123,7 @@ ggplot() +
 Moran.I(SD_fixed_field_data_processed$Canopy_area, SD.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-SD_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.SD, SD_fixed_field_data_processed$Canopy_area)
+SD_fixed_field_data_processed$lag.canopy.area <- lag.listw(lw.dist.SD, SD_fixed_field_data_processed$Canopy_area)
 # Create a regression model
 M.SD.canopy.area <- lm(lag.canopy.area ~ Canopy_area, SD_fixed_field_data_processed)
 
@@ -1159,10 +1135,10 @@ ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area)
   ylab("Lagged Canopy Area")
 
 #computing the Moran's I statistic
-moran(SD_fixed_field_data_processed$Canopy_area, listw = lw.SD, n = length(nb.SD), S0 = Szero(lw.SD))
+moran(SD_fixed_field_data_processed$Canopy_area, listw = lw.dist.SD, n = length(lw.dist.SD$neighbours), S0 = Szero(lw.dist.SD))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.SD.canopy.area <- moran.mc(SD_fixed_field_data_processed$Canopy_area, lw.SD, nsim = 999)
+MC.SD.canopy.area <- moran.mc(SD_fixed_field_data_processed$Canopy_area, lw.dist.SD, nsim = 999)
 MC.SD.canopy.area
 
 #plot of simulated Moran's I values against our value
@@ -1172,7 +1148,7 @@ MC.SD.canopy.area$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.SD.canopy.area <- localmoran_perm(SD_fixed_field_data_processed$Canopy_area, lw.SD, nsim = 9999, alternative = "greater")
+MC_local.SD.canopy.area <- localmoran_perm(SD_fixed_field_data_processed$Canopy_area, lw.dist.SD, nsim = 9999, alternative = "greater")
 MC_local.SD.canopy.area.df <- as.data.frame(MC_local.SD.canopy.area)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -1210,7 +1186,7 @@ ggplot() +
 Moran.I(SD_fixed_field_data_processed$DBH_ag, SD.tree.dist.inv)
 
 #creating lags, which computes the average neighboring short canopy axis for each tree
-SD_fixed_field_data_processed$lag.dbh.ag <- lag.listw(lw.SD, SD_fixed_field_data_processed$DBH_ag)
+SD_fixed_field_data_processed$lag.dbh.ag <- lag.listw(lw.dist.SD, SD_fixed_field_data_processed$DBH_ag)
 # Create a regression model
 M.SD.canopy.area <- lm(lag.dbh.ag ~ DBH_ag, SD_fixed_field_data_processed)
 
@@ -1222,10 +1198,10 @@ ggplot(data=SD_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
   ylab("Lagged DBH")
 
 #computing the Moran's I statistic
-moran(SD_fixed_field_data_processed$DBH_ag, listw = lw.SD, n = length(nb.SD), S0 = Szero(lw.SD))
+moran(SD_fixed_field_data_processed$DBH_ag, listw = lw.dist.SD, n = length(lw.dist.SD$neighbours), S0 = Szero(lw.dist.SD))
 
 #assessing statistical significance with a Monte-Carlo simulation
-MC.SD.dbh.ag <- moran.mc(SD_fixed_field_data_processed$DBH_ag, lw.SD, nsim = 999)
+MC.SD.dbh.ag <- moran.mc(SD_fixed_field_data_processed$DBH_ag, lw.dist.SD, nsim = 999)
 MC.SD.dbh.ag
 
 #plot of simulated Moran's I values against our value
@@ -1235,7 +1211,7 @@ MC.SD.dbh.ag$p.value #extracting the pvalue
 #Local Moran's I 
 
 #using the weighted neighbors to simulate size values
-MC_local.SD.dbh.ag <- localmoran_perm(SD_fixed_field_data_processed$DBH_ag, lw.SD, nsim = 9999, alternative = "greater")
+MC_local.SD.dbh.ag <- localmoran_perm(SD_fixed_field_data_processed$DBH_ag, lw.dist.SD, nsim = 9999, alternative = "greater")
 MC_local.SD.dbh.ag.df <- as.data.frame(MC_local.SD.dbh.ag)
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
@@ -1307,10 +1283,13 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 #LM
 
 #creating a grid over the points with a 10 m edge buffer
-LM_box <- st_bbox(LM_fixed_field_data_processed_sf) #st_bbox(river_LM_trans)
-
+LM_box <- st_bbox(LM_fixed_field_data_processed_sf)
 
 LM_fixed_field_data_processed_spatial <- as(LM_fixed_field_data_processed_sf, 'Spatial')
+LM_fixed_field_data_processed_spatial_cropped_10 <- raster::crop(LM_fixed_field_data_processed_spatial, extent((LM_box[1]+10), (LM_box[3]-10), (LM_box[2]+10), (LM_box[4]-10)))
+LM_fixed_field_data_processed_sf_cropped_10 <- LM_fixed_field_data_processed_spatial_cropped_20 %>%
+  st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_10)
+
 LM_fixed_field_data_processed_spatial_cropped_20 <- raster::crop(LM_fixed_field_data_processed_spatial, extent((LM_box[1]+20), (LM_box[3]-20), (LM_box[2]+20), (LM_box[4]-20)))
 LM_fixed_field_data_processed_sf_cropped_20 <- LM_fixed_field_data_processed_spatial_cropped_20 %>%
   st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_20)
@@ -1327,26 +1306,61 @@ LM_fixed_field_data_processed_sf_cropped_10_bbox <- LM_fixed_field_data_processe
   st_bbox() %>%
   st_as_sfc()
 
-
-LM_fixed_field_data_processed_sf_cropped <- st_crop(LM_fixed_field_data_processed_sf, xmin= (LM_box[1]+10), xmax = (LM_box[3]-10), ymin = (LM_box[2]+10), ymax = (LM_box[4]-10))
-
 ggplot()+
   geom_sf(data=LM_fixed_field_data_processed_sf)+
   geom_sf(data=LM_fixed_field_data_processed_sf_bbox, color = "black", fill = NA)+
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped_10_bbox, color = 'red', fill = NA)+
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped_10, color = "red", fill = NA)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20, color = "blue", fill = NA)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20_bbox, color = "blue", fill = NA) 
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_40, color = "green")
+  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20, color = "blue", fill = NA)
+ # geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20_bbox, color = "blue", fill = NA) +
+  #geom_sf(data=LM_fixed_field_data_processed_sf_cropped_40, color = "green")+
 
 
+#second version of cropping the points
+#creating a cropped bbox 
+LM_box_sf <- LM_box %>% #turning the bbox into polygon
+  st_as_sfc()
+LM_box_spatial <- as(LM_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop
+LM_box_spatial_cropped <- raster::crop(LM_box_spatial, extent((LM_box[1]+20), (LM_box[3]-20), (LM_box[2]+20), (LM_box[4]-20))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+LM_box_sf_cropped <-  LM_box_spatial_cropped %>% #turning the spatial polygon into a polygon
+  st_as_sfc()
+
+LM_fixed_field_data_processed_sf_cropped_contains <- st_contains(LM_box_sf_cropped, LM_fixed_field_data_processed_sf, sparse = F)
+
+#create an empty tibble for all of the points that are within the cropped bbox
+LM_fixed_field_data_processed_sf_cropped_table <- tibble()
+
+#loop that adds rows of points that are within cropped LM box to the new tibble
+for (i in 1:length(LM_fixed_field_data_processed_sf_cropped_contains)){ #for the total number of trees (t or f)
+  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T & nrow(LM_fixed_field_data_processed_sf_cropped_table) != 0) { #if the tree is within the box and there are already rows added to the tibble
+    LM_fixed_field_data_processed_sf_cropped_table <- LM_fixed_field_data_processed_sf_cropped_table %>% 
+      add_row(tibble_row(LM_fixed_field_data_processed[i,])) #adds a new row to the tibble
+  }
+  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T & nrow(LM_fixed_field_data_processed_sf_cropped_table) == 0) { #if the tree is within the box and there are NOT already rows added to the tibble
+    LM_fixed_field_data_processed_sf_cropped_table <- tibble_row(LM_fixed_field_data_processed[i,]) #sets the tibble equal to the new row, we have to do this if there is not already things in the tibble because add_row does not work otherwise
+  } 
+}
+
+LM_fixed_field_data_processed_sf_cropped <- st_as_sf(LM_fixed_field_data_processed_sf_cropped_table, sf_column_name = "geometry", crs = 26912)
+
+#plotting the original box, cropped box, original tree points, and cropped tree points
+ggplot()+
+  geom_sf(data=LM_box_sf)+ #old box
+  geom_sf(data=LM_box_sf_cropped)+ #cropped box
+  geom_sf(data=LM_fixed_field_data_processed_sf)+ #original points
+  geom_sf(data=LM_fixed_field_data_processed_sf_cropped, color = "red") #old points
+
+
+  
 #Creating a grid over the tree points 
 LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
+
 
 #plotting the grid and the tree points
 ggplot()+
   geom_sf(data=LM_tree_grid)+
-  geom_sf(data=LM_fixed_field_data_processed_sf)
+  geom_sf(data=LM_fixed_field_data_processed_sf)+
+  geom_sf(data = LM_fixed_field_data_processed_sf_cropped, color = "blue")
 
 #ASH NOTE: BELOW SEEMS TO BE RETURNING NON UNIQUE GEOMETRIES, PERHAPS BECAUSE EDGE CASES ARE COUNTED AS UNIQUE OBSERVATIONS --> NEED TO USE SOMETHING LIKE DISTINCT OR UNIQUE ON THE GEOMETRIES TO MAKE SURE THIS GETS FIXED
 # FOUND THIS OUT BY PLOTTING FOCAL POINTS AND BUFFERS AGAINST THE GRID ITSELF
@@ -1449,9 +1463,6 @@ LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed %>%
   add_column(focal_distance = NA) #add a column for distances of neighbors to focal tree
 
 LM_fixed_field_data_all_focal_trees <- tibble()#creating the empty tibble 
-
-
-
 
 #calculating the distances of each tree within the buffer to the focal tree and the competition metric values
 for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the buffers with trees inside of them

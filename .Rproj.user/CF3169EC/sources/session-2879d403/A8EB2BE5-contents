@@ -247,12 +247,18 @@ plot(SD_ppp, pch = 16, cex = 0.5)
 SD_k <- Kest(SD_ppp, correction = "Ripley") #Ripley's K function
 plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
+
+
 #Ripley's K for SD with Buffer River
 SD_win_buffer <- as.owin(river_buffer_SD) #turning the buffer into a window
 SD_ppp_buffer <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_buffer) #creating the poisson point pattern for lm
 plot(SD_ppp_buffer, pch = 16, cex = 0.5)
 SD_k_buffer <- Kest(SD_ppp_buffer, correction = "Ripley") #Ripley's K function
-plot(SD_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
+plot(SD_k_buffer, main=NULL, las=1, ylab = "", xlab = "", legendargs=list(cex=0.8, xpd=TRUE), 
+     yaxp = c(0, 300000, 10))#legend inside of the plot
+par(mar = c(6,6,6,6))
+title(ylab = bquote(italic("K(r), San Dionisio trees")), cex = 1.2, line = 4)
+title(xlab = bquote(italic("r (m)")),)
 
 #### ANN Analysis (test for clustering/dispersion) ####
 
@@ -287,7 +293,7 @@ ggplot()+
 as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
   ggplot()+
     geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
-    xlim(range(ann.p, ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
+    xlim(range(ann.p_LM, ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
     geom_vline(xintercept=ann.p, col = "red") + #adds a verticle line of our tree'\s' ANN
     xlab("ANN")+
   theme_classic()
@@ -295,7 +301,7 @@ as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of rand
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_LM){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -443,8 +449,8 @@ ggplot()+
 as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p, col = "red") + #plotting our tree's mean ANN
+  xlim(range(ann.p_LM, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=ann.p_LM, col = "red") + #plotting our tree's mean ANN
   xlab("ANN") +
   theme_classic()
 

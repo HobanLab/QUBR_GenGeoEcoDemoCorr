@@ -1,0 +1,28 @@
+{
+    "id": "882FE684",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1720810249608.0,
+    "source_on_save": false,
+    "relative_order": 8,
+    "properties": {
+        "id": "4a2b664cd9a149c096fab79b0521b9cd",
+        "name": "lw.dist.SD",
+        "title": "lw.dist.SD",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 10935115488,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720810249608,
+    "read_only": false,
+    "read_only_alternatives": []
+}

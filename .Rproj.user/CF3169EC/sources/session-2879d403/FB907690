@@ -1,0 +1,28 @@
+{
+    "id": "FB907690",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1720813003925.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "id": "c40d3ee99ec14726bb84b9ef5ab2aeab",
+        "name": "lw.dist.LM",
+        "title": "lw.dist.LM",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 11000461528,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720813003925,
+    "read_only": false,
+    "read_only_alternatives": []
+}
