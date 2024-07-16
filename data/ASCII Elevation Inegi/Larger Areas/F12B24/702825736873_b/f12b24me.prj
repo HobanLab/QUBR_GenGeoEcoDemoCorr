@@ -1,0 +1,6 @@
+Projection   Universal Transverse Mercator
+Datum     ITRF92
+Zone      12
+Zunits    METERS
+Units     METERS
+Spheroid  GRS 80

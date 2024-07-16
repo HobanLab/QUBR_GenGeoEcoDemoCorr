@@ -1,0 +1,48 @@
+                IMAGEN DIGITAL CARTA TOPOGRÁFICA ESCALA 1:50 000.
+                                F12B24 LAS CUEVAS
+
+DESCRIPCIÓN.
+
+La carta imagen digital consiste en una imagen que tiene el mismo
+contenido que la carta topográfica escala 1:50 000 impresa.
+
+Además del cuerpo del mapa, se incluye la leyenda marginal para facilitar su
+interpretación.
+
+La edición de la carta y esta imagen se prepararon mediante procesos
+digitales a partir de datos vectoriales.
+
+Se incluyeron archivos de imagen en formatos tif y gif, se agregan datos
+de georeferencia, con la que esta imagen puede combinarse con otra información
+geográfica, utilizando herramientas adecuadas.
+
+PROYECCIÓN, DATUM.
+
+Proyección Universal Transversa de Mercator
+Cuadrícula UTM a cada 1000 m
+
+Datum: ITRF92
+Elipsoide: GRS80
+
+Coordenadas de la esquina superior izquierda de la imagen (noroeste):
+x:599975.89340861
+y:2630361.59398337
+
+Dimensiones del pixel:
+x:9.68093177216472
+y:9.68454431121007
+
+ARCHIVOS DE IMAGEN
+f12b24.gif
+f12b24.tif
+
+FORMATO
+gif y tif
+
+INFORMACIÓN DE GEOREFERENCIA: (ARCHIVO "WORLD")
+f12b24.gfw
+f12b24.tfw
+
+
+FECHA DE PREPARACIÓN DE IMAGEN:
+Marzo del 2003

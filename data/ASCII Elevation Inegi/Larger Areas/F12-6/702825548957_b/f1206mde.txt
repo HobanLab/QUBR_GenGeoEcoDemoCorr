@@ -1,0 +1,41 @@
+MODELO DIGITAL DE ELEVACION: F1206MDE 
+
+FUENTE: Curvas de nivel de la Carta Topográfica escala 1:250,000, MDE en formato de un grado por un grado 
+PROCESAMIENTO: Cambio de proyección y remuestreo a partir de MDE de un grado por un grado 
+FECHA DE PROCESAMIENTO:	Agosto de 1998
+
+COBERTURA GEOGRAFICA APROXIMADA 
+Noroeste:	110d00'16.32" W  Lon   23d01'46.72" N  Lat 
+Noreste:	107d58'16.10" W  Lon   23d00'13.62" N  Lat 
+Suroeste:	110d00'42.88" W  Lon   21d59'43.29" N  Lat 
+Sureste:	107d59'36.79" W  Lon   21d58'14.80" N  Lat 
+
+PROYECCION: Universal Transversa de Mercator (UTM) 
+ZONA UTM:	12 
+DATUM:		NAD27 
+ELIPSOIDE:	Clarke 1866 
+UNIDADES COORDENADAS UTM:	metros 
+DIMENSIONES DEL MODELO: 
+		Columnas : 2085 
+		Renglones: 1145 
+COORDENADAS UTM DE LA ESQUINA NOROESTE: 
+		Este:   602000 
+		Norte: 2547000 
+COORDENADAS UTM DE LA ESQUINA SURESTE: 
+		Este:   810500 
+		Norte: 2432500 
+DISTANCIA HORIZONTAL ENTRE ELEVACIONES: 100 metros 
+
+ELEVACION EN METROS SOBRE EL NIVEL MEDIO DEL MAR 
+DATUM VERTICAL PARA NORTEAMERICA DE 1929 
+ELEVACION MINIMA:	    0 
+ELEVACION MAXIMA:	  969 
+ELEVACION MEDIA:	   3.222 
+DESVIACION ESTANDAR:	  30.876 
+
+FORMATO: Archivo binario sin encabezado
+CODIFICACION: 2 bytes(16 bits) por elevación 
+ORDEN DE BYTES: Intel "little endian", elevación=byte1+byte2*256 
+MODELO DE ELEVACION: en archivo f1206mde.bil 
+ARCHIVOS AUXILIARES "WORLD": 
+	f1206mde.hdr, f1206mde.blw, f1206mde.prj, f1206mde.stx 

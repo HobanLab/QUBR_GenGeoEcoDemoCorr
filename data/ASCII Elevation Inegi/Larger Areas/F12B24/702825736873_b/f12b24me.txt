@@ -1,0 +1,39 @@
+MODELO DIGITAL DE ELEVACION: f12b24 
+
+FUENTE: Curvas de nivel de la Carta Topográfica escala 1:50,000 
+PROYECCION: Universal Transversa de Mercator (UTM) 
+DATUM: ITRF92 
+ELIPSOIDE: GRS 80 
+UNIDADES: metros 
+DIMENSIONES DEL MODELO: 
+            Columnas : 706 
+            Renglones: 580 
+ZONA UTM: 12 
+COORDENADAS DE LA ESQUINA NOROESTE: 
+            Este:   601325 
+            Norte: 2627775 
+COORDENADAS DE LA ESQUINA SURESTE: 
+            Este:  636625 
+            Norte: 2598775 
+INTERVALO ENTRE ELEVACIONES: 50 metros 
+ELEVACION MINIMA: 0 
+ELEVACION MAXIMA: 2080 
+ELEVACION MEDIA:  661.5 
+DESVIACION ESTANDAR: 487.5 
+FORMATO: Archivo binario sin encabezado 
+CODIFICACION: 2 bytes(16 bits) por elevación 
+ORDEN DE BYTES: Intel "little endian", elevación=byte1+byte2*256 
+Modelo de elevación: en archivo f12b24me.bil 
+Archivos auxiliares "world": 
+   f12b24me.hdr, f12b24me.blw, f12b24me.prj, f12b24me.stx 
+
+NOTA.
+El área útil de este modelo está definida por un polígono
+con las siguientes coordenadas:
+
+Coordenadas Geográficas        Coordenadas UTM            Zona UTM
+Latitud     Longitud           Este          Norte
+23 45 00    110 00 00          601910.114    2626906.723     12
+23 30 00    110 00 00          602103.739    2599226.708     12
+23 30 00    109 40 00          636142.010    2599503.119     12
+23 45 00    109 40 00          635883.803    2627185.375     12

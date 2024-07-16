@@ -28,14 +28,6 @@ fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_pr
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
-#set elevation as a numeric value
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.))
-
-#creating a new elevation column so the values that were mistakenly 
-LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
 #plotting the tree points by elevation (m)
 ggplot()+
   geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
@@ -85,6 +77,20 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
   filter(Locality == "SD")
 
 
+#set elevation as a numeric value
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+  mutate(Elevation..m. = as.numeric(Elevation..m.))
+
+#creating a new elevation column so the values that were mistakenly put in feet are in meters
+LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
+                                        (Elevation..m. < 700) ~ Elevation..m.))
+
+##creating a new elevation column so that the 360 m outlier is 460
+SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ 460, 
+                                        (Elevation..m. != 360) ~ Elevation..m.))
+View(SD_fixed_field_data_processed)
 #upload river shapefile and filter out polygons for each population
 rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
 rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so we got rid of it because it was giving us weird errors and disrupting later statistics
@@ -126,7 +132,7 @@ SD_box <- st_bbox(river_SD_trans)
 
 #load in xyz ASCII from INEGI on elevation
 continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
-continental_relief_elevation_raster <- rasterFromXYZ(elevation_xyz) #26912
+continental_relief_elevation_raster <- rasterFromXYZ(continental_relief_elevation_xyz) #26912
 plot(continental_relief_elevation_raster)
 
 elevation_xyz_f1 <- read.table("./data/ASCII Elevation Inegi/f12b14f1_ms.xyz")
@@ -169,13 +175,65 @@ elevation_xyz_b34a4 <- read.table("./data/ASCII Elevation Inegi/f12b34a4_ms.xyz"
 elevation_xyz_b34a4 <- rasterFromXYZ(elevation_xyz_b34a4) #26912
 plot(elevation_xyz_b34a4)
 
+elevation_xyz_b34b1 <- read.table("./data/ASCII Elevation Inegi/f12b34b1_ms.xyz")
+elevation_xyz_b34b1 <- rasterFromXYZ(elevation_xyz_b34b1) #26912
+plot(elevation_xyz_b34b1)
+
+elevation_xyz_b34b2 <- read.table("./data/ASCII Elevation Inegi/f12b34b2_ms.xyz")
+elevation_xyz_b34b2 <- rasterFromXYZ(elevation_xyz_b34b2) #26912
+plot(elevation_xyz_b34b2)
+
+elevation_xyz_b34b3 <- read.table("./data/ASCII Elevation Inegi/f12b34b3_ms.xyz")
+elevation_xyz_b34b3 <- rasterFromXYZ(elevation_xyz_b34b3) #26912
+plot(elevation_xyz_b34b3)
+
+elevation_xyz_b34b4 <- read.table("./data/ASCII Elevation Inegi/f12b34b4_ms.xyz")
+elevation_xyz_b34b4 <- rasterFromXYZ(elevation_xyz_b34b4) #26912
+plot(elevation_xyz_b34b4)
+
+elevation_xyz_b34c1 <- read.table("./data/ASCII Elevation Inegi/f12b34c1_ms.xyz")
+elevation_xyz_b34c1 <- rasterFromXYZ(elevation_xyz_b34c1) #26912
+plot(elevation_xyz_b34c1)
+
+elevation_xyz_b34c3 <- read.table("./data/ASCII Elevation Inegi/f12b34c3_ms.xyz")
+elevation_xyz_b34c3 <- rasterFromXYZ(elevation_xyz_b34c3) #26912
+plot(elevation_xyz_b34c3)
+
 f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
                                       elevation_xyz_f3,  elevation_xyz_f4, 
                                       elevation_xyz_c4,elevation_xyz_b25a3,
                                       elevation_xyz_b34a1, elevation_xyz_b34a2,
-                                      elevation_xyz_b34a3, elevation_xyz_b34a4)
+                                      elevation_xyz_b34a3, elevation_xyz_b34a4, 
+                                      elevation_xyz_b34b1, elevation_xyz_b34b2,
+                                      elevation_xyz_b34b3, elevation_xyz_b34b4,
+                                      elevation_xyz_b34c1, elevation_xyz_b34c3)
 plot(f1_f4_merged_rasters)
 
+ggplot()+
+  geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = fixed_field_data_processed_NN_UTM)
+
+#mapping cropped 
+f1_f4_merged_rasters_cropped <- crop(f1_f4_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+
+ggplot()+
+  geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+SD_rasters <- raster::merge(elevation_xyz_b34a1, elevation_xyz_b34a2,
+                             elevation_xyz_b34a3, elevation_xyz_b34a4, 
+                             elevation_xyz_b34b1, elevation_xyz_b34b2,
+                             elevation_xyz_b34b3, elevation_xyz_b34b4,
+                             elevation_xyz_b34c1, elevation_xyz_b34c3)
+
+plot(SD_rasters)
+
+#very close with the elevation rasters
+ggplot()+
+  geom_raster(data= as.data.frame(SD_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+#50 M resolution elevation rasters for LM and LC
 
 f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
 plot(f12b12)
@@ -197,17 +255,55 @@ plot(f12b33)
 
 f12b_merged_rasters <- raster::merge(f12b12, f12b13, 
                                      f12b14,  f12b22, 
-                                     f12b23,f12b33)
+                                     f12b23, f12b33)
 plot(f12b_merged_rasters)
 
-#mapping cropped 
-f12b_merged_rasters_cropped <- crop(f12b_merged_rasters, extent(c(LM_box[1], LM_box[3], LM_box[2], LM_box[4])))
+#mapping with cropped for LM 
+f12b_merged_rasters_cropped_LM <- crop(f12b_merged_rasters, extent(c(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)))
 
 ggplot()+
-  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LM, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = LM_fixed_field_data_processed)
-geom_raster(data= as.data.frame(f12b_merged_rasters), aes(x=x, y=y, fill = layer))
-data = as.data.frame(clay_05_LM, xy=T), aes(x=x, y=y, fill = cly_05cm_mgw)
+
+#mapping with cropped for LC
+f12b_merged_rasters_cropped_LC <- crop(f12b_merged_rasters, extent(c(LC_box[1]-200, LC_box[3]+200, LC_box[2]-200, LC_box[4]+200)))
+
+ggplot()+
+  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LC, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = LC_fixed_field_data_processed)
+
+#mapping with cropped for SD
+f12b_merged_rasters_cropped_SD <- crop(f12b_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+ggplot()+
+  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_SD, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+f1202 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1202mde.bil")
+plot(f1202)
+
+f1206 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1206mde.bil")
+plot(f1206)
+
+
+#50 m resolution elevation for SD
+f12B24 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f12b24me.bil")
+plot(f12B24)
+
+f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+
+ggplot()+
+  geom_raster(data= as.data.frame(f12B24_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24me))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+#contour lines map
+F12B24_tif <- raster(paste0("./data/ASCII Elevation Inegi/Larger Areas/F12B24/702825702502_t/f12b24.tif"))
+plot(F12B24_tif)
+
+F12B24_tif_cropped_SD <- crop(F12B24_tif, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+
+ggplot()+
+  geom_raster(data= as.data.frame(F12B24_tif_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24))+
+  geom_sf(data = SD_fixed_field_data_processed)
 
 
 
@@ -284,7 +380,6 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
 
 
 #creating the linear regression
-
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -353,7 +448,7 @@ summary(LM_lm_lca_elev)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = LM_fixed_field_data_processed_sqrt, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
+ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
@@ -523,7 +618,7 @@ cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_p
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long)))+ 
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
@@ -688,44 +783,27 @@ summary(LC_lm_DBH_elev)
 
 #SD linear models
 
-
-
+#using the fixed elevation 
 
 #short canopy axis
 
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short)))+ 
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
 #creating the linear regression
+SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.)
+#linear regression with log transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-
-#calculate leverage for each observation in the model
-leverage <- as.data.frame(hatvalues(SD_lm_sca_elev))
-levarage <- leverage %>%
-  mutate(row = row_number())
-plot(hatvalues(SD_lm_sca_elev), type = 'h')
-mean(hatvalues(SD_lm_sca_elev))
-unusual_lev <- 4/length(SD_fixed_field_data_processed$Elevation..m.)
-which(leverage > unusual_lev)
-which(leverage$`hatvalues(SD_lm_sca_elev)` > .025)
-
-#Cook's D
-cooksD <- cooks.distance(SD_lm_sca_elev)
-plot(cooksD, type = 'h')
-unsual_cooksD <- 0.5
-which(cooksD > unsual_cooksD)
-
-
-
-
+#linear regression with square root transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -751,22 +829,27 @@ ggplot(data = SD_lm_sca_elev, aes(x = SD_lm_sca_elev$fitted.values, y = SD_lm_sc
 summary(SD_lm_sca_elev)
 
 #correlation test
-cor.test(SD_fixed_field_data_processed$Elevation..m., SD_fixed_field_data_processed$Canopy_short)
+cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$Canopy_short)
 
 #long canopy axis
 
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long)))+ 
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
 #creating the linear regression
+SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long ~ SD_fixed_field_data_processed$Elevation..m.)
+#linear regression with log transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_lca_elev, aes(x= SD_lm_lca_elev$residuals))+
@@ -794,20 +877,20 @@ summary(SD_lm_lca_elev)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y = Canopy_area)))+ 
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
 #creating the linear regression
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area ~ SD_fixed_field_data_processed$Elevation..m.)
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with log transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_log$Canopy_area_lg ~ SD_fixed_field_data_processed_log$Elevation..m.)
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_sqrt$Canopy_area_sqrt ~ SD_fixed_field_data_processed_sqrt$Elevation..m.)
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_CA_elev, aes(x= SD_lm_CA_elev$residuals))+
@@ -836,7 +919,7 @@ summary(SD_lm_CA_elev)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread)))+ 
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
@@ -844,7 +927,7 @@ ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_sprea
 
 #creating the linear regression
 
-SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.)
+SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
@@ -873,20 +956,20 @@ summary(SD_lm_CS_elev)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag)))+ 
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
 
 #creating the linear regression
-SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag ~ SD_fixed_field_data_processed$Elevation..m.)
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with logged transformation of aggregated DBH
-SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_log$DBH_ag_lg ~ SD_fixed_field_data_processed_log$Elevation..m.)
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of aggregated DBH
-SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_sqrt$DBH_ag_sqrt ~ SD_fixed_field_data_processed_sqrt$Elevation..m.)
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
