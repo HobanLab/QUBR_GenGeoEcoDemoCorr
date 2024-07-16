@@ -1341,6 +1341,7 @@ for (i in 1:length(LM_fixed_field_data_processed_sf_cropped_contains)){ #for the
   } 
 }
 
+#turning the cropped tree points into a point simple feature
 LM_fixed_field_data_processed_sf_cropped <- st_as_sf(LM_fixed_field_data_processed_sf_cropped_table, sf_column_name = "geometry", crs = 26912)
 
 #plotting the original box, cropped box, original tree points, and cropped tree points
@@ -1350,8 +1351,6 @@ ggplot()+
   geom_sf(data=LM_fixed_field_data_processed_sf)+ #original points
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped, color = "red") #old points
 
-
-  
 #Creating a grid over the tree points 
 LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
 
@@ -1364,6 +1363,7 @@ ggplot()+
 
 #ASH NOTE: BELOW SEEMS TO BE RETURNING NON UNIQUE GEOMETRIES, PERHAPS BECAUSE EDGE CASES ARE COUNTED AS UNIQUE OBSERVATIONS --> NEED TO USE SOMETHING LIKE DISTINCT OR UNIQUE ON THE GEOMETRIES TO MAKE SURE THIS GETS FIXED
 # FOUND THIS OUT BY PLOTTING FOCAL POINTS AND BUFFERS AGAINST THE GRID ITSELF
+
 #create a tibble with the the number of trees within the grids that contain trees
 LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_processed_sf, sparse =F) %>%
   rowSums() %>% #find how many trees are within each grid
@@ -1373,30 +1373,61 @@ LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_proc
 
 
 #filter out the grids to only have the grid cells that contain trees
-LM_tree_grid_inside_temp <- LM_tree_grid %>%
+LM_tree_grid_inside <- LM_tree_grid %>%
   st_as_sf() %>% 
   mutate(row = row_number()) %>% #create a column with row numbers
-  filter(row %in% LM_tree_grid_points_within$row) %>% #only keep polygons that match the row number of the grid cells with trees within them 
-
+  filter(row %in% LM_tree_grid_points_within$row) #only keep polygons that match the row number of the grid cells with trees within them 
 
 View(LM_tree_grid_inside)
-  
+
+#creating the buffer around all of the tree points
+LM_tree_buffers <-st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_fixed_field_data_processed$DBH_ag))
+
+
 #selecting the random points from each grid cell to be a focal point
 set.seed(25) #set a seed for the sample random generator
 focal_pts <- c() #create an empty vector of focal trees
-for (i in 1:nrow(LM_tree_grid_inside)){ #for the length of the grids with trees insideof them
+for (i in 1:nrow(LM_tree_grid_inside)){ #for the length of the grids with trees inside of them
   LM_tree_grid_inside_df <- as.data.frame(LM_tree_grid_inside)
   LM_tree_grid_inside_df_i <- LM_tree_grid_inside_df[i,] #isolate a row of the grid dataframe
   LM_tree_grid_inside_sf_i <- st_as_sf(LM_tree_grid_inside_df_i) #set the row as a simple feature
   all_pts <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
   possible_pts <- which(all_pts == T) #keep only the rows of trees that are within the polygon
-  focal_pt <- sample(possible_pts, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
-  focal_pts <- c(focal_pts, focal_pt) #add that tree to the list of focal points
+  possible_pts_buffers.df <- tibble() #create new empty dataframe for the buffers for each grid that are completely within the grid
+  #adding the trees with buffers completely within the current grid to a dataframe
+  for (g in 1:length(possible_pts)){
+    possible_pt_buffer_inside_current_grid <- c() #create empty list for if the current buffer is the within the grid completely
+    possible_pt_buffer <- st_buffer(LM_fixed_field_data_processed_sf[possible_pts[g]], 40*mean(LM_fixed_field_data_processed$DBH_ag)) #creates a buffer for the the current point within the grid, 40*mean(dbh)
+    possible_pt_buffer_inside_current_grid <- st_covered_by(possible_pt_buffer, LM_tree_grid_inside[i,]) #checks if the current point within the grid's buffer is completely within the grid
+    if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) != 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and the dataframe is not empty so we can add a new row
+      possible_pts_buffers.df <- possible_pts_buffers.df %>%
+        add_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
+    }
+    if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) == 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and because the dataframe is empty, we have to create a row
+      possible_pts_buffers.df <- tibble_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
+    }
+  }
+  #choosing a randomy focal tree from the trees whose buffers are inside the current grid
+  if (length(possible_pts_buffers.df$X) != 0){
+    focal_pt <- sample(possible_pts_buffers.df$X, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
+    focal_pts <- c(focal_pts, focal_pt)  #add that tree to the list of focal points
+  }
 }
 
 #filtering out point data to be just the focal points
 LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
   filter(X %in% focal_pts) 
+
+#graphing the selected focal trees, the buffers, the grid
+ggplot()+
+  geom_sf(data = LM_tree_grid)+
+#  geom_sf(data = LM_tree_buffers)+
+ # geom_sf(data=possible_pt_buffer, color = 'red')+
+  geom_sf(data=LM_focal_tree_buffers, color = "blue")+
+  geom_sf(data= LM_fixed_field_data_processed_focal, aes(color = X))+
+  geom_sf(data = possible_pts_buffers.df$geometry, color = "red")
+  
+  
 
 
 #creating the buffer around the focal points
