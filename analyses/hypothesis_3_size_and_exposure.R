@@ -152,6 +152,15 @@ ggplot(LM_fixed_field_data_processed) + # Generate the base plot
   xlab("Elevation (m)")+
   ylab("Frequency")
 
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Elevation..m.))+
+  xlab("Elevation (m)")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Elevation..m.))+
+  xlab("Elevation (m)")+
+  ylab("Frequency")
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
@@ -380,4 +389,409 @@ ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DB
 
 #Slope Test visible in summary of the lm
 summary(LM_lm_DBH_elev)
+
+
+
+#LC linear models
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+
+LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LC_lm_sca_elev, aes(sample = LC_lm_sca_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_sca_elev, aes(x = LC_lm_sca_elev$fitted.values, y = LC_lm_sca_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_sca_elev)
+
+#correlation test
+cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+
+LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_lca_elev, aes(sample = LC_lm_lca_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_lca_elev, aes(x = LC_lm_lca_elev$fitted.values, y = LC_lm_lca_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_lca_elev)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear regression with log transformation of canopy area
+LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_log$Canopy_area_lg ~ LC_fixed_field_data_processed_log$Elevation..m.)
+
+#linear regression with square root transformation of canopy area
+LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_sqrt$Canopy_area_sqrt ~ LC_fixed_field_data_processed_sqrt$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CA_elev, aes(x= LC_lm_CA_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CA_elev, aes(sample = LC_lm_CA_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CA_elev)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CS_elev, aes(sample = LC_lm_CS_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_CS_elev, aes(x = LC_lm_CS_elev$fitted.values, y = LC_lm_CS_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CS_elev)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("DBH")
+
+#creating the linear regression
+LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear regression with logged transformation of aggregated DBH
+LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_log$DBH_ag_lg ~ LC_fixed_field_data_processed_log$Elevation..m.)
+
+#linear regression with square root transformation of aggregated DBH
+LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_sqrt$DBH_ag_sqrt ~ LC_fixed_field_data_processed_sqrt$Elevation..m.)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_DBH_elev, aes(x= LC_lm_DBH_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_DBH_elev, aes(sample = LC_lm_DBH_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_DBH_elev, aes(x = LC_lm_DBH_elev$fitted.values, y = LC_lm_DBH_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_DBH_elev)
+
+
+
+#SD linear models
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+
+SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(SD_lm_sca_elev, aes(sample = SD_lm_sca_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_sca_elev, aes(x = SD_lm_sca_elev$fitted.values, y = SD_lm_sca_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_sca_elev)
+
+#correlation test
+cor.test(SD_fixed_field_data_processed$Elevation..m., SD_fixed_field_data_processed$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+
+SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long ~ SD_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_lca_elev, aes(x= SD_lm_lca_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_lca_elev, aes(sample = SD_lm_lca_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_lca_elev, aes(x = SD_lm_lca_elev$fitted.values, y = SD_lm_lca_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_lca_elev)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area ~ SD_fixed_field_data_processed$Elevation..m.)
+
+#linear regression with log transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_log$Canopy_area_lg ~ SD_fixed_field_data_processed_log$Elevation..m.)
+
+#linear regression with square root transformation of canopy area
+SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_sqrt$Canopy_area_sqrt ~ SD_fixed_field_data_processed_sqrt$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CA_elev, aes(x= SD_lm_CA_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CA_elev, aes(sample = SD_lm_CA_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CA_elev, aes(x = SD_lm_CA_elev$fitted.values, y = SD_lm_CA_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CA_elev)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CS_elev, aes(sample = SD_lm_CS_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CS_elev, aes(x = SD_lm_CS_elev$fitted.values, y = SD_lm_CS_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CS_elev)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("DBH")
+
+#creating the linear regression
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag ~ SD_fixed_field_data_processed$Elevation..m.)
+
+#linear regression with logged transformation of aggregated DBH
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_log$DBH_ag_lg ~ SD_fixed_field_data_processed_log$Elevation..m.)
+
+#linear regression with square root transformation of aggregated DBH
+SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_sqrt$DBH_ag_sqrt ~ SD_fixed_field_data_processed_sqrt$Elevation..m.)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_DBH_elev, aes(x= SD_lm_DBH_elev$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_DBH_elev, aes(sample = SD_lm_DBH_elev$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_DBH_elev, aes(x = SD_lm_DBH_elev$fitted.values, y = SD_lm_DBH_elev$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_DBH_elev)
+
 
