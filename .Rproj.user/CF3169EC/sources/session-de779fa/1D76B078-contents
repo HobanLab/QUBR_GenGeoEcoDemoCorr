@@ -1285,38 +1285,7 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 #creating a grid over the points with a 10 m edge buffer
 LM_box <- st_bbox(LM_fixed_field_data_processed_sf)
 
-LM_fixed_field_data_processed_spatial <- as(LM_fixed_field_data_processed_sf, 'Spatial')
-LM_fixed_field_data_processed_spatial_cropped_10 <- raster::crop(LM_fixed_field_data_processed_spatial, extent((LM_box[1]+10), (LM_box[3]-10), (LM_box[2]+10), (LM_box[4]-10)))
-LM_fixed_field_data_processed_sf_cropped_10 <- LM_fixed_field_data_processed_spatial_cropped_20 %>%
-  st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_10)
-
-LM_fixed_field_data_processed_spatial_cropped_20 <- raster::crop(LM_fixed_field_data_processed_spatial, extent((LM_box[1]+20), (LM_box[3]-20), (LM_box[2]+20), (LM_box[4]-20)))
-LM_fixed_field_data_processed_sf_cropped_20 <- LM_fixed_field_data_processed_spatial_cropped_20 %>%
-  st_as_sfc(LM_fixed_field_data_processed_spatial_cropped_20)
-
-LM_fixed_field_data_processed_sf_cropped_20_bbox <- LM_fixed_field_data_processed_sf_cropped_20 %>%
-  st_bbox() %>%
-  st_as_sfc()
-
-LM_fixed_field_data_processed_sf_bbox <- LM_fixed_field_data_processed_sf %>%
-  st_bbox() %>%
-  st_as_sfc()
-
-LM_fixed_field_data_processed_sf_cropped_10_bbox <- LM_fixed_field_data_processed_sf_cropped_10 %>%
-  st_bbox() %>%
-  st_as_sfc()
-
-ggplot()+
-  geom_sf(data=LM_fixed_field_data_processed_sf)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_bbox, color = "black", fill = NA)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_10_bbox, color = 'red', fill = NA)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_10, color = "red", fill = NA)+
-  geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20, color = "blue", fill = NA)
- # geom_sf(data=LM_fixed_field_data_processed_sf_cropped_20_bbox, color = "blue", fill = NA) +
-  #geom_sf(data=LM_fixed_field_data_processed_sf_cropped_40, color = "green")+
-
-
-#second version of cropping the points
+#cropping the points
 #creating a cropped bbox 
 LM_box_sf <- LM_box %>% #turning the bbox into polygon
   st_as_sfc()
@@ -1332,13 +1301,10 @@ LM_fixed_field_data_processed_sf_cropped_table <- tibble()
 
 #loop that adds rows of points that are within cropped LM box to the new tibble
 for (i in 1:length(LM_fixed_field_data_processed_sf_cropped_contains)){ #for the total number of trees (t or f)
-  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T & nrow(LM_fixed_field_data_processed_sf_cropped_table) != 0) { #if the tree is within the box and there are already rows added to the tibble
-    LM_fixed_field_data_processed_sf_cropped_table <- LM_fixed_field_data_processed_sf_cropped_table %>% 
-      add_row(tibble_row(LM_fixed_field_data_processed[i,])) #adds a new row to the tibble
+  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T) { #if the tree is within the box and there are already rows added to the tibble
+    LM_fixed_field_data_processed_sf_cropped_table_shortterm <- tibble (LM_fixed_field_data_processed[i,])
+    LM_fixed_field_data_processed_sf_cropped_table <- rbind(LM_fixed_field_data_processed_sf_cropped_table, LM_fixed_field_data_processed_sf_cropped_table_shortterm)
   }
-  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T & nrow(LM_fixed_field_data_processed_sf_cropped_table) == 0) { #if the tree is within the box and there are NOT already rows added to the tibble
-    LM_fixed_field_data_processed_sf_cropped_table <- tibble_row(LM_fixed_field_data_processed[i,]) #sets the tibble equal to the new row, we have to do this if there is not already things in the tibble because add_row does not work otherwise
-  } 
 }
 
 #turning the cropped tree points into a point simple feature
@@ -1353,7 +1319,6 @@ ggplot()+
 
 #Creating a grid over the tree points 
 LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
-
 
 #plotting the grid and the tree points
 ggplot()+
@@ -1371,7 +1336,6 @@ LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_proc
   mutate(row = row_number()) %>% #assign a new column with row numbers 
   filter(value > 0) #filter out any grids without trees in them
 
-
 #filter out the grids to only have the grid cells that contain trees
 LM_tree_grid_inside <- LM_tree_grid %>%
   st_as_sf() %>% 
@@ -1387,32 +1351,42 @@ LM_tree_buffers <-st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_f
 #selecting the random points from each grid cell to be a focal point
 set.seed(25) #set a seed for the sample random generator
 focal_pts <- c() #create an empty vector of focal trees
+grid_number <- c()
 for (i in 1:nrow(LM_tree_grid_inside)){ #for the length of the grids with trees inside of them
   LM_tree_grid_inside_df <- as.data.frame(LM_tree_grid_inside)
   LM_tree_grid_inside_df_i <- LM_tree_grid_inside_df[i,] #isolate a row of the grid dataframe
   LM_tree_grid_inside_sf_i <- st_as_sf(LM_tree_grid_inside_df_i) #set the row as a simple feature
-  all_pts <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
-  possible_pts <- which(all_pts == T) #keep only the rows of trees that are within the polygon
-  possible_pts_buffers.df <- tibble() #create new empty dataframe for the buffers for each grid that are completely within the grid
-  #adding the trees with buffers completely within the current grid to a dataframe
-  for (g in 1:length(possible_pts)){
-    possible_pt_buffer_inside_current_grid <- c() #create empty list for if the current buffer is the within the grid completely
-    possible_pt_buffer <- st_buffer(LM_fixed_field_data_processed_sf[possible_pts[g]], 40*mean(LM_fixed_field_data_processed$DBH_ag)) #creates a buffer for the the current point within the grid, 40*mean(dbh)
-    possible_pt_buffer_inside_current_grid <- st_covered_by(possible_pt_buffer, LM_tree_grid_inside[i,]) #checks if the current point within the grid's buffer is completely within the grid
-    if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) != 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and the dataframe is not empty so we can add a new row
-      possible_pts_buffers.df <- possible_pts_buffers.df %>%
-        add_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
-    }
-    if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) == 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and because the dataframe is empty, we have to create a row
-      possible_pts_buffers.df <- tibble_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
-    }
-  }
-  #choosing a randomy focal tree from the trees whose buffers are inside the current grid
-  if (length(possible_pts_buffers.df$X) != 0){
-    focal_pt <- sample(possible_pts_buffers.df$X, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
-    focal_pts <- c(focal_pts, focal_pt)  #add that tree to the list of focal points
+  all_pts <- st_covered_by(LM_tree_buffers, LM_tree_grid_inside_sf_i)
+  #all_pts <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
+  possible_pts <- all_pts %>%
+    as.data.frame()
+  if (nrow(possible_pts) == 0){
+    focal_pts <- focal_pts
+  } else {
+    focal_pt <- sample(possible_pts$row.id, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
+    focal_pts <- c(focal_pts, focal_pt)
+    grid_number <- c(grid_number, i)
   }
 }
+  #possible_pts <- which(length(all_pts == 1) #keep only the rows of trees that are within the polygon
+  #possible_pts_buffers.df <- tibble() #create new empty dataframe for the buffers for each grid that are completely within the grid
+  #adding the trees with buffers completely within the current grid to a dataframe
+  # for (g in 1:length(possible_pts)){
+  #   possible_pt_buffer_inside_current_grid <- c() #create empty list for if the current buffer is the within the grid completely
+  #   possible_pt_buffer <- st_buffer(LM_fixed_field_data_processed_sf[possible_pts[g]], 40*mean(LM_fixed_field_data_processed$DBH_ag)) #creates a buffer for the the current point within the grid, 40*mean(dbh)
+  #   possible_pt_buffer_inside_current_grid <- st_covered_by(possible_pt_buffer, LM_tree_grid_inside[i,]) #checks if the current point within the grid's buffer is completely within the grid
+  #   if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) != 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and the dataframe is not empty so we can add a new row
+  #     possible_pts_buffers.df <- possible_pts_buffers.df %>%
+  #       add_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
+  #   }
+  #   if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) == 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and because the dataframe is empty, we have to create a row
+  #     possible_pts_buffers.df <- tibble_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
+  #   }
+  # }
+
+View(all_pts)
+
+LM_tree_grid_inside_sf_i_contains_experiment <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_focal, sparse = F)
 
 #filtering out point data to be just the focal points
 LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
@@ -1421,12 +1395,13 @@ LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
 #graphing the selected focal trees, the buffers, the grid
 ggplot()+
   geom_sf(data = LM_tree_grid)+
-#  geom_sf(data = LM_tree_buffers)+
+  geom_sf(data = LM_tree_grid_inside, fill = "DodgerBlue") +
+ # geom_sf(data = LM_tree_buffers)
  # geom_sf(data=possible_pt_buffer, color = 'red')+
   geom_sf(data=LM_focal_tree_buffers, color = "blue")+
-  geom_sf(data= LM_fixed_field_data_processed_focal, aes(color = X))+
-  geom_sf(data = possible_pts_buffers.df$geometry, color = "red")
-  
+  geom_sf(data= LM_fixed_field_data_processed_focal, aes(color = X))
+ # geom_sf(data = possible_pts_buffers.df$geometry, color = "red")
+View(LM_tree_grid_inside)
   
 
 

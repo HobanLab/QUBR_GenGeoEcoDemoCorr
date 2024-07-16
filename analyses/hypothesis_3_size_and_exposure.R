@@ -55,6 +55,24 @@ SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>
   filter(Locality == "SD") %>%
   st_as_sfc()
 
+#transformations of LM variables (log, square root, ) for linear models
+
+#creating columns with transformations: logged all of the variables
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+  mutate(Canopy_short_lg = log(Canopy_short))%>%
+  mutate(Canopy_long_lg = log(Canopy_long))%>%
+  mutate(Canopy_area_lg = log(Canopy_area))%>%
+  mutate(Crown_spread_lg = log(Crown_spread))%>%
+  mutate(DBH_ag_lg = log(DBH_ag))
+
+#creating columns with transformations: square root all of the variables
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
+  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
+  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
+  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
+  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
+
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
 
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
@@ -107,11 +125,91 @@ SD_box <- st_bbox(river_SD_trans)
 #creating the aspect and slope rasters
 
 #load in xyz ASCII from INEGI on elevation
-elevation_xyz <- read.table("./data/ASCII Elevation Inegi/conjunto_de_datos/f12b43b4_ms.xyz")
-View(elevation_xyz)
-plot(elevation_xyz)
-elevation_sf <-st_as_sf(elevation_xyz, 
-                        coords = c("long", "lat"), crs = 4326)
+continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
+continental_relief_elevation_raster <- rasterFromXYZ(elevation_xyz) #26912
+plot(continental_relief_elevation_raster)
+
+elevation_xyz_f1 <- read.table("./data/ASCII Elevation Inegi/f12b14f1_ms.xyz")
+elevation_xyz_f1 <- rasterFromXYZ(elevation_xyz_f1) #26912
+plot(elevation_xyz_f1)
+
+elevation_xyz_f2 <- read.table("./data/ASCII Elevation Inegi/f12b14f2_ms.xyz")
+elevation_xyz_f2 <- rasterFromXYZ(elevation_xyz_f2) #26912
+plot(elevation_xyz_f2)
+
+elevation_xyz_f3 <- read.table("./data/ASCII Elevation Inegi/f12b14f3_ms.xyz")
+elevation_xyz_f3 <- rasterFromXYZ(elevation_xyz_f3) #26912
+plot(elevation_xyz_f3)
+
+elevation_xyz_f4 <- read.table("./data/ASCII Elevation Inegi/f12b14f4_ms.xyz")
+elevation_xyz_f4 <- rasterFromXYZ(elevation_xyz_f4) #26912
+plot(elevation_xyz_f4)
+
+elevation_xyz_c4 <- read.table("./data/ASCII Elevation Inegi/f12b24c4_ms.xyz")
+elevation_xyz_c4 <- rasterFromXYZ(elevation_xyz_c4) #26912
+plot(elevation_xyz_c4)
+
+elevation_xyz_b25a3 <- read.table("./data/ASCII Elevation Inegi/f12b25a3_ms.xyz")
+elevation_xyz_b25a3 <- rasterFromXYZ(elevation_xyz_b25a3) #26912
+plot(elevation_xyz_b25a3)
+
+elevation_xyz_b34a1 <- read.table("./data/ASCII Elevation Inegi/f12b34a1_ms.xyz")
+elevation_xyz_b34a1 <- rasterFromXYZ(elevation_xyz_b34a1) #26912
+plot(elevation_xyz_b34a1)
+
+elevation_xyz_b34a2 <- read.table("./data/ASCII Elevation Inegi/f12b34a2_ms.xyz")
+elevation_xyz_b34a2 <- rasterFromXYZ(elevation_xyz_b34a2) #26912
+plot(elevation_xyz_b34a2)
+
+elevation_xyz_b34a3 <- read.table("./data/ASCII Elevation Inegi/f12b34a3_ms.xyz")
+elevation_xyz_b34a3 <- rasterFromXYZ(elevation_xyz_b34a3) #26912
+plot(elevation_xyz_b34a3)
+
+elevation_xyz_b34a4 <- read.table("./data/ASCII Elevation Inegi/f12b34a4_ms.xyz")
+elevation_xyz_b34a4 <- rasterFromXYZ(elevation_xyz_b34a4) #26912
+plot(elevation_xyz_b34a4)
+
+f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
+                                      elevation_xyz_f3,  elevation_xyz_f4, 
+                                      elevation_xyz_c4,elevation_xyz_b25a3,
+                                      elevation_xyz_b34a1, elevation_xyz_b34a2,
+                                      elevation_xyz_b34a3, elevation_xyz_b34a4)
+plot(f1_f4_merged_rasters)
+
+
+f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
+plot(f12b12)
+
+f12b13 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b13me.bil")
+plot(f12b13)
+
+f12b14 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b14me.bil")
+plot(f12b14)
+
+f12b22 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b22me.bil")
+plot(f12b22)
+
+f12b23 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b23me.bil")
+plot(f12b23)
+
+f12b33 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b33me.bil")
+plot(f12b33)
+
+f12b_merged_rasters <- raster::merge(f12b12, f12b13, 
+                                     f12b14,  f12b22, 
+                                     f12b23,f12b33)
+plot(f12b_merged_rasters)
+
+#mapping cropped 
+f12b_merged_rasters_cropped <- crop(f12b_merged_rasters, extent(c(LM_box[1], LM_box[3], LM_box[2], LM_box[4])))
+
+ggplot()+
+  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = LM_fixed_field_data_processed)
+geom_raster(data= as.data.frame(f12b_merged_rasters), aes(x=x, y=y, fill = layer))
+data = as.data.frame(clay_05_LM, xy=T), aes(x=x, y=y, fill = cly_05cm_mgw)
+
+
 
 #### Descriptive Summary ####
 
@@ -167,24 +265,6 @@ field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
-
-#transformations of variables (log, square root, ) for linear models
-
-#creating columns with transformations: logged all of the variables
-LM_fixed_field_data_processed_log <- LM_fixed_field_data_processed %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root all of the variables
-LM_fixed_field_data_processed_sqrt <- LM_fixed_field_data_processed %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
 
 ### Sizes vs. Elevation ###
@@ -283,10 +363,10 @@ ggplot(data = LM_fixed_field_data_processed_sqrt, (aes(x=Elevation..m.FIXED, y =
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with log transformation of canopy area
-LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_log$Canopy_area_lg ~ LM_fixed_field_data_processed_log$Elevation..m.FIXED)
+LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of canopy area
-LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_sqrt$Canopy_area_sqrt ~ LM_fixed_field_data_processed_sqrt$Elevation..m.FIXED)
+LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -363,10 +443,10 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with logged transformation of aggregated DBH
-LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed_log$DBH_ag_lg ~ LM_fixed_field_data_processed_log$Elevation..m.FIXED)
+LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of aggregated DBH
-LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed_sqrt$DBH_ag_sqrt ~ LM_fixed_field_data_processed_sqrt$Elevation..m.FIXED)
+LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -407,8 +487,11 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_shor
 
 
 #creating the linear regression
-
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear regression with logged transformation of short canopy axis
+LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_lg ~ LC_fixed_field_data_processed$Elevation..m.)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
@@ -447,8 +530,11 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long
   ylab("Long Canopy Axis")
 
 #creating the linear regression
-
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear transformation with logged long canopy axis
+LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long_lg ~ LC_fixed_field_data_processed$Elevation..m.)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
@@ -486,10 +572,10 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y = Canopy_ar
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #linear regression with log transformation of canopy area
-LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_log$Canopy_area_lg ~ LC_fixed_field_data_processed_log$Elevation..m.)
+LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #linear regression with square root transformation of canopy area
-LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_sqrt$Canopy_area_sqrt ~ LC_fixed_field_data_processed_sqrt$Elevation..m.)
+LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_CA_elev, aes(x= LC_lm_CA_elev$residuals))+
@@ -525,8 +611,14 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_sprea
   ylab("Crown Spread")
 
 #creating the linear regression
-
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear transformation with logged crown spread
+LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_lg ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#linear transformation with square rooted crown spread
+LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
@@ -565,10 +657,10 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag)))+
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #linear regression with logged transformation of aggregated DBH
-LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_log$DBH_ag_lg ~ LC_fixed_field_data_processed_log$Elevation..m.)
+LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #linear regression with square root transformation of aggregated DBH
-LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_sqrt$DBH_ag_sqrt ~ LC_fixed_field_data_processed_sqrt$Elevation..m.)
+LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -596,6 +688,9 @@ summary(LC_lm_DBH_elev)
 
 #SD linear models
 
+
+
+
 #short canopy axis
 
 #checking linearity 
@@ -607,10 +702,31 @@ ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_shor
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-
 #creating the linear regression
 
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.)
+
+
+#calculate leverage for each observation in the model
+leverage <- as.data.frame(hatvalues(SD_lm_sca_elev))
+levarage <- leverage %>%
+  mutate(row = row_number())
+plot(hatvalues(SD_lm_sca_elev), type = 'h')
+mean(hatvalues(SD_lm_sca_elev))
+unusual_lev <- 4/length(SD_fixed_field_data_processed$Elevation..m.)
+which(leverage > unusual_lev)
+which(leverage$`hatvalues(SD_lm_sca_elev)` > .025)
+
+#Cook's D
+cooksD <- cooks.distance(SD_lm_sca_elev)
+plot(cooksD, type = 'h')
+unsual_cooksD <- 0.5
+which(cooksD > unsual_cooksD)
+
+
+
+
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
