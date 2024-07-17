@@ -220,6 +220,7 @@ ggplot()+
   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = SD_fixed_field_data_processed)
 
+#isolating just the SD 5 m portions
 SD_rasters <- raster::merge(elevation_xyz_b34a1, elevation_xyz_b34a2,
                              elevation_xyz_b34a3, elevation_xyz_b34a4, 
                              elevation_xyz_b34b1, elevation_xyz_b34b2,
