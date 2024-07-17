@@ -28,15 +28,15 @@ fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_proce
 
 LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LM") %>%
-  st_as_sfc()
+  st_as_sf()
 
 LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LC") %>%
-  st_as_sfc()
+  st_as_sf()
 
 SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "SD") %>%
-  st_as_sfc()
+  st_as_sf()
 
 #### Computing Average Nearest Neighbors for each tree ####
 
@@ -1285,7 +1285,8 @@ View(fixed_field_data_processed_NN_UTM_inverse)
 #creating a grid over the points with a 10 m edge buffer
 LM_box <- st_bbox(LM_fixed_field_data_processed_sf)
 
-#cropping the points
+#cropping the tree points down by 20 m on all sides
+
 #creating a cropped bbox 
 LM_box_sf <- LM_box %>% #turning the bbox into polygon
   st_as_sfc()
@@ -1294,21 +1295,11 @@ LM_box_spatial_cropped <- raster::crop(LM_box_spatial, extent((LM_box[1]+20), (L
 LM_box_sf_cropped <-  LM_box_spatial_cropped %>% #turning the spatial polygon into a polygon
   st_as_sfc()
 
-LM_fixed_field_data_processed_sf_cropped_contains <- st_contains(LM_box_sf_cropped, LM_fixed_field_data_processed_sf, sparse = F)
+#cropping the points by the cropped box
+LM_fixed_field_data_processed_sf_cropped<- st_crop(LM_fixed_field_data_processed_sf, LM_box_sf_cropped)
 
-#create an empty tibble for all of the points that are within the cropped bbox
-LM_fixed_field_data_processed_sf_cropped_table <- tibble()
-
-#loop that adds rows of points that are within cropped LM box to the new tibble
-for (i in 1:length(LM_fixed_field_data_processed_sf_cropped_contains)){ #for the total number of trees (t or f)
-  if (LM_fixed_field_data_processed_sf_cropped_contains[i] == T) { #if the tree is within the box and there are already rows added to the tibble
-    LM_fixed_field_data_processed_sf_cropped_table_shortterm <- tibble (LM_fixed_field_data_processed[i,])
-    LM_fixed_field_data_processed_sf_cropped_table <- rbind(LM_fixed_field_data_processed_sf_cropped_table, LM_fixed_field_data_processed_sf_cropped_table_shortterm)
-  }
-}
-
-#turning the cropped tree points into a point simple feature
-LM_fixed_field_data_processed_sf_cropped <- st_as_sf(LM_fixed_field_data_processed_sf_cropped_table, sf_column_name = "geometry", crs = 26912)
+#Creating a grid over the cropped tree points 
+LM_tree_grid_cropped <- st_make_grid(LM_fixed_field_data_processed_sf_cropped, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
 
 #plotting the original box, cropped box, original tree points, and cropped tree points
 ggplot()+
@@ -1317,101 +1308,41 @@ ggplot()+
   geom_sf(data=LM_fixed_field_data_processed_sf)+ #original points
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped, color = "red") #old points
 
-#Creating a grid over the tree points 
-LM_tree_grid <- st_make_grid(LM_fixed_field_data_processed_sf, cellsize = (((40*mean(LM_fixed_field_data_processed$DBH_ag))*2)*2))
 
-#plotting the grid and the tree points
-ggplot()+
-  geom_sf(data=LM_tree_grid)+
-  geom_sf(data=LM_fixed_field_data_processed_sf)+
-  geom_sf(data = LM_fixed_field_data_processed_sf_cropped, color = "blue")
-
-#ASH NOTE: BELOW SEEMS TO BE RETURNING NON UNIQUE GEOMETRIES, PERHAPS BECAUSE EDGE CASES ARE COUNTED AS UNIQUE OBSERVATIONS --> NEED TO USE SOMETHING LIKE DISTINCT OR UNIQUE ON THE GEOMETRIES TO MAKE SURE THIS GETS FIXED
-# FOUND THIS OUT BY PLOTTING FOCAL POINTS AND BUFFERS AGAINST THE GRID ITSELF
-
-#create a tibble with the the number of trees within the grids that contain trees
-LM_tree_grid_points_within <- st_contains(LM_tree_grid, LM_fixed_field_data_processed_sf, sparse =F) %>%
-  rowSums() %>% #find how many trees are within each grid
-  as_tibble() %>% 
-  mutate(row = row_number()) %>% #assign a new column with row numbers 
-  filter(value > 0) #filter out any grids without trees in them
-
-#filter out the grids to only have the grid cells that contain trees
-LM_tree_grid_inside <- LM_tree_grid %>%
-  st_as_sf() %>% 
-  mutate(row = row_number()) %>% #create a column with row numbers
-  filter(row %in% LM_tree_grid_points_within$row) #only keep polygons that match the row number of the grid cells with trees within them 
-
-View(LM_tree_grid_inside)
-
-#creating the buffer around all of the tree points
-LM_tree_buffers <-st_buffer(LM_fixed_field_data_processed$geometry, 40*mean(LM_fixed_field_data_processed$DBH_ag))
-
-
-#selecting the random points from each grid cell to be a focal point
-set.seed(25) #set a seed for the sample random generator
-focal_pts <- c() #create an empty vector of focal trees
-grid_number <- c()
-for (i in 1:nrow(LM_tree_grid_inside)){ #for the length of the grids with trees inside of them
-  LM_tree_grid_inside_df <- as.data.frame(LM_tree_grid_inside)
-  LM_tree_grid_inside_df_i <- LM_tree_grid_inside_df[i,] #isolate a row of the grid dataframe
-  LM_tree_grid_inside_sf_i <- st_as_sf(LM_tree_grid_inside_df_i) #set the row as a simple feature
-  all_pts <- st_covered_by(LM_tree_buffers, LM_tree_grid_inside_sf_i)
-  #all_pts <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
-  possible_pts <- all_pts %>%
-    as.data.frame()
-  if (nrow(possible_pts) == 0){
-    focal_pts <- focal_pts
-  } else {
-    focal_pt <- sample(possible_pts$row.id, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
-    focal_pts <- c(focal_pts, focal_pt)
-    grid_number <- c(grid_number, i)
+#selecting a focal point from each grid cell with trees within them
+LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(25) #setting the seed
+LM_list_grids_and_focal_trees <- lapply(LM_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
+    focal_pt <- sample(cell, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
   }
-}
-  #possible_pts <- which(length(all_pts == 1) #keep only the rows of trees that are within the polygon
-  #possible_pts_buffers.df <- tibble() #create new empty dataframe for the buffers for each grid that are completely within the grid
-  #adding the trees with buffers completely within the current grid to a dataframe
-  # for (g in 1:length(possible_pts)){
-  #   possible_pt_buffer_inside_current_grid <- c() #create empty list for if the current buffer is the within the grid completely
-  #   possible_pt_buffer <- st_buffer(LM_fixed_field_data_processed_sf[possible_pts[g]], 40*mean(LM_fixed_field_data_processed$DBH_ag)) #creates a buffer for the the current point within the grid, 40*mean(dbh)
-  #   possible_pt_buffer_inside_current_grid <- st_covered_by(possible_pt_buffer, LM_tree_grid_inside[i,]) #checks if the current point within the grid's buffer is completely within the grid
-  #   if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) != 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and the dataframe is not empty so we can add a new row
-  #     possible_pts_buffers.df <- possible_pts_buffers.df %>%
-  #       add_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
-  #   }
-  #   if (length(possible_pt_buffer_inside_current_grid[[1]]) == 1 & nrow(possible_pts_buffers.df) == 0){ #if the length of the grid containing the point is 1, it means the buffer is completely within the grid, and because the dataframe is empty, we have to create a row
-  #     possible_pts_buffers.df <- tibble_row(LM_fixed_field_data_processed[possible_pts[g],]) #because the tree buffer is completely within the grid, we can add the row associated with the tree to a dataframe we can use to randomly select trees within each grid
-  #   }
-  # }
+  else if(length(cell) == 1) { #for each grid cell, if there is exactly one tree in each cell
+    focal_pt <- cell #set the focal point to be the tree that is within the cell
+  } else { # if there are no trees
+    focal_pt <- NA # set the focal tree point to be NA
+  }
+  return(focal_pt)
+})
 
-View(all_pts)
-
-LM_tree_grid_inside_sf_i_contains_experiment <- st_contains(LM_tree_grid_inside_sf_i, LM_fixed_field_data_processed_focal, sparse = F)
+#creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
+LM_list_grids_and_focal_trees_df <- as.data.frame(unlist(LM_list_grids_and_focal_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
+colnames(LM_list_grids_and_focal_trees_df) <- c("tree_row_num") #changes the column name 
+LM_list_grids_and_focal_trees_fixed <- LM_list_grids_and_focal_trees_df %>% #filters out grid cells that do not have trees within them
+  mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
+  filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
 #filtering out point data to be just the focal points
-LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed %>%
-  filter(X %in% focal_pts) 
-
-#graphing the selected focal trees, the buffers, the grid
-ggplot()+
-  geom_sf(data = LM_tree_grid)+
-  geom_sf(data = LM_tree_grid_inside, fill = "DodgerBlue") +
- # geom_sf(data = LM_tree_buffers)
- # geom_sf(data=possible_pt_buffer, color = 'red')+
-  geom_sf(data=LM_focal_tree_buffers, color = "blue")+
-  geom_sf(data= LM_fixed_field_data_processed_focal, aes(color = X))
- # geom_sf(data = possible_pts_buffers.df$geometry, color = "red")
-View(LM_tree_grid_inside)
-  
-
+LM_fixed_field_data_processed_focal <- LM_fixed_field_data_processed_sf %>%
+  filter(X %in% LM_list_grids_and_focal_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
 
 #creating the buffer around the focal points
 LM_focal_tree_buffers <-st_buffer(LM_fixed_field_data_processed_focal$geometry, 40*mean(LM_fixed_field_data_processed_focal$DBH_ag))
+
+#graphing the selected focal trees, the buffers, the grid
 ggplot()+
-  geom_sf(data=river_LM_trans)+
-  geom_sf(data=LM_focal_tree_buffers)+
-  geom_sf(data=LM_fixed_field_data_processed_sf)+
-  geom_sf(data=LM_fixed_field_data_processed_focal$geometry, fill ="red")
+  geom_sf(data = LM_tree_grid_cropped)+
+  geom_sf(data=LM_focal_tree_buffers, color = "blue") +
+  geom_sf(data= LM_fixed_field_data_processed_focal, aes(color = X))
 
 #calculating the size/distance for focal trees and neighbors within buffers for buffers with only the focal tree and with more 
 
@@ -1428,6 +1359,19 @@ LM_tree_buffer_inside_0 <- LM_focal_tree_buffers %>%
   mutate(row = row_number()) %>% #create a column with row numbers
   filter(row %in% LM_tree_buffers_points_within_0$row) #only keep polygons that match the row number of the grid cells with trees within them 
 
+#Checking that row number in focal dataset is the same as the buffer dataset
+LM_fixed_field_data_processed_focal_row <- LM_fixed_field_data_processed_focal %>%
+  as.data.frame() %>%
+  mutate(row = as.factor(row_number())) %>%
+  st_as_sf()
+LM_tree_buffer_inside_0 <- mutate(LM_tree_buffer_inside_0, row = as.factor(row)) #making sure the buffers have the same row number as the focal data
+
+#plotting the grid, the buffers with and without neighbors, and the focal trees, to see if the row numbers for the buffers match the row numbers for the focal tree points
+ggplot()+
+  geom_sf(data = LM_tree_grid_cropped) +
+  geom_sf(data=LM_tree_buffer_inside_0, aes(color = row))+
+  geom_sf(data=LM_fixed_field_data_processed_focal_row, aes(color = row))
+
 #calculating the size/distance for focal trees and neighbors within buffers for buffers with more than just the focal tree
 
 #create a tibble with the the number of trees within the buffers that contain trees
@@ -1443,37 +1387,33 @@ LM_tree_buffer_inside <- LM_focal_tree_buffers %>%
   mutate(row = row_number()) %>% #create a column with row numbers
   filter(row %in% LM_tree_buffers_points_within$row) #only keep buffers that match the row number of the buffers cells with trees within them 
 View(LM_tree_buffer_inside)
+
 #plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
+ggplot()+
+  geom_sf(data = LM_focal_tree_buffers)+
+  geom_sf(data = LM_fixed_field_data_processed_sf)+
+  geom_sf(data = LM_fixed_field_data_processed_focal, color = 'blue')
 
 #Checking that row number in focal dataset is the same as the buffer dataset
 LM_fixed_field_data_processed_focal_row <- LM_fixed_field_data_processed_focal %>%
   as.data.frame() %>%
   mutate(row = as.factor(row_number())) %>%
   st_as_sf()
+LM_tree_buffer_inside <- mutate(LM_tree_buffer_inside, row = as.factor(row)) #making sure the buffers have the same row number as the isoalted focal data
 
-View(LM_fixed_field_data_processed_focal_row)
-
-LM_tree_buffer_inside_0 <- mutate(LM_tree_buffer_inside_0, row = as.factor(row))
-
+#plotting the grid, the buffers with and without neighbors, and the focal trees, to see if the row numbers for the buffers match the row numbers for the focal tree points
 ggplot()+
-  geom_sf(data = LM_tree_grid) +
-  #geom_sf(data=river_LM_trans)+
-  geom_sf(data=LM_tree_buffer_inside_0, aes(color = row))+
-  #geom_sf(data=LM_tree_buffer_inside, fill = "red")+
-  #geom_sf(data=LM_fixed_field_data_processed_sf)
+  geom_sf(data = LM_tree_grid_cropped) +
+  geom_sf(data=LM_tree_buffer_inside, aes(color = row))+
   geom_sf(data=LM_fixed_field_data_processed_focal_row, aes(color = row))
 
-
-#create a dataframe with the column for all of the focal distances
-LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed %>%
-  add_column(focal_distance = NA) #add a column for distances of neighbors to focal tree
 
 LM_fixed_field_data_all_focal_trees <- tibble()#creating the empty tibble 
 
 #calculating the distances of each tree within the buffer to the focal tree and the competition metric values
-for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the buffers with trees inside of them
+for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the buffers with trees inside of them #LM_fixed_field_data_processed_focal_row
   row_num = i
-  LM_tree_buffer_inside_df <- as.data.frame(LM_tree_buffer_inside)
+  LM_tree_buffer_inside_df <- as.data.frame(LM_tree_buffer_inside_0) #uses data of non-isolated and isolated focal trees 
   LM_tree_buffer_inside_df_i <- LM_tree_buffer_inside_df %>% 
     filter(row == row_num) #isolate a row of the buffer dataframe
   LM_tree_buffer_inside_sf_i <- st_as_sf(LM_tree_buffer_inside_df_i) #set the row as a simple feature
@@ -1481,12 +1421,23 @@ for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the b
   possible_pts_buffer <- which(all_pts_buffer == T) #keep only the rows of trees that are within the polygon
   LM_fixed_field_data_processed_trees <- LM_fixed_field_data_processed %>%
     filter(X %in% possible_pts_buffer) #filtering to the data to only be the trees within the buffer
+  correct_focal <- LM_list_grids_and_focal_trees_fixed[i,]
   LM_fixed_field_data_focal_tree <- LM_fixed_field_data_processed_focal %>%
-    filter(X %in% LM_fixed_field_data_processed_trees$X) #create a dataframe with only the focal tree
-  #START NEW FROM ASH
-  LM_fixed_field_data_nieghbor_trees <- LM_fixed_field_data_processed_trees %>%
-    filter(X %notin% LM_fixed_field_data_focal_tree$X) %>% #create a dataframe with only the neighbors of the focal tree
-    mutate(focal_distance = as.numeric(st_distance(geometry,  LM_fixed_field_data_focal_tree$geometry, by_element = T))) %>% #calculate the distance between the focal tree and each tree that nieghbors it
+    filter(X %in% correct_focal$tree_row_num) #create a dataframe with only the focal tree
+  
+  LM_fixed_field_data_neighbor_trees <- LM_fixed_field_data_processed_trees %>%
+    filter(X %notin% LM_fixed_field_data_focal_tree$X) 
+  
+  if(nrow(LM_fixed_field_data_neighbor_trees) == 0){
+    sum_SCA_over_distance = 0 #create a new variable for short canopy axis over distance to focal tree set to 0
+    sum_LCA_over_distance = 0 #create a new variable for long canopy axis over distance to focal tree set to 0
+    sum_CA_over_distance = 0 #create a new variable for canopy area over distance to focal tree set to 0
+    sum_CS_over_distance = 0 #create a new variable for crown spread over distance to focal tree set to 0
+    sum_DBH_over_distance = 0 #create a new variable for DBH over distance to focal tree set to 0
+  } else{
+  
+  LM_fixed_field_data_neighbor_trees <-  LM_fixed_field_data_neighbor_trees %>% #create a dataframe with only the neighbors of the focal tree
+    mutate(focal_distance = as.numeric(st_distance(geometry,  LM_fixed_field_data_focal_tree$geometry, by_element = T))) %>% #calculate the distance between the focal tree and each tree that neighbors it
     mutate(focal_distance = case_when(focal_distance == 0 ~ 0.0000016, 
                                       focal_distance != 0 ~ focal_distance)) %>% #replace values of 0 (if the coords are the same for multiple trees) with a value an order of magnitude smaller than the smallest distance in our dataset
     mutate(SCA_over_distance = Canopy_short/focal_distance) %>% #creating a column with the short canopy axis size value divided by the tree's distance from the focal tree
@@ -1502,33 +1453,23 @@ for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the b
   sum_DBH_over_distance = 0 #create a new variable for DBH over distance to focal tree set to 0
 
   
-  for (y in 1:nrow(LM_fixed_field_data_nieghbor_trees)){ #adding the size values of each neighbor to a sum total of the neighbors size values
-    sum_SCA_over_distance = sum_SCA_over_distance + LM_fixed_field_data_processed_neighbors$SCA_over_distance[y] #summing the SCA of each neighbor
-    sum_LCA_over_distance = sum_LCA_over_distance + LM_fixed_field_data_processed_neighbors$LCA_over_distance[y] #summing the LCA of each neighbor
-    sum_CA_over_distance = sum_CA_over_distance + LM_fixed_field_data_processed_neighbors$CA_over_distance[y] #summing the CA of each neighbor
-    sum_CS_over_distance = sum_CS_over_distance + LM_fixed_field_data_processed_neighbors$CS_over_distance[y] #summing the CS of each neighbor
-    sum_DBH_over_distance = sum_DBH_over_distance + LM_fixed_field_data_processed_neighbors$DBH_over_distance[y] #summing the DBH of each neighbor
+  for (y in 1:nrow(LM_fixed_field_data_neighbor_trees)){ #adding the size values of each neighbor to a sum total of the neighbors size values
+    sum_SCA_over_distance = sum_SCA_over_distance + LM_fixed_field_data_neighbor_trees$SCA_over_distance[y] #summing the SCA of each neighbor
+    sum_LCA_over_distance = sum_LCA_over_distance + LM_fixed_field_data_neighbor_trees$LCA_over_distance[y] #summing the LCA of each neighbor
+    sum_CA_over_distance = sum_CA_over_distance + LM_fixed_field_data_neighbor_trees$CA_over_distance[y] #summing the CA of each neighbor
+    sum_CS_over_distance = sum_CS_over_distance + LM_fixed_field_data_neighbor_trees$CS_over_distance[y] #summing the CS of each neighbor
+    sum_DBH_over_distance = sum_DBH_over_distance + LM_fixed_field_data_neighbor_trees$DBH_over_distance[y] #summing the DBH of each neighbor
   }
-  
+  }
   #creating a tibble with all of the calculated sizes over distances 
   all_vals_tibble <- tibble(sum_SCA_over_distance, sum_LCA_over_distance, sum_CS_over_distance, sum_CA_over_distance, sum_DBH_over_distance)
   LM_fixed_field_data_focal_tree <- cbind(LM_fixed_field_data_focal_tree, all_vals_tibble) #bind the sizes over distances values within each buffer to the focal trees
   LM_fixed_field_data_all_focal_trees <- rbind(LM_fixed_field_data_all_focal_trees, LM_fixed_field_data_focal_tree) #add the focal trees with sum of size over distance values to the originally empty tibble
   
     
-  
-  
-  #END NEW FROM ASH
-  # for (x in 1:nrow(LM_fixed_field_data_processed_trees)){ ###BIG NOTE FROM ASH: YOU CAN'T USE THE SAME VALUE TO ITERATE ACROSS TWO NESTED FOR LOOPS #for each tree in each buffer, calculate the distance from the tree to the focal tree
-  #   LM_fixed_field_data_processed_focal_dist$focal_distance[LM_fixed_field_data_processed_trees[x,]$X] <- crossdist(LM_fixed_field_data_processed_trees[x,]$X.1, LM_fixed_field_data_processed_trees[x,]$Y, 
-  #                                                   LM_fixed_field_data_focal_tree$X.1, LM_fixed_field_data_focal_tree$Y)
-  }
-  
-#NOTE FROM ASH: YOU DON'T WANT A SINGLE DATASET WITH DISTS TO FOCAL TREES AS A SINGLE COLUMN BECAUSE SOME OF THESE ARE NEIGHBORS TO MULTIPLE TREES --> THIS ALLOWS THOSE TREES TO ONLY HAVE ONE VALUE
-   
 }
 
-View(LM_fixed_field_data_processed_focal_dist)
+View(LM_fixed_field_data_all_focal_trees)
 
 #create columns with the size values divided by the distance to the focal tree values and turning infinite values into their regular values
 LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed_focal_dist %>%

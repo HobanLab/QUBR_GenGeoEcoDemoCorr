@@ -1270,7 +1270,7 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_50_d
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_slope$residuals))+
+ggplot(LM_lm_CS_slope, aes(x= LM_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
@@ -1502,7 +1502,7 @@ ggplot(data = LC_lm_CS_slope, aes(x = LC_lm_CS_slope$fitted.values, y = LC_lm_CS
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
 #Slope Test visible in summary of the lm
-summary(LC_lm_CS_elev)
+summary(LC_lm_CS_slope)
 
 
 #DBH
@@ -1548,9 +1548,7 @@ ggplot(data = LC_lm_DBH_slope, aes(x = LC_lm_DBH_slope$fitted.values, y = LC_lm_
 summary(LC_lm_DBH_slope)
 
 
-
 #SD linear models
-
 
 #short canopy axis
 
@@ -1606,7 +1604,7 @@ cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts, SD_f
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Elevation (m)")+
+  xlab("Slope (degrees)")+
   ylab("Long Canopy Axis")
 
 #creating the linear regression
@@ -1647,7 +1645,7 @@ summary(SD_lm_lca_slope)
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Elevation")+
+  xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
 #creating the linear regression
@@ -1693,8 +1691,14 @@ ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_d
   ylab("Crown Spread")
 
 #creating the linear regression
-
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with logged transformation of crown spread
+SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of crown spread
+SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_CS_slope, aes(x= SD_lm_CS_slope$residuals))+
@@ -1761,7 +1765,6 @@ ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_
 summary(SD_lm_DBH_slope)
 
 
-
 ### Sizes vs. Aspect ###
 
 # LM 
@@ -1818,8 +1821,14 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_aspect_raster_50_
   ylab("Long Canopy Axis")
 
 #creating the linear regression
-
 LM_lm_lca_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+LM_lm_lca_aspect  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_lg ~ SD_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+LM_lm_lca_aspect  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ SD_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_lca_aspect, aes(x= LM_lm_lca_aspect$residuals))+
