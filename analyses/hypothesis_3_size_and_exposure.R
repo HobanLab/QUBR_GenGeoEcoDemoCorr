@@ -5,14 +5,10 @@ library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
 library(smatr)
 library(ggpmisc)
-library(PMCMRplus) # for Dunn test
-library(geomtextpath) # for PCA graphing
-library(spatstat) # to run the nndist function
-library(raster)
+library(raster) #for working with the rast files
+library(terra) # for extracting the slope and aspect from the DEM elevation files
 
-library(gdalUtils) #to reproject large rasters faster
-library(rgdal) #needed to get the soil data
-library(XML) #needed to get the soil data
+
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -130,7 +126,7 @@ SD_box <- st_bbox(river_SD_trans)
 
 #creating the aspect and slope rasters
 
-#load in xyz ASCII from INEGI on elevation
+#loading in xyz ASCII from INEGI on elevation, 5 m resolution rasters of elevation around BCS
 continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
 continental_relief_elevation_raster <- rasterFromXYZ(continental_relief_elevation_xyz) #26912
 plot(continental_relief_elevation_raster)
@@ -199,6 +195,7 @@ elevation_xyz_b34c3 <- read.table("./data/ASCII Elevation Inegi/f12b34c3_ms.xyz"
 elevation_xyz_b34c3 <- rasterFromXYZ(elevation_xyz_b34c3) #26912
 plot(elevation_xyz_b34c3)
 
+#merging all of the rasters
 f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
                                       elevation_xyz_f3,  elevation_xyz_f4, 
                                       elevation_xyz_c4,elevation_xyz_b25a3,
@@ -209,6 +206,7 @@ f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2,
                                       elevation_xyz_b34c1, elevation_xyz_b34c3)
 plot(f1_f4_merged_rasters)
 
+#plotting the merged rasters
 ggplot()+
   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = fixed_field_data_processed_NN_UTM)
@@ -216,6 +214,7 @@ ggplot()+
 #mapping cropped 
 f1_f4_merged_rasters_cropped <- crop(f1_f4_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
 
+#plotting the cropped rasters, cropped to cover SD
 ggplot()+
   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = SD_fixed_field_data_processed)
@@ -234,8 +233,7 @@ ggplot()+
   geom_raster(data= as.data.frame(SD_rasters, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = SD_fixed_field_data_processed)
 
-#50 M resolution elevation rasters for LM and LC
-
+#loading in 50 M resolution elevation rasters for LM and LC
 f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
 plot(f12b12)
 
@@ -258,6 +256,10 @@ f12b_merged_rasters <- raster::merge(f12b12, f12b13,
                                      f12b14,  f12b22, 
                                      f12b23, f12b33)
 plot(f12b_merged_rasters)
+
+#projecting the 50 m resolution raster to be in UTM12N 
+crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+proj4string(f12b_merged_rasters) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
 #mapping with cropped for LM 
 f12b_merged_rasters_cropped_LM <- crop(f12b_merged_rasters, extent(c(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)))
@@ -290,8 +292,13 @@ plot(f1206)
 f12B24 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f12b24me.bil")
 plot(f12B24)
 
-f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+proj4string(f12B24) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
 
+#cropping the F12B24 raster to be the extent of SD
+f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1]-50, SD_box[3]+50, SD_box[2]-50, SD_box[4]+50)))
+
+#Plotting the cropped raster
 ggplot()+
   geom_raster(data= as.data.frame(f12B24_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24me))+
   geom_sf(data = SD_fixed_field_data_processed)
@@ -307,6 +314,102 @@ ggplot()+
   geom_sf(data = SD_fixed_field_data_processed)
 
 
+## Extracting the slope 
+
+#LM
+
+#extracting the slope in degrees, using the queens method (neighbor = 8)
+LM_slope_raster_50 <- terra::terrain(f12b_merged_rasters_cropped_LM, unit = 'degrees', neighbors = 8, 'slope')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(LM_slope_raster_50, xy = T), aes(x=x, y=y, fill = slope))+
+  geom_sf(data = LM_fixed_field_data_processed)
+
+#LC
+
+#extracting the slope in degrees, using the queens method (neighbor = 8)
+LC_slope_raster_50 <- terra::terrain(f12b_merged_rasters_cropped_LC, unit = 'degrees', neighbors = 8, 'slope')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(LC_slope_raster_50, xy = T), aes(x=x, y=y, fill = slope))+
+  geom_sf(data = LC_fixed_field_data_processed)
+
+#SD
+
+#extracting the slope in degrees, using the queens method (neighbor = 8)
+SD_slope_raster_50 <- terra::terrain(f12B24_cropped_SD, unit = 'degrees', neighbors = 8, 'slope')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(SD_slope_raster_50, xy = T), aes(x=x, y=y, fill = slope))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+## Extracting the aspect 
+
+#LM
+
+#extracting the aspect in degrees, using the queens method (neighbor = 8)
+LM_aspect_raster_50 <- terra::terrain(f12b_merged_rasters_cropped_LM, unit = 'degrees', neighbors = 8, 'aspect')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(LM_aspect_raster_50, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LM_fixed_field_data_processed)
+
+#LC
+
+#extracting the aspect in degrees, using the queens method (neighbor = 8)
+LC_aspect_raster_50 <- terra::terrain(f12b_merged_rasters_cropped_LC, unit = 'degrees', neighbors = 8, 'aspect')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(LC_aspect_raster_50, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LC_fixed_field_data_processed)
+
+#SD
+
+#extracting the aspect in degrees, using the queens method (neighbor = 8)
+SD_aspect_raster_50 <- terra::terrain(f12B24_cropped_SD, unit = 'degrees', neighbors = 8, 'aspect')
+
+#plot the slopes
+ggplot()+
+  geom_raster(data= as.data.frame(SD_aspect_raster_50, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = SD_fixed_field_data_processed)
+
+#creating dataframes for each population and the slope and aspect data
+
+#LM
+
+LM_aspect_raster_50_data_pts <- extract(LM_aspect_raster_50, LM_fixed_field_data_processed) #extracting aspect for each point value
+LM_slope_raster_50_data_pts <- extract(LM_slope_raster_50, LM_fixed_field_data_processed) #extracting slope for each point value
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_50_data_pts) #bind the aspect data for each point to the LM point dataframe
+  LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_50_data_pts) #bind the slope data for each point to the LM point dataframe
+
+View(LM_fixed_field_data_processed_terrain)
+
+
+#LC
+LC_aspect_raster_50_data_pts <- extract(LC_aspect_raster_50, LC_fixed_field_data_processed) #extracting aspect for each point value
+LC_slope_raster_50_data_pts <- extract(LC_slope_raster_50, LC_fixed_field_data_processed) #extracting slope for each point value
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_50_data_pts) #bind the aspect data for each point to the SD point dataframe
+
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_50_data_pts) #bind the slope data for each point to the SD point dataframe
+
+View(LC_fixed_field_data_processed_terrain)
+
+
+#SD
+SD_aspect_raster_50_data_pts <- extract(SD_aspect_raster_50, SD_fixed_field_data_processed) #extracting aspect for each point value
+SD_slope_raster_50_data_pts <- extract(SD_slope_raster_50, SD_fixed_field_data_processed) #extracting slope for each point value
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_50_data_pts) #bind the aspect data for each point to the SD point dataframe
+SD_fixed_field_data_processed_terrain_otherversion <- SD_fixed_field_data_processed %>%  
+  add_column(SD_aspect_raster_50_data_pts)
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_DEM, SD_slope_raster_50_data_pts) #bind the slope data for each point to the SD point dataframe
+
+View(SD_slope_raster_50_data_pts)
+View(SD_fixed_field_data_processed_terrain_otherversion)
 
 #### Descriptive Summary ####
 
@@ -356,6 +459,39 @@ ggplot(SD_fixed_field_data_processed) + # Generate the base plot
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
+
+#histograms for slope and aspect
+ggplot(LM_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = LM_aspect_raster_50_data_pts))+
+  xlab("Aspect (degrees)")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = LM_slope_raster_50_data_pts))+
+  xlab("Slope (degrees)")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = LC_aspect_raster_50_data_pts))+
+  xlab("Aspect (degrees)")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = LC_slope_raster_50_data_pts))+
+  xlab("Slope (degrees)")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = SD_aspect_raster_50_data_pts))+
+  xlab("Aspect (degrees)")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
+  geom_histogram(aes(x = SD_slope_raster_50_data_pts))+
+  xlab("Slope (degrees)")+
+  ylab("Frequency")
+
+
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
@@ -993,5 +1129,1268 @@ ggplot(data = SD_lm_DBH_elev, aes(x = SD_lm_DBH_elev$fitted.values, y = SD_lm_DB
 
 #Slope Test visible in summary of the lm
 summary(SD_lm_DBH_elev)
+
+
+### Sizes vs. Slope ###
+
+# LM 
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x= LM_slope_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_lm_sca_slope, aes(sample = LM_lm_sca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_sca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_sca_slope)
+
+#correlation test
+cor.test(LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts, LM_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_50_data_pts, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+
+LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_lca_slope, aes(x= LM_lm_lca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_lca_slope, aes(sample = LM_lm_lca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_lca_slope, aes(x = LM_lm_lca_slope$fitted.values, y = LM_lm_lca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_lca_slope)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_50_data_pts, y = Canopy_area_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_CA_slope, aes(x= LM_lm_CA_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_CA_slope, aes(sample = LM_lm_CA_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_CA_slope)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_CS_slope, aes(sample = LM_lm_CS_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_CS_slope)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("DBH")
+
+#creating the linear regression
+LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_DBH_slope, aes(x= LM_lm_DBH_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_DBH_slope, aes(sample = LM_lm_DBH_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_DBH_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_DBH_slope)
+
+
+
+#LC linear models
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear regression with logged transformation of short canopy axis
+LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_sca_slope, aes(x= LC_lm_sca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LC_lm_sca_slope, aes(sample = LC_lm_sca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_sca_slope, aes(x = LC_lm_sca_slope$fitted.values, y = LC_lm_sca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_sca_slope)
+
+#correlation test
+cor.test(LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts, LC_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_50_data_pts, y=Canopy_long_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear transformation with logged long canopy axis
+LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_lca_slope, aes(x= LC_lm_lca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_lca_slope, aes(sample = LC_lm_lca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_lca_slope, aes(x = LC_lm_lca_slope$fitted.values, y = LC_lm_lca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_lca_slope)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_50_data_pts, y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CA_slope, aes(x= LC_lm_CA_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CA_slope, aes(sample = LC_lm_CA_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_CA_slope, aes(x = LC_lm_CA_slope$fitted.values, y = LC_lm_CA_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CA_slope)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear transformation with logged crown spread
+LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear transformation with square rooted crown spread
+LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CS_slope, aes(x= LC_lm_CS_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CS_slope, aes(sample = LC_lm_CS_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_CS_slope, aes(x = LC_lm_CS_slope$fitted.values, y = LC_lm_CS_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CS_elev)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope")+
+  ylab("DBH")
+
+#creating the linear regression
+LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_DBH_slope, aes(x= LC_lm_DBH_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_DBH_slope, aes(sample = LC_lm_DBH_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_DBH_slope, aes(x = LC_lm_DBH_slope$fitted.values, y = LC_lm_DBH_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_DBH_slope)
+
+
+
+#SD linear models
+
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")
+
+#creating the linear regression
+SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_sca_slope, aes(x= SD_lm_sca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(SD_lm_sca_slope, aes(sample = SD_lm_sca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_sca_slope, aes(x = SD_lm_sca_slope$fitted.values, y = SD_lm_sca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_sca_slope)
+
+#correlation test
+cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts, SD_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_lca_slope, aes(x= SD_lm_lca_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_lca_slope, aes(sample = SD_lm_lca_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_lca_slope, aes(x = SD_lm_lca_slope$fitted.values, y = SD_lm_lca_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_lca_slope)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CA_slope, aes(x= SD_lm_CA_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CA_slope, aes(sample = SD_lm_CA_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CA_slope, aes(x = SD_lm_CA_slope$fitted.values, y = SD_lm_CA_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CA_slope)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CS_slope, aes(x= SD_lm_CS_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CS_slope, aes(sample = SD_lm_CS_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CS_slope, aes(x = SD_lm_CS_slope$fitted.values, y = SD_lm_CS_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CS_slope)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("DBH")
+
+#creating the linear regression
+SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_DBH_slope, aes(x= SD_lm_DBH_slope$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_DBH_slope, aes(sample = SD_lm_DBH_slope$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_DBH_slope$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_DBH_slope)
+
+
+
+### Sizes vs. Aspect ###
+
+# LM 
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x= LM_aspect_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+LM_lm_sca_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_sca_aspect, aes(x= LM_lm_sca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_lm_sca_aspect, aes(sample = LM_lm_sca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_sca_aspect, aes(x = LM_lm_sca_aspect$fitted.values, y = LM_lm_sca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_sca_aspect)
+
+#correlation test
+cor.test(LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts, LM_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_aspect_raster_50_data_pts, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+
+LM_lm_lca_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_lca_aspect, aes(x= LM_lm_lca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_lca_aspect, aes(sample = LM_lm_lca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_lca_aspect, aes(x = LM_lm_lca_aspect$fitted.values, y = LM_lm_lca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_lca_aspect)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_aspect_raster_50_data_pts, y = Canopy_area_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+LM_lm_CA_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+LM_lm_CA_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+LM_lm_CA_aspect  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_CA_aspect, aes(x= LM_lm_CA_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_CA_aspect, aes(sample = LM_lm_CA_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_CA_aspect, aes(x = LM_lm_CA_aspect$fitted.values, y = LM_lm_CA_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_CA_aspect)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_aspect_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+LM_lm_CS_aspect  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_CS_aspect, aes(x= LM_lm_CS_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_CS_aspect, aes(sample = LM_lm_CS_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_CS_aspect, aes(x = LM_lm_CS_aspect$fitted.values, y = LM_lm_CS_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_CS_aspect)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_aspect_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("DBH")
+
+#creating the linear regression
+LM_lm_DBH_aspect  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+LM_lm_DBH_aspect  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_lg ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+LM_lm_DBH_aspect  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_lm_DBH_aspect, aes(x= LM_lm_DBH_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_lm_DBH_aspect, aes(sample = LM_lm_DBH_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_lm_DBH_aspect, aes(x = LM_lm_DBH_aspect$fitted.values, y = LM_lm_DBH_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LM_lm_DBH_aspect)
+
+
+
+#LC linear models
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_aspect_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Short Canopy Axis")
+
+
+#creating the linear regression
+LC_lm_sca_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear regression with logged transformation of short canopy axis
+LC_lm_sca_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_lg ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_sca_aspect, aes(x= LC_lm_sca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LC_lm_sca_aspect, aes(sample = LC_lm_sca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_sca_aspect, aes(x = LC_lm_sca_aspect$fitted.values, y = LC_lm_sca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_sca_aspect)
+
+#correlation test
+cor.test(LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts, LC_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_aspect_raster_50_data_pts, y=Canopy_long_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+LC_lm_lca_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear transformation with logged long canopy axis
+LC_lm_lca_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long_lg ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_lca_aspect, aes(x= LC_lm_lca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_lca_aspect, aes(sample = LC_lm_lca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_lca_aspect, aes(x = LC_lm_lca_aspect$fitted.values, y = LC_lm_lca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_lca_aspect)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_aspect_raster_50_data_pts, y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+LC_lm_CA_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+LC_lm_CA_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_lg ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+LC_lm_CA_aspect  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CA_aspect, aes(x= LC_lm_CA_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CA_aspect, aes(sample = LC_lm_CA_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_CA_aspect, aes(x = LC_lm_CA_aspect$fitted.values, y = LC_lm_CA_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CA_aspect)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_aspect_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+LC_lm_CS_aspect  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear transformation with logged crown spread
+LC_lm_CS_aspect  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_lg ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear transformation with square rooted crown spread
+LC_lm_CS_aspect  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_CS_aspect, aes(x= LC_lm_CS_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_CS_aspect, aes(sample = LC_lm_CS_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_CS_aspect, aes(x = LC_lm_CS_aspect$fitted.values, y = LC_lm_CS_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_CS_aspect)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_aspect_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("DBH")
+
+#creating the linear regression
+LC_lm_DBH_aspect  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+LC_lm_DBH_aspect  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_lg ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+LC_lm_DBH_aspect  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LC_lm_DBH_aspect, aes(x= LC_lm_DBH_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LC_lm_DBH_aspect, aes(sample = LC_lm_DBH_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LC_lm_DBH_aspect, aes(x = LC_lm_DBH_aspect$fitted.values, y = LC_lm_DBH_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(LC_lm_DBH_aspect)
+
+
+
+#SD linear models
+
+
+#short canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_aspect_raster_50_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Short Canopy Axis")
+
+#creating the linear regression
+SD_lm_sca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_sca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_lg ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_sca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_sca_aspect, aes(x= SD_lm_sca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(SD_lm_sca_aspect, aes(sample = SD_lm_sca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_sca_aspect, aes(x = SD_lm_sca_aspect$fitted.values, y = SD_lm_sca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_sca_aspect)
+
+#correlation test
+cor.test(SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts, SD_fixed_field_data_processed_terrain$Canopy_short)
+
+#long canopy axis
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_aspect_raster_50_data_pts, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Long Canopy Axis")
+
+#creating the linear regression
+SD_lm_lca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_lca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_lg ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_lca_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_lca_aspect, aes(x= SD_lm_lca_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_lca_aspect, aes(sample = SD_lm_lca_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_lca_aspect, aes(x = SD_lm_lca_aspect$fitted.values, y = SD_lm_lca_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_lca_aspect)
+
+#canopy area
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_aspect_raster_50_data_pts, y = Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Canopy Area")
+
+#creating the linear regression
+SD_lm_CA_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with log transformation of canopy area
+SD_lm_CA_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_lg ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of canopy area
+SD_lm_CA_aspect  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CA_aspect, aes(x= SD_lm_CA_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CA_aspect, aes(sample = SD_lm_CA_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CA_aspect, aes(x = SD_lm_CA_aspect$fitted.values, y = SD_lm_CA_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CA_aspect)
+
+
+#crown spread
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_aspect_raster_50_data_pts, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("Crown Spread")
+
+#creating the linear regression
+
+SD_lm_CS_aspect  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_CS_aspect, aes(x= SD_lm_CS_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_CS_aspect, aes(sample = SD_lm_CS_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_CS_aspect, aes(x = SD_lm_CS_aspect$fitted.values, y = SD_lm_CS_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_CS_aspect)
+
+
+#DBH
+
+#checking linearity 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_aspect_raster_50_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Aspect (degrees)")+
+  ylab("DBH")
+
+#creating the linear regression
+SD_lm_DBH_aspect  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with logged transformation of aggregated DBH
+SD_lm_DBH_aspect  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_lg ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+#linear regression with square root transformation of aggregated DBH
+SD_lm_DBH_aspect  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts)
+
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(SD_lm_DBH_aspect, aes(x= SD_lm_DBH_aspect$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Aspect (degrees)")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(SD_lm_DBH_aspect, aes(sample = SD_lm_DBH_aspect$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = SD_lm_DBH_aspect, aes(x = SD_lm_DBH_aspect$fitted.values, y = SD_lm_DBH_aspect$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Aspect (degrees)")
+
+#Slope Test visible in summary of the lm
+summary(SD_lm_DBH_aspect)
+
+
 
 
