@@ -12,6 +12,7 @@ library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
 library(lme4) #to use the linear mixed effects model function
+library(MuMIn) #to be able to use model.sel for fitting linear models with spatial autocorrelation
 
 `%notin%` <- Negate(`%in%`) # Make a function that is the opposite of the %in% function
 
@@ -1471,68 +1472,9 @@ for (i in 1:nrow(LM_fixed_field_data_processed_focal)){ #for the length of the b
 
 View(LM_fixed_field_data_all_focal_trees)
 
-#create columns with the size values divided by the distance to the focal tree values and turning infinite values into their regular values
-LM_fixed_field_data_processed_focal_dist <- LM_fixed_field_data_processed_focal_dist %>%
-  mutate(SCA_over_distance = Canopy_short/focal_distance) %>% #creating a column with the short canopy axis size value divided by the tree's distance from the focal tree
-  mutate(SCA_over_distance = case_when(is.infinite(SCA_over_distance) ~ 0.0000016,
-                                       !is.infinite(SCA_over_distance) ~ SCA_over_distance)) %>% #if the SCA_over_distance value is infinite because it is dividing by a zero, we set it to NA and if not, it remains the value it was before
-  mutate(LCA_over_distance = Canopy_long/focal_distance) %>%
-  mutate(LCA_over_distance = case_when(is.infinite(LCA_over_distance) ~ 0.0000016,
-                                       !is.infinite(LCA_over_distance) ~ LCA_over_distance)) %>%
-  mutate(CA_over_distance = Canopy_area/focal_distance) %>%
-  mutate(CA_over_distance = case_when(is.infinite(CA_over_distance) ~ 0.0000016,
-                                      !is.infinite(CA_over_distance) ~ CA_over_distance)) %>%
-  mutate(CS_over_distance = Crown_spread/focal_distance) %>%
-  mutate(CS_over_distance = case_when(is.infinite(CS_over_distance) ~ 0.0000016,
-                                      !is.infinite(CS_over_distance) ~ CS_over_distance)) %>%
-  mutate(DBH_over_distance = DBH_ag/focal_distance) %>%
-  mutate(DBH_over_distance = case_when(is.infinite(DBH_over_distance) ~ 0.0000016,
-                                       !is.infinite(DBH_over_distance) ~ DBH_over_distance))
-
-View(LM_fixed_field_data_processed_focal_dist)
-
-#creating a dataframe with  the sum of the neighbors sizes/their distances for each buffer/focal tree 
-
-LM_fixed_field_data_all_focal_trees <- tibble()#creating the empty tibble 
-
-for (i in 1:nrow(LM_tree_buffer_inside)){  #for the length of the buffers with trees inside of them
-  LM_tree_buffer_inside_df <- as.data.frame(LM_tree_buffer_inside)
-  LM_tree_buffer_inside_df_i <- LM_tree_buffer_inside_df[i,] #isolate a row of the buffer dataframe
-  LM_tree_buffer_inside_sf_i <- st_as_sf(LM_tree_buffer_inside_df_i) #set the row as a simple feature
-  all_pts_buffer <- st_contains(LM_tree_buffer_inside_sf_i, LM_fixed_field_data_processed_sf, sparse = F) #assign true or falses to the trees based on whether they are within that polygon
-  possible_pts_buffer <- which(all_pts_buffer == T) #keep only the rows of trees that are within the polygon
-  LM_fixed_field_data_processed_trees <- LM_fixed_field_data_processed_focal_dist %>%
-    filter(X %in% possible_pts_buffer) #filtering to the data to only be the trees within the buffer
-  LM_fixed_field_data_focal_tree <- LM_fixed_field_data_processed_focal %>%
-    filter(X %in% LM_fixed_field_data_processed_trees$X) #create a dataframe with only the focal tree
-  LM_fixed_field_data_processed_neighbors <- LM_fixed_field_data_processed_trees %>%
-    filter(X %notin%  LM_fixed_field_data_focal_tree$X) #create a dataframe with only the neighbors within each buffer
-  sum_SCA_over_distance = 0 #create a new variable for short canopy axis over distance to focal tree set to 0
-  sum_LCA_over_distance = 0 #create a new variable for long canopy axis over distance to focal tree set to 0
-  sum_CA_over_distance = 0 #create a new variable for canopy area over distance to focal tree set to 0
-  sum_CS_over_distance = 0 #create a new variable for crown spread over distance to focal tree set to 0
-  sum_DBH_over_distance = 0 #create a new variable for DBH over distance to focal tree set to 0
-
-  for (i in 1:nrow(LM_fixed_field_data_processed_neighbors)){ #adding the size values of each neighbor to a sum total of the neighbors size values
-    sum_SCA_over_distance = sum_SCA_over_distance + LM_fixed_field_data_processed_neighbors$SCA_over_distance[i] #summing the SCA of each neighbor
-    sum_LCA_over_distance = sum_LCA_over_distance + LM_fixed_field_data_processed_neighbors$LCA_over_distance[i] #summing the LCA of each neighbor
-    sum_CA_over_distance = sum_CA_over_distance + LM_fixed_field_data_processed_neighbors$CA_over_distance[i] #summing the CA of each neighbor
-    sum_CS_over_distance = sum_CS_over_distance + LM_fixed_field_data_processed_neighbors$CS_over_distance[i] #summing the CS of each neighbor
-    sum_DBH_over_distance = sum_DBH_over_distance + LM_fixed_field_data_processed_neighbors$DBH_over_distance[i] #summing the DBH of each neighbor
-  }
-  
-  #creating a tibble with all of the calculated sizes over distances 
-  all_vals_tibble <- tibble(sum_SCA_over_distance, sum_LCA_over_distance, sum_CS_over_distance, sum_CA_over_distance, sum_DBH_over_distance)
-  LM_fixed_field_data_focal_tree <- cbind(LM_fixed_field_data_focal_tree, all_vals_tibble) #bind the sizes over distances values within each buffer to the focal trees
-  LM_fixed_field_data_all_focal_trees <- rbind(LM_fixed_field_data_all_focal_trees, LM_fixed_field_data_focal_tree) #add the focal trees with sum of size over distance values to the originally empty tibble
-
-}
-View(LM_fixed_field_data_all_focal_trees)
-dist
-LM_fixed_field_data_all_focal_trees %>%
-  filter(is.na(sum_SCA_over_distance))
+#plotting the tree points and their 
 ggplot()+
-  geom_sf(data=LM_fixed_field_data_all_focal_trees, color = LM_fixed_field_data_all_focal_trees$sum_SCA_over_distance)
+  geom_sf(data=LM_fixed_field_data_all_focal_trees, aes(color = sum_SCA_over_distance))
 
 #descriptive statistics
 
@@ -1591,7 +1533,7 @@ which(cooksD > unsual_cooksD)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = LM_fixed_field_data_all_focal_trees_nona, (aes(x=SCA_over_distance, y=Canopy_short)))+ 
+ggplot(data = LM_fixed_field_data_all_focal_trees, (aes(x=sum_SCA_over_distance, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("SCA over Distance")+
@@ -1599,32 +1541,89 @@ ggplot(data = LM_fixed_field_data_all_focal_trees_nona, (aes(x=SCA_over_distance
 
 
 #creating the generalized linear effects model
-#removing the NAs
-LM_fixed_field_data_all_focal_trees_nona <- na.exclude(LM_fixed_field_data_all_focal_trees)
-#unlogged version 
-LM_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees_nona)
-#logged version
-LM_gls_focal_SCA <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), data = LM_fixed_field_data_all_focal_trees_nona)
 
+#creating x and y columns of the UTM 12N 
+LM_fixed_field_data_all_focal_trees$X.1 <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,1]
+LM_fixed_field_data_all_focal_trees$Y <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,2]
+
+
+#logged version of generalized linear model
+LM_gls_focal_SCA_lg <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_exp <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                               correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_gaus <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_spher <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                 correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_lin <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                               correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_ratio <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                 correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+
+#ordering models by which ones have the lowest Akaike information criterion
+LM_AIC_test_lg_SCA <- model.sel(LM_gls_focal_SCA_lg, LM_gls_focal_SCA_lg_exp, LM_gls_focal_SCA_lg_gaus, 
+                         LM_gls_focal_SCA_lg_spher, LM_gls_focal_SCA_lg_ratio)
+View(LM_AIC_test_lg_SCA)
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lmem_focal_SCA, aes(x= LM_lmem_focal_SCA$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA_lg$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lmem_focal_SCA, aes(sample = LM_lmem_focal_SCA$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_SCA_lg$residuals))+
   geom_qq()
 
 #checking equal variance
-ggplot(data = LM_lmem_focal_SCA, aes(x = LM_lmem_focal_SCA$fitted.values, y = LM_lmem_focal_SCA$residuals))+
+ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_SCA_lg$fitted, y = LM_gls_focal_SCA_lg$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for logged SCA and logged SCA over Distance")
+
+#checking we have appropriately removed the spatial autocorrelation
+semivario <- Variogram( LM_gls_focal_SCA_lg, form = ~X.1 + Y, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
+#Slope Test visible in summary of the lm
+summary(LM_gls_focal_SCA_lg)
+
+#unlogged version of generlized linear model
+LM_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_exp <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_gaus <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lin <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+
+#ordering models by which ones have the lowest Akaike information criterion
+LM_AIC_test <- model.sel(LM_gls_focal_SCA, LM_gls_focal_SCA_exp, LM_gls_focal_SCA_gaus, LM_gls_focal_SCA_spher, LM_gls_focal_SCA_lin, LM_gls_focal_SCA_ratio)
+View(LM_gls_focal_SCA)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_SCA$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_SCA$fitted, y = LM_gls_focal_SCA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
 
+#checking we have appropriately removed the spatial autocorrelation
+semivario <- Variogram( LM_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
 #Slope Test visible in summary of the lm
-summary(LM_lmem_focal_SCA)
+summary(LM_gls_focal_SCA)
 

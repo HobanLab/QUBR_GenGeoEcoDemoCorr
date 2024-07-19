@@ -12,6 +12,7 @@ library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
 library(lme4) #to use the linear mixed effects model function
+library(MuMIn) #to be able to use model.sel for fitting linear models with spatial autocorrelation
 
 `%notin%` <- Negate(`%in%`) # Make a function that is the opposite of the %in% function
 
@@ -1541,30 +1542,88 @@ ggplot(data = LM_fixed_field_data_all_focal_trees, (aes(x=sum_SCA_over_distance,
 
 #creating the generalized linear effects model
 
-#unlogged version 
-LM_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
-#logged version
-LM_gls_focal_SCA <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), data = LM_fixed_field_data_all_focal_trees_nona)
+#creating x and y columns of the UTM 12N 
+LM_fixed_field_data_all_focal_trees$X.1 <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,1]
+LM_fixed_field_data_all_focal_trees$Y <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,2]
 
+
+#logged version of generalized linear model
+LM_gls_focal_SCA_lg <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_exp <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                               correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_gaus <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_spher <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                 correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_lin <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                               correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lg_ratio <- gls(log(Canopy_short + 1) ~ log(sum_SCA_over_distance + 1), 
+                                 correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+
+#ordering models by which ones have the lowest Akaike information criterion
+LM_AIC_test_lg_SCA <- model.sel(LM_gls_focal_SCA_lg, LM_gls_focal_SCA_lg_exp, LM_gls_focal_SCA_lg_gaus, 
+                         LM_gls_focal_SCA_lg_spher, LM_gls_focal_SCA_lg_ratio)
+View(LM_AIC_test_lg_SCA)
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lmem_focal_SCA, aes(x= LM_lmem_focal_SCA$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA_lg$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lmem_focal_SCA, aes(sample = LM_lmem_focal_SCA$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_SCA_lg$residuals))+
   geom_qq()
 
 #checking equal variance
-ggplot(data = LM_lmem_focal_SCA, aes(x = LM_lmem_focal_SCA$fitted.values, y = LM_lmem_focal_SCA$residuals))+
+ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_SCA_lg$fitted, y = LM_gls_focal_SCA_lg$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for logged SCA and logged SCA over Distance")
+
+#checking we have appropriately removed the spatial autocorrelation
+semivario <- Variogram( LM_gls_focal_SCA_lg, form = ~X.1 + Y, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
+#Slope Test visible in summary of the lm
+summary(LM_gls_focal_SCA_lg)
+
+#unlogged version of generlized linear model
+LM_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_exp <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_gaus <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_lin <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+
+#ordering models by which ones have the lowest Akaike information criterion
+LM_AIC_test <- model.sel(LM_gls_focal_SCA, LM_gls_focal_SCA_exp, LM_gls_focal_SCA_gaus, LM_gls_focal_SCA_spher, LM_gls_focal_SCA_lin, LM_gls_focal_SCA_ratio)
+View(LM_gls_focal_SCA)
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_SCA$residuals))+
+  geom_qq()
+
+#checking equal variance
+ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_SCA$fitted, y = LM_gls_focal_SCA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
 
+#checking we have appropriately removed the spatial autocorrelation
+semivario <- Variogram( LM_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
 #Slope Test visible in summary of the lm
-summary(LM_lmem_focal_SCA)
+summary(LM_gls_focal_SCA)
 
