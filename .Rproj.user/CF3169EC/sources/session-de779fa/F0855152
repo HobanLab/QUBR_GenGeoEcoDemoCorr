@@ -8,7 +8,7 @@
     "dirty": false,
     "created": 1720838953179.0,
     "source_on_save": false,
-    "relative_order": 10,
+    "relative_order": 8,
     "properties": {
         "expression": "LM_fixed_field_data_processed_sf_cropped_table",
         "caption": "LM_fixed_field_data_processed_sf_cropped_table",

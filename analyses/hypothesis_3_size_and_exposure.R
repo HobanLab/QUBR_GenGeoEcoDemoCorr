@@ -8,7 +8,7 @@ library(ggpmisc)
 library(raster) #for working with the rast files
 library(terra) # for extracting the slope and aspect from the DEM elevation files
 library(perm.t.test) #permutation t test 
-
+library(car) #to run levene's test for checking ANOVA conditions
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -19,10 +19,15 @@ fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
 #transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
 fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
 
+
 #create dataframe with X and Y UTM coordinates
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
+#export the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
+fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
+
 
 #plotting the tree points by elevation (m)
 ggplot()+
@@ -1905,6 +1910,8 @@ summary(SD_lm_DBH_slope)
 
 ## Size vs. Aspect ##
 
+# we ran ANOVAs to test difference in size means between cardinal directions
+
 #8 categories for direction
 
 # LM
@@ -1918,17 +1925,208 @@ ggplot(data = LM_fixed_field_data_processed_terrain)+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-LM_aov_SCA_aspect <- aov(Canopy_short ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_SCA_aspect)
+LM_aov_SCA_aspect_8 <- aov(Canopy_short ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_SCA_aspect_8)
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
-LM_t_test_SCA_aspect <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
-                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+# checking to see if residuals are normal
+hist(LM_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(LM_aov_SCA_aspect_8$residuals) #qqnorm plot
+
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, sd)
+max(LM_thumb_test_SCA, na.rm = T) / min(LM_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 #long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_8_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+LM_aov_LCA_aspect_8 <- aov(Canopy_long ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LCMaov_LCA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_LCA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_long, 
+                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LM_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(LM_aov_SCA_aspect_8$residuals) #qqnorm plot
+
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, sd)
+max(LM_thumb_test_LCA, na.rm = T) / min(LM_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 # canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_8_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+LM_aov_CA_aspect_8 <- aov(Canopy_area ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_CA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_CA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_area, 
+                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LM_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(LM_aov_CA_aspect_8$residuals) #qqnorm plot
+
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, sd)
+max(LM_thumb_test_CA, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 #crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_8_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+LM_aov_CS_aspect_8 <- aov(Crown_spread ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_CS_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_CS_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Crown_spread, 
+                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LM_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(LM_aov_CS_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, sd)
+max(LM_thumb_test_CS, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 #DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_8_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+LM_aov_DBH_aspect_8 <- aov(DBH_ag ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_DBH_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_DBH_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$DBH_ag, 
+                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LM_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(LM_aov_DBH_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical, sd)
+max(LM_thumb_test_DBH, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ LM_aspect_raster_50_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 # LC
 
@@ -1941,17 +2139,212 @@ ggplot(data = LC_fixed_field_data_processed_terrain)+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-LC_aov_SCA_aspect <- aov(Canopy_short ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect)
+LC_aov_SCA_aspect_8 <- aov(Canopy_short ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_SCA_aspect_8)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
-LC_t_test_SCA_aspect <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
+LC_t_test_SCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
 
+# checking to see if residuals are normal
+hist(LC_t_test_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(LC_t_test_SCA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, sd)
+max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 #long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_8_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+LC_aov_LCA_aspect_8 <- aov(Canopy_long ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_LCA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_LCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_long, 
+                                          LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LC_t_test_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(LC_t_test_LCA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, sd)
+max(LC_thumb_test_LCA, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 # canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_8_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+LC_aov_CA_aspect_8 <- aov(Canopy_area ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_CA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_CA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_area, 
+                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LC_t_test_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(LC_t_test_CA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, sd)
+max(LC_thumb_test_CA, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 #crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_8_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+LC_aov_CS_aspect_8 <- aov(Crown_spread ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_CS_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_CS_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Crown_spread, 
+                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LC_t_test_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(LC_t_test_CS_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, sd)
+max(LC_thumb_test_CS, na.rm = T) / min(LC_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 #DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_8_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+LC_aov_DBH_aspect_8 <- aov(DBH_ag ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_DBH_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_DBH_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$DBH_ag, 
+                                          LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LC_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(LC_t_test_DBH_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, sd)
+max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ LC_aspect_raster_50_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 # SD
 
@@ -1964,18 +2357,211 @@ ggplot(data = SD_fixed_field_data_processed_terrain)+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-SD_aov_SCA_aspect <- aov(Canopy_short ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect)
+SD_aov_SCA_aspect_8 <- aov(Canopy_short ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_SCA_aspect_8)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
-LC_t_test_SCA_aspect <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
+SD_aov_SCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
+                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(SD_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(SD_aov_SCA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, sd)
+max(SD_thumb_test_SCA, na.rm = T) / min(SD_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_8_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+SD_aov_LCA_aspect_8 <- aov(Canopy_long ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_LCA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_LCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_long, 
+                                          SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(SD_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(SD_aov_LCA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, sd)
+max(SD_thumb_test_LCA, na.rm = T) / min(SD_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+# canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_8_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+SD_aov_CA_aspect_8 <- aov(Canopy_area ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_CA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_CA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_area, 
+                                       SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(SD_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(SD_aov_CA_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, sd)
+max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_8_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+SD_aov_CS_aspect_8 <- aov(Crown_spread ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_CS_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_CS_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Crown_spread, 
+                                       SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(SD_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(SD_aov_CS_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, sd)
+max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
+
+#DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_8_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+SD_aov_DBH_aspect_8 <- aov(DBH_ag ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_DBH_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_DBH_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$DBH_ag, 
                                         SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
 
 
-#long canopy axis
-# canopy area
-#crown spread
-#DBH ag
+# checking to see if residuals are normal
+hist(SD_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(SD_t_test_DBH_aspect_8$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical)
+
+#rule of thumb test
+SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, sd)
+max(SD_thumb_test_DBH, na.rm = T) / min(SD_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
 
 #4 categories for direction
 
@@ -1990,17 +2576,214 @@ ggplot(data = LM_fixed_field_data_processed_terrain)+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-LM_aov_SCA_aspect <- aov(Canopy_short ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_SCA_aspect)
+LM_aov_SCA_aspect_4 <- aov(Canopy_short ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_SCA_aspect_4)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
-LM_t_test_SCA_aspect <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
+LM_t_test_SCA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
 
+# checking to see if residuals are normal
+hist(LM_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(LM_t_test_SCA_aspect_4$residuals) #qqnorm plot
+
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, sd)
+max(LM_thumb_test_SCA, na.rm = T) / min(LM_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_SCA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
+                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
 #long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_4_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+LM_aov_LCA_aspect_4 <- aov(Canopy_long ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LCMaov_LCA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_LCA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_long, 
+                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LM_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(LM_t_test_LCA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, sd)
+max(LM_thumb_test_LCA, na.rm = T) / min(LM_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 # canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_4_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+LM_aov_CA_aspect_4 <- aov(Canopy_area ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_CA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_CA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_area, 
+                                       LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LM_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(LM_t_test_CA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, sd)
+max(LM_thumb_test_CA, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 #crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_4_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+LM_aov_CS_aspect_4 <- aov(Crown_spread ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_CS_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_CS_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Crown_spread, 
+                                       LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LM_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(LM_t_test_CS_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, sd)
+max(LM_thumb_test_CS, na.rm = T) / min(LM_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 #DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = LM_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LM_aspect_raster_50_data_pts_4_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+LM_aov_DBH_aspect_4 <- aov(DBH_ag ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+summary(LM_aov_DBH_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LM_t_test_DBH_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$DBH_ag, 
+                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LM_t_test_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(LM_t_test_DBH_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LM_fixed_field_data_processed_terrain$LM_t_test_DBH_aspect_4 ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$LM_t_test_DBH_aspect_4, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, sd)
+max(LM_thumb_test_DBH, na.rm = T) / min(LM_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ LM_aspect_raster_50_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 # LC
 
@@ -2013,17 +2796,213 @@ ggplot(data = LC_fixed_field_data_processed_terrain)+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-LC_aov_SCA_aspect <- aov(Canopy_short ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect)
+LC_aov_SCA_aspect_4 <- aov(Canopy_short ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_SCA_aspect_4)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
-LC_t_test_SCA_aspect <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
-                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+LC_t_test_SCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
+                                        LC_fixed_field_data_processed_terrain$LM_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LC_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(LC_t_test_SCA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LC_thumb_test_SCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, sd)
+max(LC_thumb_test_SCA, na.rm = T) / min(LC_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 #long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_4_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+LC_aov_LCA_aspect_4 <- aov(Canopy_long ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_LCA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_LCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_long, 
+                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LC_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(LC_t_test_LCA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, sd)
+max(LC_thumb_test_LCA, na.rm = T) / min(LC_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 # canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_4_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+LC_aov_CA_aspect_4 <- aov(Canopy_area ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_CA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_CA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_area, 
+                                       LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(LC_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(LC_t_test_CA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, sd)
+max(LC_thumb_test_CA, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 #crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_4_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+LC_aov_CS_aspect_4 <- aov(Crown_spread ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_CS_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_CS_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Crown_spread, 
+                                       LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LC_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(LC_t_test_CS_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, sd)
+max(LC_thumb_test_CS, na.rm = T) / min(LC_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 #DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = LC_aspect_raster_50_data_pts_4_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+LC_aov_DBH_aspect_4 <- aov(DBH_ag ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+summary(LC_aov_DBH_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+LC_t_test_DBH_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$DBH_ag, 
+                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(LC_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(LC_t_test_CS_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical, sd)
+max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ LC_aspect_raster_50_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 # SD
 
@@ -2031,20 +3010,218 @@ LC_t_test_SCA_aspect <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Ca
 
 #boxplot of sizes over the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
-  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_8_categorical, y = Canopy_short))+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_4_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
 #ANOVA
-SD_aov_SCA_aspect <- aov(Canopy_short ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect)
+SD_aov_SCA_aspect_4 <- aov(Canopy_short ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_SCA_aspect_4)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
-LC_t_test_SCA_aspect <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
-                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_8_categorical, p.adj = "bonf")
+SD_t_test_SCA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
+                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(SD_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(SD_t_test_SCA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+max(SD_thumb_test_SCA, na.rm = T) / min(SD_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 
 #long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_4_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+SD_aov_LCA_aspect_4 <- aov(Canopy_long ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_LCA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_LCA_aspect_4 <- pairwise.t.test(SD_aspect_raster_50_data_pts_4_categorical$Canopy_long, 
+                                        SD_aspect_raster_50_data_pts_4_categorical$SD_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(SD_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(SD_t_test_LCA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+max(SD_thumb_test_LCA, na.rm = T) / min(SD_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
+
 # canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_4_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+SD_aov_CA_aspect_4 <- aov(Canopy_area ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_CA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_CA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_area, 
+                                       SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(SD_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(SD_t_test_CA_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
+
 #crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_4_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+SD_aov_CS_aspect_4 <- aov(Crown_spread ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_CS_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_CS_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Crown_spread, 
+                                       SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(SD_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(SD_t_test_CS_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
+
 #DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = SD_aspect_raster_50_data_pts_4_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+SD_aov_DBH_aspect_4 <- aov(DBH_ag ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+summary(SD_aov_DBH_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+SD_t_test_DBH_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$DBH_ag, 
+                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(SD_t_test_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(SD_t_test_DBH_aspect_4$residuals) #qqnorm plot
+
+# checking equal variances with levene's test and rule of thumb
+
+#levene's test
+leveneTest(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical)
+
+#rule of thumb test
+SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+max(SD_thumb_test_DBH, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ SD_aspect_raster_50_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_50_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
+
+
