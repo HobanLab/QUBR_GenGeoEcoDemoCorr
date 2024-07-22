@@ -28,17 +28,16 @@ fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_pr
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
-#set elevation as a numeric value
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.))
-
-#creating a new elevation column so the values that were mistakenly 
-LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
-#plotting the tree points by elevation (m)
-ggplot()+
-  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
+#add average nearest neighbor for each individual column
+fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordinates %>%  #creates a dataframe with the ANN of the closest 5 individual trees for each individual
+  mutate(dist1 = nndist(X = X.1, Y= Y, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
+  mutate(dist2 = nndist(X = X.1, Y= Y, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
+  mutate(dist3 = nndist(X = X.1, Y= Y, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
+  mutate(dist4 = nndist(X = X.1, Y= Y, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
+  mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
+  rowwise()%>% #so that in the next part we take the averages across rows
+  mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5)))  %>% #creates a column of the average distances (1-5) of each individual
+  dplyr::select(!c(dist1, dist2, dist3, dist4, dist5)) #removes the excess columns with the 5 nearest neighbor distances
 
 
 #creating shapefiles for each population, turning sf of all points into sfc
@@ -106,24 +105,10 @@ SD_box <- st_bbox(river_SD_trans)
 
 
 
-##Load in environmental rasters 
-
-#####soil layers... ####
-#downloading soil rasters from soil grid
-#below from https://git.wur.nl/isric/soilgrids/soilgrids.notebooks/-/blob/master/markdown/webdav_from_R.md... works for ghana.. doesn't work when I try to change the bounding box to anything that isn't on thier website... it then fails by telling me the computed -srcwin has a negative width or height... and computes the same srcwin every time... not sure why.... WORKED WHEN I DONT USE A BBOX AND DOWNLOAD ALL TEH DATA (admittedly huge file but can be deleted once I have my cropped one so :) )
-####ph!
-voi = "Organic carbon density" # variable of interest
-depth = "5-5"
-Value = "mean" #mean
-voi_layer = paste(voi,depth,quantile, sep="_") # layer of interest 
-
-sg_url= "https://soilgrids.org/"
-gdal_translate(paste0(sg_url, voi, "/", voi_layer,'.vrt'),
-               "./raster_data/phh2o_igh_r.tif",
-               verbose=TRUE)
+## Load in environmental rasters ##
 
 
-#loading in soil textures from CONABIO
+#loading in soil textures from CONABIO, theses are too larger, about 1 km^2 I believe
 clay_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_05cm_mgw/cly_05cm_mgw.tif"))
 clay_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_200cm_mgw/cly_200cm_mgw.tif"))
 silt_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_05cm_pgw/slt_05cm_pgw.tif"))
@@ -143,9 +128,9 @@ sand_200_utm <- projectRaster(sand_200, crs=26912)
 #LM
 #examining the layers at different extents
 plot(clay_05_utm)
-plot(clay_05_LM)
-clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-10000, LM_box[3]+10000, LM_box[2]-10000, LM_box[4]+10000)) 
 
+clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-10000, LM_box[3]+10000, LM_box[2]-10000, LM_box[4]+10000)) 
+plot(clay_200_LM)
 
 
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
@@ -206,4 +191,44 @@ sand_200_SD <- crop(sand_200_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box
 #creating a stack of the raster layers
 soil_stack_SD <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD)
 plot(soil_stack_SD)
+
+
+
+
+#loading in soil textures from soilgrids
+clay_05_soilgrids <- raster(paste0("./data/clay content/clay content 0-5.tif"))
+clay_200_soilgrids <- raster(paste0("./data/clay content/clay content 100-200.tif"))
+silt_05_soilgrids <- raster(paste0("./data/silt/silt 0-5.tif"))
+silt_200_soilgrids <-raster(paste0("./data/silt/silt 100-200.tif"))
+sand_05_soilgrids <- raster(paste0("./data/sand/sand 0-5.tif"))
+sand_200_soilgrids <- raster(paste0("./data/sand/sand 100-200.tif"))
+
+#project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
+clay_05_soilgrids_utm <- projectRaster(clay_05_soilgrids, crs=26912) #converting the 0-5 cm clay raster to utm 12
+clay_200_soilgrids_utm <- projectRaster(clay_200_soilgrids, crs=26912) #converting the 90-200 cm clay raster to utm 12
+silt_05_soilgrids_utm <- projectRaster(silt_05_soilgrids, crs=26912)
+silt_200_soilgrids_utm <- projectRaster(silt_200_soilgrids, crs=26912)
+sand_05_soilgrids_utm <- projectRaster(sand_05_soilgrids, crs=26912)
+sand_200_soilgrids_utm <- projectRaster(sand_200_soilgrids, crs=26912)
+
+#LM
+#examining the layers at different extents
+plot(clay_05_utm)
+
+clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-10000, LM_box[3]+10000, LM_box[2]-10000, LM_box[4]+10000)) 
+plot(clay_200_LM)
+
+
+#using the extent of the box around the rivers to crop the raster for each soil texture layer
+clay_05_soilgrids_utm_LM <- crop(clay_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)) 
+clay_200_soilgrids_utm_LM <- crop(clay_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+silt_05_soilgrids_utm_LM <- crop(silt_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+silt_200_soilgrids_utm_LM <- crop(silt_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+sand_05_soilgrids_utm_LM <- crop(sand_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+sand_200_soilgrids_utm_LM <- crop(sand_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+
+#attempt of using ggplot to plot clay layer with river shapefile
+ggplot()+
+  geom_raster(data = as.data.frame(clay_05_soilgrids_utm_LM, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = LM_fixed_field_data_processed)
 
