@@ -1,0 +1,11 @@
+"0","# add xy coordinates of centroids for polygons
+# will be used to model spatial autocorrelation
+tract_data <- tract_data_1 %>%
+  cbind(st_centroid(.) %>% # calculate centroid of each tract, can also just use x-y coordinates of observations
+          st_coordinates %>% # extract coordinates
+          as.data.frame()) %>% # turn coordinates into dataframe
+  as.data.frame() # remove spatial structure from object
+"
+"2","Warning:"
+"2"," st_centroid assumes attributes are constant over geometries
+"

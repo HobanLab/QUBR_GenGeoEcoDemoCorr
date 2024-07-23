@@ -1,0 +1,101 @@
+---
+title: "Spatial Autocorrelation Models with nlme"
+author: "Natalie Love"
+date: "2024-07-22"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## load packages
+```{r}
+library(sf) # spatial data package
+library(tidyverse) # data wrangling
+library(nlme) # linear mixed effect models
+library(geoR) # compute variogram
+```
+## load data
+```{r}
+# load spatial data - polygon shapefile of census tracts in Chicago 
+tract_data_1 <- st_read("data_for_Ash/tract_data.shp") %>%
+  st_transform(crs = 3435) # transform to coordinate reference system with units as feet, this is Illinois State Plane CRS
+
+tract_data_df <- read_csv("data_for_Ash/tract_data_df.csv")
+# load data frame version of data to get full column names
+
+# add full column names to spatial data frame
+names(tract_data_1) <- c(names(tract_data_df))
+
+# add xy coordinates of centroids for polygons
+# will be used to model spatial autocorrelation
+tract_data <- tract_data_1 %>%
+  cbind(st_centroid(.) %>% # calculate centroid of each tract, can also just use x-y coordinates of observations
+          st_coordinates %>% # extract coordinates
+          as.data.frame()) %>% # turn coordinates into dataframe
+  as.data.frame() # remove spatial structure from object
+```
+
+# 1. Construct model without spatial auto correlation in error modeled
+### 1a. Construct model
+```{r}
+model_lme <- lme(ndvi_z_spei_slope ~ majority_population +
+                             log10_income +
+                             percent_veg +
+                             percent_tree, 
+                        data = tract_data,
+                        random = ~1 | side, # random effect of neighborhood area (e.g., north side)
+                        method = "ML")
+
+summary(model_lme)
+```
+
+### 1b. Construct variogram to assess spatial autocorrelation among residuals
+What is a variogram: https://en.wikipedia.org/wiki/Variogram
+```{r}
+coordinates <- tract_data[, c("X", "Y")]
+values = resid(model_lme)
+v1 <- vario(coords = coordinates, data = values)
+plot(vplot(vplot(v1)
+```
+
+# 2. Construct model where expected errors are spatial autocorrelated (SAC = spatial autocorrelation)
+UCLA tutorial on modeling SAC in error
+https://stats.oarc.ucla.edu/r/faq/how-do-i-model-a-spatially-autocorrelated-outcome/
+
+### 2a.Construct and initialize spatial autocorrelation structure
+There are a few different error structures that can be used. The best option for my data was corExp (exponential error structure). For guidance on how to determine which is best for your data, use this page: https://stats.oarc.ucla.edu/r/faq/how-do-i-fit-a-variogram-model-to-my-spatial-data-in-r-using-regression-commands/
+```{r}
+# define correlation structure
+# need to chose an appropriate value (range) for the model based on variogram
+cs1Exp <- corExp(value = c(range = 20000), # chose an appropriate range - distance at which residuals are not spatially autocorrelated, needs to be in units of coordinate reference system (in this case feet)
+                 form = ~ Y + X) # indicate which spatial variables to be used to calculate distance (x and y)
+
+# initialize structure
+cs1Exp <- Initialize(cs1Exp, tract_data)
+
+# view correlation matrix
+corMatrix(cs1Exp)[1:10, 100:150]
+
+```
+
+### 2b. Define error correlation strucure in model
+Depending on number of parameters and observations, may take a little while to fit
+```{r}
+model_lme_sac <- lme(ndvi_z_spei_slope ~ majority_population +
+                             log10_income +
+                             percent_veg +
+                             percent_tree, 
+                        data = tract_data,
+                        correlation = cs1Exp,
+                        random = ~1 | side, # random effect of neighborhood area (e.g., north side)
+                        method = "ML")
+
+summary(model_lme_sac)
+```
+# 3. Assess which model is better using AIC
+AIC is lower for model with SAC error structure
+```{r}
+print(paste("No SAC Structure Model AIC:", AIC(model_lme)))
+print(paste("SAC Structure Model AIC:", AIC(model_lme_sac)))
+```
+

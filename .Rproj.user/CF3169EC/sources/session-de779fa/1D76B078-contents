@@ -11,7 +11,7 @@ library(spatstat) # to run the nndist function
 library(spdep) # to use morna's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
-library(lme4) #to use the linear mixed effects model function
+library(nlme) # linear mixed effect models
 library(MuMIn) #to be able to use model.sel for fitting linear models with spatial autocorrelation
 
 `%notin%` <- Negate(`%in%`) # Make a function that is the opposite of the %in% function
@@ -1542,9 +1542,34 @@ ggplot(data = LM_fixed_field_data_all_focal_trees, (aes(x=sum_SCA_over_distance,
 
 #creating the generalized linear effects model
 
+library(igraph)
+
+tree.dist
+g <- graph_from_adjacency_matrix(tree.dist)
+plot(g)
+
+
+
 #creating x and y columns of the UTM 12N 
 LM_fixed_field_data_all_focal_trees$X.1 <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,1]
 LM_fixed_field_data_all_focal_trees$Y <- st_coordinates(LM_fixed_field_data_all_focal_trees)[,2]
+st_coordinates(LM_fixed_field_data_all_focal_trees$geometry)
+#model without spatial autocorrelation
+LM_glm_focal_SCA <- lme(Canopy_short ~ sum_SCA_over_distance, 
+                        data = LM_fixed_field_data_all_focal_trees,
+                        random = ~1 | X.1, Y, #| side, # random effect of neighborhood area (e.g., north side)
+                        method = "ML") #ML is maximum log-likelihood
+
+summary(model_lme)
+
+#checking we have appropriately removed the spatial autocorrelation
+semivario <- Variogram(LM_glm_focal_SCA, form = ~X.1 + Y, data = LM_fixed_field_data_all_focal_trees, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
+semivario <- Variogram(LM_glm_focal_SCA, form = ~X.1 + Y, data = LM_fixed_field_data_all_focal_trees, resType = "normalized")
+plot(semivario, smooth = TRUE)
+
+
 
 
 #logged version of generalized linear model

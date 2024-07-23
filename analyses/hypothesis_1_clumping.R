@@ -22,14 +22,32 @@ rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so 
 river_LC <- filter(rivers_2d, Name == "River LC")
 river_SD <- filter(rivers_2d, Name == "River SD")
 river_LM <- filter(rivers_2d, Name == "LM River")
+plot(rivers)
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 river_LM_trans <- st_transform(river_LM, crs = 26912) 
 river_LC_trans <- st_transform(river_LC, crs = 26912)
 river_SD_trans <- st_transform(river_SD, crs = 26912)
 
-#### Creating buffer around river polygons ####
+#upload ArcGIS river shapefile and filter out polygons for each population
+river_LM_NEW <- st_read("./data/Shapefiles/River Shapefiles ArcGIS/LM River/LM_river.shp")
+river_LM_NEW  <- river_LM_NEW$geometry[1]
+plot(river_LM_NEW)
 
+river_LC_NEW  <- st_read("./data/Shapefiles/River Shapefiles ArcGIS/LC River/LC_river.shp")
+river_LC_NEW  <- river_LC_NEW$geometry[2]
+plot(river_LC_NEW)
+
+river_SD_NEW <- st_read("./data/Shapefiles/River Shapefiles ArcGIS/SD River/SD_river.shp")
+river_SD_NEW <- river_SD_NEW$geometry[1]
+plot(river_SD_NEW)
+
+#changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+river_LM_trans_NEW <- st_transform(river_LM_NEW, crs = 26912) 
+river_LC_trans_NEW <- st_transform(river_LC_NEW, crs = 26912)
+river_SD_trans_NEW <- st_transform(river_SD_NEW, crs = 26912)
+
+#### Creating buffer around river polygons ####
 river_buffer_LM<- st_buffer(river_LM_trans, 200) #200 m buffer
 ggplot(river_buffer_LM)+
   geom_sf()
@@ -39,6 +57,19 @@ ggplot(river_buffer_LC)+
   geom_sf()
 
 river_buffer_SD<- st_buffer(river_SD_trans, 120) #120 m buffer
+ggplot(river_buffer_SD)+
+  geom_sf()
+
+#New version with ArcGIS shapefiles
+river_buffer_LM_NEW <- st_buffer(river_LM_trans_NEW, 200) #200 m buffer
+ggplot(river_buffer_LM_NEW)+
+  geom_sf()
+
+river_buffer_LC<- st_buffer(river_LC_trans_NEW, 230) #230 m buffer
+ggplot(river_buffer_LC)+
+  geom_sf()
+
+river_buffer_SD<- st_buffer(river_SD_trans_NEW, 120) #120 m buffer
 ggplot(river_buffer_SD)+
   geom_sf()
 
@@ -212,7 +243,7 @@ plot(LM_ppp_buffer, pch = 16, cex = 0.5)
 LM_k_buffer <- Kest(LM_ppp_buffer, correction = "Ripley") #Ripley's K function
 plot(LM_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) #legend inside of the plot
 
-#Ripley's K for LC 
+x#Ripley's K for LC 
 LC_win <- as.owin(LC_fixed_field_data_processed_box) #turning the box into a window
 LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win) #creating the poisson point pattern for lm
 plot(LC_ppp, pch = 16, cex = 0.5)

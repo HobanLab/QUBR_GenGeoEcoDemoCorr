@@ -1,0 +1,26 @@
+{
+    "id": "1948D8CE",
+    "path": "~/Downloads/spatial_autocorrelation_nlme/Spatial Autocorrelation with Models in nlme.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1721743364628.0,
+    "source_on_save": false,
+    "relative_order": 13,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "38,23",
+        "scrollLine": "24"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1721661528,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1721743369734,
+    "read_only": false,
+    "read_only_alternatives": []
+}
