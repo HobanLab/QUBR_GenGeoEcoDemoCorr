@@ -1,5 +1,6 @@
 #### Loading libraries and relevant data ####
 
+library(googledrive) #to download files from google drive
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
@@ -8,7 +9,7 @@ library(ggpmisc)
 library(raster) #for working with the rast files
 library(terra) # for extracting the slope and aspect from the DEM elevation files
 library(perm.t.test) #permutation t test 
-library(car) #to run levene's test for checking ANOVA conditions
+library(car) #to create added variable plots and to run levene's test for checking ANOVA conditions
 library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 
@@ -113,12 +114,18 @@ SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ 460, 
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
-#upload river shapefile and filter out polygons for each population
-rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
-rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so we got rid of it because it was giving us weird errors and disrupting later statistics
-river_LC <- filter(rivers_2d, Name == "River LC")
-river_SD <- filter(rivers_2d, Name == "River SD")
-river_LM <- filter(rivers_2d, Name == "LM River")
+#upload ArcGIS river shapefile and filter out polygons for each population
+river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+river_LM  <- river_LM$geometry[1]
+plot(river_LM)
+
+river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+river_LC  <- river_LC$geometry[1]
+plot(river_LC)
+
+river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+river_SD <- river_SD$geometry[1]
+plot(river_SD)
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 river_LM_trans <- st_transform(river_LM, crs = 26912) 
@@ -155,8 +162,19 @@ SD_box <- st_bbox(river_SD_trans)
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
+#loading in the Baja California Sur Inegi 15 m continuous elevtion model from google d
+
+BCS_15m_tif <-  drive_get(as_id("1S-ipLHfCRUu9w7d-iZba7Bbkqmfav-ja"))
+drive_download(public_file, overwrite = TRUE)
+
+BCS_15m_tif <- download.file("https://drive.google.com/file/d/1S-ipLHfCRUu9w7d-iZba7Bbkqmfav-ja/view?usp=drive_link",
+                             destfile = "./data/BajaCaliforniaS_15m.tif")
+
+
+install.packages("googledrive")
+
 #projecting the INGEI 14 m continuous elevtion model into UTM 12N 
-gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif", 
+gdalwarp(srcfile = BCS_15m_tif,  #"./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif"
           dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif", 
           s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
           t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
@@ -787,7 +805,6 @@ ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
   ylab("Frequency")
 
 
-
 #Summaries
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
@@ -1002,6 +1019,11 @@ summary(all_points_lm_DBH_elev)
 
 # LM 
 
+#we had to remove the elevation NA to 
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  drop_na(Elevation..m.FIXED)
+length(LM_fixed_field_data_processed$Elevation..m.FIXED)
+
 #short canopy axis
 
 #checking linearity 
@@ -1011,7 +1033,11 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Short Canopy Axis")
+  ylab("Short Canopy Axis (m)")+
+  theme(axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size=12), 
+        axis.text.y = element_text(size=12))
 
 
 #creating the linear regression
@@ -1027,6 +1053,8 @@ ggplot(LM_lm_sca_elev, aes(x= LM_lm_sca_elev$residuals))+
 #qqnorm plot
 ggplot(LM_lm_sca_elev, aes(sample = LM_lm_sca_elev$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_sca_elev$residuals) #significantly not normal
 
 #checking equal variance
 ggplot(data = LM_lm_sca_elev, aes(x = LM_lm_sca_elev$fitted.values, y = LM_lm_sca_elev$residuals))+
@@ -1066,6 +1094,8 @@ ggplot(LM_lm_lca_elev, aes(x= LM_lm_lca_elev$residuals))+
 
 ggplot(LM_lm_lca_elev, aes(sample = LM_lm_lca_elev$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_lca_elev$residuals) #sign not normally distributed
 
 #checking equal variance
 ggplot(data = LM_lm_lca_elev, aes(x = LM_lm_lca_elev$fitted.values, y = LM_lm_lca_elev$residuals))+
@@ -1109,6 +1139,8 @@ ggplot(LM_lm_CA_elev, aes(x= LM_lm_CA_elev$residuals))+
 ggplot(LM_lm_CA_elev, aes(sample = LM_lm_CA_elev$residuals))+
   geom_qq()
 
+shapiro.test(LM_lm_CA_elev$residuals) #
+
 #checking equal variance
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
   geom_point()+
@@ -1145,6 +1177,8 @@ ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_elev$residuals))+
 
 ggplot(LM_lm_CS_elev, aes(sample = LM_lm_CS_elev$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_CS_elev$residuals) #sign not normally distributed
 
 #checking equal variance
 ggplot(data = LM_lm_CS_elev, aes(x = LM_lm_CS_elev$fitted.values, y = LM_lm_CS_elev$residuals))+
@@ -1188,6 +1222,8 @@ ggplot(LM_lm_DBH_elev, aes(x= LM_lm_DBH_elev$residuals))+
 
 ggplot(LM_lm_DBH_elev, aes(sample = LM_lm_DBH_elev$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_DBH_elev$residuals)
 
 #checking equal variance
 ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DBH_elev$residuals))+
@@ -1234,6 +1270,8 @@ ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
 ggplot(LC_lm_sca_elev, aes(sample = LC_lm_sca_elev$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_sca_elev$residuals) #not sign
+
 #checking equal variance
 ggplot(data = LC_lm_sca_elev, aes(x = LC_lm_sca_elev$fitted.values, y = LC_lm_sca_elev$residuals))+
   geom_point()+
@@ -1276,6 +1314,8 @@ ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
 ggplot(LC_lm_lca_elev, aes(sample = LC_lm_lca_elev$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_lca_elev$residuals) #not sign
+
 #checking equal variance
 ggplot(data = LC_lm_lca_elev, aes(x = LC_lm_lca_elev$fitted.values, y = LC_lm_lca_elev$residuals))+
   geom_point()+
@@ -1316,6 +1356,8 @@ ggplot(LC_lm_CA_elev, aes(x= LC_lm_CA_elev$residuals))+
 
 ggplot(LC_lm_CA_elev, aes(sample = LC_lm_CA_elev$residuals))+
   geom_qq()
+
+shapiro.test(LC_lm_CA_elev$residuals) #not sign
 
 #checking equal variance
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
@@ -1360,6 +1402,8 @@ ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
 ggplot(LC_lm_CS_elev, aes(sample = LC_lm_CS_elev$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_CS_elev$residuals) #not sign
+
 #checking equal variance
 ggplot(data = LC_lm_CS_elev, aes(x = LC_lm_CS_elev$fitted.values, y = LC_lm_CS_elev$residuals))+
   geom_point()+
@@ -1403,6 +1447,8 @@ ggplot(LC_lm_DBH_elev, aes(x= LC_lm_DBH_elev$residuals))+
 ggplot(LC_lm_DBH_elev, aes(sample = LC_lm_DBH_elev$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_DBH_elev$residuals) #not sign
+
 #checking equal variance
 ggplot(data = LC_lm_DBH_elev, aes(x = LC_lm_DBH_elev$fitted.values, y = LC_lm_DBH_elev$residuals))+
   geom_point()+
@@ -1435,10 +1481,10 @@ ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with log transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -1451,6 +1497,8 @@ ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
 #qqnorm plot
 ggplot(SD_lm_sca_elev, aes(sample = SD_lm_sca_elev$residuals))+
   geom_qq()
+
+shapiro.test(SD_lm_sca_elev$residuals) #not sign when logged
 
 #checking equal variance
 ggplot(data = SD_lm_sca_elev, aes(x = SD_lm_sca_elev$fitted.values, y = SD_lm_sca_elev$residuals))+
@@ -1481,10 +1529,10 @@ ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with log transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with square root transformation of canopy area
-SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_lca_elev, aes(x= SD_lm_lca_elev$residuals))+
@@ -1495,6 +1543,8 @@ ggplot(SD_lm_lca_elev, aes(x= SD_lm_lca_elev$residuals))+
 
 ggplot(SD_lm_lca_elev, aes(sample = SD_lm_lca_elev$residuals))+
   geom_qq()
+
+shapiro.test(SD_lm_lca_elev$residuals) # not sign when logged
 
 #checking equal variance
 ggplot(data = SD_lm_lca_elev, aes(x = SD_lm_lca_elev$fitted.values, y = SD_lm_lca_elev$residuals))+
@@ -1537,6 +1587,8 @@ ggplot(SD_lm_CA_elev, aes(x= SD_lm_CA_elev$residuals))+
 ggplot(SD_lm_CA_elev, aes(sample = SD_lm_CA_elev$residuals))+
   geom_qq()
 
+shapiro.test(SD_lm_CA_elev$residuals) #sign when sqrt, but best transformation option
+
 #checking equal variance
 ggplot(data = SD_lm_CA_elev, aes(x = SD_lm_CA_elev$fitted.values, y = SD_lm_CA_elev$residuals))+
   geom_point()+
@@ -1564,6 +1616,11 @@ ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_
 
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
+SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+
+SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
+
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
   geom_histogram()+
@@ -1573,6 +1630,8 @@ ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
 
 ggplot(SD_lm_CS_elev, aes(sample = SD_lm_CS_elev$residuals))+
   geom_qq()
+
+shapiro.test(SD_lm_CS_elev$residuals)
 
 #checking equal variance
 ggplot(data = SD_lm_CS_elev, aes(x = SD_lm_CS_elev$fitted.values, y = SD_lm_CS_elev$residuals))+
@@ -1616,6 +1675,8 @@ ggplot(SD_lm_DBH_elev, aes(x= SD_lm_DBH_elev$residuals))+
 
 ggplot(SD_lm_DBH_elev, aes(sample = SD_lm_DBH_elev$residuals))+
   geom_qq()
+
+shapiro.test(SD_lm_DBH_elev$residuals) #not sign when logged
 
 #checking equal variance
 ggplot(data = SD_lm_DBH_elev, aes(x = SD_lm_DBH_elev$fitted.values, y = SD_lm_DBH_elev$residuals))+
@@ -1838,31 +1899,37 @@ summary(all_points_lm_DBH_elev)
 #short canopy axis
 
 #checking linearity 
-all_points_slope_raster_15_data_pts
+
 #plotting the linear model in ggplot for SCA
-ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x= LM_slope_raster_15_data_pts, y=Canopy_short)))+ 
+ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x= all_points_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
-all_points_fixed_field_data_processed_terrain$
 
 #creating the linear regression
-LM_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
+ggplot(all_points_lm_sca_slope, aes(x= all_points_lm_sca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qqnorm plot
-ggplot(LM_lm_sca_slope, aes(sample = LM_lm_sca_slope$residuals))+
+ggplot(all_points_lm_sca_slope, aes(sample = all_points_lm_sca_slope$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_sca_slope$residuals) #shaprio-welk
+
 #checking equal variance
-ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_sca_slope$residuals))+
+ggplot(data = all_points_lm_sca_slope, aes(x = all_points_lm_sca_slope$fitted.values, y = all_points_lm_sca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1870,17 +1937,17 @@ ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_
   labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
 
 #Slope Test visible in summary of the lm
-summary(LM_lm_sca_slope)
+summary(all_points_lm_sca_slope)
 
 #correlation test
-cor.test(all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short)
+cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short)
 
 #long canopy axis
 
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=Canopy_long)))+ 
+ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
@@ -1888,62 +1955,73 @@ ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_ras
 
 #creating the linear regression
 
-LM_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_lca_slope, aes(x= LM_lm_lca_slope$residuals))+
+ggplot(all_points_lm_lca_slope, aes(x= all_points_lm_lca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lm_lca_slope, aes(sample = LM_lm_lca_slope$residuals))+
+ggplot(all_points_lm_lca_slope, aes(sample = all_points_lm_lca_slope$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_lca_slope$residuals) # shapiro-welk test
+
 #checking equal variance
-ggplot(data = LM_lm_lca_slope, aes(x = LM_lm_lca_slope$fitted.values, y = LM_lm_lca_slope$residuals))+
+ggplot(data = all_points_lm_lca_slope, aes(x = all_points_lm_lca_slope$fitted.values, y = all_points_lm_lca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
+
+
 #Slope Test visible in summary of the lm
-summary(LM_lm_lca_slope)
+summary(all_points_lm_lca_slope)
 
 #canopy area
 
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y = Canopy_area_sqrt)))+ 
+ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
 #creating the linear regression
-LM_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 #linear regression with log transformation of canopy area
-LM_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 #linear regression with square root transformation of canopy area
-LM_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_CA_slope, aes(x= LM_lm_CA_slope$residuals))+
+ggplot(all_points_lm_CA_slope, aes(x= all_points_lm_CA_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lm_CA_slope, aes(sample = LM_lm_CA_slope$residuals))+
+ggplot(all_points_lm_CA_slope, aes(sample = all_points_lm_CA_slope$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_CA_slope$residuals)
+
 #checking equal variance
-ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA_slope$residuals))+
+ggplot(data = all_points_lm_CA_slope, aes(x = all_points_lm_CA_slope$fitted.values, y = all_points_lm_CA_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1951,7 +2029,7 @@ ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA
   labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
 
 #Slope Test visible in summary of the lm
-summary(LM_lm_CA_slope)
+summary(all_points_lm_CA_slope)
 
 
 #crown spread
@@ -1959,7 +2037,7 @@ summary(LM_lm_CA_slope)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=Crown_spread)))+ 
+ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
@@ -1967,20 +2045,27 @@ ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_ras
 
 #creating the linear regression
 
-LM_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
+all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_CS_slope, aes(x= LM_lm_CS_slope$residuals))+
+ggplot(all_points_lm_CS_slope, aes(x= all_points_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lm_CS_slope, aes(sample = LM_lm_CS_slope$residuals))+
+ggplot(all_points_lm_CS_slope, aes(sample = all_points_lm_CS_slope$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_CS_slope$residuals)
+
 #checking equal variance
-ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS_slope$residuals))+
+ggplot(data = all_points_lm_CS_slope, aes(x = all_points_lm_CS_slope$fitted.values, y = all_points_lm_CS_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1988,7 +2073,7 @@ ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
 #Slope Test visible in summary of the lm
-summary(LM_lm_CS_slope)
+summary(all_points_lm_CS_slope)
 
 
 #DBH
@@ -1996,34 +2081,36 @@ summary(LM_lm_CS_slope)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=DBH_ag)))+ 
+ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("DBH")
 
 #creating the linear regression
-LM_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 #linear regression with logged transformation of aggregated DBH
-LM_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_lg ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 #linear regression with square root transformation of aggregated DBH
-LM_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ all_points_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_lm_DBH_slope, aes(x= LM_lm_DBH_slope$residuals))+
+ggplot(all_points_lm_DBH_slope, aes(x= all_points_lm_DBH_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LM_lm_DBH_slope, aes(sample = LM_lm_DBH_slope$residuals))+
+ggplot(all_points_lm_DBH_slope, aes(sample = all_points_lm_DBH_slope$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_DBH_slope$residuals)
+
 #checking equal variance
-ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_DBH_slope$residuals))+
+ggplot(data = all_points_lm_DBH_slope, aes(x = all_points_lm_DBH_slope$fitted.values, y = all_points_lm_DBH_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2031,13 +2118,12 @@ ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_
   labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
 
 #Slope Test visible in summary of the lm
-summary(LM_lm_DBH_slope)
-
-
-
+summary(all_points_lm_DBH_slope)
 
 
 # LM 
+
+
 
 #short canopy axis
 
@@ -2051,8 +2137,10 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x= LM_slope_raster_15_
   ylab("Short Canopy Axis")
 
 
+
 #creating the linear regression
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
@@ -2674,6 +2762,249 @@ summary(SD_lm_DBH_slope)
 
 #8 categories for direction
 
+
+#all points 
+
+#short canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
+  xlab("Directions")+
+  ylab("Short Canopy Axis (m)")
+
+#ANOVA
+all_points_aov_SCA_aspect_8 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_SCA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_SCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
+                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(all_points_aov_SCA_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#rule of thumb test
+all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+all_points_aov_LCA_aspect_8 <- aov(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_LCA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_LCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_long, 
+                                          all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(all_points_aov_LCA_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#rule of thumb test
+all_points_thumb_test_LCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+max(all_points_thumb_test_LCA, na.rm = T) / min(all_points_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+# canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+all_points_aov_CA_aspect_8 <- aov(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_CA_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_CA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_area, 
+                                         all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(all_points_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(all_points_aov_CA_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#rule of thumb test
+all_points_thumb_test_CA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+max(all_points_thumb_test_CA, na.rm = T) / min(all_points_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+all_points_aov_CS_aspect_8 <- aov(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_CS_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_CS_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Crown_spread, 
+                                         all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(all_points_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(all_points_aov_CS_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#rule of thumb test
+all_points_thumb_test_CS <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+max(all_points_thumb_test_CS, na.rm = T) / min(all_points_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+all_points_aov_DBH_aspect_8 <- aov(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_DBH_aspect_8)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_DBH_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$DBH_ag, 
+                                          all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(all_points_aov_DBH_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#rule of thumb test
+all_points_thumb_test_DBH <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+max(all_points_thumb_test_DBH, na.rm = T) / min(all_points_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
 # LM
 
 #short canopy axis
@@ -2729,7 +3060,7 @@ ggplot(data = LM_fixed_field_data_processed_terrain)+
 
 #ANOVA
 LM_aov_LCA_aspect_8 <- aov(Canopy_long ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LCMaov_LCA_aspect_8)
+summary(LM_aov_LCA_aspect_8)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
 LM_t_test_LCA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_long, 
@@ -3401,6 +3732,248 @@ pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_fiel
 
 
 #4 categories for direction
+
+#all points 
+
+#short canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_short))+
+  xlab("Directions")+
+  ylab("Short Canopy Axis (m)")
+
+#ANOVA
+all_points_aov_SCA_aspect_4 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_SCA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_SCA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
+                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categoricalv, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+
+qqnorm(all_points_aov_SCA_aspect_4$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
+
+#rule of thumb test
+all_points_thumb_test_SCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+max(all_points_thumb_test_SCA_4, na.rm = T) / min(all_points_thumb_test_SCA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#long canopy axis
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_long))+
+  xlab("Directions")+
+  ylab("Long Canopy Axis (m)")
+
+#ANOVA
+all_points_aov_LCA_aspect_4 <- aov(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_LCA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_LCA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_long, 
+                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+
+qqnorm(all_points_aov_LCA_aspect_4$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
+
+#rule of thumb test
+all_points_thumb_test_LCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+max(all_points_thumb_test_LCA_4, na.rm = T) / min(all_points_thumb_test_LCA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+# canopy area
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_area))+
+  xlab("Directions")+
+  ylab("Canopy Area (m2)")
+
+#ANOVA
+all_points_aov_CA_aspect_4 <- aov(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_CA_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_CA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_area, 
+                                                 all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(all_points_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+
+qqnorm(all_points_aov_CA_aspect_4$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
+
+#rule of thumb test
+all_points_thumb_test_CA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+max(all_points_thumb_test_CA_4, na.rm = T) / min(all_points_thumb_test_CA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#crown spread
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Crown_spread))+
+  xlab("Directions")+
+  ylab("Crown Spread (m2)")
+
+#ANOVA
+all_points_aov_CS_aspect_4 <- aov(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_CS_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_CS_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Crown_spread, 
+                                                 all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
+
+# checking to see if residuals are normal
+hist(all_points_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+
+qqnorm(all_points_aov_CS_aspect_4$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
+
+#rule of thumb test
+all_points_thumb_test_CS_4 <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+max(all_points_thumb_test_CS_4, na.rm = T) / min(all_points_thumb_test_CS_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#DBH ag
+
+#boxplot of sizes over the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = DBH_ag))+
+  xlab("Directions")+
+  ylab("DBH")
+
+#ANOVA
+all_points_aov_DBH_aspect_4 <- aov(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_DBH_aspect_4)
+
+#permutation t.test to see significant differences between categories using a bonferonni adjustment
+all_points_t_test_DBH_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$DBH_ag, 
+                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
+
+
+# checking to see if residuals are normal
+hist(all_points_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+
+qqnorm(all_points_aov_DBH_aspect_4$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when 
+fligner.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#levene's test
+leveneTest(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
+
+#rule of thumb test
+all_points_thumb_test_DBH_4 <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+max(all_points_thumb_test_DBH_4, na.rm = T) / min(all_points_thumb_test_DBH_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#nonparametric tests
+
+#kruskall wallis test
+kruskal.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 # LM
 

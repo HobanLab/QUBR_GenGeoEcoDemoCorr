@@ -1,0 +1,9 @@
+"0","library(geoR) # compute variogram
+"
+"2","tcltk DLL is linked to '/opt/X11/lib/libX11.6.dylib'
+"
+"2","Error: package or namespace load failed for ‘geoR’:
+ .onLoad failed in loadNamespace() for 'tcltk', details:
+  call: fun(libname, pkgname)
+  error: X11 library is missing: install XQuartz from www.xquartz.org
+"
