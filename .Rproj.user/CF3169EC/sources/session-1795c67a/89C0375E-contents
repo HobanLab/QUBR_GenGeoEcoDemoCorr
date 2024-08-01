@@ -424,21 +424,21 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
 #LM
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_50_data_pts))
+                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_15_data_pts))
 
 
 #LC
 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_50_data_pts))
+                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_15_data_pts))
 
 
 #SD
 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_50_data_pts))
+                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_15_data_pts))
 
 
 # all points
@@ -770,15 +770,13 @@ ggplot(all_points_multiple_lm_SCA_simplified, aes(sample = all_points_multiple_l
 
 shapiro.test(all_points_multiple_lm_SCA_simplified$residuals) #shapiro wilk test for normality, if significant, then the residuals are not likely normally distributed
 
+
 #shapiro-wilk test is significant, so we will use a model where canopy area is transformed
 all_points_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 all_points_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-shapiro.test(all_points_multiple_lm_SCA_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a log transformation
-
-#the results of the Shapiro-Wilk test suggest we should use the model where canopy area is square rooted
-
+shapiro.test(all_points_multiple_lm_SCA_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+#based on theall_points_multiple_lm_SCA_simplified_lg#based on the Shapiro-Wilk test we need to use a non-parametric test to look at slope
 
 #checking equal variance
 ggplot(data = all_points_multiple_lm_SCA_simplified_lg, aes(x = all_points_multiple_lm_SCA_simplified_lg$fitted.values, y = all_points_multiple_lm_SCA_simplified_lg$residuals))+
@@ -792,6 +790,22 @@ ggplot(data = all_points_multiple_lm_SCA_simplified_lg, aes(x = all_points_multi
 all_points_multiple_lm_SCA_summary <- summary(all_points_multiple_lm_SCA) #sig
 all_points_multiple_lm_SCA_simplified_summary <- summary(all_points_multiple_lm_SCA_simplified) #sig
 all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_lm_SCA_simplified_lg) #sig
+
+#non parametric Mann-Kendall Test
+LM_tau_result_SCA <- cor.test(all_points_fixed_field_data_processed_terrain_no_NA$LM_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area_lg,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value 
+print(LM_tau_result_CA)
+
+# Calculate the trend line
+LM_trend_line_CA <- predict(loess(all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain_no_NA$sum_CA_over_distance))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 # LCA
@@ -2897,6 +2911,11 @@ ggplot(SD_multiple_lm_DBH_simplified, aes(x= SD_multiple_lm_DBH_simplified$resid
   labs(title = "Distribution of Residuals for DBH vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
+
+theme(axis.title.x = element_text(size=15),
+      axis.title.y = element_text(size=15),
+      axis.text.x = element_text(size=12), 
+      axis.text.y = element_text(size=12))
 
 #qqnorm plot
 ggplot(SD_multiple_lm_DBH_simplified, aes(sample = SD_multiple_lm_DBH_simplified$residuals))+

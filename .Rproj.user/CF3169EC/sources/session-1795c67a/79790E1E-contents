@@ -162,265 +162,280 @@ SD_box <- st_bbox(river_SD_trans)
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
-#loading in the Baja California Sur Inegi 15 m continuous elevtion model from google d
 
-BCS_15m_tif <-  drive_get(as_id("1S-ipLHfCRUu9w7d-iZba7Bbkqmfav-ja"))
-drive_download(public_file, overwrite = TRUE)
+#BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY, FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
+#After LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
+#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m continuous elevation model DATA: https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
 
-BCS_15m_tif <- download.file("https://drive.google.com/file/d/1S-ipLHfCRUu9w7d-iZba7Bbkqmfav-ja/view?usp=drive_link",
-                             destfile = "./data/BajaCaliforniaS_15m.tif")
+#SO WE COMMENTED OUT CODE THAT IS HOW WE LOADED IN THE ORIGINAL RASTER AND CREATED AND EXPORTED THE CROPPED RASTERS FOR EACH POPULATION
 
-drive_download("https://drive.google.com/file/d/1S-ipLHfCRUu9w7d-iZba7Bbkqmfav-ja/view?usp=drive_link",
-               path = "./data/BajaCaliforniaS_15m.tif", overwrite = T)
+# #projecting the INGEI 15 m continuous elevation model into UTM 12N 
+# gdalwarp(srcfile = './data/15 m Elevation Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',  
+#          dstfile = './data/15 m Elevation Raster/CEM_15_utm.tif', 
+#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
+#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
+#          tr = c(15, 15), overwrite=T)
+# 
+# #loading in the projected file
+# CEM_15_utm <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm.tif"))
+# 
+# plot(CEM_15_utm) # just to visualize the raster
+# 
+# #cropping the rasters for each population
+# 
+# #all points
+# 
+# #mapping cropped 
+# CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the all points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+# 
+# #LM
+# 
+# #mapping cropped 
+# CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LM_fixed_field_data_processed)
+# 
+# #LC
+# 
+# #mapping cropped 
+# CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LC_fixed_field_data_processed)
+# 
+# #SD
+# 
+# #mapping cropped 
+# CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = SD_fixed_field_data_processed)
 
-install.packages("googledrive")
+#HERE IS THE IMPORTATION OF THE CROPPED RASTERS
 
-#projecting the INGEI 14 m continuous elevtion model into UTM 12N 
-gdalwarp(srcfile = BCS_15m_tif,  #"./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif"
-          dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif", 
-          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
-          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
-          tr = c(15, 15), overwrite=TRUE)
+#exporting this cropped rasters as a tif
+writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
+writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LC.tif')
+writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
 
-#loading in the projected file
-CEM_15_utm <- raster(paste0("./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif"))
+#Importing the cropped rasters for LM, LC, and SD
+CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
 
-plot(CEM_15_utm)
-
-#cropping the rasters for each population
-
-#all points
-
-#mapping cropped 
-CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
-
-#plotting the LM elevation raster with the all points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
-
-#LM
-
-#mapping cropped 
-CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = LM_fixed_field_data_processed)
-
-#LC
-
-#mapping cropped 
-CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = LC_fixed_field_data_processed)
-
-#SD
-
-#mapping cropped 
-CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
-
-#loading in xyz ASCII from INEGI on elevation, 5 m resolution rasters of elevation around BCS
-continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
-continental_relief_elevation_raster <- rasterFromXYZ(continental_relief_elevation_xyz) #26912
-plot(continental_relief_elevation_raster)
-
-elevation_xyz_f1 <- read.table("./data/ASCII Elevation Inegi/f12b14f1_ms.xyz")
-elevation_xyz_f1 <- rasterFromXYZ(elevation_xyz_f1) #26912
-plot(elevation_xyz_f1)
-
-elevation_xyz_f2 <- read.table("./data/ASCII Elevation Inegi/f12b14f2_ms.xyz")
-elevation_xyz_f2 <- rasterFromXYZ(elevation_xyz_f2) #26912
-plot(elevation_xyz_f2)
-
-elevation_xyz_f3 <- read.table("./data/ASCII Elevation Inegi/f12b14f3_ms.xyz")
-elevation_xyz_f3 <- rasterFromXYZ(elevation_xyz_f3) #26912
-plot(elevation_xyz_f3)
-
-elevation_xyz_f4 <- read.table("./data/ASCII Elevation Inegi/f12b14f4_ms.xyz")
-elevation_xyz_f4 <- rasterFromXYZ(elevation_xyz_f4) #26912
-plot(elevation_xyz_f4)
-
-elevation_xyz_c4 <- read.table("./data/ASCII Elevation Inegi/f12b24c4_ms.xyz")
-elevation_xyz_c4 <- rasterFromXYZ(elevation_xyz_c4) #26912
-plot(elevation_xyz_c4)
-
-elevation_xyz_b25a3 <- read.table("./data/ASCII Elevation Inegi/f12b25a3_ms.xyz")
-elevation_xyz_b25a3 <- rasterFromXYZ(elevation_xyz_b25a3) #26912
-plot(elevation_xyz_b25a3)
-
-elevation_xyz_b34a1 <- read.table("./data/ASCII Elevation Inegi/f12b34a1_ms.xyz")
-elevation_xyz_b34a1 <- rasterFromXYZ(elevation_xyz_b34a1) #26912
-plot(elevation_xyz_b34a1)
-
-elevation_xyz_b34a2 <- read.table("./data/ASCII Elevation Inegi/f12b34a2_ms.xyz")
-elevation_xyz_b34a2 <- rasterFromXYZ(elevation_xyz_b34a2) #26912
-plot(elevation_xyz_b34a2)
-
-elevation_xyz_b34a3 <- read.table("./data/ASCII Elevation Inegi/f12b34a3_ms.xyz")
-elevation_xyz_b34a3 <- rasterFromXYZ(elevation_xyz_b34a3) #26912
-plot(elevation_xyz_b34a3)
-
-elevation_xyz_b34a4 <- read.table("./data/ASCII Elevation Inegi/f12b34a4_ms.xyz")
-elevation_xyz_b34a4 <- rasterFromXYZ(elevation_xyz_b34a4) #26912
-plot(elevation_xyz_b34a4)
-
-elevation_xyz_b34b1 <- read.table("./data/ASCII Elevation Inegi/f12b34b1_ms.xyz")
-elevation_xyz_b34b1 <- rasterFromXYZ(elevation_xyz_b34b1) #26912
-plot(elevation_xyz_b34b1)
-
-elevation_xyz_b34b2 <- read.table("./data/ASCII Elevation Inegi/f12b34b2_ms.xyz")
-elevation_xyz_b34b2 <- rasterFromXYZ(elevation_xyz_b34b2) #26912
-plot(elevation_xyz_b34b2)
-
-elevation_xyz_b34b3 <- read.table("./data/ASCII Elevation Inegi/f12b34b3_ms.xyz")
-elevation_xyz_b34b3 <- rasterFromXYZ(elevation_xyz_b34b3) #26912
-plot(elevation_xyz_b34b3)
-
-elevation_xyz_b34b4 <- read.table("./data/ASCII Elevation Inegi/f12b34b4_ms.xyz")
-elevation_xyz_b34b4 <- rasterFromXYZ(elevation_xyz_b34b4) #26912
-plot(elevation_xyz_b34b4)
-
-elevation_xyz_b34c1 <- read.table("./data/ASCII Elevation Inegi/f12b34c1_ms.xyz")
-elevation_xyz_b34c1 <- rasterFromXYZ(elevation_xyz_b34c1) #26912
-plot(elevation_xyz_b34c1)
-
-elevation_xyz_b34c3 <- read.table("./data/ASCII Elevation Inegi/f12b34c3_ms.xyz")
-elevation_xyz_b34c3 <- rasterFromXYZ(elevation_xyz_b34c3) #26912
-plot(elevation_xyz_b34c3)
-
-#merging all of the rasters
-f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
-                                      elevation_xyz_f3,  elevation_xyz_f4, 
-                                      elevation_xyz_c4,elevation_xyz_b25a3,
-                                      elevation_xyz_b34a1, elevation_xyz_b34a2,
-                                      elevation_xyz_b34a3, elevation_xyz_b34a4, 
-                                      elevation_xyz_b34b1, elevation_xyz_b34b2,
-                                      elevation_xyz_b34b3, elevation_xyz_b34b4,
-                                      elevation_xyz_b34c1, elevation_xyz_b34c3)
-plot(f1_f4_merged_rasters)
-
-#plotting the merged rasters
-ggplot()+
-  geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = fixed_field_data_processed_NN_UTM)
-
-#mapping cropped 
-f1_f4_merged_rasters_cropped <- crop(f1_f4_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-
-#plotting the cropped rasters, cropped to cover SD
-ggplot()+
-  geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
-#isolating just the SD 5 m portions
-SD_rasters <- raster::merge(elevation_xyz_b34a1, elevation_xyz_b34a2,
-                             elevation_xyz_b34a3, elevation_xyz_b34a4, 
-                             elevation_xyz_b34b1, elevation_xyz_b34b2,
-                             elevation_xyz_b34b3, elevation_xyz_b34b4,
-                             elevation_xyz_b34c1, elevation_xyz_b34c3)
-
-plot(SD_rasters)
-
-#very close with the elevation rasters
-ggplot()+
-  geom_raster(data= as.data.frame(SD_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
-#loading in 50 M resolution elevation rasters for LM and LC
-f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
-plot(f12b12)
-
-f12b13 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b13me.bil")
-plot(f12b13)
-
-f12b14 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b14me.bil")
-plot(f12b14)
-
-f12b22 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b22me.bil")
-plot(f12b22)
-
-f12b23 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b23me.bil")
-plot(f12b23)
-
-f12b33 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b33me.bil")
-plot(f12b33)
-
-f12b_merged_rasters <- raster::merge(f12b12, f12b13, 
-                                     f12b14,  f12b22, 
-                                     f12b23, f12b33)
-plot(f12b_merged_rasters)
-
-#projecting the 50 m resolution raster to be in UTM12N 
-crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-proj4string(f12b_merged_rasters) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-
-#mapping with cropped for LM 
-f12b_merged_rasters_cropped_LM <- crop(f12b_merged_rasters, extent(c(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)))
+#creating the all points raster by merging the LM, LC, and SD rasters
+CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
 
 ggplot()+
-  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LM, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = fixed_field_data_processed_sf_transformed)
 
-#mapping with cropped for LC
-f12b_merged_rasters_cropped_LC <- crop(f12b_merged_rasters, extent(c(LC_box[1]-200, LC_box[3]+200, LC_box[2]-200, LC_box[4]+200)))
-
-ggplot()+
-  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LC, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = LC_fixed_field_data_processed)
-
-#mapping with cropped for SD
-f12b_merged_rasters_cropped_SD <- crop(f12b_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-ggplot()+
-  geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_SD, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
-f1202 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1202mde.bil")
-plot(f1202)
-
-f1206 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1206mde.bil")
-plot(f1206)
-
-
-#50 m resolution elevation for SD
-f12B24 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f12b24me.bil")
-plot(f12B24)
-
-#projecting the raster for SD
-crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-proj4string(f12B24) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-
-#cropping the F12B24 raster to be the extent of SD
-f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1]-50, SD_box[3]+50, SD_box[2]-50, SD_box[4]+50)))
-
-#Plotting the cropped raster
-ggplot()+
-  geom_raster(data= as.data.frame(f12B24_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24me))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
-
-raster::merge()
-
-
-#contour lines map
-F12B24_tif <- raster(paste0("./data/ASCII Elevation Inegi/Larger Areas/F12B24/702825702502_t/f12b24.tif"))
-plot(F12B24_tif)
-
-F12B24_tif_cropped_SD <- crop(F12B24_tif, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-
-ggplot()+
-  geom_raster(data= as.data.frame(F12B24_tif_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24))+
-  geom_sf(data = SD_fixed_field_data_processed)
+#UNUSED ELEVATION RASTERS 
+#(one is a 5m resolution set of merge rasters that does not overlap well with the points and the others are 50 m resolution rasters that do overlap with the populations but they are just too high of resolution than what we want)
+  
+# #loading in xyz ASCII from INEGI on elevation, 5 m resolution rasters of elevation around BCS
+# continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
+# continental_relief_elevation_raster <- rasterFromXYZ(continental_relief_elevation_xyz) #26912
+# plot(continental_relief_elevation_raster)
+# 
+# elevation_xyz_f1 <- read.table("./data/ASCII Elevation Inegi/f12b14f1_ms.xyz")
+# elevation_xyz_f1 <- rasterFromXYZ(elevation_xyz_f1) #26912
+# plot(elevation_xyz_f1)
+# 
+# elevation_xyz_f2 <- read.table("./data/ASCII Elevation Inegi/f12b14f2_ms.xyz")
+# elevation_xyz_f2 <- rasterFromXYZ(elevation_xyz_f2) #26912
+# plot(elevation_xyz_f2)
+# 
+# elevation_xyz_f3 <- read.table("./data/ASCII Elevation Inegi/f12b14f3_ms.xyz")
+# elevation_xyz_f3 <- rasterFromXYZ(elevation_xyz_f3) #26912
+# plot(elevation_xyz_f3)
+# 
+# elevation_xyz_f4 <- read.table("./data/ASCII Elevation Inegi/f12b14f4_ms.xyz")
+# elevation_xyz_f4 <- rasterFromXYZ(elevation_xyz_f4) #26912
+# plot(elevation_xyz_f4)
+# 
+# elevation_xyz_c4 <- read.table("./data/ASCII Elevation Inegi/f12b24c4_ms.xyz")
+# elevation_xyz_c4 <- rasterFromXYZ(elevation_xyz_c4) #26912
+# plot(elevation_xyz_c4)
+# 
+# elevation_xyz_b25a3 <- read.table("./data/ASCII Elevation Inegi/f12b25a3_ms.xyz")
+# elevation_xyz_b25a3 <- rasterFromXYZ(elevation_xyz_b25a3) #26912
+# plot(elevation_xyz_b25a3)
+# 
+# elevation_xyz_b34a1 <- read.table("./data/ASCII Elevation Inegi/f12b34a1_ms.xyz")
+# elevation_xyz_b34a1 <- rasterFromXYZ(elevation_xyz_b34a1) #26912
+# plot(elevation_xyz_b34a1)
+# 
+# elevation_xyz_b34a2 <- read.table("./data/ASCII Elevation Inegi/f12b34a2_ms.xyz")
+# elevation_xyz_b34a2 <- rasterFromXYZ(elevation_xyz_b34a2) #26912
+# plot(elevation_xyz_b34a2)
+# 
+# elevation_xyz_b34a3 <- read.table("./data/ASCII Elevation Inegi/f12b34a3_ms.xyz")
+# elevation_xyz_b34a3 <- rasterFromXYZ(elevation_xyz_b34a3) #26912
+# plot(elevation_xyz_b34a3)
+# 
+# elevation_xyz_b34a4 <- read.table("./data/ASCII Elevation Inegi/f12b34a4_ms.xyz")
+# elevation_xyz_b34a4 <- rasterFromXYZ(elevation_xyz_b34a4) #26912
+# plot(elevation_xyz_b34a4)
+# 
+# elevation_xyz_b34b1 <- read.table("./data/ASCII Elevation Inegi/f12b34b1_ms.xyz")
+# elevation_xyz_b34b1 <- rasterFromXYZ(elevation_xyz_b34b1) #26912
+# plot(elevation_xyz_b34b1)
+# 
+# elevation_xyz_b34b2 <- read.table("./data/ASCII Elevation Inegi/f12b34b2_ms.xyz")
+# elevation_xyz_b34b2 <- rasterFromXYZ(elevation_xyz_b34b2) #26912
+# plot(elevation_xyz_b34b2)
+# 
+# elevation_xyz_b34b3 <- read.table("./data/ASCII Elevation Inegi/f12b34b3_ms.xyz")
+# elevation_xyz_b34b3 <- rasterFromXYZ(elevation_xyz_b34b3) #26912
+# plot(elevation_xyz_b34b3)
+# 
+# elevation_xyz_b34b4 <- read.table("./data/ASCII Elevation Inegi/f12b34b4_ms.xyz")
+# elevation_xyz_b34b4 <- rasterFromXYZ(elevation_xyz_b34b4) #26912
+# plot(elevation_xyz_b34b4)
+# 
+# elevation_xyz_b34c1 <- read.table("./data/ASCII Elevation Inegi/f12b34c1_ms.xyz")
+# elevation_xyz_b34c1 <- rasterFromXYZ(elevation_xyz_b34c1) #26912
+# plot(elevation_xyz_b34c1)
+# 
+# elevation_xyz_b34c3 <- read.table("./data/ASCII Elevation Inegi/f12b34c3_ms.xyz")
+# elevation_xyz_b34c3 <- rasterFromXYZ(elevation_xyz_b34c3) #26912
+# plot(elevation_xyz_b34c3)
+# 
+# #merging all of the rasters
+# f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
+#                                       elevation_xyz_f3,  elevation_xyz_f4, 
+#                                       elevation_xyz_c4,elevation_xyz_b25a3,
+#                                       elevation_xyz_b34a1, elevation_xyz_b34a2,
+#                                       elevation_xyz_b34a3, elevation_xyz_b34a4, 
+#                                       elevation_xyz_b34b1, elevation_xyz_b34b2,
+#                                       elevation_xyz_b34b3, elevation_xyz_b34b4,
+#                                       elevation_xyz_b34c1, elevation_xyz_b34c3)
+# plot(f1_f4_merged_rasters)
+# 
+# #plotting the merged rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = fixed_field_data_processed_NN_UTM)
+# 
+# #mapping cropped 
+# f1_f4_merged_rasters_cropped <- crop(f1_f4_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+# 
+# #plotting the cropped rasters, cropped to cover SD
+# ggplot()+
+#   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = SD_fixed_field_data_processed)
+# 
+# #isolating just the SD 5 m portions
+# SD_rasters <- raster::merge(elevation_xyz_b34a1, elevation_xyz_b34a2,
+#                              elevation_xyz_b34a3, elevation_xyz_b34a4, 
+#                              elevation_xyz_b34b1, elevation_xyz_b34b2,
+#                              elevation_xyz_b34b3, elevation_xyz_b34b4,
+#                              elevation_xyz_b34c1, elevation_xyz_b34c3)
+# 
+# plot(SD_rasters)
+# 
+# #very close with the elevation rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(SD_rasters, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = SD_fixed_field_data_processed)
+# 
+# #loading in 50 M resolution elevation rasters for LM and LC
+# f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
+# plot(f12b12)
+# 
+# f12b13 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b13me.bil")
+# plot(f12b13)
+# 
+# f12b14 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b14me.bil")
+# plot(f12b14)
+# 
+# f12b22 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b22me.bil")
+# plot(f12b22)
+# 
+# f12b23 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b23me.bil")
+# plot(f12b23)
+# 
+# f12b33 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b33me.bil")
+# plot(f12b33)
+# 
+# f12b_merged_rasters <- raster::merge(f12b12, f12b13, 
+#                                      f12b14,  f12b22, 
+#                                      f12b23, f12b33)
+# plot(f12b_merged_rasters)
+# 
+# #projecting the 50 m resolution raster to be in UTM12N 
+# crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+# proj4string(f12b_merged_rasters) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+# 
+# #mapping with cropped for LM 
+# f12b_merged_rasters_cropped_LM <- crop(f12b_merged_rasters, extent(c(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)))
+# 
+# ggplot()+
+#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LM, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = LM_fixed_field_data_processed)
+# 
+# #mapping with cropped for LC
+# f12b_merged_rasters_cropped_LC <- crop(f12b_merged_rasters, extent(c(LC_box[1]-200, LC_box[3]+200, LC_box[2]-200, LC_box[4]+200)))
+# 
+# ggplot()+
+#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LC, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = LC_fixed_field_data_processed)
+# 
+# #mapping with cropped for SD
+# f12b_merged_rasters_cropped_SD <- crop(f12b_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+# ggplot()+
+#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_SD, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = SD_fixed_field_data_processed)
+# 
+# f1202 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1202mde.bil")
+# plot(f1202)
+# 
+# f1206 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1206mde.bil")
+# plot(f1206)
+# 
+# 
+# #50 m resolution elevation for SD
+# f12B24 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f12b24me.bil")
+# plot(f12B24)
+# 
+# #projecting the raster for SD
+# crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+# proj4string(f12B24) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
+# 
+# #cropping the F12B24 raster to be the extent of SD
+# f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1]-50, SD_box[3]+50, SD_box[2]-50, SD_box[4]+50)))
+# 
+# #Plotting the cropped raster
+# ggplot()+
+#   geom_raster(data= as.data.frame(f12B24_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24me))+
+#   geom_sf(data = SD_fixed_field_data_processed)
+# 
+# 
+# raster::merge()
+# 
+# 
+# #contour lines map
+# F12B24_tif <- raster(paste0("./data/ASCII Elevation Inegi/Larger Areas/F12B24/702825702502_t/f12b24.tif"))
+# plot(F12B24_tif)
+# 
+# F12B24_tif_cropped_SD <- crop(F12B24_tif, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
+# 
+# ggplot()+
+#   geom_raster(data= as.data.frame(F12B24_tif_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24))+
+#   geom_sf(data = SD_fixed_field_data_processed)
 
 
 ## Extracting the slope 
@@ -562,21 +577,21 @@ View(all_points_fixed_field_data_processed_terrain)
 #LM
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_50_data_pts))
+                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_15_data_pts))
 View(LM_fixed_field_data_processed_terrain)
 
 #LC
 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_50_data_pts))
+                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_15_data_pts))
 View(LC_fixed_field_data_processed_terrain)
 
 #SD
 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_50_data_pts))
+                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_15_data_pts))
 View(SD_fixed_field_data_processed_terrain)
 
 # all points
@@ -819,6 +834,9 @@ View(field_data_summarized)
 
 # For all trees
 
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+  drop_na(Elevation..m.FIXED)
+
 #SCA
 
 #checking linearity 
@@ -845,6 +863,8 @@ ggplot(all_points_lm_sca_elev, aes(x= all_points_lm_sca_elev$residuals))+
 ggplot(all_points_lm_sca_elev, aes(sample = all_points_lm_sca_elev$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_sca_elev$residuals) #sig, so we have to use mann-kendall test
+
 #checking equal variance
 ggplot(data = all_points_lm_sca_elev, aes(x = all_points_lm_sca_elev$fitted.values, y = all_points_lm_sca_elev$residuals))+
   geom_point()+
@@ -858,6 +878,23 @@ summary(all_points_lm_sca_elev)
 
 #correlation test
 cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_short)
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_SCA <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_short,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_SCA)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Canopy_short ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
+
 
 #long canopy axis
 
@@ -884,6 +921,8 @@ ggplot(all_points_LM_lm_lca_elev, aes(x= all_points_LM_lm_lca_elev$residuals))+
 ggplot(all_points_lm_lca_elev, aes(sample = all_points_lm_lca_elev$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_lca_elev$residuals) #shapiro-wilk test is sig so we have to use Mann-Kendall non-parametric test
+
 #checking equal variance
 ggplot(data = all_points_lm_lca_elev, aes(x = all_points_lm_lca_elev$fitted.values, y = all_points_lm_lca_elev$residuals))+
   geom_point()+
@@ -894,6 +933,23 @@ ggplot(data = all_points_lm_lca_elev, aes(x = all_points_lm_lca_elev$fitted.valu
 
 #Slope Test visible in summary of the lm
 summary(all_points_lm_lca_elev)
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_LCA <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_long,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_LCA)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
+
 
 #canopy area
 
@@ -926,6 +982,8 @@ ggplot(all_points_lm_CA_elev, aes(x= all_points_lm_CA_elev$residuals))+
 ggplot(all_points_lm_CA_elev, aes(sample = all_points_lm_CA_elev$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_CA_elev$residuals) #shapiro-wilk test is sig so we need to use a non-parametric mann-kendall test
+
 #checking equal variance
 ggplot(data = all_points_lm_CA_elev, aes(x = all_points_lm_CA_elev$fitted.values, y = all_points_lm_CA_elev$residuals))+
   geom_point()+
@@ -937,6 +995,22 @@ ggplot(data = all_points_lm_CA_elev, aes(x = all_points_lm_CA_elev$fitted.values
 #Slope Test visible in summary of the lm
 summary(all_points_lm_CA_elev)
 
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_CA <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_area,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_CA)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 #crown spread
 
@@ -950,8 +1024,12 @@ ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation.
   ylab("Crown Spread")
 
 #creating the linear regression
-
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_lm_CS_elev, aes(x= all_points_lm_CS_elev$residuals))+
@@ -963,6 +1041,8 @@ ggplot(all_points_lm_CS_elev, aes(x= all_points_lm_CS_elev$residuals))+
 ggplot(all_points_lm_CS_elev, aes(sample = all_points_lm_CS_elev$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_CS_elev$residuals) #sig, so need to use non-parametric mann-kendall test
+
 #checking equal variance
 ggplot(data = all_points_lm_CS_elev, aes(x = all_points_lm_CS_elev$fitted.values, y = all_points_lm_CS_elev$residuals))+
   geom_point()+
@@ -973,6 +1053,22 @@ ggplot(data = all_points_lm_CS_elev, aes(x = all_points_lm_CS_elev$fitted.values
 
 #Slope Test visible in summary of the lm
 summary(all_points_lm_CS_elev)
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_CS <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Crown_spread,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_CS)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 #DBH
@@ -1006,6 +1102,8 @@ ggplot(all_points_lm_DBH_elev, aes(x= all_points_lm_DBH_elev$residuals))+
 ggplot(all_points_lm_DBH_elev, aes(sample = all_points_lm_DBH_elev$residuals))+
   geom_qq()
 
+shapiro.test(all_points_lm_DBH_elev$residuals) #all sig, meaning we need to use the non-parametric mann-kendall test
+
 #checking equal variance
 ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.values, y = all_points_lm_DBH_elev$residuals))+
   geom_point()+
@@ -1017,7 +1115,21 @@ ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.valu
 #Slope Test visible in summary of the lm
 summary(all_points_lm_DBH_elev)
 
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_DBH <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$DBH_ag,  method = "kendall")
 
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_DBH)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 # LM 
 
@@ -1044,6 +1156,11 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
 
 #creating the linear regression
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_sca_elev, aes(x= LM_lm_sca_elev$residuals))+
@@ -1087,6 +1204,11 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
 
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_lca_elev, aes(x= LM_lm_lca_elev$residuals))+
   geom_histogram()+
@@ -1109,6 +1231,22 @@ ggplot(data = LM_lm_lca_elev, aes(x = LM_lm_lca_elev$fitted.values, y = LM_lm_lc
 
 #Slope Test visible in summary of the lm
 summary(LM_lm_lca_elev)
+
+#non parametric Mann-Kendall Test
+LM_tau_result_LCA <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Canopy_long,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(LM_tau_result_LCA)
+
+# Calculate the trend line
+LM_trend_line_LCA <- predict(loess(LM_fixed_field_data_processed$Canopy_long ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
 
 #canopy area
 
@@ -1155,6 +1293,22 @@ ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_e
 summary(LM_lm_CA_elev)
 
 
+#non parametric Mann-Kendall Test
+LM_tau_result_CA <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Canopy_area,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(LM_tau_result_CA)
+
+# Calculate the trend line
+LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed$Canopy_area ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
+
 #crown spread
 
 #checking linearity 
@@ -1194,16 +1348,38 @@ ggplot(data = LM_lm_CS_elev, aes(x = LM_lm_CS_elev$fitted.values, y = LM_lm_CS_e
 summary(LM_lm_CS_elev)
 
 
+#non parametric Mann-Kendall Test
+LM_tau_result_CS <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Crown_spread,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(LM_tau_result_CS)
+
+# Calculate the trend line
+LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed$Crown_spread ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
+
+
 #DBH
 
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
+ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
-  ylab("DBH")
+  ylab("log(DBH)")+
+  abline(LM_lm_DBH_elev)+
+  theme(axis.title.x = element_text(size=15),
+      axis.title.y = element_text(size=15),
+      axis.text.x = element_text(size=12), 
+      axis.text.y = element_text(size=12))
 
 #creating the linear regression
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
@@ -1238,6 +1414,8 @@ ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DB
 #Slope Test visible in summary of the lm
 summary(LM_lm_DBH_elev)
 
+ggplot()+
+  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
 
 
 #LC linear models
@@ -1898,6 +2076,13 @@ summary(all_points_lm_DBH_elev)
 
 #all points 
 
+#removing NAs preventing us from running tests
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(all_points_slope_raster_15_data_pts)
+
+
+
 #short canopy axis
 
 #checking linearity 
@@ -1912,8 +2097,10 @@ ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x= all_points_
 #creating the linear regression
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
+#log transformation
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
+#square root transformation
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
 
@@ -1928,7 +2115,7 @@ ggplot(all_points_lm_sca_slope, aes(x= all_points_lm_sca_slope$residuals))+
 ggplot(all_points_lm_sca_slope, aes(sample = all_points_lm_sca_slope$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_sca_slope$residuals) #shaprio-welk
+shapiro.test(all_points_lm_sca_slope$residuals) #shaprio-welk, never not sig, use the mann-kendall test
 
 #checking equal variance
 ggplot(data = all_points_lm_sca_slope, aes(x = all_points_lm_sca_slope$fitted.values, y = all_points_lm_sca_slope$residuals))+
@@ -1943,6 +2130,24 @@ summary(all_points_lm_sca_slope)
 
 #correlation test
 cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short)
+
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_SCA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_SCA)
+
+# Calculate the trend line
+LC_trend_line_LCA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_long ~ LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
+
 
 #long canopy axis
 
@@ -1974,7 +2179,7 @@ ggplot(all_points_lm_lca_slope, aes(x= all_points_lm_lca_slope$residuals))+
 ggplot(all_points_lm_lca_slope, aes(sample = all_points_lm_lca_slope$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_lca_slope$residuals) # shapiro-welk test
+shapiro.test(all_points_lm_lca_slope$residuals) # shapiro-welk test, all were sig, meaning we will use the Mann-Kendall Test
 
 #checking equal variance
 ggplot(data = all_points_lm_lca_slope, aes(x = all_points_lm_lca_slope$fitted.values, y = all_points_lm_lca_slope$residuals))+
@@ -1984,10 +2189,25 @@ ggplot(data = all_points_lm_lca_slope, aes(x = all_points_lm_lca_slope$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
-
-
 #Slope Test visible in summary of the lm
 summary(all_points_lm_lca_slope)
+
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_LCA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_long,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_LCA)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 #canopy area
 
@@ -2020,7 +2240,7 @@ ggplot(all_points_lm_CA_slope, aes(x= all_points_lm_CA_slope$residuals))+
 ggplot(all_points_lm_CA_slope, aes(sample = all_points_lm_CA_slope$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_CA_slope$residuals)
+shapiro.test(all_points_lm_CA_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
 
 #checking equal variance
 ggplot(data = all_points_lm_CA_slope, aes(x = all_points_lm_CA_slope$fitted.values, y = all_points_lm_CA_slope$residuals))+
@@ -2032,6 +2252,22 @@ ggplot(data = all_points_lm_CA_slope, aes(x = all_points_lm_CA_slope$fitted.valu
 
 #Slope Test visible in summary of the lm
 summary(all_points_lm_CA_slope)
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_CA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_area,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_CA)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 #crown spread
@@ -2064,7 +2300,8 @@ ggplot(all_points_lm_CS_slope, aes(x= all_points_lm_CS_slope$residuals))+
 ggplot(all_points_lm_CS_slope, aes(sample = all_points_lm_CS_slope$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_CS_slope$residuals)
+shapiro.test(all_points_lm_CS_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
+
 
 #checking equal variance
 ggplot(data = all_points_lm_CS_slope, aes(x = all_points_lm_CS_slope$fitted.values, y = all_points_lm_CS_slope$residuals))+
@@ -2076,6 +2313,23 @@ ggplot(data = all_points_lm_CS_slope, aes(x = all_points_lm_CS_slope$fitted.valu
 
 #Slope Test visible in summary of the lm
 summary(all_points_lm_CS_slope)
+
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_CS <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Crown_spread,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_CS)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 #DBH
@@ -2109,7 +2363,7 @@ ggplot(all_points_lm_DBH_slope, aes(x= all_points_lm_DBH_slope$residuals))+
 ggplot(all_points_lm_DBH_slope, aes(sample = all_points_lm_DBH_slope$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_DBH_slope$residuals)
+shapiro.test(all_points_lm_DBH_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
 
 #checking equal variance
 ggplot(data = all_points_lm_DBH_slope, aes(x = all_points_lm_DBH_slope$fitted.values, y = all_points_lm_DBH_slope$residuals))+
@@ -2121,6 +2375,22 @@ ggplot(data = all_points_lm_DBH_slope, aes(x = all_points_lm_DBH_slope$fitted.va
 
 #Slope Test visible in summary of the lm
 summary(all_points_lm_DBH_slope)
+
+#non parametric Mann-Kendall Test for the version without outliers
+all_points_tau_result_DBH <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value
+print(all_points_tau_result_DBH)
+
+# Calculate the trend line
+all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 # LM 
@@ -2138,10 +2408,23 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x= LM_slope_raster_15_
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
+#Cook's D
+LM_lm_focal_SCA <- lm(DBH_ag ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
+LM_lm_focal_SCA_cooks <- cooks.distance(LM_lm_focal_SCA) #calculating the cook.s D for each point
+plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_all_focal_trees_no_DBH_outliers <- LM_fixed_field_data_all_focal_trees[-c(3,23,24),]
 
 
 #creating the linear regression
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -2154,6 +2437,8 @@ ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
 #qqnorm plot
 ggplot(LM_lm_sca_slope, aes(sample = LM_lm_sca_slope$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_sca_slope$residuals) #shapiro wilk test 
 
 #checking equal variance
 ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_sca_slope$residuals))+
@@ -2181,8 +2466,12 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_d
   ylab("Long Canopy Axis")
 
 #creating the linear regression
-
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_lca_slope, aes(x= LM_lm_lca_slope$residuals))+
@@ -2193,6 +2482,8 @@ ggplot(LM_lm_lca_slope, aes(x= LM_lm_lca_slope$residuals))+
 
 ggplot(LM_lm_lca_slope, aes(sample = LM_lm_lca_slope$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_lca_slope$residuals)
 
 #checking equal variance
 ggplot(data = LM_lm_lca_slope, aes(x = LM_lm_lca_slope$fitted.values, y = LM_lm_lca_slope$residuals))+
@@ -2236,6 +2527,8 @@ ggplot(LM_lm_CA_slope, aes(x= LM_lm_CA_slope$residuals))+
 ggplot(LM_lm_CA_slope, aes(sample = LM_lm_CA_slope$residuals))+
   geom_qq()
 
+shapiro.test(LM_lm_CA_slope$residuals)
+
 #checking equal variance
 ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA_slope$residuals))+
   geom_point()+
@@ -2246,6 +2539,23 @@ ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA
 
 #Slope Test visible in summary of the lm
 summary(LM_lm_CA_slope)
+
+#non parametric Mann-Kendall Test
+LM_tau_result_CA <- cor.test(LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, LM_fixed_field_data_processed_terrain$Canopy_area_lg,  method = "kendall")
+
+# Print Kendall's tau and its associated p-value 
+print(LM_tau_result_CA)
+
+# Calculate the trend line
+LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed_terrain$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain$sum_CA_over_distance))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
+
 
 
 #crown spread
@@ -2263,6 +2573,11 @@ ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_d
 
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
+LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
+
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_CS_slope, aes(x= LM_lm_CS_slope$residuals))+
   geom_histogram()+
@@ -2272,6 +2587,8 @@ ggplot(LM_lm_CS_slope, aes(x= LM_lm_CS_slope$residuals))+
 
 ggplot(LM_lm_CS_slope, aes(sample = LM_lm_CS_slope$residuals))+
   geom_qq()
+
+shapiro.test(LM_lm_CS_slope$residuals)
 
 #checking equal variance
 ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS_slope$residuals))+
@@ -2316,6 +2633,8 @@ ggplot(LM_lm_DBH_slope, aes(x= LM_lm_DBH_slope$residuals))+
 ggplot(LM_lm_DBH_slope, aes(sample = LM_lm_DBH_slope$residuals))+
   geom_qq()
 
+shapiro.test(LM_lm_DBH_slope$residuals)
+
 #checking equal variance
 ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_DBH_slope$residuals))+
   geom_point()+
@@ -2349,6 +2668,8 @@ LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_f
 #linear regression with logged transformation of short canopy axis
 LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
+LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_sca_slope, aes(x= LC_lm_sca_slope$residuals))+
@@ -2360,6 +2681,8 @@ ggplot(LC_lm_sca_slope, aes(x= LC_lm_sca_slope$residuals))+
 #qqnorm plot
 ggplot(LC_lm_sca_slope, aes(sample = LC_lm_sca_slope$residuals))+
   geom_qq()
+
+shapiro.test(LC_lm_sca_slope$residuals)
 
 #checking equal variance
 ggplot(data = LC_lm_sca_slope, aes(x = LC_lm_sca_slope$fitted.values, y = LC_lm_sca_slope$residuals))+
@@ -2403,6 +2726,8 @@ ggplot(LC_lm_lca_slope, aes(x= LC_lm_lca_slope$residuals))+
 ggplot(LC_lm_lca_slope, aes(sample = LC_lm_lca_slope$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_lca_slope$residuals)
+
 #checking equal variance
 ggplot(data = LC_lm_lca_slope, aes(x = LC_lm_lca_slope$fitted.values, y = LC_lm_lca_slope$residuals))+
   geom_point()+
@@ -2443,6 +2768,8 @@ ggplot(LC_lm_CA_slope, aes(x= LC_lm_CA_slope$residuals))+
 
 ggplot(LC_lm_CA_slope, aes(sample = LC_lm_CA_slope$residuals))+
   geom_qq()
+
+shapiro.test(LC_lm_CA_slope$residuals)
 
 #checking equal variance
 ggplot(data = LC_lm_CA_slope, aes(x = LC_lm_CA_slope$fitted.values, y = LC_lm_CA_slope$residuals))+
@@ -2487,6 +2814,8 @@ ggplot(LC_lm_CS_slope, aes(x= LC_lm_CS_slope$residuals))+
 ggplot(LC_lm_CS_slope, aes(sample = LC_lm_CS_slope$residuals))+
   geom_qq()
 
+shapiro.test(LC_lm_CS_slope$residuals)
+
 #checking equal variance
 ggplot(data = LC_lm_CS_slope, aes(x = LC_lm_CS_slope$fitted.values, y = LC_lm_CS_slope$residuals))+
   geom_point()+
@@ -2529,6 +2858,8 @@ ggplot(LC_lm_DBH_slope, aes(x= LC_lm_DBH_slope$residuals))+
 
 ggplot(LC_lm_DBH_slope, aes(sample = LC_lm_DBH_slope$residuals))+
   geom_qq()
+
+shapiro.test(LC_lm_DBH_slope$residuals)
 
 #checking equal variance
 ggplot(data = LC_lm_DBH_slope, aes(x = LC_lm_DBH_slope$fitted.values, y = LC_lm_DBH_slope$residuals))+
@@ -2576,6 +2907,8 @@ ggplot(SD_lm_sca_slope, aes(x= SD_lm_sca_slope$residuals))+
 ggplot(SD_lm_sca_slope, aes(sample = SD_lm_sca_slope$residuals))+
   geom_qq()
 
+shapiro.test(SD_lm_sca_slope$residuals)
+
 #checking equal variance
 ggplot(data = SD_lm_sca_slope, aes(x = SD_lm_sca_slope$fitted.values, y = SD_lm_sca_slope$residuals))+
   geom_point()+
@@ -2620,6 +2953,8 @@ ggplot(SD_lm_lca_slope, aes(x= SD_lm_lca_slope$residuals))+
 ggplot(SD_lm_lca_slope, aes(sample = SD_lm_lca_slope$residuals))+
   geom_qq()
 
+shapiro.test(SD_lm_lca_slope$residuals)
+
 #checking equal variance
 ggplot(data = SD_lm_lca_slope, aes(x = SD_lm_lca_slope$fitted.values, y = SD_lm_lca_slope$residuals))+
   geom_point()+
@@ -2661,6 +2996,8 @@ ggplot(SD_lm_CA_slope, aes(x= SD_lm_CA_slope$residuals))+
 ggplot(SD_lm_CA_slope, aes(sample = SD_lm_CA_slope$residuals))+
   geom_qq()
 
+shapiro.test(SD_lm_CA_slope$residuals)
+
 #checking equal variance
 ggplot(data = SD_lm_CA_slope, aes(x = SD_lm_CA_slope$fitted.values, y = SD_lm_CA_slope$residuals))+
   geom_point()+
@@ -2678,11 +3015,16 @@ summary(SD_lm_CA_slope)
 #checking linearity 
 
 #plotting the linear model in ggplot for SCA
-ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=Crown_spread)))+ 
+ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=Crown_spread_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
-  ylab("Crown Spread")
+  ylab("sqrt(Crown Spread)")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14))
 
 #creating the linear regression
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
@@ -2703,6 +3045,8 @@ ggplot(SD_lm_CS_slope, aes(x= SD_lm_CS_slope$residuals))+
 
 ggplot(SD_lm_CS_slope, aes(sample = SD_lm_CS_slope$residuals))+
   geom_qq()
+
+shapiro.test(SD_lm_CS_slope$residuals)
 
 #checking equal variance
 ggplot(data = SD_lm_CS_slope, aes(x = SD_lm_CS_slope$fitted.values, y = SD_lm_CS_slope$residuals))+
@@ -2747,6 +3091,8 @@ ggplot(SD_lm_DBH_slope, aes(x= SD_lm_DBH_slope$residuals))+
 ggplot(SD_lm_DBH_slope, aes(sample = SD_lm_DBH_slope$residuals))+
   geom_qq()
 
+shapiro.test(SD_lm_DBH_slope$residuals)
+
 #checking equal variance
 ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_DBH_slope$residuals))+
   geom_point()+
@@ -2758,6 +3104,23 @@ ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_
 #Slope Test visible in summary of the lm
 summary(SD_lm_DBH_slope)
 
+#non parametric Mann-Kendall Test
+SD_tau_result_DBH <- cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, SD_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall") #DBH_ag_sqrt
+
+# Print Kendall's tau and its associated p-value
+print(SD_tau_result_DBH)
+
+# Calculate the trend line
+SD_trend_line_CA <- predict(loess(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$sum_CA_over_distance))
+
+# Create a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  theme_minimal()
+
+
 ## Size vs. Aspect ##
 
 # we ran ANOVAs to test difference in size means between cardinal directions
@@ -2766,6 +3129,13 @@ summary(SD_lm_DBH_slope)
 
 
 #all points 
+
+#removing NAs preventing us from running tests
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(all_points_aspect_raster_15_data_pts_8_categorical)
+
+
 
 #short canopy axis
 
@@ -2837,7 +3207,7 @@ hist(all_points_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribu
 
 qqnorm(all_points_aov_LCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(all_points_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(all_points_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test, sign have to run a non-paramrtric test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3247,6 +3617,12 @@ pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_fiel
 # LC
 
 #short canopy axis
+ 
+#had to remove the NAs to be able to run the function
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(LC_aspect_raster_15_data_pts_8_categorical)
+
 
 #boxplot of sizes over the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
@@ -3256,18 +3632,18 @@ ggplot(data = LC_fixed_field_data_processed_terrain)+
 
 #ANOVA
 LC_aov_SCA_aspect_8 <- aov(Canopy_short ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect_8)
+esummary(LC_aov_SCA_aspect_8)
 
 #permutation t.test to see significant differences between categories using a bonferonni adjustment
 LC_t_test_SCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LC_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
 
-qqnorm(LC_t_test_SCA_aspect_8$residuals) #qqnorm plot
+qqnorm(LC_aov_SCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_SCA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3284,7 +3660,7 @@ max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the ma
 #nonparametric tests
 
 #kruskall wallis test
-kruskal.test(DBH_ag ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
+kruskal.test(Canopy_short ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
@@ -3310,11 +3686,11 @@ LC_t_test_LCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$
                                           LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LC_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
 
-qqnorm(LC_t_test_LCA_aspect_8$residuals) #qqnorm plot
+qqnorm(LC_aov_LCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_LCA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3365,7 +3741,7 @@ hist(LC_t_test_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution o
 
 qqnorm(LC_t_test_CA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_CA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3415,7 +3791,7 @@ hist(LC_t_test_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution o
 
 qqnorm(LC_t_test_CS_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_CS_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3464,7 +3840,7 @@ hist(LC_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution 
 
 qqnorm(LC_t_test_DBH_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_DBH_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3495,6 +3871,12 @@ pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_fiel
 
 #short canopy axis
 
+#had to remove the NAs to be able to run the function
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(SD_aspect_raster_15_data_pts_8_categorical)
+
+
 #boxplot of sizes over the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
@@ -3514,7 +3896,7 @@ hist(SD_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of 
 
 qqnorm(SD_aov_SCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_SCA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3534,10 +3916,10 @@ max(SD_thumb_test_SCA, na.rm = T) / min(SD_thumb_test_SCA, na.rm = T) # if the m
 kruskal.test(Canopy_short ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 #long canopy axis
@@ -3561,7 +3943,7 @@ hist(SD_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of 
 
 qqnorm(SD_aov_LCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_LCA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3581,10 +3963,10 @@ max(SD_thumb_test_LCA, na.rm = T) / min(SD_thumb_test_LCA, na.rm = T) # if the m
 kruskal.test(Canopy_long ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 
@@ -3610,7 +3992,7 @@ hist(SD_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of R
 
 qqnorm(SD_aov_CA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_CA_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3627,7 +4009,7 @@ max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max
 #nonparametric tests
 
 #kruskall wallis test
-kruskal.test(Canopy_area ~ SD_aspect_raster_50_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
+kruskal.test(Canopy_area ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
@@ -3657,7 +4039,7 @@ hist(SD_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of R
 
 qqnorm(SD_aov_CS_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_CS_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3677,10 +4059,10 @@ max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max
 kruskal.test(Crown_spread ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 
@@ -3690,7 +4072,13 @@ pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixe
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
   xlab("Directions")+
-  ylab("DBH")
+  ylab("DBH")+
+  ylim(c(0,1.5))+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14))
 
 #ANOVA
 SD_aov_DBH_aspect_8 <- aov(DBH_ag ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
@@ -3702,11 +4090,11 @@ SD_t_test_DBH_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$
 
 
 # checking to see if residuals are normal
-hist(SD_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(SD_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
 
-qqnorm(SD_t_test_DBH_aspect_8$residuals) #qqnorm plot
+qqnorm(SD_aov_DBH_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_DBH_aspect_8$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -3736,6 +4124,11 @@ pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_fiel
 #4 categories for direction
 
 #all points 
+
+#removing NAs preventing us from running tests
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(all_points_aspect_raster_15_data_pts_4_categorical)
 
 #short canopy axis
 
@@ -3996,11 +4389,11 @@ LM_t_test_SCA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$
                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LM_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
 
-qqnorm(LM_t_test_SCA_aspect_4$residuals) #qqnorm plot
+qqnorm(LM_aov_SCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LM_t_test_SCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LM_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4052,7 +4445,7 @@ hist(LM_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution 
 
 qqnorm(LM_t_test_LCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LM_t_test_LCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LM_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4095,11 +4488,11 @@ LM_t_test_CA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$C
                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LM_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
 
-qqnorm(LM_t_test_CA_aspect_4$residuals) #qqnorm plot
+qqnorm(LM_aov_CA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LM_t_test_CA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LM_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4143,11 +4536,11 @@ LM_t_test_CS_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$C
 
 
 # checking to see if residuals are normal
-hist(LM_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LM_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
 
-qqnorm(LM_t_test_CS_aspect_4$residuals) #qqnorm plot
+qqnorm(LM_aov_CS_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LM_t_test_CS_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LM_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4191,11 +4584,11 @@ LM_t_test_DBH_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$
                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_t_test_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LM_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
 
-qqnorm(LM_t_test_DBH_aspect_4$residuals) #qqnorm plot
+qqnorm(LM_aov_DBH_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LM_t_test_DBH_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LM_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4240,15 +4633,15 @@ LC_t_test_SCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$
                                         LC_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LC_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
 
-qqnorm(LC_t_test_SCA_aspect_4$residuals) #qqnorm plot
+qqnorm(LC_aov_SCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_SCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
-#Fligner-Killeen, more useful when 
+#Fligner-Killeen, more useful when normal data
 fligner.test(DBH_ag ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
 #levene's test
@@ -4288,11 +4681,11 @@ LC_t_test_LCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LC_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
 
-qqnorm(LC_t_test_LCA_aspect_4$residuals) #qqnorm plot
+qqnorm(LC_aov_LCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_LCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4336,11 +4729,11 @@ LC_t_test_CA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$C
                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LC_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
 
-qqnorm(LC_t_test_CA_aspect_4$residuals) #qqnorm plot
+qqnorm(LC_aov_CA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_CA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4385,11 +4778,11 @@ LC_t_test_CS_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$C
 
 
 # checking to see if residuals are normal
-hist(LC_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LC_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
 
-qqnorm(LC_t_test_CS_aspect_4$residuals) #qqnorm plot
+qqnorm(LC_aov_CS_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_CS_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -4434,11 +4827,11 @@ LC_t_test_DBH_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$
 
 
 # checking to see if residuals are normal
-hist(LC_t_test_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LC_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
 
-qqnorm(LC_t_test_DBH_aspect_4$residuals) #qqnorm plot
+qqnorm(LC_aov_DBH_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(LC_t_test_DBH_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(LC_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test, sig so we need to use a non-parametric test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4485,11 +4878,11 @@ SD_t_test_SCA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$
 
 
 # checking to see if residuals are normal
-hist(SD_t_test_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(SD_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
 
-qqnorm(SD_t_test_SCA_aspect_4$residuals) #qqnorm plot
+qqnorm(SD_aov_SCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_SCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test, sig so need to use a non-parametric test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4533,11 +4926,11 @@ SD_t_test_LCA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$
                                           SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(SD_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(SD_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
 
-qqnorm(SD_t_test_LCA_aspect_4$residuals) #qqnorm plot
+qqnorm(SD_aov_LCA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_LCA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test, sig so need to use a non-parametric test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4582,11 +4975,11 @@ SD_t_test_CA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$C
 
 
 # checking to see if residuals are normal
-hist(SD_t_test_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(SD_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
 
-qqnorm(SD_t_test_CA_aspect_4$residuals) #qqnorm plot
+qqnorm(SD_aov_CA_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_CA_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4597,19 +4990,19 @@ fligner.test(Canopy_area ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
 #rule of thumb test
-SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_50_data_pts_4_categorical, sd)
+SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
 max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #nonparametric tests
 
 #kruskall wallis test
-kruskal.test(Canopy_area ~ SD_fixed_field_data_processed_terrain, data = SD_fixed_field_data_processed_terrain)
+kruskal.test(Canopy_area ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_fixed_field_data_processed_terrain,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_fixed_field_data_processed_terrain,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 
@@ -4631,11 +5024,11 @@ SD_t_test_CS_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$C
 
 
 # checking to see if residuals are normal
-hist(SD_t_test_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(SD_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
 
-qqnorm(SD_t_test_CS_aspect_4$residuals) #qqnorm plot
+qqnorm(SD_aov_CS_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_CS_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4655,10 +5048,10 @@ max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max
 kruskal.test(Crown_spread ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 
@@ -4680,11 +5073,11 @@ SD_t_test_DBH_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$
 
 
 # checking to see if residuals are normal
-hist(SD_t_test_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(SD_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
 
-qqnorm(SD_t_test_DBH_aspect_4$residuals) #qqnorm plot
+qqnorm(SD_aov_DBH_aspect_4$residuals) #qqnorm plot
 
-shapiro.test(SD_t_test_DBH_aspect_4$residuals) #Shapiro-Wilk test
+shapiro.test(SD_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test, sig so have to use a non-parametric test
 
 # checking equal variances with levene's test, Fligner-Killeen, and rule of thumb
 
@@ -4704,10 +5097,10 @@ max(SD_thumb_test_DBH, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the ma
 kruskal.test(DBH_ag ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
 #post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
+pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 

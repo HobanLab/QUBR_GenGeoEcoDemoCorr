@@ -3,7 +3,7 @@
     "path": "~/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/analyses/hypothesis_3_multiple_lm_size_and_exposure.R",
     "project_path": "analyses/hypothesis_3_multiple_lm_size_and_exposure.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "834441149",
     "contents": "",
     "dirty": false,
     "created": 1721916863208.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "751,62",
-        "scrollLine": "722"
+        "cursorPosition": "709,0",
+        "scrollLine": "696"
     },
     "folds": "",
-    "lastKnownWriteTime": 1721921371,
+    "lastKnownWriteTime": 1722456905,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1721921371776,
+    "last_content_update": 1722456905220,
     "read_only": false,
     "read_only_alternatives": []
 }

@@ -2,8 +2,8 @@
     "sortOrder": [
         {
             "columnIndex": 2,
-            "ascending": true
+            "ascending": false
         }
     ],
-    "path": "~/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data"
+    "path": "~/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/15 m Elevation Raster"
 }

@@ -74,20 +74,9 @@ ggplot()+
 #SD
 ggplot()+
   geom_sf(data = river_SD_trans)+
-  geom_sf(data = SD_fixed_field_data_processed_sf)
+  geom_sf(data = SD_fixed_field_data_processed_sf)+
+  theme_light()
 
-points = sf::st_sample(SD_box_sf, size=50)
-points = sf::st_sample(river_SD_trans_points, size=50)
-points = st_crs(26912)
-points <- st_as_sf(points, crs = 26912)
-points <- proj4string(points, crs= 26912)
-plot(river_LM_trans_outline)
-ggplot()+
-  geom_sf(data = river_SD_trans)+
-  #geom_sf(data = SD_box_sf)+
-  geom_sf(data = points)
-proj4string()
-plot(points)
 
 #New version with ArcGIS shapefiles
 river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
@@ -761,9 +750,9 @@ ggplot()+
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(ann.p_LC, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LC, col = "red") + #plotting our tree's mean ANN
+  geom_vline(xintercept=ann.p_LC, col = "red", size = 1.2) + #plotting our tree's mean ANN
   xlab("Average Nearest Neighbor (ANN)") +
   theme_classic()+
   theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
@@ -910,14 +899,16 @@ ggplot()+
   geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
 
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
+
 as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(ann.p_SD, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_SD, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
+  geom_vline(xintercept=ann.p_SD, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Average Nearest Neighbor (ANN)") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15))
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -970,6 +961,9 @@ anova(PPM0, PPM1, test="LRT")
 plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im", se.fit = TRUE), main = "Distance to River of La Cobriza",
      ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
 
+
+
+
 #Test for SD
 
 #creating the image of the distance to river stars
@@ -991,5 +985,23 @@ plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im", se.fit = TRUE), mai
      ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
 
 
+# making examples of random point distributions vs. points only along the river's edge for presentation 
+points_box = sf::st_sample(SD_box_sf, size=50) #randomizing points onlu in population bbox
+points_river = sf::st_sample(river_SD_trans_points, size=50) #randomizing points along river's edge
 
+points <- st_as_sf(points, crs = 26912) #projecting the points
+
+#plotting the randomized box points
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  #geom_sf(data = SD_box_sf)+
+  geom_sf(data = points_box, size = 2)+
+  theme_classic()
+
+#plotting the randomized river's edge points
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  #geom_sf(data = SD_box_sf)+
+  geom_sf(data = points_river, size = 2)+
+  theme_classic()
 
