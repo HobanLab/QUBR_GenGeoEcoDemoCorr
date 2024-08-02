@@ -228,7 +228,8 @@ all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degr
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+  scale_fill_viridis_c()
 
 
 #LM
@@ -239,7 +240,8 @@ LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_sf(data = LM_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #LC
 
@@ -249,7 +251,8 @@ LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LC_fixed_field_data_processed)
+  geom_sf(data = LC_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #SD
 
@@ -259,7 +262,8 @@ SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = SD_fixed_field_data_processed)
+  geom_sf(data = SD_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 ## Extracting the aspect 
 
@@ -271,7 +275,8 @@ all_points_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'deg
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+  scale_fill_viridis_c()
 
 
 #LM
@@ -282,7 +287,8 @@ LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_sf(data = LM_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #LC
 
@@ -292,7 +298,8 @@ LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LC_fixed_field_data_processed)
+  geom_sf(data = LC_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #SD
 
@@ -303,7 +310,8 @@ SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = SD_fixed_field_data_processed)
+  geom_sf(data = SD_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 
 # loading in data on distance to the river's
@@ -382,7 +390,8 @@ dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a n
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_SD_inverse)
 
-#creating dataframes for each population and the slope and aspect data
+#creating dataframes for each population and the slope and aspect data by extracting the slope and aspect data fromk each cell for each point and combining the data into a dataframe
+
 
 #all points
 all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
@@ -395,21 +404,36 @@ all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_da
 
 LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
 LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point value
+LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point value
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+
+
+View(LM_fixed_field_data_processed_terrain)
 
 
 #LC
 LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
 LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
+LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+
+
+View(LC_fixed_field_data_processed_terrain)
+
 
 #SD
 SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
 SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
+SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+
+View(SD_fixed_field_data_processed_terrain)
 
 #recategorizing the aspect data
 
@@ -683,8 +707,19 @@ View(all_points_fixed_field_data_processed_terrain_no_NA)
 
 plot(all_points_multiple_lm_SCA)
 
+#Cook's D
+all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
+plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+all_points_fixed_field_data_processed_terrain_no_NA_No_outliers <- all_points_fixed_field_data_processed_terrain_no_NA[-c(15, 24,26,27),]
+
+
 #multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #checking to see which variables might be the most useful
 avPlots(all_points_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
@@ -704,7 +739,7 @@ options(na.action = "na.fail") #have to set na.action to na.fail to be able to r
 dredge(all_points_multiple_lm_SCA) #generates the best model and the rank of best models
 
 #the best simplified multiple linear regression model chosen
-all_points_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 summary(all_points_multiple_lm_SCA_simplified) #best model, but still only 5% of variability explained
 
 #nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
@@ -713,7 +748,7 @@ anova(all_points_multiple_lm_SCA_simplified, all_points_multiple_lm_SCA) #result
 
 #determing interactions with recursive binary partioning and regression tree
 all_points_potential_interactions_SCA <- rpart(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                         all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+                                         all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
 plot(all_points_potential_interactions_SCA) # show the tree structure
 text(all_points_potential_interactions_SCA, pretty = 0) # add text labels
@@ -725,24 +760,28 @@ all_points_multiple_lm_SCA_interacts <- lm(Canopy_short ~ Elevation..m.FIXED + a
                                      all_points_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:all_points_slope_raster_15_data_pts +
                                      I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical +
                                      Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+                                   data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 summary(all_points_multiple_lm_SCA_interacts)
 
 #slimming down the variables in the interaction model
 step(all_points_multiple_lm_SCA_interacts) #using backwards regression, where last model produced is the best fit
 dredge <- dredge(all_points_multiple_lm_SCA_interacts) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-all_points_fixed_field_data_processed_terrain_no_NA$I(all_points_aspect_raster_15_data_pts_8_categorical^2)
+
 
 
 #including interactions, the best simplified multiple linear regression model chosen
 all_points_multiple_lm_SCA_interacts_simplified_step <- lm(Canopy_short ~  Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
                                                              all_points_aspect_raster_15_data_pts_8_categorical + I(all_points_slope_raster_15_data_pts^2) + 
-                                                             I(Elevation..m.FIXED^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical,  data = all_points_fixed_field_data_processed_terrain_no_NA)
+                                                             I(Elevation..m.FIXED^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical,  data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 all_points_multiple_lm_SCA_interacts_simplified_dredge <- lm(Canopy_short ~  all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical +
                                                                I(all_points_slope_raster_15_data_pts^2) + Elevation..m.FIXED + I(Elevation..m.FIXED^2) +
                                                                all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical,
-                                                             data = all_points_fixed_field_data_processed_terrain_no_NA)
+                                                             data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+#nested F test to compare simplified dredge and step models
+anova(all_points_multiple_lm_SCA_interacts_simplified_step, all_points_multiple_lm_SCA_interacts_simplified_dredge) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+
+
 summary(all_points_multiple_lm_SCA_interacts_simplified_dredge) #best model, but still only 5% of variability explained
 
 #nested F test to compare simplified interactions model to full interactions model
@@ -770,13 +809,17 @@ ggplot(all_points_multiple_lm_SCA_simplified, aes(sample = all_points_multiple_l
 
 shapiro.test(all_points_multiple_lm_SCA_simplified$residuals) #shapiro wilk test for normality, if significant, then the residuals are not likely normally distributed
 
-
 #shapiro-wilk test is significant, so we will use a model where canopy area is transformed
 all_points_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 all_points_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 
 shapiro.test(all_points_multiple_lm_SCA_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on theall_points_multiple_lm_SCA_simplified_lg#based on the Shapiro-Wilk test we need to use a non-parametric test to look at slope
+#based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric test to look at slope, but we could use log to look at the 
+
+# 3d scatterplot, i have not been abel to get it to function with the categorical variable yet
+library(rgl)
+plot3d(Canopy_short ~ Elevation..m.FIXED*all_points_slope_raster_15_data_pts, 
+       data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #checking equal variance
 ggplot(data = all_points_multiple_lm_SCA_simplified_lg, aes(x = all_points_multiple_lm_SCA_simplified_lg$fitted.values, y = all_points_multiple_lm_SCA_simplified_lg$residuals))+
@@ -1914,8 +1957,16 @@ ggplot(LC_multiple_lm_SCA_simplified, aes(sample = LC_multiple_lm_SCA_simplified
 
 shapiro.test(LC_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
 
+#shapiro test was singificant, so I will use a transformaed canopy_lung variable
+LC_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_short_lg ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed_terrain_no_NA)
+
+shapiro.test(LC_multiple_lm_SCA_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+#based on the Shapiro-Wilk test we could use the canopy short variale either with log or square root transformation
+
+
 #checking equal variance
-ggplot(data = LC_multiple_lm_SCA, aes(x = LC_multiple_lm_SCA$fitted.values, y = LC_multiple_lm_SCA$residuals))+
+ggplot(data = LC_multiple_lm_SCA_simplified_lg, aes(x = LC_multiple_lm_SCA_simplified_lg$fitted.values, y = LC_multiple_lm_SCA_simplified_lg$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1926,6 +1977,7 @@ ggplot(data = LC_multiple_lm_SCA, aes(x = LC_multiple_lm_SCA$fitted.values, y = 
 #extracting model characteristics and significant
 LC_multiple_lm_SCA_summary <- summary(LC_multiple_lm_SCA)
 LC_multiple_lm_SCA_simplified_summary <- summary(LC_multiple_lm_SCA_simplified)
+summary(LC_multiple_lm_SCA_simplified_lg)
 
 View(LC_fixed_field_data_processed_terrain_no_NA)
 
@@ -2037,9 +2089,9 @@ ggplot(data = LC_multiple_lm_LCA_simplified_sqrt, aes(x = LC_multiple_lm_LCA_sim
 
 
 #extracting model characteristics and significant
-LC_multiple_lm_LCA_summary <- summary(LC_multiple_lm_LCA)
-LC_multiple_lm_LCA_simplified_summary <- summary(LC_multiple_lm_LCA_simplified_sqrt) #not significant, the square transformation changes the p-value a lot 
-LC_multiple_lm_LCA_simplified_summary <- summary(LC_multiple_lm_LCA_simplified) #significant 
+summary(LC_multiple_lm_LCA)
+summary(LC_multiple_lm_LCA_simplified_sqrt) #not significant, the square transformation changes the p-value a lot 
+summary(LC_multiple_lm_LCA_simplified) #significant 
 
 # CA
 

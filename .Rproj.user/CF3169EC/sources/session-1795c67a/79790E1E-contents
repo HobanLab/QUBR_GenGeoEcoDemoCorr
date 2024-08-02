@@ -448,9 +448,9 @@ all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degr
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+  scale_fill_viridis_c()
 
-all_points_slope_raster_15_utm
 #LM
 
 #extracting the slope in degrees, using the queens method (neighbor = 8)
@@ -459,7 +459,9 @@ LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_sf(data = LM_fixed_field_data_processed)+
+  scale_fill_viridis_c()
+  
 
 #LC
 
@@ -469,7 +471,8 @@ LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LC_fixed_field_data_processed)
+  geom_sf(data = LC_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #SD
 
@@ -479,7 +482,8 @@ SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = SD_fixed_field_data_processed)
+  geom_sf(data = SD_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 ## Extracting the aspect 
 
@@ -491,7 +495,8 @@ all_points_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'deg
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+  scale_fill_viridis_c()
 
 
 #LM
@@ -502,7 +507,9 @@ LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_sf(data = LM_fixed_field_data_processed)+
+  scale_fill_viridis_c()
+
 
 #LC
 
@@ -512,7 +519,8 @@ LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_aspect_raster_50, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LC_fixed_field_data_processed)
+  geom_sf(data = LC_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
 #SD
 
@@ -523,9 +531,10 @@ SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = SD_fixed_field_data_processed)
+  geom_sf(data = SD_fixed_field_data_processed)+
+  scale_fill_viridis_c()
 
-#creating dataframes for each population and the slope and aspect data
+#creating dataframes for each population and the slope and aspect data by extracting the slope and aspect data fromk each cell for each point and combining the data into a dataframe
 
 #all points
 all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
@@ -534,14 +543,16 @@ all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processe
 all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
 
 
-View(all_points_fixed_field_data_processed_terrain)
 
 #LM
 
 LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
 LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point value
+LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point value
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+
 
 View(LM_fixed_field_data_processed_terrain)
 
@@ -549,8 +560,11 @@ View(LM_fixed_field_data_processed_terrain)
 #LC
 LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
 LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
+LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+
 
 View(LC_fixed_field_data_processed_terrain)
 
@@ -558,11 +572,12 @@ View(LC_fixed_field_data_processed_terrain)
 #SD
 SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
 SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
+SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
 View(SD_fixed_field_data_processed_terrain)
-View(SD_fixed_field_data_processed_terrain_otherversion)
 
 #recategorizing the aspect data
 
@@ -3921,6 +3936,9 @@ pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixe
 
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
 
 #long canopy axis
 
