@@ -13,7 +13,7 @@ library(terra) # for extracting the slope and aspect from the DEM elevation file
 library(car) #to create added variable plots and to run levene's test for checking ANOVA conditions
 library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
-
+library(npreg) #to use the gsm function for the generalized additive models
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -739,7 +739,7 @@ options(na.action = "na.fail") #have to set na.action to na.fail to be able to r
 dredge(all_points_multiple_lm_SCA) #generates the best model and the rank of best models
 
 #the best simplified multiple linear regression model chosen
-all_points_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+all_points_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 summary(all_points_multiple_lm_SCA_simplified) #best model, but still only 5% of variability explained
 
 #nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
@@ -767,8 +767,6 @@ summary(all_points_multiple_lm_SCA_interacts)
 step(all_points_multiple_lm_SCA_interacts) #using backwards regression, where last model produced is the best fit
 dredge <- dredge(all_points_multiple_lm_SCA_interacts) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-
-
 
 #including interactions, the best simplified multiple linear regression model chosen
 all_points_multiple_lm_SCA_interacts_simplified_step <- lm(Canopy_short ~  Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
@@ -834,21 +832,60 @@ all_points_multiple_lm_SCA_summary <- summary(all_points_multiple_lm_SCA) #sig
 all_points_multiple_lm_SCA_simplified_summary <- summary(all_points_multiple_lm_SCA_simplified) #sig
 all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_lm_SCA_simplified_lg) #sig
 
-#non parametric Mann-Kendall Test
-LM_tau_result_SCA <- cor.test(all_points_fixed_field_data_processed_terrain_no_NA$LM_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area_lg,  method = "kendall")
+#Because I could not get transformations and outliers to help the data meet the condition of normalized residuals, we will be using a generalized additive model (nonparametric)
+#I am still using the best model: all_points_multiple_lm_SCA_simplified
 
-# Print Kendall's tau and its associated p-value 
-print(LM_tau_result_CA)
+# additive model (using all knots)
+all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+               data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
+all_points_add.gsm_SCA
+summary(all_points_add.gsm_SCA) #summarize the model
 
-# Calculate the trend line
-LM_trend_line_CA <- predict(loess(all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain_no_NA$sum_CA_over_distance))
+#interaction model, difference is the * instead of +
+all_points_add.gsm_SCA_interact <- gsm(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
+all_points_add.gsm_SCA_interact
+summary(all_points_add.gsm_SCA_interact) #summarize the model
 
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
-  theme_minimal()
+#comparing the additive and interaction models
+
+# pseudo F test of interaction effect
+sse.dif <- all_points_add.gsm_SCA$deviance - all_points_add.gsm_SCA_interact$deviance
+df.dif <- all_points_add.gsm_SCA_interact$df - all_points_add.gsm_SCA$df
+Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
+pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
+c(Fstat, pvalue) #not significant, so do not need to consider the itneractions
+
+#plotting additive model results
+
+# setup 1 x 2 subplots
+par(mfrow = c(1,2))
+
+# get predictor sequences
+xrng <- all_points_add.gsm_SCA$specs$xrng
+
+elev.seq <- seq(xrng$Elevation..m.FIXED[1], xrng$Elevation..m.FIXED[2], length.out = 25)
+slope.seq <- seq(xrng$all_points_slope_raster_15_data_pts[1], xrng$all_points_slope_raster_15_data_pts[2], length.out = 25)
+all_points_aspect_raster_15_data_pts_8_categorical.seq <- seq(xrng$all_points_aspect_raster_15_data_pts_8_categorical[1], xrng$all_points_aspect_raster_15_data_pts_8_categorical[2], length.out = 25)
+all_points_add.gsm_SCA$elev
+
+# main effect of income
+yhat.elev <- predict(all_points_add.gsm_SCA, newdata = data.frame(elevation = elev.seq),
+                    se.fit = TRUE, terms = "Elevation..m.FIXED")
+plotci(elev.seq, yhat.elev$fit, yhat.elev$se.fit,
+       xlab = "Elevation (m)", ylab = "Short Canopy Axis (m)",
+       main = "Elevation Effect")
+rug(Prestige$income)
+
+# main effect of education
+yhat.edu <- predict(add.gsm, newdata = data.frame(education = edu.seq),
+                    se.fit = TRUE, terms = "education")
+plotci(edu.seq, yhat.edu$fit, yhat.edu$se.fit,
+       xlab = "Education", ylab = "Prestige",
+       main = "Education Effect")
+rug(Prestige$education)
+
+
 
 
 # LCA
