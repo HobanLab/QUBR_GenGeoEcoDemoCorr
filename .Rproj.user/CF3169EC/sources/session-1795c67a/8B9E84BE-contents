@@ -116,12 +116,29 @@ SD_box <- st_bbox(river_SD_trans)
 
 
 #loading in soil textures from CONABIO, theses are too larger, about 1 km^2 I believe
-clay_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_05cm_mgw/cly_05cm_mgw.tif"))
-clay_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /cly_200cm_mgw/cly_200cm_mgw.tif"))
-silt_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_05cm_pgw/slt_05cm_pgw.tif"))
-silt_200 <-raster(paste0("./data/Soil Textur Geotiff geographic coordinates /slt_200cm_pgw/slt_200cm_pgw.tif"))
-sand_05 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /snd_05cm_mgw/snd_05cm_mgw.tif"))
-sand_200 <- raster(paste0("./data/Soil Textur Geotiff geographic coordinates /snd_200cm_mgw/snd_200cm_mgw.tif"))
+clay_05 <- raster(paste0("./data/Soil Grid/clay content/clay content 0-5.tif"))
+clay_200 <- raster(paste0("./data/Soil Grid/clay content/clay content 100-200.tif"))
+silt_05 <- raster(paste0("./data/Soil Grid/silt/silt 0-5.tif"))
+silt_200 <-raster(paste0("./data/Soil Grid/silt/silt 100-200.tif"))
+sand_05 <- raster(paste0("./data/Soil Grid/sand/sand 0-5.tif"))
+sand_200 <- raster(paste0("./data/Soil Grid/sand/sand 100-200.tif"))
+
+ph_05 <- raster(paste0("./data/Soil Grid/pH/ph_0-5.tif")) #0-5 cm ph
+ph_200 <- raster(paste0("./data/Soil Grid/pH/ph_100-200.tif")) #100-200 ph
+ocd_05 <- raster(paste0("./data/Soil Grid/organic carbon density/OCD_0-5.tif")) #0-5cm organic carbon density
+ocd_200 <- raster(paste0("./data/Soil Grid/organic carbon density/OCR_100-200.tif")) #100-200cm organic carbon density
+coarse_frag_05 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_0-5.tif")) #0-5 cm coarse fragments
+coarse_frag_200 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_100-200.tif")) #100-200 cm coarse fragments
+cat_ex_cap_05 <-raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_0-5.tif")) #0-5 cm cation exchange capacity
+cat_ex_cap_200 <- raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_100-200.tif")) #100-200 cm cation exchange capacity
+bulk_dens_05 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_0-5.tif")) #0-5 cm bulk density
+bulk_dens_200 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_100-200.tif")) #100-200 cm bulk density
+vol_wat_10kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_0-5.tif"))  #0-5 cm -10 kpa volumn water content
+vol_wat_10kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_100-200.tif"))  #100-200 cm -10 kpa volumn water content
+vol_wat_33kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_0-5.tif")) #0-5 cm -33 kpa volumn water content
+vol_wat_33kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_100-200.tif")) #100-200 cm -33 kpa volumn water content
+vol_wat_1500kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500kPa_0-5.tif"))  #0-5 cm -1500 kpa volumn water content
+vol_wat_1500kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_100-200.tif")) #100-200 cm -1500 kpa volumn water content
 
 #project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
 clay_05_utm <- projectRaster(clay_05, crs=26912) #converting the 0-5 cm clay raster to utm 12
@@ -131,111 +148,185 @@ silt_200_utm <- projectRaster(silt_200, crs=26912)
 sand_05_utm <- projectRaster(sand_05, crs=26912)
 sand_200_utm <- projectRaster(sand_200, crs=26912)
 
+ph_05_utm <- projectRaster(ph_05, crs=26912) 
+ph_200_utm <- projectRaster(ph_200, crs=26912) 
+ocd_05_utm <- projectRaster(ocd_05, crs=26912)
+ocd_200_utm <- projectRaster(ocd_200, crs=26912)
+coarse_frag_05_utm <- projectRaster(coarse_frag_05, crs=26912)
+coarse_frag_200_utm <- projectRaster(coarse_frag_200, crs=26912)
+cat_ex_cap_05_utm <- projectRaster(cat_ex_cap_05, crs=26912)
+cat_ex_cap_200_utm <- projectRaster(cat_ex_cap_200, crs=26912)
+bulk_dens_05_utm <- projectRaster(bulk_dens_05, crs=26912)
+bulk_dens_200_utm <- projectRaster(bulk_dens_200, crs=26912)
+vol_wat_10kpa_05_utm <- projectRaster(vol_wat_10kpa_05, crs=26912)
+vol_wat_10kpa_200_utm <- projectRaster(vol_wat_10kpa_200, crs=26912)
+vol_wat_33kpa_05_utm <- projectRaster(vol_wat_33kpa_05, crs=26912)
+vol_wat_33kpa_200_utm <- projectRaster(vol_wat_33kpa_200, crs=26912)
+vol_wat_1500kpa_05_utm <- projectRaster(vol_wat_1500kpa_05, crs=26912)
+vol_wat_1500kpa_200_utm <- projectRaster(vol_wat_1500kpa_200, crs=26912)
+
+
 
 #LM
 #examining the layers at different extents
-plot(clay_05_utm)
-
-clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-10000, LM_box[3]+10000, LM_box[2]-10000, LM_box[4]+10000)) 
-plot(clay_200_LM)
-
 
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_LM <- crop(clay_05_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4])) 
-clay_200_LM <- crop(clay_200_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4]))
-silt_05_LM <- crop(silt_05_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4]))
-silt_200_LM <- crop(silt_200_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4]))
-sand_05_LM <- crop(sand_05_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4]))
-sand_200_LM <- crop(sand_200_utm, extent(LM_box[1], LM_box[3], LM_box[2], LM_box[4]))
+clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100)) 
+clay_200_LM <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+silt_05_LM <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+silt_200_LM <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+sand_05_LM <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+sand_200_LM <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
+ph_05_LM <- crop(ph_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ph_200_LM <- crop(ph_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ocd_05_LM <- crop(ocd_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ocd_200_LM <- crop(ocd_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+coarse_frag_05_LM <- crop(coarse_frag_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+coarse_frag_200_LM <- crop(coarse_frag_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+cat_ex_cap_05_LM <- crop(cat_ex_cap_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+cat_ex_cap_200_LM <- crop(cat_ex_cap_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+bulk_dens_05_LM <- crop(bulk_dens_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+bulk_dens_200_LM <- crop(bulk_dens_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_10kpa_05_LM <- crop(vol_wat_10kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_10kpa_200_LM <- crop(vol_wat_10kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_33kpa_05_LM <- crop(vol_wat_33kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_33kpa_200_LM <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_1500kpa_05_LM <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_1500kpa_200_LM <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
 
 #attempt of using ggplot to plot clay layer with river shapefile
 ggplot()+
-  geom_raster(data = as.data.frame(clay_05_LM, xy=T), aes(x=x, y=y, fill = cly_05cm_mgw))+
-  geom_sf(data = river_LM_trans)
+  geom_raster(data = as.data.frame(clay_05_LM, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed)
 
+ggplot()+
+  geom_raster(data = as.data.frame(ph_200_LM, xy=T), aes(x=x, y=y, fill = ph_100.200))+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed)
 
 #creating a stack of the raster layers
-soil_stack_LM <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM)
+soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
+soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_frag_05_LM, coarse_frag_200_LM, #the stack of all of the other soil variables, with different extents than the soil texture rasters
+                       cat_ex_cap_05_LM, cat_ex_cap_200_LM, bulk_dens_05_LM, bulk_dens_200_LM, vol_wat_10kpa_05_LM,
+                       vol_wat_10kpa_200_LM, vol_wat_33kpa_05_LM, vol_wat_33kpa_200_LM, vol_wat_1500kpa_05_LM, 
+                       vol_wat_1500kpa_200_LM) 
+
+
 soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
 
-#attempting to plot the stacks in ggplot
-ggplot()+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = cly_05cm_mgw))+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = cly_200cm_mgw))+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = slt_05cm_pgw))+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = slt_200cm_pgw))+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = snd_05cm_mgw))+
-  geom_raster(data = as.data.frame(soil_stack_LM, xy=T), aes(x=x, y=y, fill = snd_200cm_mgw))+
-  facet_wrap( ~c(cly_05cm_mgw, cly_200cm_mgw, slt_05cm_pgw, slt_200cm_pgw, snd_05cm_mgw, snd_200cm_mgw))
-plot(soil_stack_LM, zlim = c(2, 25)) #plotting the soil raster so all of the layers have the same scale
-scale_fill_gradientn(colours = terrain.colors(7))
+#plotting the stacked rasters
+plot(soil_stack_LM)
+plot(soil_stack_LM, zlim = c(100, 730)) #version where the plots have the same scale
 
 
 #LC
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_LC <- crop(clay_05_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4])) 
-clay_200_LC <- crop(clay_200_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4]))
-silt_05_LC <- crop(silt_05_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4]))
-silt_200_LC <- crop(silt_200_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4]))
-sand_05_LC <- crop(sand_05_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4]))
-sand_200_LC <- crop(sand_200_utm, extent(LC_box[1], LC_box[3], LC_box[2], LC_box[4]))
+clay_05_LC <- crop(clay_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100)) 
+clay_200_LC <- crop(clay_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+silt_05_LC <- crop(silt_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+silt_200_LC <- crop(silt_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+sand_05_LC <- crop(sand_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+sand_200_LC <- crop(sand_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+
+ph_05_LC <- crop(ph_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+ph_200_LC <- crop(ph_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+ocd_05_LC <- crop(ocd_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+ocd_200_LC <- crop(ocd_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+coarse_frag_05_LC <- crop(coarse_frag_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+coarse_frag_200_LC <- crop(coarse_frag_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+cat_ex_cap_05_LC <- crop(cat_ex_cap_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+cat_ex_cap_200_LC <- crop(cat_ex_cap_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+bulk_dens_05_LC <- crop(bulk_dens_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+bulk_dens_200_LC <- crop(bulk_dens_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_10kpa_05_LC <- crop(vol_wat_10kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_10kpa_200_LC <- crop(vol_wat_10kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_33kpa_05_LC <- crop(vol_wat_33kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_33kpa_200_LC <- crop(vol_wat_33kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+
 
 #creating a stack of the raster layers
-soil_stack_LC <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC)
+soil_stack_LC_soil_text <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC)
+soil_stack_LC_other <- stack(ph_05_LC, ph_200_LC, ocd_05_LC, ocd_200_LC, coarse_frag_05_LC, coarse_frag_200_LC, #the stack of all of the other soil variables, with different extents than the soil texture rasters
+                             cat_ex_cap_05_LC, cat_ex_cap_200_LC, bulk_dens_05_LC, bulk_dens_200_LC, vol_wat_10kpa_05_LC,
+                             vol_wat_10kpa_200_LC, vol_wat_33kpa_05_LC, vol_wat_33kpa_200_LC, vol_wat_1500kpa_05_LC, 
+                             vol_wat_1500kpa_200_LC) 
+
+#plotting the stacked rasters
 plot(soil_stack_LC)
+plot(soil_stack_LC, zlim = c(100, 710)) #version where the plots have the same scale
 
 
 #SD
+
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_SD <- crop(clay_05_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4])) 
-clay_200_SD <- crop(clay_200_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4]))
-silt_05_SD <- crop(silt_05_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4]))
-silt_200_SD <- crop(silt_200_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4]))
-sand_05_SD <- crop(sand_05_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4]))
-sand_200_SD <- crop(sand_200_utm, extent(SD_box[1], SD_box[3], SD_box[2], SD_box[4]))
+clay_05_SD <- crop(clay_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100)) 
+clay_200_SD <- crop(clay_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+silt_05_SD <- crop(silt_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+silt_200_SD <- crop(silt_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+sand_05_SD <- crop(sand_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+sand_200_SD <- crop(sand_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+
+ph_05_SD <- crop(ph_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+ph_200_SD <- crop(ph_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+ocd_05_SD <- crop(ocd_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+ocd_200_SD <- crop(ocd_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+coarse_frag_05_SD <- crop(coarse_frag_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+coarse_frag_200_SD <- crop(coarse_frag_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+cat_ex_cap_05_SD <- crop(cat_ex_cap_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+cat_ex_cap_200_SD <- crop(cat_ex_cap_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+bulk_dens_05_SD <- crop(bulk_dens_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+bulk_dens_200_SD <- crop(bulk_dens_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_10kpa_05_SD <- crop(vol_wat_10kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_10kpa_200_SD <- crop(vol_wat_10kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_33kpa_05_SD <- crop(vol_wat_33kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_33kpa_200_SD <- crop(vol_wat_33kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_1500kpa_05_SD <- crop(vol_wat_1500kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+vol_wat_1500kpa_200_SD <- crop(vol_wat_1500kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+
 
 #creating a stack of the raster layers
-soil_stack_SD <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD)
+soil_stack_SD_soil_text <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD)
+soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_frag_05_SD, coarse_frag_200_SD, #the stack of all of the other soil variables, with different extents than the soil texture rasters
+                             cat_ex_cap_05_SD, cat_ex_cap_200_SD, bulk_dens_05_SD, bulk_dens_200_SD, vol_wat_10kpa_05_SD,
+                             vol_wat_10kpa_200_SD, vol_wat_33kpa_05_SD, vol_wat_33kpa_200_SD, vol_wat_1500kpa_05_SD, 
+                             vol_wat_1500kpa_200_SD) 
+
+
+#plotting the stacked rasters
 plot(soil_stack_SD)
+plot(soil_stack_SD, zlim = c(130, 710)) #version where the plots have the same scale
 
 
-
-
-#loading in soil textures from soilgrids
-clay_05_soilgrids <- raster(paste0("./data/clay content/clay content 0-5.tif"))
-clay_200_soilgrids <- raster(paste0("./data/clay content/clay content 100-200.tif"))
-silt_05_soilgrids <- raster(paste0("./data/silt/silt 0-5.tif"))
-silt_200_soilgrids <-raster(paste0("./data/silt/silt 100-200.tif"))
-sand_05_soilgrids <- raster(paste0("./data/sand/sand 0-5.tif"))
-sand_200_soilgrids <- raster(paste0("./data/sand/sand 100-200.tif"))
-
-#project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
-clay_05_soilgrids_utm <- projectRaster(clay_05_soilgrids, crs=26912) #converting the 0-5 cm clay raster to utm 12
-clay_200_soilgrids_utm <- projectRaster(clay_200_soilgrids, crs=26912) #converting the 90-200 cm clay raster to utm 12
-silt_05_soilgrids_utm <- projectRaster(silt_05_soilgrids, crs=26912)
-silt_200_soilgrids_utm <- projectRaster(silt_200_soilgrids, crs=26912)
-sand_05_soilgrids_utm <- projectRaster(sand_05_soilgrids, crs=26912)
-sand_200_soilgrids_utm <- projectRaster(sand_200_soilgrids, crs=26912)
+#Extracting the soil data to the tree points 
 
 #LM
-#examining the layers at different extents
-plot(clay_05_utm)
+LM_soil_text_raster_250_data_pts <- extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
+LM_soil_other_raster_250_data_pts <- extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
 
-clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-10000, LM_box[3]+10000, LM_box[2]-10000, LM_box[4]+10000)) 
-plot(clay_200_LM)
+#LC
+LC_soil_text_raster_250_data_pts <- extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
+LC_soil_other_raster_250_data_pts <- extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 
 
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_soilgrids_utm_LM <- crop(clay_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)) 
-clay_200_soilgrids_utm_LM <- crop(clay_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
-silt_05_soilgrids_utm_LM <- crop(silt_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
-silt_200_soilgrids_utm_LM <- crop(silt_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
-sand_05_soilgrids_utm_LM <- crop(sand_05_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
-sand_200_soilgrids_utm_LM <- crop(sand_200_soilgrids_utm, extent(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200))
+#SD
+SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
+SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 
-#attempt of using ggplot to plot clay layer with river shapefile
-ggplot()+
-  geom_raster(data = as.data.frame(clay_05_soilgrids_utm_LM, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
-  geom_sf(data = LM_fixed_field_data_processed)
+
+
+### Comparing the soil vs. size values ###
+
+### Comparing the randomly selected soil values at each chosen population vs. random selected point ###
 

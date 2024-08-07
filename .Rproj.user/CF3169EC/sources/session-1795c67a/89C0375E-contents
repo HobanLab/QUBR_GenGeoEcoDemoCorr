@@ -158,65 +158,144 @@ LM_box <- st_bbox(river_LM_trans)
 LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
-
 #creating the aspect and slope rasters
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
-#projecting the INGEI 14 m continuous elevtion model into UTM 12N 
-gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif", 
-         dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif", 
-         s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
-         t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
-         tr = c(15, 15), overwrite=TRUE)
 
-#loading in the projected file
-CEM_15_utm <- raster(paste0("./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif"))
+#BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY, FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
+#After LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
+#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m continuous elevation model DATA: https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
 
-plot(CEM_15_utm)
+#SO WE COMMENTED OUT CODE THAT IS HOW WE LOADED IN THE ORIGINAL RASTER AND CREATED AND EXPORTED THE CROPPED RASTERS FOR EACH POPULATION
+
+# #projecting the INGEI 15 m continuous elevation model into UTM 12N 
+# gdalwarp(srcfile = './data/15 m Elevation Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',  
+#          dstfile = './data/15 m Elevation Raster/CEM_15_utm.tif', 
+#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
+#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
+#          tr = c(15, 15), overwrite=T)
+# 
+# #loading in the projected file
+# CEM_15_utm <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm.tif"))
+# 
+# plot(CEM_15_utm) # just to visualize the raster
+# 
+# #cropping the rasters for each population
+# 
+# #all points
+# 
+# #mapping cropped 
+# CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the all points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+# 
+# #LM
+# 
+# #mapping cropped 
+# CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LM_fixed_field_data_processed)
+# 
+# #LC
+# 
+# #mapping cropped 
+# CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LC_fixed_field_data_processed)
+# 
+# #SD
+# 
+# #mapping cropped 
+# CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = SD_fixed_field_data_processed)
+
+# #exporting this cropped rasters as a tif
+# writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
+# writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LC.tif')
+# writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
+
+# #projecting the INGEI 14 m continuous elevtion model into UTM 12N 
+# gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif", 
+#          dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif", 
+#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
+#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
+#          tr = c(15, 15), overwrite=TRUE)
+# 
+# #loading in the projected file
+# CEM_15_utm <- raster(paste0("./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif"))
+# 
+# plot(CEM_15_utm)
+
+#HERE IS THE IMPORTATION OF THE CROPPED RASTERS
 
 #cropping the rasters for each population
 
 #all points
+# 
+# #mapping cropped 
+# CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the all points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+# 
+# #LM
+# 
+# #mapping cropped 
+# CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LM_fixed_field_data_processed)
+# 
+# #LC
+# 
+# #mapping cropped 
+# CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = LC_fixed_field_data_processed)
+# 
+# #SD
+# 
+# #mapping cropped 
+# CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
+# 
+# #plotting the LM elevation raster with the LM points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#   geom_sf(data = SD_fixed_field_data_processed)
 
-#mapping cropped 
-CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
 
-#plotting the LM elevation raster with the all points
+#Importing the cropped rasters for LM, LC, and SD
+CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+
+#creating the all points raster by merging the LM, LC, and SD rasters
+CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
+
 ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
-
-#LM
-
-#mapping cropped 
-CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = LM_fixed_field_data_processed)
-
-#LC
-
-#mapping cropped 
-CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = LC_fixed_field_data_processed)
-
-#SD
-
-#mapping cropped 
-CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
-
-#plotting the LM elevation raster with the LM points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-  geom_sf(data = SD_fixed_field_data_processed)
-
+  geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
+  geom_sf(data = fixed_field_data_processed_sf_transformed)
 
 ## Extracting the slope 
 
@@ -1349,13 +1428,23 @@ LM_fixed_field_data_processed_terrain_no_NA <- LM_fixed_field_data_processed_ter
   filter(is.na(LM_slope_raster_15_data_pts) == F) %>%
   filter(is.na(Elevation..m.FIXED) == F)
 
+#Cook's D
+LM_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+LM_mlm_SCA_cooks <- cooks.distance(LM_mlm_SCA) #calculating the cook.s D for each point
+plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_terrain_no_NA_No_outliers <- LM_fixed_field_data_processed_terrain_no_NA[-c(24,26,27),]
+
 
 # SCA
 
 plot(LM_multiple_lm_SCA)
 
 #multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+LM_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #checking to see which variables might be the most useful
 avPlots(LM_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
@@ -1372,15 +1461,15 @@ options(na.action = "na.fail") #have to set na.action to na.fail to be able to r
 dredge(LM_multiple_lm_SCA) #generates the best model and the rank of best models
 
 #the best simplified multiple linear regression model chosen
-LM_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
+LM_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 summary(LM_multiple_lm_SCA_simplified) #best model, but still only 5% of variability explained
 
 #nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_SCA_simplified, LM_multiple_lm_SCA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+anova(LM_multiple_lm_SCA_simplified, LM_multiple_lm_SCA) #results are not significant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
 
 #determing interactions with recursive binary partioning and regression tree
 LM_potential_interactions <- rpart(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                     LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+                                     LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
 plot(LM_potential_interactions) # show the tree structure
 text(LM_potential_interactions, pretty = 0) # add text labels
@@ -1392,18 +1481,17 @@ LM_multiple_lm_SCA_interacts <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_
                                      LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
                                      I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
                                      Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                   data = LM_fixed_field_data_processed_terrain_no_NA)
+                                   data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 summary(LM_multiple_lm_SCA_interacts)
 
 #slimming down the variables in the interaction model
 step(LM_multiple_lm_SCA_interacts) #using backwards regression, where last model produced is the best fit
 dredge <- dredge(LM_multiple_lm_SCA_interacts) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-LM_fixed_field_data_processed_terrain_no_NA$I(LM_aspect_raster_15_data_pts_8_categorical^2)
 
 
 #including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_SCA_interacts_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2), data = LM_fixed_field_data_processed_terrain_no_NA)
+LM_multiple_lm_SCA_interacts_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2), data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 summary(LM_multiple_lm_SCA_interacts_simplified) #best model, but still only 5% of variability explained
 
 #nested F test to compare simplified interactions model to full interactions model
@@ -1430,6 +1518,14 @@ ggplot(LM_multiple_lm_SCA_simplified, aes(sample = LM_multiple_lm_SCA_simplified
   geom_qq()
 
 shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+
+#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
+LM_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
+LM_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
+
+shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+#based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric test to look at slope, but we could use log to look at the 
+
 
 #checking equal variance
 ggplot(data = LM_multiple_lm_SCA, aes(x = LM_multiple_lm_SCA$fitted.values, y = LM_multiple_lm_SCA$residuals))+
