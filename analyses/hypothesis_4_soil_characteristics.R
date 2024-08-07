@@ -218,8 +218,10 @@ soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_
 soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
 
 #plotting the stacked rasters
-plot(soil_stack_LM)
-plot(soil_stack_LM, zlim = c(100, 730)) #version where the plots have the same scale
+plot(soil_stack_LM_soil_text) #version with soil textures
+plot(soil_stack_LM_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
+plot(soil_stack_LM_other) #version with other variables
+plot(soil_stack_LM_other, zlim = c(30, 360)) #version where the plots have the same scale
 
 
 #LC
@@ -250,16 +252,18 @@ vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_b
 vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 
 
-#creating a stack of the raster layers
-soil_stack_LC_soil_text <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC)
+#creating a stack of the raster layers 
+soil_stack_LC_soil_text <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC) #the stack of all of the soil texture rasters
 soil_stack_LC_other <- stack(ph_05_LC, ph_200_LC, ocd_05_LC, ocd_200_LC, coarse_frag_05_LC, coarse_frag_200_LC, #the stack of all of the other soil variables, with different extents than the soil texture rasters
                              cat_ex_cap_05_LC, cat_ex_cap_200_LC, bulk_dens_05_LC, bulk_dens_200_LC, vol_wat_10kpa_05_LC,
                              vol_wat_10kpa_200_LC, vol_wat_33kpa_05_LC, vol_wat_33kpa_200_LC, vol_wat_1500kpa_05_LC, 
                              vol_wat_1500kpa_200_LC) 
 
 #plotting the stacked rasters
-plot(soil_stack_LC)
-plot(soil_stack_LC, zlim = c(100, 710)) #version where the plots have the same scale
+plot(soil_stack_LC_soil_text) #version with soil textures
+plot(soil_stack_LC_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
+plot(soil_stack_LC_other) #version with other variables
+plot(soil_stack_LC_other, zlim = c(30, 360)) #version where the plots have the same scale
 
 
 #SD
@@ -291,7 +295,7 @@ vol_wat_1500kpa_200_SD <- crop(vol_wat_1500kpa_200_utm, extent(SD_box[1]-100, SD
 
 
 #creating a stack of the raster layers
-soil_stack_SD_soil_text <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD)
+soil_stack_SD_soil_text <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD) #the stack of all of the soil texture rasters
 soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_frag_05_SD, coarse_frag_200_SD, #the stack of all of the other soil variables, with different extents than the soil texture rasters
                              cat_ex_cap_05_SD, cat_ex_cap_200_SD, bulk_dens_05_SD, bulk_dens_200_SD, vol_wat_10kpa_05_SD,
                              vol_wat_10kpa_200_SD, vol_wat_33kpa_05_SD, vol_wat_33kpa_200_SD, vol_wat_1500kpa_05_SD, 
@@ -299,8 +303,10 @@ soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_
 
 
 #plotting the stacked rasters
-plot(soil_stack_SD)
-plot(soil_stack_SD, zlim = c(130, 710)) #version where the plots have the same scale
+plot(soil_stack_SD_soil_text)
+plot(soil_stack_SD_soil_text, zlim = c(130, 710)) #version where the plots have the same scale
+plot(soil_stack_SD_other)
+plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the same scale
 
 
 #Extracting the soil data to the tree points 
@@ -323,7 +329,6 @@ SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_fi
 SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
-
 
 
 ### Comparing the soil vs. size values ###

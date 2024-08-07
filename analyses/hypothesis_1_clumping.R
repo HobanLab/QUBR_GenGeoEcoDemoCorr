@@ -492,7 +492,7 @@ dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a n
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_LM_inverse)
 
-SD_aspect_raster_15 
+
 
 ## Version of ANN analysis controlling for the river with just the river multipoint 
 
