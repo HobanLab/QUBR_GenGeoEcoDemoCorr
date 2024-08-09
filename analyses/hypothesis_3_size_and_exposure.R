@@ -87,7 +87,7 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
 #creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
 fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
-                                        (Elevation..m. == 360) ~ 460, 
+                                        (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
 View(fixed_field_data_processed_sf_trans_coordinates)
@@ -111,7 +111,7 @@ ggplot()+
 
 ##creating a new elevation column so that the 360 m outlier is 460
 SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ 460, 
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA,  #change the elevation of 360 which appears to be a miswritten elevation to NA
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
 #upload ArcGIS river shapefile and filter out polygons for each population
@@ -241,202 +241,6 @@ CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_
 ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = fixed_field_data_processed_sf_transformed)
-
-#UNUSED ELEVATION RASTERS 
-#(one is a 5m resolution set of merge rasters that does not overlap well with the points and the others are 50 m resolution rasters that do overlap with the populations but they are just too high of resolution than what we want)
-  
-# #loading in xyz ASCII from INEGI on elevation, 5 m resolution rasters of elevation around BCS
-# continental_relief_elevation_xyz <- read.table("./data/ASCII Elevation Inegi/f12b43b4_ms.xyz")
-# continental_relief_elevation_raster <- rasterFromXYZ(continental_relief_elevation_xyz) #26912
-# plot(continental_relief_elevation_raster)
-# 
-# elevation_xyz_f1 <- read.table("./data/ASCII Elevation Inegi/f12b14f1_ms.xyz")
-# elevation_xyz_f1 <- rasterFromXYZ(elevation_xyz_f1) #26912
-# plot(elevation_xyz_f1)
-# 
-# elevation_xyz_f2 <- read.table("./data/ASCII Elevation Inegi/f12b14f2_ms.xyz")
-# elevation_xyz_f2 <- rasterFromXYZ(elevation_xyz_f2) #26912
-# plot(elevation_xyz_f2)
-# 
-# elevation_xyz_f3 <- read.table("./data/ASCII Elevation Inegi/f12b14f3_ms.xyz")
-# elevation_xyz_f3 <- rasterFromXYZ(elevation_xyz_f3) #26912
-# plot(elevation_xyz_f3)
-# 
-# elevation_xyz_f4 <- read.table("./data/ASCII Elevation Inegi/f12b14f4_ms.xyz")
-# elevation_xyz_f4 <- rasterFromXYZ(elevation_xyz_f4) #26912
-# plot(elevation_xyz_f4)
-# 
-# elevation_xyz_c4 <- read.table("./data/ASCII Elevation Inegi/f12b24c4_ms.xyz")
-# elevation_xyz_c4 <- rasterFromXYZ(elevation_xyz_c4) #26912
-# plot(elevation_xyz_c4)
-# 
-# elevation_xyz_b25a3 <- read.table("./data/ASCII Elevation Inegi/f12b25a3_ms.xyz")
-# elevation_xyz_b25a3 <- rasterFromXYZ(elevation_xyz_b25a3) #26912
-# plot(elevation_xyz_b25a3)
-# 
-# elevation_xyz_b34a1 <- read.table("./data/ASCII Elevation Inegi/f12b34a1_ms.xyz")
-# elevation_xyz_b34a1 <- rasterFromXYZ(elevation_xyz_b34a1) #26912
-# plot(elevation_xyz_b34a1)
-# 
-# elevation_xyz_b34a2 <- read.table("./data/ASCII Elevation Inegi/f12b34a2_ms.xyz")
-# elevation_xyz_b34a2 <- rasterFromXYZ(elevation_xyz_b34a2) #26912
-# plot(elevation_xyz_b34a2)
-# 
-# elevation_xyz_b34a3 <- read.table("./data/ASCII Elevation Inegi/f12b34a3_ms.xyz")
-# elevation_xyz_b34a3 <- rasterFromXYZ(elevation_xyz_b34a3) #26912
-# plot(elevation_xyz_b34a3)
-# 
-# elevation_xyz_b34a4 <- read.table("./data/ASCII Elevation Inegi/f12b34a4_ms.xyz")
-# elevation_xyz_b34a4 <- rasterFromXYZ(elevation_xyz_b34a4) #26912
-# plot(elevation_xyz_b34a4)
-# 
-# elevation_xyz_b34b1 <- read.table("./data/ASCII Elevation Inegi/f12b34b1_ms.xyz")
-# elevation_xyz_b34b1 <- rasterFromXYZ(elevation_xyz_b34b1) #26912
-# plot(elevation_xyz_b34b1)
-# 
-# elevation_xyz_b34b2 <- read.table("./data/ASCII Elevation Inegi/f12b34b2_ms.xyz")
-# elevation_xyz_b34b2 <- rasterFromXYZ(elevation_xyz_b34b2) #26912
-# plot(elevation_xyz_b34b2)
-# 
-# elevation_xyz_b34b3 <- read.table("./data/ASCII Elevation Inegi/f12b34b3_ms.xyz")
-# elevation_xyz_b34b3 <- rasterFromXYZ(elevation_xyz_b34b3) #26912
-# plot(elevation_xyz_b34b3)
-# 
-# elevation_xyz_b34b4 <- read.table("./data/ASCII Elevation Inegi/f12b34b4_ms.xyz")
-# elevation_xyz_b34b4 <- rasterFromXYZ(elevation_xyz_b34b4) #26912
-# plot(elevation_xyz_b34b4)
-# 
-# elevation_xyz_b34c1 <- read.table("./data/ASCII Elevation Inegi/f12b34c1_ms.xyz")
-# elevation_xyz_b34c1 <- rasterFromXYZ(elevation_xyz_b34c1) #26912
-# plot(elevation_xyz_b34c1)
-# 
-# elevation_xyz_b34c3 <- read.table("./data/ASCII Elevation Inegi/f12b34c3_ms.xyz")
-# elevation_xyz_b34c3 <- rasterFromXYZ(elevation_xyz_b34c3) #26912
-# plot(elevation_xyz_b34c3)
-# 
-# #merging all of the rasters
-# f1_f4_merged_rasters <- raster::merge(elevation_xyz_f1, elevation_xyz_f2, 
-#                                       elevation_xyz_f3,  elevation_xyz_f4, 
-#                                       elevation_xyz_c4,elevation_xyz_b25a3,
-#                                       elevation_xyz_b34a1, elevation_xyz_b34a2,
-#                                       elevation_xyz_b34a3, elevation_xyz_b34a4, 
-#                                       elevation_xyz_b34b1, elevation_xyz_b34b2,
-#                                       elevation_xyz_b34b3, elevation_xyz_b34b4,
-#                                       elevation_xyz_b34c1, elevation_xyz_b34c3)
-# plot(f1_f4_merged_rasters)
-# 
-# #plotting the merged rasters
-# ggplot()+
-#   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = fixed_field_data_processed_NN_UTM)
-# 
-# #mapping cropped 
-# f1_f4_merged_rasters_cropped <- crop(f1_f4_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-# 
-# #plotting the cropped rasters, cropped to cover SD
-# ggplot()+
-#   geom_raster(data= as.data.frame(f1_f4_merged_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-# 
-# #isolating just the SD 5 m portions
-# SD_rasters <- raster::merge(elevation_xyz_b34a1, elevation_xyz_b34a2,
-#                              elevation_xyz_b34a3, elevation_xyz_b34a4, 
-#                              elevation_xyz_b34b1, elevation_xyz_b34b2,
-#                              elevation_xyz_b34b3, elevation_xyz_b34b4,
-#                              elevation_xyz_b34c1, elevation_xyz_b34c3)
-# 
-# plot(SD_rasters)
-# 
-# #very close with the elevation rasters
-# ggplot()+
-#   geom_raster(data= as.data.frame(SD_rasters, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-# 
-# #loading in 50 M resolution elevation rasters for LM and LC
-# f12b12 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b12me.bil")
-# plot(f12b12)
-# 
-# f12b13 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b13me.bil")
-# plot(f12b13)
-# 
-# f12b14 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b14me.bil")
-# plot(f12b14)
-# 
-# f12b22 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b22me.bil")
-# plot(f12b22)
-# 
-# f12b23 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b23me.bil")
-# plot(f12b23)
-# 
-# f12b33 <- raster("./data/ASCII Elevation Inegi/smaller scale elevation/f12b33me.bil")
-# plot(f12b33)
-# 
-# f12b_merged_rasters <- raster::merge(f12b12, f12b13, 
-#                                      f12b14,  f12b22, 
-#                                      f12b23, f12b33)
-# plot(f12b_merged_rasters)
-# 
-# #projecting the 50 m resolution raster to be in UTM12N 
-# crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-# proj4string(f12b_merged_rasters) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-# 
-# #mapping with cropped for LM 
-# f12b_merged_rasters_cropped_LM <- crop(f12b_merged_rasters, extent(c(LM_box[1]-200, LM_box[3]+200, LM_box[2]-200, LM_box[4]+200)))
-# 
-# ggplot()+
-#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LM, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = LM_fixed_field_data_processed)
-# 
-# #mapping with cropped for LC
-# f12b_merged_rasters_cropped_LC <- crop(f12b_merged_rasters, extent(c(LC_box[1]-200, LC_box[3]+200, LC_box[2]-200, LC_box[4]+200)))
-# 
-# ggplot()+
-#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_LC, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = LC_fixed_field_data_processed)
-# 
-# #mapping with cropped for SD
-# f12b_merged_rasters_cropped_SD <- crop(f12b_merged_rasters, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-# ggplot()+
-#   geom_raster(data= as.data.frame(f12b_merged_rasters_cropped_SD, xy = T), aes(x=x, y=y, fill = layer))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-# 
-# f1202 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1202mde.bil")
-# plot(f1202)
-# 
-# f1206 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f1206mde.bil")
-# plot(f1206)
-# 
-# 
-# #50 m resolution elevation for SD
-# f12B24 <- raster("./data/ASCII Elevation Inegi/larger scale elevation/f12b24me.bil")
-# plot(f12B24)
-# 
-# #projecting the raster for SD
-# crs_utm <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-# proj4string(f12B24) <- "+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"
-# 
-# #cropping the F12B24 raster to be the extent of SD
-# f12B24_cropped_SD <- crop(f12B24, extent(c(SD_box[1]-50, SD_box[3]+50, SD_box[2]-50, SD_box[4]+50)))
-# 
-# #Plotting the cropped raster
-# ggplot()+
-#   geom_raster(data= as.data.frame(f12B24_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24me))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-# 
-# 
-# raster::merge()
-# 
-# 
-# #contour lines map
-# F12B24_tif <- raster(paste0("./data/ASCII Elevation Inegi/Larger Areas/F12B24/702825702502_t/f12b24.tif"))
-# plot(F12B24_tif)
-# 
-# F12B24_tif_cropped_SD <- crop(F12B24_tif, extent(c(SD_box[1], SD_box[3], SD_box[2], SD_box[4])))
-# 
-# ggplot()+
-#   geom_raster(data= as.data.frame(F12B24_tif_cropped_SD, xy = T), aes(x=x, y=y, fill = f12b24))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-
 
 ## Extracting the slope 
 
@@ -579,7 +383,7 @@ SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_ter
 
 View(SD_fixed_field_data_processed_terrain)
 
-#recategorizing the aspect data
+#re-categorizing the aspect data
 
 #setting values of 360 to 0 
 
@@ -867,6 +671,13 @@ ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation.
 #creating the linear regression
 all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
+#linear regression with log transformation of canopy area
+all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_lm_sca_elev, aes(x= all_points_lm_sca_elev$residuals))+
   geom_histogram()+
@@ -878,7 +689,7 @@ ggplot(all_points_lm_sca_elev, aes(x= all_points_lm_sca_elev$residuals))+
 ggplot(all_points_lm_sca_elev, aes(sample = all_points_lm_sca_elev$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_sca_elev$residuals) #sig, so we have to use mann-kendall test
+shapiro.test(all_points_lm_sca_elev$residuals) #only not signficant for a square root transformation, we could use mann-kendall test for non-parametric data or the square root transformation
 
 #checking equal variance
 ggplot(data = all_points_lm_sca_elev, aes(x = all_points_lm_sca_elev$fitted.values, y = all_points_lm_sca_elev$residuals))+
@@ -922,9 +733,37 @@ ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation.
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#creating the linear regression
+#Cook's D
+all_points_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
+all_points_slr_LCA_cooks <- cooks.distance(all_points_slr_LCA) #calculating the cook.s D for each point
+plot(all_points_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- all_points_slr_LCA_cooks[(all_points_slr_LCA_cooks > (3 * mean(all_points_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
 
+#removing outliers based on which points were deemed influential
+fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 49, 86, 87, 102, 123, 164, 172, 184, 
+                                                                                                                      185, 189, 203, 205, 207, 211, 213, 233, 235, 242, 243, 245, 273, 274,
+                                                                                                                      278, 287, 288, 289, 291, 300, 320, 325, 357, 358, 359, 360, 361, 363, 366,
+                                                                                                                      380, 415, 429, 453, 467, 487, 544, 620, 632),]
+#creating the linear regression
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#linear regression with log transformation of canopy area
+all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#without outliers
+
+all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with log transformation of canopy area
+all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long_lg ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_LM_lm_lca_elev, aes(x= all_points_LM_lm_lca_elev$residuals))+
@@ -936,7 +775,7 @@ ggplot(all_points_LM_lm_lca_elev, aes(x= all_points_LM_lm_lca_elev$residuals))+
 ggplot(all_points_lm_lca_elev, aes(sample = all_points_lm_lca_elev$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_lca_elev$residuals) #shapiro-wilk test is sig so we have to use Mann-Kendall non-parametric test
+shapiro.test(all_points_lm_lca_elev$residuals) #shapiro-wilk test is sig despite transformations and removal of outliers, so we have to use Mann-Kendall non-parametric test
 
 #checking equal variance
 ggplot(data = all_points_lm_lca_elev, aes(x = all_points_lm_lca_elev$fitted.values, y = all_points_lm_lca_elev$residuals))+
@@ -970,13 +809,25 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the linear model in ggplot for CA
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
+#Cook's D
+all_points_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
+all_points_slr_CA_cooks <- cooks.distance(all_points_slr_CA) #calculating the cook.s D for each point
+plot(all_points_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- all_points_slr_CA_cooks[(all_points_slr_CA_cooks > (3 * mean(all_points_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 87, 153, 164, 172, 185, 194, 203, 205, 207, 211, 213, 237, 241, 242, 243, 287, 
+                                                                                                                     288, 291, 300, 303, 320, 325, 357, 358, 359, 360, 361, 366,
+                                                                                                                     380, 411, 415, 429, 453, 467, 487, 544, 620, 632),]
+                                                                                                                      
 #creating the linear regression
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
@@ -985,6 +836,17 @@ all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Can
 
 #linear regression with square root transformation of canopy area
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_area_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#without outliers
+
+#creating the linear regression
+all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with log transformation of canopy area
+all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area_lg ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -997,7 +859,7 @@ ggplot(all_points_lm_CA_elev, aes(x= all_points_lm_CA_elev$residuals))+
 ggplot(all_points_lm_CA_elev, aes(sample = all_points_lm_CA_elev$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_CA_elev$residuals) #shapiro-wilk test is sig so we need to use a non-parametric mann-kendall test
+shapiro.test(all_points_lm_CA_elev$residuals) #shapiro-wilk test is sig depsite transformations and removal of outliers, so we need to use a non-parametric mann-kendall test
 
 #checking equal variance
 ggplot(data = all_points_lm_CA_elev, aes(x = all_points_lm_CA_elev$fitted.values, y = all_points_lm_CA_elev$residuals))+
@@ -1038,12 +900,36 @@ ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation.
   xlab("Elevation")+
   ylab("Crown Spread")
 
+#Cook's D
+all_points_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
+all_points_slr_CS_cooks <- cooks.distance(all_points_slr_CS) #calculating the cook.s D for each point
+plot(all_points_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- all_points_slr_CS_cooks[(all_points_slr_CS_cooks > (3 * mean(all_points_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 45, 86, 87, 164, 172, 184, 185, 189, 203, 205, 207, 211, 213, 235, 237, 241, 242, 243, 
+                                                                                                                     273, 274, 278, 287, 288, 291, 300, 303, 320, 325, 357, 358, 359, 360, 361, 363, 366,
+                                                                                                                     380, 415, 429, 453, 467, 487, 544, 620, 632),]
+
 #creating the linear regression
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
+#logged CS
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
+#square rooted CS
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#without outliers
+
+all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
+
+#logged CS
+all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread_lg ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
+
+#square root CS
+all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -1056,7 +942,7 @@ ggplot(all_points_lm_CS_elev, aes(x= all_points_lm_CS_elev$residuals))+
 ggplot(all_points_lm_CS_elev, aes(sample = all_points_lm_CS_elev$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_CS_elev$residuals) #sig, so need to use non-parametric mann-kendall test
+shapiro.test(all_points_lm_CS_elev$residuals) #all were sig, despite transformations and removal of outliers, so need to use non-parametric mann-kendall test
 
 #checking equal variance
 ggplot(data = all_points_lm_CS_elev, aes(x = all_points_lm_CS_elev$fitted.values, y = all_points_lm_CS_elev$residuals))+
@@ -1090,12 +976,27 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the linear model in ggplot for DBH
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
+
+#removing outliers
+
+#Cook's D
+all_points_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
+all_points_slr_DBH_cooks <- cooks.distance(all_points_slr_DBH) #calculating the cook.s D for each point
+plot(all_points_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- all_points_slr_DBH_cooks[(all_points_slr_DBH_cooks > (3 * mean(all_points_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(16, 49, 64, 77, 87, 93, 122, 149, 157, 164, 172, 201, 203, 205, 207, 213, 238, 239, 241, 242, 243, 
+                                                                                                                     245, 266, 273, 287, 288, 290, 296, 300, 303, 320, 325, 335, 351, 355, 356, 358, 360, 361, 366,
+                                                                                                                     380, 429, 585, 620, 632),]
+
 
 #creating the linear regression
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
@@ -1107,6 +1008,15 @@ all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DB
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
 
+#creating linear regressions without outliers
+all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
+
+#linear regression with logged transformation of aggregated DBH
+all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag_lg ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
+
+#linear regression with square root transformation of aggregated DBH
+all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_lm_DBH_elev, aes(x= all_points_lm_DBH_elev$residuals))+
   geom_histogram()+
@@ -1117,7 +1027,15 @@ ggplot(all_points_lm_DBH_elev, aes(x= all_points_lm_DBH_elev$residuals))+
 ggplot(all_points_lm_DBH_elev, aes(sample = all_points_lm_DBH_elev$residuals))+
   geom_qq()
 
-shapiro.test(all_points_lm_DBH_elev$residuals) #all sig, meaning we need to use the non-parametric mann-kendall test
+shapiro.test(all_points_lm_DBH_elev$residuals) #only non-sign result is without outliers and with square rooted dbh
+
+#plotting the linear model in ggplot for DBH
+ggplot(data = fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers, (aes(x=Elevation..m.FIXED, y=DBH_ag_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("sqrt(DBH)")
+
 
 #checking equal variance
 ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.values, y = all_points_lm_DBH_elev$residuals))+
@@ -1168,12 +1086,23 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
         axis.text.x = element_text(size=12), 
         axis.text.y = element_text(size=12))
 
+#Cook's D
+LM_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
+LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #calculating the cook.s D for each point
+plot(LM_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (3 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_sca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 44, 110, 122, 123, 144, 164, 172, 184, 189, 203, 205, 213),]
 
 #creating the linear regression
-LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed_sca_no_outliers$Canopy_short ~ LM_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
+#logged sca
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#squared sca
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 
@@ -1188,7 +1117,7 @@ ggplot(LM_lm_sca_elev, aes(x= LM_lm_sca_elev$residuals))+
 ggplot(LM_lm_sca_elev, aes(sample = LM_lm_sca_elev$residuals))+
   geom_qq()
 
-shapiro.test(LM_lm_sca_elev$residuals) #significantly not normal
+shapiro.test(LM_lm_sca_elev$residuals) #significantly not normal, except when outliers are removed
 
 #checking equal variance
 ggplot(data = LM_lm_sca_elev, aes(x = LM_lm_sca_elev$fitted.values, y = LM_lm_sca_elev$residuals))+
@@ -1215,13 +1144,34 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#creating the linear regression
+#Cook's D
+LM_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
+LM_slr_LCA_cooks <- cooks.distance(LM_slr_LCA) #calculating the cook.s D for each point
+plot(LM_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
 
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_lca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 42, 49, 110, 123, 138, 144, 164, 172, 184, 185, 189, 203, 205, 207, 211, 212, 213),]
+
+
+#creating the linear regression
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#logged lca
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#square root lca
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+#without outliers
+LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
+
+#logged lca
+LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long_lg ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
+
+#square root lca
+LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long_sqrt ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -1234,7 +1184,7 @@ ggplot(LM_lm_lca_elev, aes(x= LM_lm_lca_elev$residuals))+
 ggplot(LM_lm_lca_elev, aes(sample = LM_lm_lca_elev$residuals))+
   geom_qq()
 
-shapiro.test(LM_lm_lca_elev$residuals) #sign not normally distributed
+shapiro.test(LM_lm_lca_elev$residuals) #sign not normally distributed with just transformations,but non sign with square root trans and removal of outliers
 
 #checking equal variance
 ggplot(data = LM_lm_lca_elev, aes(x = LM_lm_lca_elev$fitted.values, y = LM_lm_lca_elev$residuals))+
@@ -1267,14 +1217,25 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the linear model in ggplot for CA
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
+#Cook's D
+LM_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
+LM_slr_CA_cooks <- cooks.distance(LM_slr_CA) #calculating the cook.s D for each point
+plot(LM_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (3 * mean(LM_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_ca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 44, 87, 110, 122, 123, 144, 164, 172, 184, 203, 205, 207, 211, 213),]
+
 #creating the linear regression
+
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #linear regression with log transformation of canopy area
@@ -1283,6 +1244,22 @@ LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_lg ~ LM_fixed_fie
 #linear regression with square root transformation of canopy area
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#without outliers
+
+LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with log transformation of canopy area
+LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area_lg ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with square root transformation of canopy area
+LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area_sqrt ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("sqrt(Canopy Area_")
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_CA_elev, aes(x= LM_lm_CA_elev$residuals))+
@@ -1294,7 +1271,7 @@ ggplot(LM_lm_CA_elev, aes(x= LM_lm_CA_elev$residuals))+
 ggplot(LM_lm_CA_elev, aes(sample = LM_lm_CA_elev$residuals))+
   geom_qq()
 
-shapiro.test(LM_lm_CA_elev$residuals) #
+shapiro.test(LM_lm_CA_elev$residuals) #with just transformations sig, but with removal of outliers and square root trans it is normal
 
 #checking equal variance
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
@@ -1339,6 +1316,13 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_
 
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#linear regression with logged transformation of aggregated CS
+LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+#linear regression with square root transformation of aggregated CS
+LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
+
+
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_elev$residuals))+
   geom_histogram()+
@@ -1349,7 +1333,14 @@ ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_elev$residuals))+
 ggplot(LM_lm_CS_elev, aes(sample = LM_lm_CS_elev$residuals))+
   geom_qq()
 
-shapiro.test(LM_lm_CS_elev$residuals) #sign not normally distributed
+shapiro.test(LM_lm_CS_elev$residuals) #not sign with square root transformation
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_spread_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("sqrt(Crown Spread)")
 
 #checking equal variance
 ggplot(data = LM_lm_CS_elev, aes(x = LM_lm_CS_elev$fitted.values, y = LM_lm_CS_elev$residuals))+
@@ -1384,17 +1375,6 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag_lg)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation")+
-  ylab("log(DBH)")+
-  abline(LM_lm_DBH_elev)+
-  theme(axis.title.x = element_text(size=15),
-      axis.title.y = element_text(size=15),
-      axis.text.x = element_text(size=12), 
-      axis.text.y = element_text(size=12))
 
 #creating the linear regression
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
@@ -1405,6 +1385,17 @@ LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_lg ~ LM_fixed_field_d
 #linear regression with square root transformation of aggregated DBH
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("log(DBH)")+
+  abline(LM_lm_DBH_elev)+
+  theme(axis.title.x = element_text(size=15),
+        axis.title.y = element_text(size=15),
+        axis.text.x = element_text(size=12), 
+        axis.text.y = element_text(size=12))
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_lm_DBH_elev, aes(x= LM_lm_DBH_elev$residuals))+
@@ -1416,7 +1407,7 @@ ggplot(LM_lm_DBH_elev, aes(x= LM_lm_DBH_elev$residuals))+
 ggplot(LM_lm_DBH_elev, aes(sample = LM_lm_DBH_elev$residuals))+
   geom_qq()
 
-shapiro.test(LM_lm_DBH_elev$residuals)
+shapiro.test(LM_lm_DBH_elev$residuals) #not sign with logged transformation of DBH
 
 #checking equal variance
 ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DBH_elev$residuals))+
@@ -1446,12 +1437,18 @@ ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_shor
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-
 #creating the linear regression
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short ~ LC_fixed_field_data_processed$Elevation..m.)
 
 #linear regression with logged transformation of short canopy axis
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_lg ~ LC_fixed_field_data_processed$Elevation..m.)
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("log(Short Canopy Axis)")
 
 
 #checking normality of residuals with a histogram and qqnorm plot
@@ -1465,7 +1462,7 @@ ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
 ggplot(LC_lm_sca_elev, aes(sample = LC_lm_sca_elev$residuals))+
   geom_qq()
 
-shapiro.test(LC_lm_sca_elev$residuals) #not sign
+shapiro.test(LC_lm_sca_elev$residuals) #not sign with logged transformation of sca
 
 #checking equal variance
 ggplot(data = LC_lm_sca_elev, aes(x = LC_lm_sca_elev$fitted.values, y = LC_lm_sca_elev$residuals))+
@@ -1498,7 +1495,6 @@ LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long ~ LC_fixed_field
 #linear transformation with logged long canopy axis
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
   geom_histogram()+
@@ -1509,7 +1505,7 @@ ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
 ggplot(LC_lm_lca_elev, aes(sample = LC_lm_lca_elev$residuals))+
   geom_qq()
 
-shapiro.test(LC_lm_lca_elev$residuals) #not sign
+shapiro.test(LC_lm_lca_elev$residuals) #not sign with logged transformation
 
 #checking equal variance
 ggplot(data = LC_lm_lca_elev, aes(x = LC_lm_lca_elev$fitted.values, y = LC_lm_lca_elev$residuals))+
@@ -1552,7 +1548,7 @@ ggplot(LC_lm_CA_elev, aes(x= LC_lm_CA_elev$residuals))+
 ggplot(LC_lm_CA_elev, aes(sample = LC_lm_CA_elev$residuals))+
   geom_qq()
 
-shapiro.test(LC_lm_CA_elev$residuals) #not sign
+shapiro.test(LC_lm_CA_elev$residuals) #not sign with log transformation of CA
 
 #checking equal variance
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
@@ -1570,7 +1566,7 @@ summary(LC_lm_CA_elev)
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the linear model in ggplot for CS
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1586,6 +1582,12 @@ LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_lg ~ LC_fixed_fi
 #linear transformation with square rooted crown spread
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
+#plotting the linear model in ggplot for SCA
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("log(Crown Spread)")
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
@@ -1597,7 +1599,7 @@ ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
 ggplot(LC_lm_CS_elev, aes(sample = LC_lm_CS_elev$residuals))+
   geom_qq()
 
-shapiro.test(LC_lm_CS_elev$residuals) #not sign
+shapiro.test(LC_lm_CS_elev$residuals) #not sign with logged transformation
 
 #checking equal variance
 ggplot(data = LC_lm_CS_elev, aes(x = LC_lm_CS_elev$fitted.values, y = LC_lm_CS_elev$residuals))+
@@ -1631,6 +1633,12 @@ LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_lg ~ LC_fixed_field_d
 #linear regression with square root transformation of aggregated DBH
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
+#plotting the linear model in ggplot for DBH
+ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation")+
+  ylab("sqrt(DBH)")
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_lm_DBH_elev, aes(x= LC_lm_DBH_elev$residuals))+
@@ -1642,7 +1650,7 @@ ggplot(LC_lm_DBH_elev, aes(x= LC_lm_DBH_elev$residuals))+
 ggplot(LC_lm_DBH_elev, aes(sample = LC_lm_DBH_elev$residuals))+
   geom_qq()
 
-shapiro.test(LC_lm_DBH_elev$residuals) #not sign
+shapiro.test(LC_lm_DBH_elev$residuals) #not sign with square root transformation
 
 #checking equal variance
 ggplot(data = LC_lm_DBH_elev, aes(x = LC_lm_DBH_elev$fitted.values, y = LC_lm_DBH_elev$residuals))+
@@ -1658,6 +1666,9 @@ summary(LC_lm_DBH_elev)
 
 
 #SD linear models
+
+SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
+  drop_na(Elevation..m.FIXED)
 
 #using the fixed elevation 
 
@@ -1681,6 +1692,12 @@ SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_lg ~ SD_fixed_f
 #linear regression with square root transformation of canopy area
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_short_lg)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("log(Short Canopy Axis)")
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
@@ -1782,7 +1799,7 @@ ggplot(SD_lm_CA_elev, aes(x= SD_lm_CA_elev$residuals))+
 ggplot(SD_lm_CA_elev, aes(sample = SD_lm_CA_elev$residuals))+
   geom_qq()
 
-shapiro.test(SD_lm_CA_elev$residuals) #sign when sqrt, but best transformation option
+shapiro.test(SD_lm_CA_elev$residuals) #not sign when CA is logged
 
 #checking equal variance
 ggplot(data = SD_lm_CA_elev, aes(x = SD_lm_CA_elev$fitted.values, y = SD_lm_CA_elev$residuals))+
@@ -1826,7 +1843,7 @@ ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
 ggplot(SD_lm_CS_elev, aes(sample = SD_lm_CS_elev$residuals))+
   geom_qq()
 
-shapiro.test(SD_lm_CS_elev$residuals)
+shapiro.test(SD_lm_CS_elev$residuals) #not sign when logged CS
 
 #checking equal variance
 ggplot(data = SD_lm_CS_elev, aes(x = SD_lm_CS_elev$fitted.values, y = SD_lm_CS_elev$residuals))+

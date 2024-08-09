@@ -88,7 +88,7 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
 #creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
 fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
-                                        (Elevation..m. == 360) ~ 460, 
+                                        (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
 View(fixed_field_data_processed_sf_trans_coordinates)
@@ -112,7 +112,7 @@ ggplot()+
 
 ##creating a new elevation column so that the 360 m outlier is 460
 SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ 460, 
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
 #upload ArcGIS river shapefile and filter out polygons for each population

@@ -210,6 +210,13 @@ LM_inverse_distance_data_pts <- extract(dist_near_river_buffer_LM_inverse, fixed
 fixed_field_data_processed_sf_trans_coordinates  <- cbind(fixed_field_data_processed_sf_trans_coordinates, LM_inverse_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
 
 #LC
+LC_inverse_distance_data_pts <- extract(dist_near_river_buffer_LC_inverse, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
+fixed_field_data_processed_sf_trans_coordinates  <- cbind(fixed_field_data_processed_sf_trans_coordinates, LC_inverse_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
+
 
 #SD
+SD_inverse_distance_data_pts <- extract(dist_near_river_buffer_SD_inverse, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
+fixed_field_data_processed_sf_trans_coordinates  <- cbind(fixed_field_data_processed_sf_trans_coordinates, SD_inverse_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
+
+
 
