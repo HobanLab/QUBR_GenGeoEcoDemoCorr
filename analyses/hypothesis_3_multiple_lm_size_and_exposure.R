@@ -685,6 +685,87 @@ ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base pl
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
+#LM
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+#LC
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+#SD
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+
 ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation")+
@@ -766,6 +847,11 @@ field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
+
+
+#descriptive summary for LM
+
+
 
 ### Multiple Linear Regression ###
 

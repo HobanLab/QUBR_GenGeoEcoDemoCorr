@@ -685,6 +685,87 @@ ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base pl
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
+#LM
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+#LC
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+#SD
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_short))+
+  xlab("Short Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_long))+
+  xlab("Long Canopy Axis")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Crown_spread))+
+  xlab("Canopy Spread")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = Canopy_area))+
+  xlab("Canopy Area")+
+  ylab("Frequency")
+
+ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+  geom_histogram(aes(x = DBH_ag))+
+  xlab("Aggregated DBH")+
+  ylab("Frequency")
+
+
 ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation")+
@@ -766,6 +847,11 @@ field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
+
+
+#descriptive summary for LM
+
+
 
 ### Multiple Linear Regression ###
 
@@ -935,34 +1021,7 @@ Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
 pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
 c(Fstat, pvalue) #not significant, so do not need to consider the itneractions
 
-#plotting additive model results
 
-# setup 1 x 2 subplots
-par(mfrow = c(1,2))
-
-# get predictor sequences
-xrng <- all_points_add.gsm_SCA$specs$xrng
-
-elev.seq <- seq(xrng$Elevation..m.FIXED[1], xrng$Elevation..m.FIXED[2], length.out = 25)
-slope.seq <- seq(xrng$all_points_slope_raster_15_data_pts[1], xrng$all_points_slope_raster_15_data_pts[2], length.out = 25)
-all_points_aspect_raster_15_data_pts_8_categorical.seq <- seq(xrng$all_points_aspect_raster_15_data_pts_8_categorical[1], xrng$all_points_aspect_raster_15_data_pts_8_categorical[2], length.out = 25)
-all_points_add.gsm_SCA$elev
-
-# main effect of income
-yhat.elev <- predict(all_points_add.gsm_SCA, newdata = data.frame(elevation = elev.seq),
-                    se.fit = TRUE, terms = "Elevation..m.FIXED")
-plotci(elev.seq, yhat.elev$fit, yhat.elev$se.fit,
-       xlab = "Elevation (m)", ylab = "Short Canopy Axis (m)",
-       main = "Elevation Effect")
-rug(Prestige$income)
-
-# main effect of education
-yhat.edu <- predict(add.gsm, newdata = data.frame(education = edu.seq),
-                    se.fit = TRUE, terms = "education")
-plotci(edu.seq, yhat.edu$fit, yhat.edu$se.fit,
-       xlab = "Education", ylab = "Prestige",
-       main = "Education Effect")
-rug(Prestige$education)
 
 
 
