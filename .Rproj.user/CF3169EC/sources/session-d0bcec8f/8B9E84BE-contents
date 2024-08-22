@@ -9,10 +9,8 @@ library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the nndist function
 library(raster)
+library(rstatix) #to run the Games-Howell Test
 
-library(gdalUtils) #to reproject large rasters faster
-library(rgdal) #needed to get the soil data
-library(XML) #needed to get the soil data
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -79,10 +77,11 @@ river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
 
+
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-river_LM_trans <- st_transform(river_LM, crs = 26912) 
-river_LC_trans <- st_transform(river_LC, crs = 26912)
-river_SD_trans <- st_transform(river_SD, crs = 26912)
+river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 
 
 #creating bounding boxes for each population
@@ -308,6 +307,19 @@ plot(soil_stack_SD_soil_text, zlim = c(130, 710)) #version where the plots have 
 plot(soil_stack_SD_other)
 plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the same scale
 
+#creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
+
+#creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(LM_fixed_field_data_processed))
+
+#creating an x_sequential column that is 1 through the number of LC points, which will make it easier to randomly choose one point
+LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed))
+
+#creating an x_sequential column that is 1 through the number of SD points, which will make it easier to randomly choose one point
+SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed))
 
 #Extracting the soil data to the tree points 
 
@@ -330,6 +342,251 @@ SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 
+### Comparing the soil metrics between populations ###
+
+#LM
+
+#creating a grid over the soil cells
+LM_tree_grid_cropped <- st_make_grid(soil_stack_LM_soil_text, cellsize = c(230, 265))
+
+#plotting the grid over an example soil raster
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_LM_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = LM_tree_grid_cropped, fill = NA)
+
+
+#selecting a point from each grid cell with trees within them
+LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
+    tree_pt <- sample(cell, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
+  }
+  else if(length(cell) == 1) { #for each grid cell, if there is exactly one tree in each cell
+    tree_pt <- cell #set the selected tree point to be the tree that is within the cell
+  } else { # if there are no trees
+    tree_pt <- NA # set the focal tree point to be NA
+  }
+  return(tree_pt)
+})
+
+#creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
+LM_list_grids_and_point_trees_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
+colnames(LM_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
+LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>% #filters out grid cells that do not have trees within them
+  mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
+  filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
+
+#filtering out point data to be just the focal points
+LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
+  filter(X %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = LM_tree_grid_cropped)+
+  geom_sf(data= LM_fixed_field_data_processed_sf)+
+  geom_sf(data = LM_fixed_field_data_processed_trees, color = "red")
+
+
+
+#LC
+
+#creating a grid over the soil cells
+LC_tree_grid_cropped <- st_make_grid(soil_stack_LC_soil_text, cellsize = c(230, 265))
+
+#plotting the grid over an example soil raster
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_LC_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = LC_tree_grid_cropped, fill = NA)
+
+
+#selecting a point from each grid cell with trees within them
+LC_list_grids_and_points <- st_contains(LC_tree_grid_cropped, LC_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+LC_list_grids_and_trees <- lapply(LC_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
+    tree_pt <- sample(cell, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
+  }
+  else if(length(cell) == 1) { #for each grid cell, if there is exactly one tree in each cell
+    tree_pt <- cell #set the selected tree point to be the tree that is within the cell
+  } else { # if there are no trees
+    tree_pt <- NA # set the focal tree point to be NA
+  }
+  return(tree_pt)
+})
+
+
+#creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
+LC_list_grids_and_point_trees_df <- as.data.frame(unlist(LC_list_grids_and_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
+colnames(LC_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
+LC_list_grids_and_trees_fixed <- LC_list_grids_and_point_trees_df %>% #filters out grid cells that do not have trees within them
+  mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree.    #cell_num = row_number()
+  mutate(data_row = LC_fixed_field_data_processed$X[tree_row_num]) %>% #adding a column that writes the real row number the focal tree is in the overall data
+  filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
+
+
+#filtering out point data to be just the focal points
+LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_soils %>%
+  filter(X_sequential %in% LC_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = LC_tree_grid_cropped)+
+  geom_sf(data= LC_fixed_field_data_processed_sf)+
+  geom_sf(data = LC_fixed_field_data_processed_trees_soils, color = "red")
+
+
+#SD
+
+#creating a grid over the soil cells
+SD_tree_grid_cropped <- st_make_grid(soil_stack_SD_soil_text, cellsize = c(230, 265))
+
+#plotting the grid over an example soil raster
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_SD_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = SD_tree_grid_cropped, fill = NA)
+
+
+#selecting a point from each grid cell with trees within them
+SD_list_grids_and_points <- st_contains(SD_tree_grid_cropped, SD_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+SD_list_grids_and_trees <- lapply(SD_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
+    tree_pt <- sample(cell, size = 1, replace = F) #randomly select a row from the row of trees within that polygon
+  }
+  else if(length(cell) == 1) { #for each grid cell, if there is exactly one tree in each cell
+    tree_pt <- cell #set the selected tree point to be the tree that is within the cell
+  } else { # if there are no trees
+    tree_pt <- NA # set the focal tree point to be NA
+  }
+  return(tree_pt)
+})
+
+
+#creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
+SD_list_grids_and_point_trees_df <- as.data.frame(unlist(SD_list_grids_and_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
+colnames(SD_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
+SD_list_grids_and_trees_fixed <- SD_list_grids_and_point_trees_df %>% #filters out grid cells that do not have trees within them
+  mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree.    #cell_num = row_number()
+  mutate(data_row = SD_fixed_field_data_processed$X[tree_row_num]) %>% #adding a column that writes the real row number the focal tree is in the overall data
+  filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
+
+
+#filtering out point data to be just the focal points
+SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_soils %>%
+  filter(X_sequential %in% SD_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = SD_tree_grid_cropped)+
+  geom_sf(data= SD_fixed_field_data_processed_sf)+
+  geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red")
+
+
+#combining the LM, LC, and SD tree randomly chosen tree point data into one dataframe
+
+fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, SD_fixed_field_data_processed_trees_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+
+#ANOVA comparing mean soil values between population 
+
+##clay 0-5 cm
+
+anova_clay_0_5 <- aov(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5))
+
+# checking to see if residuals are normal
+hist(anova_clay_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content vs. Population")
+
+qqnorm(anova_clay_0_5$residuals) #qqnorm plot
+
+shapiro.test(anova_clay_0_5$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$clay.content.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_clay_0_5 <- tapply(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_clay_0_5, na.rm = T) / min(thumb_test_clay_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#Welch's ANOVA, does not assume equal variances 
+oneway.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+
+tamhaneT2Test(clay.content.0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+
+
+#clay 100-200 
+
+anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))
+table(fixed_field_data_processed_trees_soils$Locality)
+# checking to see if residuals are normal
+hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_clay_100_200$residuals) #qqnorm plot
+
+shapiro.test(anova_clay_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$clay.content.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#Welch's ANOVA, does not assume equal variances 
+
+t.test(fixed_field_data_processed_trees_soils$Locality, fixed_field_data_processed_trees_soils$clay.content.100.200, alternative = "two.sided", var.equal = F)
+
+oneway.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+
+tamhaneT2Test(clay.content.100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+
+
+
+#silt
+  
+#sand
+
+#nitrogen
+
+#ph
+
+#soil organic carbon stock
+
+#volume of water content at -10 kpa
+
+#volume of water content at -1500 kpa
 
 ### Comparing the soil vs. size values ###
 

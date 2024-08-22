@@ -14,6 +14,7 @@ library(car) #to create added variable plots and to run levene's test for checki
 library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 library(npreg) #to use the gsm function for the generalized additive models
+library(starsExtra) #to use dist_to_nearest
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -128,10 +129,31 @@ river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
 
+
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-river_LM_trans <- st_transform(river_LM, crs = 26912) 
-river_LC_trans <- st_transform(river_LC, crs = 26912)
-river_SD_trans <- st_transform(river_SD, crs = 26912)
+river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
+
+#creating buffers around the rivers
+river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
+ggplot()+
+  geom_sf(data = river_buffer_LM)+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+river_buffer_LC<- st_buffer(river_LC_trans, 100) #230 m buffer
+ggplot()+
+  geom_sf(data = river_buffer_LC)+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+river_buffer_SD<- st_buffer(river_SD_trans, 70) #70 m buffer
+ggplot()+
+  geom_sf(data = river_buffer_SD)+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
 
 #creating bounding boxes for each population
 
@@ -392,82 +414,6 @@ ggplot()+
   geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
-
-# loading in data on distance to the river's
-
-#LM
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LM_trans_points <- st_cast(river_LM_trans, "MULTIPOINT") #turns the polyline of the river into a multipoint object
-river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #create raster of lake edge points
-plot(river_LM_trans_point_raster)
-
-river_buffer_LM_points <- st_cast(river_buffer_LM, "MULTIPOINT") #turns the polyline of the river buffer into a multipoint object
-river_buffer_LM_point_raster <- st_rasterize(river_buffer_LM_points) #create raster of lake edge points
-plot(river_buffer_LM_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_LM_inverse)
-
-#creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 30 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 30 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_LM_inverse)
-
-
-#LC
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LC_trans_points <- st_cast(river_LC_trans, "MULTIPOINT") #turns the polyline of the river into a multipoint object
-river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #create raster of lake edge points
-plot(river_LC_trans_point_raster)
-
-river_buffer_LC_points <- st_cast(river_buffer_LC, "MULTIPOINT") #turns the polyline of the river buffer into a multipoint object in stars
-river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #create raster of lake edge points
-plot(river_buffer_LC_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-dist_near_river_buffer_LC_inverse <- 1/dist_near_river_buffer_LC #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_LC_inverse)
-
-#creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_LC_inverse <- dist_near_river_buffer_LC %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 30 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 30 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_LC_inverse)
-
-#SD
-
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_SD_trans_points <- st_cast(river_SD_trans, "MULTIPOINT") #turns the polyline of the river into a multipoint object
-river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #create raster of lake edge points
-plot(river_SD_trans_point_raster)
-
-river_buffer_SD_points <- st_cast(river_buffer_SD, "MULTIPOINT") #turns the polyline of the river buffer into a multipoint object
-river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create raster of lake edge points
-plot(river_buffer_SD_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_SD_inverse)
-
-#creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 60 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 30 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_SD_inverse)
 
 #creating dataframes for each population and the slope and aspect data by extracting the slope and aspect data fromk each cell for each point and combining the data into a dataframe
 
@@ -959,6 +905,22 @@ anova(all_points_multiple_lm_SCA_interacts_simplified_dredge, all_points_multipl
 
 #the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
 
+#checking linearity with elevation
+ggplot(data = all_points_multiple_lm_SCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")
+
+
+#checking linearity with slope
+ggplot(data = all_points_multiple_lm_SCA_simplified, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")
+
+  
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_multiple_lm_SCA_simplified, aes(x= all_points_multiple_lm_SCA_simplified$residuals))+
   geom_histogram()+
@@ -977,12 +939,7 @@ all_points_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FI
 all_points_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 
 shapiro.test(all_points_multiple_lm_SCA_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric test to look at slope, but we could use log to look at the 
-
-# 3d scatterplot, i have not been abel to get it to function with the categorical variable yet
-library(rgl)
-plot3d(Canopy_short ~ Elevation..m.FIXED*all_points_slope_raster_15_data_pts, 
-       data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+#based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric model
 
 #checking equal variance
 ggplot(data = all_points_multiple_lm_SCA_simplified_lg, aes(x = all_points_multiple_lm_SCA_simplified_lg$fitted.values, y = all_points_multiple_lm_SCA_simplified_lg$residuals))+
@@ -1003,7 +960,7 @@ all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_
 # additive model (using all knots)
 all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
-all_points_add.gsm_SCA
+
 summary(all_points_add.gsm_SCA) #summarize the model
 
 #interaction model, difference is the * instead of +
@@ -1021,35 +978,48 @@ Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
 pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
 c(Fstat, pvalue) #not significant, so do not need to consider the itneractions
 
-#plotting additive model results
+#GSM with gamma and inverse guassian
 
-# setup 1 x 2 subplots
-par(mfrow = c(1,2))
+all_points_add.gsm_SCA_gamma <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA), family = "Gamma") 
 
-# get predictor sequences
-xrng <- all_points_add.gsm_SCA$specs$xrng
+all_points_add.gsm_SCA_inv_guass <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                    data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA), family = "inverse.guassian") 
 
-elev.seq <- seq(xrng$Elevation..m.FIXED[1], xrng$Elevation..m.FIXED[2], length.out = 25)
-slope.seq <- seq(xrng$all_points_slope_raster_15_data_pts[1], xrng$all_points_slope_raster_15_data_pts[2], length.out = 25)
-all_points_aspect_raster_15_data_pts_8_categorical.seq <- seq(xrng$all_points_aspect_raster_15_data_pts_8_categorical[1], xrng$all_points_aspect_raster_15_data_pts_8_categorical[2], length.out = 25)
-all_points_add.gsm_SCA$elev
+summary(all_points_add.gsm_SCA_gamma)
 
-# main effect of income
-yhat.elev <- predict(all_points_add.gsm_SCA, newdata = data.frame(elevation = elev.seq),
-                    se.fit = TRUE, terms = "Elevation..m.FIXED")
-plotci(elev.seq, yhat.elev$fit, yhat.elev$se.fit,
-       xlab = "Elevation (m)", ylab = "Short Canopy Axis (m)",
-       main = "Elevation Effect")
-rug(Prestige$income)
 
-# main effect of education
-yhat.edu <- predict(add.gsm, newdata = data.frame(education = edu.seq),
-                    se.fit = TRUE, terms = "education")
-plotci(edu.seq, yhat.edu$fit, yhat.edu$se.fit,
-       xlab = "Education", ylab = "Prestige",
-       main = "Education Effect")
-rug(Prestige$education)
+#GLM model to find regression for non-normal data
 
+#gamma
+all_points_glm_gamma_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                data = all_points_fixed_field_data_processed_terrain_no_NA, family = "Gamma")
+
+
+#inverse guassian, for when dependent variable is even more skewed to the right
+
+all_points_glm_inv_guass_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = "inverse.gaussian")
+  
+#comparing the results
+library(DHARMa)
+library(aod)
+
+summary(all_points_multiple_lm_SCA_simplified)
+summary(all_points_glm_gamma_SCA) #results of gamma family, lower aic
+summary(all_points_glm_inv_guass_SCA) #results of inverse guassian
+
+#testing model fit with ANOVA F test and ANOVA Likelihood Ratio Test
+anova(all_points_glm_gamma_SCA, test = "F")
+anova(all_points_glm_gamma_SCA, test = "LRT")
+
+
+
+
+simulationOutput <- simulateResiduals(fittedModel = all_points_glm_gamma_SCA)
+plot(simulationOutput)
+
+chisq.test(all_points_glm_gamma_SCA)
 
 
 

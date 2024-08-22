@@ -78,7 +78,7 @@ ggplot()+
   theme_light()
 
 
-#New version with ArcGIS shapefiles
+#creating buffers around the rivers
 river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
 ggplot()+
   geom_sf(data = river_buffer_LM)+
