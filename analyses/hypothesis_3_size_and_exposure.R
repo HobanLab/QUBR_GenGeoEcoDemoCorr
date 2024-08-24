@@ -409,8 +409,8 @@ View(LC_fixed_field_data_processed_terrain)
 #SD
 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_15_data_pts))
+  mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == 360) ~  0,
+                                                  (SD_aspect_raster_15_data_pts != 360)~ SD_aspect_raster_15_data_pts))
 View(SD_fixed_field_data_processed_terrain)
 
 # all points
@@ -2112,6 +2112,8 @@ summary(all_points_lm_DBH_elev)
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   drop_na(Canopy_short) %>%
   drop_na(all_points_slope_raster_15_data_pts)
+
+
 
 
 
@@ -5138,4 +5140,138 @@ pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_fiel
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
+
+
+
+#Boxplots to look at LC NW, SW, and N tended to have larger means
+
+#grouping NW, N, SW, and the other directions
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  add_column(LC_aspect_raster_15_data_pts_8_regrouped = NA) %>% #creating a new column to regroup the directions
+  mutate(LC_aspect_raster_15_data_pts_8_regrouped = case_when(LC_aspect_raster_15_data_pts_8_categorical == "NE" ~ "Other", 
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "E" ~  "Other",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "NW" ~ "NW",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "N" ~ "N",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "W" ~ "Other",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "SW" ~ "SW",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "S" ~ "Other",
+                                                              LC_aspect_raster_15_data_pts_8_categorical == "SE" ~ "Other",
+                                                              ))
+
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_regrouped, y = Canopy_short))+
+  xlab("Direction")+
+  ylab("Short Canopy Axis")
+
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_regrouped, y = Canopy_long))+
+  xlab("Direction")+
+  ylab("Long Canopy Axis")
+
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_regrouped, y = Canopy_area))+
+  xlab("Direction")+
+  ylab("Canopy Area")
+
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_regrouped, y = Crown_spread))+
+  xlab("Direction")+
+  ylab("Crown Spread")
+
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_regrouped, y = DBH_ag))+
+  xlab("Direction")+
+  ylab("DBH")
+
+
+#Boxplot of SD to look at NE, N, and W tended to have larger means
+
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  add_column(SD_aspect_raster_15_data_pts_8_regrouped = NA) %>% #creating a new column to regroup the directions
+  mutate(SD_aspect_raster_15_data_pts_8_regrouped = case_when(SD_aspect_raster_15_data_pts_8_categorical == "NE" ~ "NE", 
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "E" ~  "Other",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "NW" ~ "Other",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "N" ~ "N",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "W" ~ "W",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "SW" ~ "Other",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "S" ~ "Other",
+                                                              SD_aspect_raster_15_data_pts_8_categorical == "SE" ~ "Other",
+  ))
+
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_regrouped, y = Canopy_short))+
+  xlab("Direction")+
+  ylab("Short Canopy Axis")
+
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_regrouped, y = Canopy_long))+
+  xlab("Direction")+
+  ylab("Long Canopy Axis")
+
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_regrouped, y = Canopy_area))+
+  xlab("Direction")+
+  ylab("Canopy Area")
+
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_regrouped, y = Crown_spread))+
+  xlab("Direction")+
+  ylab("Crown Spread")
+
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+  geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_regrouped, y = DBH_ag))+
+  xlab("Direction")+
+  ylab("DBH")
+
+
+# Plotting size of shape/size values for points in population with coloring based on aspect
+
+# LC
+
+ggplot()+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(size = Canopy_short, color = LC_aspect_raster_15_data_pts_8_regrouped))
+
+ggplot()+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(size = Canopy_long, color = LC_aspect_raster_15_data_pts_8_regrouped))
+
+
+ggplot()+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(size = Canopy_area, color = LC_aspect_raster_15_data_pts_8_regrouped))
+
+ggplot()+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(size = Crown_spread, color = LC_aspect_raster_15_data_pts_8_regrouped))
+
+
+ggplot()+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(size = DBH_ag, color = LC_aspect_raster_15_data_pts_8_regrouped))
+
+
+#SD
+
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = Canopy_short, color = SD_aspect_raster_15_data_pts_8_regrouped))
+
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = Canopy_long, color = SD_aspect_raster_15_data_pts_8_regrouped))
+
+
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = Canopy_area, color = SD_aspect_raster_15_data_pts_8_regrouped))
+
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = Crown_spread, color = SD_aspect_raster_15_data_pts_8_regrouped))
+
+
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = DBH_ag, color = SD_aspect_raster_15_data_pts_8_regrouped))
 

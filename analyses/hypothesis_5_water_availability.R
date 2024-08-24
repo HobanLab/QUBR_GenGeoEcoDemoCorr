@@ -1265,7 +1265,7 @@ SD_fixed_field_data_processed_distance_dbh_no_outliers <- SD_fixed_field_data_pr
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Inverse Distance (m)")+
+  xlab("Distance (m)")+
   ylab("DBH")
 
 #creating the linear regression
@@ -1295,13 +1295,19 @@ SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance_dbh_no_outliers$DB
 #inverse transformations
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ SD_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_distance_dbh_no_outliers, (aes(x=d, y=DBH_ag_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Distance (m)")+
+  ylab("sqrt(DBH)")
 
 #checking normality
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_slr_dist_dbh, aes(x= SD_slr_dist_dbh$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  labs(title = "Distribution of Residuals for DBH vs. Distance (m)")+
   xlab("Residuals")+
   ylab("Frequency")
 
@@ -1318,7 +1324,7 @@ ggplot(data = SD_slr_dist_dbh, aes(x = SD_slr_dist_dbh$fitted.values, y = SD_slr
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for DBH and Inverse Distance")
+  labs(title = "Residuals vs. Fitted Values for DBH and Distance (m)")
 
 #Slope Test visible in summary of the lm
 summary(SD_slr_dist_dbh)

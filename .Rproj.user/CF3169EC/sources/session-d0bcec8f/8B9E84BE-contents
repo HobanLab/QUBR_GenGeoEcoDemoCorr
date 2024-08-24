@@ -138,6 +138,11 @@ vol_wat_33kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kP
 vol_wat_33kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_100-200.tif")) #100-200 cm -33 kpa volumn water content
 vol_wat_1500kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500kPa_0-5.tif"))  #0-5 cm -1500 kpa volumn water content
 vol_wat_1500kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_100-200.tif")) #100-200 cm -1500 kpa volumn water content
+nitrogen_05 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 0-5.tif"))
+nitrogen_200 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 100-200.tif"))
+Soil_Organic_Carbon_05 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 0-5.tif"))
+Soil_Organic_Carbon_200 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 100-200.tif"))
+
 
 #project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
 clay_05_utm <- projectRaster(clay_05, crs=26912) #converting the 0-5 cm clay raster to utm 12
@@ -163,6 +168,10 @@ vol_wat_33kpa_05_utm <- projectRaster(vol_wat_33kpa_05, crs=26912)
 vol_wat_33kpa_200_utm <- projectRaster(vol_wat_33kpa_200, crs=26912)
 vol_wat_1500kpa_05_utm <- projectRaster(vol_wat_1500kpa_05, crs=26912)
 vol_wat_1500kpa_200_utm <- projectRaster(vol_wat_1500kpa_200, crs=26912)
+nitrogen_05_utm <- projectRaster(nitrogen_05, crs=26912)
+nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
+Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
+Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
 
 
 
@@ -195,11 +204,18 @@ vol_wat_1500kpa_05_LM <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_b
 vol_wat_1500kpa_200_LM <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 
 
+nitrogen_05_LM <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+nitrogen_200_LM <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+Soil_Organic_Carbon_05_LM <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+Soil_Organic_Carbon_200_LM <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
+
 #attempt of using ggplot to plot clay layer with river shapefile
 ggplot()+
-  geom_raster(data = as.data.frame(clay_05_LM, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_raster(data = as.data.frame(Soil_Organic_Carbon_05_LM, xy=T), aes(x=x, y=y, fill = SOC.0.5))+
   geom_sf(data = river_LM_trans)+
   geom_sf(data = LM_fixed_field_data_processed)
+
 
 ggplot()+
   geom_raster(data = as.data.frame(ph_200_LM, xy=T), aes(x=x, y=y, fill = ph_100.200))+
@@ -212,6 +228,7 @@ soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_
                        cat_ex_cap_05_LM, cat_ex_cap_200_LM, bulk_dens_05_LM, bulk_dens_200_LM, vol_wat_10kpa_05_LM,
                        vol_wat_10kpa_200_LM, vol_wat_33kpa_05_LM, vol_wat_33kpa_200_LM, vol_wat_1500kpa_05_LM, 
                        vol_wat_1500kpa_200_LM) 
+soil_stack_LM_extra <- stack(nitrogen_05_LM, nitrogen_200_LM, Soil_Organic_Carbon_05_LM, Soil_Organic_Carbon_200_LM)
 
 
 soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
@@ -221,6 +238,8 @@ plot(soil_stack_LM_soil_text) #version with soil textures
 plot(soil_stack_LM_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
 plot(soil_stack_LM_other) #version with other variables
 plot(soil_stack_LM_other, zlim = c(30, 360)) #version where the plots have the same scale
+plot(soil_stack_LM_extra) #version with other variables
+plot(soil_stack_LM_extra, zlim = c(30, 360)) #version where the plots have the same scale
 
 
 #LC
@@ -249,6 +268,11 @@ vol_wat_33kpa_05_LC <- crop(vol_wat_33kpa_05_utm, extent(LC_box[1]-100, LC_box[3
 vol_wat_33kpa_200_LC <- crop(vol_wat_33kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+nitrogen_05_LC <-  crop(nitrogen_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+nitrogen_200_LC <- crop(nitrogen_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+Soil_Organic_Carbon_05_LC <- crop(Soil_Organic_Carbon_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+Soil_Organic_Carbon_200_LC <- crop(Soil_Organic_Carbon_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+
 
 
 #creating a stack of the raster layers 
@@ -257,12 +281,15 @@ soil_stack_LC_other <- stack(ph_05_LC, ph_200_LC, ocd_05_LC, ocd_200_LC, coarse_
                              cat_ex_cap_05_LC, cat_ex_cap_200_LC, bulk_dens_05_LC, bulk_dens_200_LC, vol_wat_10kpa_05_LC,
                              vol_wat_10kpa_200_LC, vol_wat_33kpa_05_LC, vol_wat_33kpa_200_LC, vol_wat_1500kpa_05_LC, 
                              vol_wat_1500kpa_200_LC) 
+soil_stack_LC_extra <- stack(nitrogen_05_LC, nitrogen_200_LC, Soil_Organic_Carbon_05_LC, Soil_Organic_Carbon_200_LC)
 
 #plotting the stacked rasters
 plot(soil_stack_LC_soil_text) #version with soil textures
 plot(soil_stack_LC_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
 plot(soil_stack_LC_other) #version with other variables
 plot(soil_stack_LC_other, zlim = c(30, 360)) #version where the plots have the same scale
+plot(soil_stack_LC_extra) #version with other variables
+plot(soil_stack_LC_extra, zlim = c(30, 180)) #version where the plots have the same scale
 
 
 #SD
@@ -291,6 +318,10 @@ vol_wat_33kpa_05_SD <- crop(vol_wat_33kpa_05_utm, extent(SD_box[1]-100, SD_box[3
 vol_wat_33kpa_200_SD <- crop(vol_wat_33kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 vol_wat_1500kpa_05_SD <- crop(vol_wat_1500kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 vol_wat_1500kpa_200_SD <- crop(vol_wat_1500kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+nitrogen_05_SD <-  crop(nitrogen_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+nitrogen_200_SD <- crop(nitrogen_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+Soil_Organic_Carbon_05_SD <- crop(Soil_Organic_Carbon_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
+Soil_Organic_Carbon_200_SD <- crop(Soil_Organic_Carbon_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 
 
 #creating a stack of the raster layers
@@ -299,13 +330,16 @@ soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_
                              cat_ex_cap_05_SD, cat_ex_cap_200_SD, bulk_dens_05_SD, bulk_dens_200_SD, vol_wat_10kpa_05_SD,
                              vol_wat_10kpa_200_SD, vol_wat_33kpa_05_SD, vol_wat_33kpa_200_SD, vol_wat_1500kpa_05_SD, 
                              vol_wat_1500kpa_200_SD) 
-
+soil_stack_SD_extra <- stack(nitrogen_05_SD, nitrogen_200_SD,Soil_Organic_Carbon_05_SD,  Soil_Organic_Carbon_200_SD)
 
 #plotting the stacked rasters
 plot(soil_stack_SD_soil_text)
 plot(soil_stack_SD_soil_text, zlim = c(130, 710)) #version where the plots have the same scale
 plot(soil_stack_SD_other)
 plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the same scale
+plot(soil_stack_SD_extra)
+plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the same scale
+
 
 #creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
 
@@ -326,21 +360,29 @@ SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
 #LM
 LM_soil_text_raster_250_data_pts <- extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
 LM_soil_other_raster_250_data_pts <- extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
+LM_soil_extra_raster_250_data_pts <- extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
+
 
 #LC
 LC_soil_text_raster_250_data_pts <- extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
 LC_soil_other_raster_250_data_pts <- extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
+LC_soil_extra_raster_250_data_pts <- extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 
 #SD
 SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
 SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
+SD_soil_extra_raster_250_data_pts <- extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
+
 
 ### Comparing the soil metrics between populations ###
 
@@ -488,6 +530,11 @@ ggplot()+
 fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
 fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, SD_fixed_field_data_processed_trees_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
+
+#creating a locality as factor column to be able to use Tamhane's T2 Test later
+fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_data_processed_trees_soils$Locality)
+
+
 #ANOVA comparing mean soil values between population 
 
 ##clay 0-5 cm
@@ -530,14 +577,14 @@ oneway.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees
 tamhaneT2Test(clay.content.0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
 
 
-#clay 100-200 
+##clay 100-200 
 
 anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
 
 #boxplots to show the spread of data
 ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))
-table(fixed_field_data_processed_trees_soils$Locality)
+
 # checking to see if residuals are normal
 hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
 
@@ -560,33 +607,620 @@ leveneTest(fixed_field_data_processed_trees_soils$clay.content.100.200 ~ fixed_f
 thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
 max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+#based on the shaprio test and fligner-killeen test, the data does not meet the condition of normal residuals and equal variance, meaning we will use a Kruskal-Wallis test
+
+#kruskall wallis test
+kruskal.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+#silt 0-5
+
+anova_silt_0_5 <- aov(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))
+
+# checking to see if residuals are normal
+hist(anova_silt_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_silt_0_5$residuals) #qqnorm plot
+
+shapiro.test(anova_silt_0_5$residuals) #Shapiro-Wilk test, significant, meaning residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils) #not significant so semi equal variance
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$silt.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_silt_0_5 <- tapply(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_silt_0_5, na.rm = T) / min(thumb_test_silt_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shaprio test, the data does not meet the condition of normal residuals, meaning we will use a Kruskal-Wallis test
+
+#kruskall wallis test
+kruskal.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
+##silt 100-200
+
+anova_silt_100_200 <- aov(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))
+
+# checking to see if residuals are normal
+hist(anova_silt_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_silt_100_200$residuals) #qqnorm plot
+
+shapiro.test(anova_silt_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$silt.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
+
+#ANOVA test 
+anova(anova_silt_100_200)
+
+#post-hoc pairwise t tests
+
+pairwise.t.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
+
+  
+##sand  0-5 
+
+anova_sand_0_5 <- aov(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))
+
+# checking to see if residuals are normal
+hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_sand_0_5$residuals) #qqnorm plot
+
+shapiro.test(anova_sand_0_5$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$sand.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_sand_0_5 <- tapply(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_sand_0_5, na.rm = T) / min(thumb_test_sand_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
+
+#ANOVA test 
+anova(anova_sand_0_5)
+
+#post-hoc pairwise t tests
+
+pairwise.t.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
+
+
+## sand 100-200
+
+anova_sand_100_200 <- aov(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))
+
+# checking to see if residuals are normal
+hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_sand_100_200$residuals) #qqnorm plot
+
+shapiro.test(anova_sand_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$sand.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_sand_100_200 <- tapply(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_sand_100_200, na.rm = T) / min(thumb_test_sand_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the fligner-killeen test, the data appears to meet he equal variance condition, so we will use the welch's anova and tamhane's t2 post hoc test
 
 #Welch's ANOVA, does not assume equal variances 
-
-t.test(fixed_field_data_processed_trees_soils$Locality, fixed_field_data_processed_trees_soils$clay.content.100.200, alternative = "two.sided", var.equal = F)
-
-oneway.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+oneway.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
 
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 
-tamhaneT2Test(clay.content.100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+tamhaneT2Test(sand.100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
 
 
 
-#silt
-  
-#sand
+## ph 0-5
 
-#nitrogen
+anova_ph_0_5 <- aov(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
 
-#ph
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))
 
-#soil organic carbon stock
+# checking to see if residuals are normal
+hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
 
-#volume of water content at -10 kpa
+qqnorm(anova_ph_0_5$residuals) #qqnorm plot
 
-#volume of water content at -1500 kpa
+shapiro.test(anova_ph_0_5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$ph_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
+
+#kruskall wallis test
+kruskal.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
+##ph 100-200
+
+anova_ph_100_200 <- aov(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))
+
+# checking to see if residuals are normal
+hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_ph_100_200$residuals) #qqnorm plot
+
+shapiro.test(anova_ph_100_200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$ph_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
+
+#kruskall wallis test
+kruskal.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
+##soil organic carbon 0-5
+
+anova_soc_0_5 <- aov(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5))
+
+# checking to see if residuals are normal
+hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+qqnorm(anova_soc_0_5$residuals) #qqnorm plot
+
+shapiro.test(anova_soc_0_5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$SOC.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_soc_0_5 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_soc_0_5, na.rm = T) / min(thumb_test_soc_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
+
+#kruskall wallis test
+kruskal.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+#soil organic carbon 100-200
+
+anova_soc_100_200 <- aov(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200))
+
+# checking to see if residuals are normal
+hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_soc_100_200$residuals) #qqnorm plot
+
+shapiro.test(anova_soc_100_200$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$SOC.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_soc_100_200 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_soc_100_200, na.rm = T) / min(thumb_test_soc_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data meets the conditions and we can use a regular ANOVA and pairwise t test
+
+#ANOVA test 
+anova(anova_soc_100_200)
+
+#post-hoc pairwise t tests
+
+pairwise.t.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
+
+
+#volume of water content at -10 kpa 0-5
+
+anova_vol_water_10_0.5 <- aov(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5))
+
+# checking to see if residuals are normal
+hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_vol_water_10_0.5$residuals) #qqnorm plot
+
+shapiro.test(anova_vol_water_10_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_vol_water_10_0.5 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_vol_water_10_0.5, na.rm = T) / min(thumb_test_vol_water_10_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
+
+#kruskall wallis test
+kruskal.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
+#volume of water content at -10 kpa 100-200
+
+anova_vol_water_10_100.200 <- aov(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200))
+
+# checking to see if residuals are normal
+hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_vol_water_10_100.200$residuals) #qqnorm plot
+
+shapiro.test(anova_vol_water_10_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_vol_water_10_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_vol_water_10_100.200, na.rm = T) / min(thumb_test_vol_water_10_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
+
+#kruskall wallis test
+kruskal.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
+#volume of water content at -1500 kpa 0-5
+
+anova_vol_water_1500_0.5 <- aov(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5))
+
+# checking to see if residuals are normal
+hist(anova_vol_water_1500_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_vol_water_1500_0.5$residuals) #qqnorm plot
+
+shapiro.test(anova_vol_water_1500_0.5$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_vol_water_1500_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_vol_water_1500_0.5, na.rm = T) / min(thumb_test_vol_water_1500_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data meets the condition of normal residuals but not equal variance so we will use a welch's anova and tamhanes t2 posthoc test
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#Welch's ANOVA, does not assume equal variances 
+oneway.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+
+tamhaneT2Test(vol_water_.1500kPa_0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+
+
+#volume of water content at -1500 kpa 100-200
+
+anova_vol_water_1500_100.200 <- aov(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200))
+
+# checking to see if residuals are normal
+hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_vol_water_1500_100.200$residuals) #qqnorm plot
+
+shapiro.test(anova_vol_water_1500_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_vol_water_1500_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_vol_water_1500_100.200, na.rm = T) / min(thumb_test_vol_water_1500_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#kruskall wallis test
+kruskal.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+#nitrogen 05-
+
+anova_nitrogen_0.5 <- aov(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5))
+
+# checking to see if residuals are normal
+hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_nitrogen_0.5$residuals) #qqnorm plot
+
+shapiro.test(anova_nitrogen_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$nitrogen.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_nitrogen_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_nitrogen_0.5, na.rm = T) / min(thumb_test_nitrogen_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#kruskall wallis test
+kruskal.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+# nitrogen 100-200
+
+
+anova_nitrogen_100.200 <- aov(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200))
+
+# checking to see if residuals are normal
+hist(anova_nitrogen_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
+
+qqnorm(anova_nitrogen_100.200$residuals) #qqnorm plot
+
+shapiro.test(anova_nitrogen_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
+
+# checking equal variances with levene's test and rule of thumb
+
+#Fligner-Killeen, more useful when data is not normal or there are outliers 
+fligner.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#bartlett's test for equal variances when data is normal, which in this case it is
+bartlett.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#levene's test, not super robust to strong differences to normality
+leveneTest(fixed_field_data_processed_trees_soils$nitrogen.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
+
+#rule of thumb test
+thumb_test_nitrogen_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
+max(thumb_test_nitrogen_100.200, na.rm = T) / min(thumb_test_nitrogen_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
+
+#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+
+#kruskall wallis test
+kruskal.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200 , fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
 
 ### Comparing the soil vs. size values ###
 
