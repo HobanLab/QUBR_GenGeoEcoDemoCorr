@@ -1247,10 +1247,50 @@ for (i in 1:1000){ #for 1000 permutations
   LM_sca_clay_0.5_slopes <- c(LM_sca_clay_0.5_slopes, LM_sca_clay_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
 }
 
+
+
 #extracting the slope of our points
 LM_sca_clay_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$clay.content.0.5) #creating the linear regression
 LM_sca_clay_0_5_lm_real_sum <- summary(LM_sca_clay_0_5_lm_real) #extract the summary 
 LM_sca_clay_0_5_lm_real_slope <- LM_sca_clay_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_soils, (aes(x=clay.content.0.5, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Clay Content 0-5")+
+  ylab("Canopy Short")
+
+#checking normality
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_sca_clay_0_5_lm_real, aes(x= LM_sca_clay_0_5_lm_real$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Short vs. Clay Content 0-5")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_sca_clay_0_5_lm_real, aes(sample = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_qq()
+
+#shaprio wilk test
+shapiro.test(LM_sca_clay_0_5_lm_real$residuals) #significantly not normal, except when outliers are removed
+
+#checking equal variance
+ggplot(data = LM_sca_clay_0_5_lm_real, aes(x = LM_sca_clay_0_5_lm_real$fitted.values, y = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Clay Content 0-5")
+
+#Slope Test visible in summary of the lm
+summary(LM_sca_clay_0_5_lm_real)
+
+
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1288,6 +1328,38 @@ LM_sca_clay_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_sho
 LM_sca_clay_100_200_lm_real_sum <- summary(LM_sca_clay_100_200_lm_real) #extract the summary 
 LM_sca_clay_100_200_lm_real_slope <- LM_sca_clay_100_200_lm_real_sum$coefficients[2] #storing the slope
 
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_soils, (aes(x=clay.content.100.200, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Clay Content 100-200")+
+  ylab("Canopy Short")
+
+#checking normality
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_sca_clay_100_200_lm_real, aes(x= LM_sca_clay_100_200_lm_real$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Short vs. Clay Content 100-200")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_sca_clay_100_200_lm_real, aes(sample = LM_sca_clay_100_200_lm_real$residuals))+
+  geom_qq()
+
+#shaprio wilk test
+shapiro.test(LM_sca_clay_100_200_lm_real$residuals) #significantly not normal, except when outliers are removed
+
+#checking equal variance
+ggplot(data = LM_sca_clay_100_200_lm_real, aes(x = LM_sca_clay_100_200_lm_real$fitted.values, y = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Clay Content 100-200")
+
+
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
   geom_histogram(aes(x=LM_sca_clay_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
@@ -1322,6 +1394,39 @@ for (i in 1:1000){ #for 1000 permutations
 LM_sca_silt_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$silt.0.5) #creating the linear regression
 LM_sca_silt_0_5_lm_real_sum <- summary(LM_sca_silt_0_5_lm_real) #extract the summary 
 LM_sca_silt_0_5_lm_real_slope <- LM_sca_silt_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_soils, (aes(x=silt.0.5, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Silt Content 0-5")+
+  ylab("Canopy Short")
+
+#checking normality
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_sca_silt_0_5_lm_real, aes(x= LM_sca_silt_0_5_lm_real$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Short vs. Silt Content 0-5")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_sca_silt_0_5_lm_real, aes(sample = LM_sca_silt_0_5_lm_real$residuals))+
+  geom_qq()
+
+#shaprio wilk test
+shapiro.test(LM_sca_silt_0_5_lm_real$residuals) #significantly not normal, except when outliers are removed
+
+#checking equal variance
+ggplot(data = LM_sca_silt_0_5_lm_real, aes(x = LM_sca_silt_0_5_lm_real$fitted.values, y = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Silt Content 0-5")
+
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1359,6 +1464,39 @@ LM_sca_silt_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_sho
 LM_sca_silt_100_200_lm_real_sum <- summary(LM_sca_silt_100_200_lm_real) #extract the summary 
 LM_sca_silt_100_200_lm_real_slope <- LM_sca_silt_100_200_lm_real_sum$coefficients[2] #storing the slope
 
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_soils, (aes(x=silt.100.200, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Silt Content 100-200")+
+  ylab("Canopy Short")
+
+#checking normality
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_sca_silt_100_200_lm_real, aes(x= LM_sca_silt_100_200_lm_real$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Short vs. Silt Content 100-200")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_sca_silt_100_200_lm_real, aes(sample = LM_sca_silt_100_200_lm_real$residuals))+
+  geom_qq()
+
+#shaprio wilk test
+shapiro.test(LM_sca_silt_100_200_lm_real$residuals) #significantly not normal, except when outliers are removed
+
+#checking equal variance
+ggplot(data = LM_sca_silt_100_200_lm_real, aes(x = LM_sca_silt_100_200_lm_real$fitted.values, y = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Silt Content 100-200")
+
+
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
   geom_histogram(aes(x=LM_sca_silt_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
@@ -1394,6 +1532,39 @@ for (i in 1:1000){ #for 1000 permutations
 LM_sca_sand_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$sand.0.5) #creating the linear regression
 LM_sca_sand_0_5_lm_real_sum <- summary(LM_sca_sand_0_5_lm_real) #extract the summary 
 LM_sca_sand_0_5_lm_real_slope <- LM_sca_sand_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = LM_fixed_field_data_processed_soils, (aes(x=sand.0.5, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Sand Content 0-5")+
+  ylab("Canopy Short")
+
+#checking normality
+
+#checking normality of residuals with a histogram and qqnorm plot
+ggplot(LM_sca_sand_0_5_lm_real, aes(x= LM_sca_sand_0_5_lm_real$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Short vs. Sand Content 0-5")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(LM_sca_sand_0_5_lm_real, aes(sample = LM_sca_sand_0_5_lm_real$residuals))+
+  geom_qq()
+
+#shaprio wilk test
+shapiro.test(LM_sca_sand_0_5_lm_real$residuals) #significantly not normal, except when outliers are removed
+
+#checking equal variance
+ggplot(data = LM_sca_sand_0_5_lm_real, aes(x = LM_sca_sand_0_5_lm_real$fitted.values, y = LM_sca_clay_0_5_lm_real$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Sand Content 0-5")
+
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -10022,6 +10193,141 @@ ggplot(Size_Slope_Results.df, aes(x = Sig., fill = interaction(Variable)))+
   geom_bar(position = 'stack')+
   facet_wrap(~Population)+
   theme_minimal()
+
+
+
+### PART 3: Comparing average soil values from inside populations to outside populations ###
+
+#downloading the locations of the 16 known populations
+all_pop_locations.df <- read.csv(file = "./data/All QUBR sites- all sites.csv")
+View(all_pop_locations.df)
+
+
+#transforming the data into shapefiles with either WGS84 
+all_pop_locations.df_sf <- st_as_sf(all_pop_locations.df, 
+                                          coords = c("Classic.Longitude", "Classic.Latitude"), crs = 4326)
+
+#transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
+all_pop_locations.df_sf_transformed <- st_transform(all_pop_locations.df_sf, crs = 26912) # this in UTM 12 N an equal area projection
+
+#create dataframe with X and Y UTM coordinates
+all_pop_locations.df_sf_trans_coords <- st_coordinates(all_pop_locations.df_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
+all_pop_locations.df_sf_trans_coordinates <- all_pop_locations.df_sf_transformed %>%
+  cbind(all_pop_locations.df_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
+# importing the baja sur shapefile in
+
+#turn the BCS polygon into a shapefile and visualize its outline
+BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+BCS_polygon <- st_as_sf(BCS_polygon)
+BCS_polygon_UTM <- st_transform(BCS_polygon, crs = 26912) # this in UTM 12 N an equal area projection
+BCS_polygon_UTM <- st_as_sf(BCS_polygon_UTM)
+
+plot(BCS_polygon_UTM)
+
+#cropping the BCS polygon to just be the southern region 
+BCS_polygon_box <- st_bbox(BCS_polygon_UTM)
+
+
+#creating a cropped bbox 
+BCS_polygon_box_sf <- BCS_polygon_box %>% #turning the bbox into polygon
+  st_as_sfc()
+BCS_polygon_box_spatial <- as(BCS_polygon_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop
+BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((BCS_polygon_box[1]+411199), (BCS_polygon_box[3]), (BCS_polygon_box[2]), (BCS_polygon_box[4]-435999))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+BCS_polygon_box_sf_cropped <-  BCS_polygon_box_spatial_cropped %>% #turning the spatial polygon into a polygon
+  st_as_sfc()
+
+#cropping the points by the cropped box
+BCS_polygon_UTM_cropped<- st_crop(BCS_polygon_UTM, BCS_polygon_box_sf_cropped) #cropping the BCS polygon with the cropped bbox extent
+
+BCS_polygon_UTM_cropped <- BCS_polygon_UTM_cropped %>% #turning the cropped BCS polygon into a sf file
+  st_as_sf
+
+#plotting the original extent and polygon and the cropped extent
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf)+
+  geom_sf(data=BCS_polygon_box_sf_cropped)+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+  
+
+BCS_polygon_UTM_cropped_bbox <- st_bbox(BCS_polygon_UTM_cropped)
+
+
+#crop the soil raster for the southern portion of baja
+
+#using the extent of the box around the rivers to crop the raster for each soil texture layer
+clay_05_all_pop <- crop(clay_05_utm, extent(BCS_polygon_box[1]+1000, BCS_polygon_box[3], BCS_polygon_box[2]-1000, BCS_polygon_box[4]-2000)) 
+clay_200_all_pop <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+silt_05_all_pop <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+silt_200_all_pop <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+sand_05_all_pop <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+sand_200_all_pop <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
+ph_05_all_pop <- crop(ph_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ph_200_all_pop <- crop(ph_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ocd_05_all_pop <- crop(ocd_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+ocd_200_all_pop <- crop(ocd_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+coarse_frag_05_all_pop <- crop(coarse_frag_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+coarse_frag_200_all_pop <- crop(coarse_frag_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+cat_ex_cap_05_all_pop <- crop(cat_ex_cap_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+cat_ex_cap_200_all_pop <- crop(cat_ex_cap_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+bulk_dens_05_all_pop <- crop(bulk_dens_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+bulk_dens_200_all_pop <- crop(bulk_dens_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_10kpa_05_all_pop <- crop(vol_wat_10kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_10kpa_200_all_pop <- crop(vol_wat_10kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_33kpa_05_all_pop <- crop(vol_wat_33kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_33kpa_200_all_pop <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_1500kpa_05_all_pop <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+vol_wat_1500kpa_200_all_pop <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
+
+nitrogen_05_all_pop <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+nitrogen_200_all_pop <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+Soil_Organic_Carbon_05_all_pop <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+Soil_Organic_Carbon_200_all_pop <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
+
+#attempt of using ggplot to plot clay layer with river shapefile
+ggplot()+
+  geom_raster(data = as.data.frame(clay_05_all_pop, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = BCS_polygon_UTM)
+
+
+ggplot()+
+  geom_raster(data = as.data.frame(ph_200_LM, xy=T), aes(x=x, y=y, fill = ph_100.200))+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed)
+
+#creating a stack of the raster layers
+soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
+soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_frag_05_LM, coarse_frag_200_LM, #the stack of all of the other soil variables, with different extents than the soil texture rasters
+                             cat_ex_cap_05_LM, cat_ex_cap_200_LM, bulk_dens_05_LM, bulk_dens_200_LM, vol_wat_10kpa_05_LM,
+                             vol_wat_10kpa_200_LM, vol_wat_33kpa_05_LM, vol_wat_33kpa_200_LM, vol_wat_1500kpa_05_LM, 
+                             vol_wat_1500kpa_200_LM) 
+soil_stack_LM_extra <- stack(nitrogen_05_LM, nitrogen_200_LM, Soil_Organic_Carbon_05_LM, Soil_Organic_Carbon_200_LM)
+
+
+soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
+
+#plotting the stacked rasters
+plot(soil_stack_LM_soil_text) #version with soil textures
+plot(soil_stack_LM_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
+plot(soil_stack_LM_other) #version with other variables
+plot(soil_stack_LM_other, zlim = c(30, 360)) #version where the plots have the same scale
+plot(soil_stack_LM_extra) #version with other variables
+plot(soil_stack_LM_extra, zlim = c(30, 360)) #version where the plots have the same scale
+
+
+
+#extracting the soil data for each point 
+all_known_pop_soil <- extract(soil_stack_LM_soil_text, all_pop_locations.df_sf_trans_coordinates) #extracting soil textures for each point value
+all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil) #bind the soil textures data for each point to the all point point dataframe
+
+
+
 
 
 #BOOSTRAPPING POINTS WITHIN GRID
