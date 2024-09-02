@@ -395,16 +395,18 @@ View(all_points_fixed_field_data_processed_terrain)
   
 #LM
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_15_data_pts))
+  mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == 360) ~  0,
+                                                  (LM_aspect_raster_15_data_pts != 360)~ LM_aspect_raster_15_data_pts))
 View(LM_fixed_field_data_processed_terrain)
 
 #LC
 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_15_data_pts))
+  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0, 
+                                                  (LC_aspect_raster_15_data_pts != "360") ~ LC_aspect_raster_15_data_pts))
+
 View(LC_fixed_field_data_processed_terrain)
+
 
 #SD
 

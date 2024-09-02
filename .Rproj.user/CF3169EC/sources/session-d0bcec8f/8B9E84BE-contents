@@ -577,6 +577,20 @@ oneway.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees
 tamhaneT2Test(clay.content.0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
 
 
+#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
+
+#kruskall wallis test
+kruskal.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+
+#post-hoc Wilcoxon rank sum tests
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "none") #version with no p-value adjustment
+
+pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+
+
 ##clay 100-200 
 
 anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)

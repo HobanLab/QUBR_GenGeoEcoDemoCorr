@@ -10251,14 +10251,14 @@ ggplot()+
   geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
   
-
-BCS_polygon_UTM_cropped_bbox <- st_bbox(BCS_polygon_UTM_cropped)
+#creating a bbox around the cropped BCS file
+BCS_polygon_crop_bbox <- st_bbox(BCS_polygon_UTM_cropped) 
 
 
 #crop the soil raster for the southern portion of baja
 
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_all_pop <- crop(clay_05_utm, extent(BCS_polygon_box[1]+1000, BCS_polygon_box[3], BCS_polygon_box[2]-1000, BCS_polygon_box[4]-2000)) 
+clay_05_all_pop <- crop(clay_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4])) 
 clay_200_all_pop <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 silt_05_all_pop <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 silt_200_all_pop <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
@@ -10282,18 +10282,20 @@ vol_wat_33kpa_200_all_pop <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, L
 vol_wat_1500kpa_05_all_pop <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 vol_wat_1500kpa_200_all_pop <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 
-
 nitrogen_05_all_pop <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 nitrogen_200_all_pop <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 Soil_Organic_Carbon_05_all_pop <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 Soil_Organic_Carbon_200_all_pop <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 
 
+
 #attempt of using ggplot to plot clay layer with river shapefile
 ggplot()+
+  geom_raster(data = as.data.frame(clay_05_utm, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_raster(data = as.data.frame(clay_05_all_pop, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_sf(data = river_LM_trans)+
-  geom_sf(data = BCS_polygon_UTM)
+  geom_sf(data = BCS_polygon_UTM_cropped)
+
 
 
 ggplot()+
