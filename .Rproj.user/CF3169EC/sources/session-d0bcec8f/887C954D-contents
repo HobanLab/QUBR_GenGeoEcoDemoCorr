@@ -141,7 +141,7 @@ LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
 
-###creating the inverse distance
+###creating distance
 
 #LM
 

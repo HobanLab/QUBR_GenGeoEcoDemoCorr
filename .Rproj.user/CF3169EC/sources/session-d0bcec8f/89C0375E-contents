@@ -1501,6 +1501,7 @@ plot(LM_multiple_lm_SCA)
 
 #multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
 LM_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
+LM_multiple_lm_SCA_summary <- summary(LM_multiple_lm_SCA)
 
 #checking to see which variables might be the most useful
 avPlots(LM_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
