@@ -10585,6 +10585,10 @@ soil_stack_cat_ex <- stack(cat_ex_cap_05_all_pop, cat_ex_cap_200_all_pop)  #stac
 soil_stack_bulk_dens <- stack(bulk_dens_05_all_pop, bulk_dens_200_all_pop)  #stacked bulk density
 soil_stack_vol_wat_10kpa <- stack(vol_wat_10kpa_05_all_pop, vol_wat_10kpa_200_all_pop)  #stacked volume water content at 10 kpa
 soil_stack_vol_wat_1500kpa <- stack(vol_wat_1500kpa_05_all_pop, vol_wat_1500kpa_200_all_pop) #stacked volume water content at 1500 kpa
+soil_stack_nitrogen <- stack(nitrogen_05_all_pop, nitrogen_200_all_pop)  #stacked volume water content at 10 kpa
+soil_stack_soc <- stack(Soil_Organic_Carbon_05_all_pop, Soil_Organic_Carbon_200_all_pop)  #stacked volume water content at 10 kpa
+
+
 
 #creating a stack of the raster layers for the southern raster
 
@@ -10597,7 +10601,9 @@ soil_stack_coarse_frag_2 <- stack(coarse_frag_05_all_pop_2, coarse_frag_200_all_
 soil_stack_cat_ex_2 <- stack(cat_ex_cap_05_all_pop_2, cat_ex_cap_200_all_pop_2)  #stacked cation exchange capacity
 soil_stack_bulk_dens_2 <- stack(bulk_dens_05_all_pop_2, bulk_dens_200_all_pop_2) #stacked bulk density
 soil_stack_vol_wat_10kpa_2 <- stack(vol_wat_10kpa_05_all_pop_2, vol_wat_10kpa_200_all_pop_2) #stacked volume water content at 10 kpa
-soil_stack_vol_wat_1500kpa_2 <- stack(vol_wat_1500kpa_05_all_pop_2, vol_wat_1500kpa_200_all_pop_2) #stacked volume water content at 1500 kpa
+soil_stack_vol_wat_1500kpa_2 <- stack(Soil_Organic_Carbon_05_all_pop_2, vol_wat_1500kpa_200_all_pop_2) #stacked volume water content at 1500 kpa
+soil_stack_nitrogen_2 <- stack(nitrogen_05_all_pop_2, nitrogen_200_all_pop_2)  #stacked volume water content at 10 kpa
+soil_stack_soc_2 <- stack(Soil_Organic_Carbon_05_all_pop_2, Soil_Organic_Carbon_200_all_pop_2)  #stacked volume water content at 10 kpa
 
 
 soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
@@ -10619,6 +10625,9 @@ all_known_pop_soil_cat_ex <- extract(soil_stack_cat_ex, all_pop_locations.df_sf_
 all_known_pop_soil_bulk_dens <- extract(soil_stack_bulk_dens, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_nitrogen <- extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_soc <- extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates)
+
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #bind the soil textures data for each point to the all point point dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_silt) #bind the soil textures data for each point to the all point point dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sand) #bind the soil textures data for each point to the all point point dataframe
@@ -10628,6 +10637,8 @@ all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_cat_ex)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_bulk_dens)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_10kpa)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_1500kpa)
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_nitrogen)
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_soc)
 
 View(all_known_pop_soils)
 
@@ -10926,8 +10937,8 @@ ggplot()+
   geom_sf(data=random_16, color ="blue")
 
 #storing the real means
-all_known_ph_0.5_mean <- mean(all_known_pop_soils$ph.0.5)
-all_known_ph_100.200_mean <- mean(all_known_pop_soils$ph.100.200)
+all_known_ph_0.5_mean <- mean(all_known_pop_soils$ph_0.5)
+all_known_ph_100.200_mean <- mean(all_known_pop_soils$ph_100.200)
 
 #for ph 0-5
 
@@ -10943,7 +10954,7 @@ random_ph_0.5_means <- na.omit(random_ph_0.5_means) #remove NAs
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_ph_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_ph_0.5_means[i] > all_known_ph_0.5_mean){
+  if (random_ph_0.5_means[i] < all_known_ph_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -10968,4 +10979,352 @@ for (i in 1:length(random_ph_100.200_means)){ #loop that adds 1 to the value tot
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 (total / length(random_ph_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+Soil_Organic_Carbon_05_all_pop_2 <- crop(Soil_Organic_Carbon_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
+Soil_Organic_Carbon_200_all_pop_2 <- crop(Soil_Organic_Carbon_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
+
+
+
+#soc
+
+#extracting means from randomly selected 16 points 
+
+random_soc_0.5_means <- c() #creating empty list to collect means
+random_soc_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
+  random_16 <- random_16 %>%
+    st_as_sf()
+  random_16_pop_soil_soc <- extract(soil_stack_soc, random_16)
+  random_16_pop_soil_soc_2 <- extract(soil_stack_soc_2, random_16)
+  
+  for (i in 1:length(random_16_pop_soil_soc)){ #adding in the missing soc values from the second raster
+    if (is.na(random_16_pop_soil_soc[i]) == T) { #checking if there are NAs in the list of values
+      random_16_pop_soil_soc[i] = random_16_pop_soil_soc_2[i] #if there are NAs replace iwth value from the other raster
+    }
+  }
+  
+  random_soc_0.5_mean <- mean(random_16_pop_soil_soc[,1]) #storing the mean of the 0-5 value
+  random_soc_100.200_mean <- mean(random_16_pop_soil_soc[,2]) #storing the mean of the 100-200 value
+  
+  random_soc_0.5_means <- c(random_soc_0.5_means, random_soc_0.5_mean) #adding the 0-5 mean to the list of means
+  random_soc_100.200_means <- c(random_soc_100.200_means, random_soc_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf)+
+  geom_sf(data=BCS_polygon_box_sf_cropped)+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_16, color ="blue")
+
+#storing the real means
+all_known_soc_0.5_mean <- mean(all_known_pop_soils$SOC.0.5)
+all_known_soc_100.200_mean <- mean(all_known_pop_soils$SOC.100.200)
+
+#for soc 0-5
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_soc_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_soc_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean soc 0-5 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_soc_0.5_means <- na.omit(random_soc_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_soc_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_soc_0.5_means[i] > all_known_soc_0.5_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_soc_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+#for soc 100-200
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_soc_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_soc_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean soc 100-200 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_soc_100.200_means <- na.omit(random_soc_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_soc_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_soc_100.200_means[i] > all_known_soc_100.200_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_soc_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
+
+#vol_wat_10kpa
+
+#extracting means from randomly selected 16 points 
+
+random_vol_wat_10kpa_0.5_means <- c() #creating empty list to collect means
+random_vol_wat_10kpa_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
+  random_16 <- random_16 %>%
+    st_as_sf()
+  random_16_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, random_16)
+  random_16_pop_soil_vol_wat_10kpa_2 <- extract(soil_stack_vol_wat_10kpa_2, random_16)
+  
+  for (i in 1:length(random_16_pop_soil_vol_wat_10kpa)){ #adding in the missing vol_wat_10kpa values from the second raster
+    if (is.na(random_16_pop_soil_vol_wat_10kpa[i]) == T) { #checking if there are NAs in the list of values
+      random_16_pop_soil_vol_wat_10kpa[i] = random_16_pop_soil_vol_wat_10kpa_2[i] #if there are NAs replace iwth value from the other raster
+    }
+  }
+  
+  random_vol_wat_10kpa_0.5_mean <- mean(random_16_pop_soil_vol_wat_10kpa[,1]) #storing the mean of the 0-5 value
+  random_vol_wat_10kpa_100.200_mean <- mean(random_16_pop_soil_vol_wat_10kpa[,2]) #storing the mean of the 100-200 value
+  
+  random_vol_wat_10kpa_0.5_means <- c(random_vol_wat_10kpa_0.5_means, random_vol_wat_10kpa_0.5_mean) #adding the 0-5 mean to the list of means
+  random_vol_wat_10kpa_100.200_means <- c(random_vol_wat_10kpa_100.200_means, random_vol_wat_10kpa_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf)+
+  geom_sf(data=BCS_polygon_box_sf_cropped)+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_16, color ="blue")
+
+#storing the real means
+all_known_vol_wat_10kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.10_0.5)
+all_known_vol_wat_10kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.10_100.200)
+
+#for vol_wat_10kpa 0-5
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_10kpa_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_10kpa_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_10kpa 0-5 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_vol_wat_10kpa_0.5_means <- na.omit(random_vol_wat_10kpa_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_10kpa_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_10kpa_0.5_means[i] > all_known_vol_wat_10kpa_0.5_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_vol_wat_10kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+#for vol_wat_10kpa 100-200
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_10kpa_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_10kpa_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_10kpa 100-200 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_vol_wat_10kpa_100.200_means <- na.omit(random_vol_wat_10kpa_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_10kpa_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_10kpa_100.200_means[i] > all_known_vol_wat_10kpa_100.200_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_vol_wat_10kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
+#vol_wat_1500kpa
+
+#extracting means from randomly selected 16 points 
+
+random_vol_wat_1500kpa_0.5_means <- c() #creating empty list to collect means
+random_vol_wat_1500kpa_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
+  random_16 <- random_16 %>%
+    st_as_sf()
+  random_16_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, random_16)
+  random_16_pop_soil_vol_wat_1500kpa_2 <- extract(soil_stack_vol_wat_1500kpa_2, random_16)
+  
+  for (i in 1:length(random_16_pop_soil_vol_wat_1500kpa)){ #adding in the missing vol_wat_1500kpa values from the second raster
+    if (is.na(random_16_pop_soil_vol_wat_1500kpa[i]) == T) { #checking if there are NAs in the list of values
+      random_16_pop_soil_vol_wat_1500kpa[i] = random_16_pop_soil_vol_wat_1500kpa_2[i] #if there are NAs replace iwth value from the other raster
+    }
+  }
+  
+  random_vol_wat_1500kpa_0.5_mean <- mean(random_16_pop_soil_vol_wat_1500kpa[,1]) #storing the mean of the 0-5 value
+  random_vol_wat_1500kpa_100.200_mean <- mean(random_16_pop_soil_vol_wat_1500kpa[,2]) #storing the mean of the 100-200 value
+  
+  random_vol_wat_1500kpa_0.5_means <- c(random_vol_wat_1500kpa_0.5_means, random_vol_wat_1500kpa_0.5_mean) #adding the 0-5 mean to the list of means
+  random_vol_wat_1500kpa_100.200_means <- c(random_vol_wat_1500kpa_100.200_means, random_vol_wat_1500kpa_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf)+
+  geom_sf(data=BCS_polygon_box_sf_cropped)+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_16, color ="blue")
+
+#storing the real means
+all_known_vol_wat_1500kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.10_0.5)
+all_known_vol_wat_1500kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.10_100.200)
+
+#for vol_wat_1500kpa 0-5
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_1500kpa_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_1500kpa_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_1500kpa 0-5 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_vol_wat_1500kpa_0.5_means <- na.omit(random_vol_wat_1500kpa_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_1500kpa_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_1500kpa_0.5_means[i] > all_known_vol_wat_1500kpa_0.5_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_vol_wat_1500kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+#for vol_wat_1500kpa 100-200
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_1500kpa_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_1500kpa_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_1500kpa 100-200 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_vol_wat_1500kpa_100.200_means <- na.omit(random_vol_wat_1500kpa_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_1500kpa_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_1500kpa_100.200_means[i] > all_known_vol_wat_1500kpa_100.200_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_vol_wat_1500kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
+#nitrogen
+
+#extracting means from randomly selected 16 points 
+
+random_nitrogen_0.5_means <- c() #creating empty list to collect means
+random_nitrogen_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
+  random_16 <- random_16 %>%
+    st_as_sf()
+  random_16_pop_soil_nitrogen <- extract(soil_stack_nitrogen, random_16)
+  random_16_pop_soil_nitrogen_2 <- extract(soil_stack_nitrogen_2, random_16)
+  
+  for (i in 1:length(random_16_pop_soil_nitrogen)){ #adding in the missing nitrogen values from the second raster
+    if (is.na(random_16_pop_soil_nitrogen[i]) == T) { #checking if there are NAs in the list of values
+      random_16_pop_soil_nitrogen[i] = random_16_pop_soil_nitrogen_2[i] #if there are NAs replace iwth value from the other raster
+    }
+  }
+  
+  random_nitrogen_0.5_mean <- mean(random_16_pop_soil_nitrogen[,1]) #storing the mean of the 0-5 value
+  random_nitrogen_100.200_mean <- mean(random_16_pop_soil_nitrogen[,2]) #storing the mean of the 100-200 value
+  
+  random_nitrogen_0.5_means <- c(random_nitrogen_0.5_means, random_nitrogen_0.5_mean) #adding the 0-5 mean to the list of means
+  random_nitrogen_100.200_means <- c(random_nitrogen_100.200_means, random_nitrogen_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf)+
+  geom_sf(data=BCS_polygon_box_sf_cropped)+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_16, color ="blue")
+
+#storing the real means
+all_known_nitrogen_0.5_mean <- mean(all_known_pop_soils$nitrogen.0.5)
+all_known_nitrogen_100.200_mean <- mean(all_known_pop_soils$nitrogen.100.200)
+
+#for nitrogen 0-5
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_nitrogen_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_nitrogen_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean nitrogen 0-5 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_nitrogen_0.5_means <- na.omit(random_nitrogen_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_nitrogen_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_nitrogen_0.5_means[i] > all_known_nitrogen_0.5_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_nitrogen_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+#for nitrogen 100-200
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_nitrogen_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_nitrogen_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean nitrogen 100-200 of Random Populations vs.Known Populations (n=16)")+
+  theme_classic()
+
+random_nitrogen_100.200_means <- na.omit(random_nitrogen_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_nitrogen_100.200_means[i] > all_known_nitrogen_100.200_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+(total / length(random_nitrogen_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
+
+
+
+
+
 
