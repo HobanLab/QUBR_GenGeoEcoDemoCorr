@@ -1,5 +1,0 @@
-"0","plot(v1)
-"
-"2","Error in h(simpleError(msg, call)) : 
-  error in evaluating the argument 'x' in selecting a method for function 'plot': object 'v1' not found
-"

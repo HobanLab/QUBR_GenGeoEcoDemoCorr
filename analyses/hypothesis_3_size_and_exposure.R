@@ -229,14 +229,22 @@ SD_box <- st_bbox(river_SD_trans)
 # writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
 
 #HERE IS THE IMPORTATION OF THE CROPPED RASTERS
-
-#Importing the cropped rasters for LM, LC, and SD
+r <- rast() 
+crs(r)
+#Importing the cropped rasters for LM, LC, and SD and setting crs
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912")
+
 CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912")
+
 CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912")
 
 #creating the all points raster by merging the LM, LC, and SD rasters
 CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
+
+
 
 ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
@@ -320,9 +328,9 @@ ggplot()+
 #extracting the aspect in degrees, using the queens method (neighbor = 8)
 LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'aspect')
 
-#plot the slopes
+#plot the aspects
 ggplot()+
-  geom_raster(data= as.data.frame(LC_aspect_raster_50, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
   geom_sf(data = LC_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
@@ -398,15 +406,20 @@ LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %
   mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == 360) ~  0,
                                                   (LM_aspect_raster_15_data_pts != 360)~ LM_aspect_raster_15_data_pts))
 View(LM_fixed_field_data_processed_terrain)
+summary(LM_fixed_field_data_processed_terrain)
 
 #LC
 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0, 
-                                                  (LC_aspect_raster_15_data_pts != "360") ~ LC_aspect_raster_15_data_pts))
+  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == 360) ~  0, 
+                                                  (LC_aspect_raster_15_data_pts != 360) ~ LC_aspect_raster_15_data_pts))
 
 View(LC_fixed_field_data_processed_terrain)
+summary(LC_fixed_field_data_processed_terrain)
 
+tmp <- LC_fixed_field_data_processed_terrain %>%
+  filter(QUBR_ID %in% c("LC_153", "LC_073", "LC_217")) %>%
+  dplyr::select(LC_aspect_raster_15_data_pts)
 
 #SD
 

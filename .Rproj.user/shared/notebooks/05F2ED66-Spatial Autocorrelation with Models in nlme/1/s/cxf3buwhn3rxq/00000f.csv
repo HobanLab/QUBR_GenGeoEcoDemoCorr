@@ -1,5 +1,0 @@
-"0","summary(model_lme)
-"
-"2","Error in h(simpleError(msg, call)) : 
-  error in evaluating the argument 'object' in selecting a method for function 'summary': object 'model_lme' not found
-"

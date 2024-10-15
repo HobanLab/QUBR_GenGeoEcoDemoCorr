@@ -1,4 +1,0 @@
-"0","coordinates <- tract_data[, c(""X"", ""Y"")]
-"
-"2","Error: object 'tract_data' not found
-"
