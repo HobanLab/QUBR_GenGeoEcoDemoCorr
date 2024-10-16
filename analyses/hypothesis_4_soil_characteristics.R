@@ -441,7 +441,7 @@ ggplot()+
   geom_raster(data= as.data.frame(soil_stack_LC_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_sf(data = LC_tree_grid_cropped, fill = NA)
 
-
+####NOTE FROM ASH:I DONT THINK THIS CODE WORKS RIGHT NOW CORRECTLY BC THE ST_CONTAINS NEEDS TO BE THE CROPPED RASTER AND THEN ALL OF THE TREE DATA FOR THE ROW CALLS TO WORK CORRECTLY#####
 #selecting a point from each grid cell with trees within them
 LC_list_grids_and_points <- st_contains(LC_tree_grid_cropped, LC_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
 set.seed(24) #setting the seed
