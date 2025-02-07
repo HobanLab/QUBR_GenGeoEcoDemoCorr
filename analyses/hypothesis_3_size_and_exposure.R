@@ -90,7 +90,7 @@ fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_s
                                         (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
-View(fixed_field_data_processed_sf_trans_coordinates)
+
 #creating a new elevation column so the values that were mistakenly put in feet are in meters
 LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
@@ -243,7 +243,6 @@ terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912")
 
 #creating the all points raster by merging the LM, LC, and SD rasters
 CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
-
 
 
 ggplot()+
@@ -575,7 +574,6 @@ ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base pl
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
-
 
 ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
   geom_histogram(aes(x = DBH_ag))+
@@ -1011,7 +1009,6 @@ influential
 fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(16, 49, 64, 77, 87, 93, 122, 149, 157, 164, 172, 201, 203, 205, 207, 213, 238, 239, 241, 242, 243, 
                                                                                                                      245, 266, 273, 287, 288, 290, 296, 300, 303, 320, 325, 335, 351, 355, 356, 358, 360, 361, 366,
                                                                                                                      380, 429, 585, 620, 632),]
-
 
 #creating the linear regression
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
@@ -2119,6 +2116,9 @@ ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.valu
 #Slope Test visible in summary of the lm
 summary(all_points_lm_DBH_elev)
 
+
+
+
 ### linear models comparing slope to size/shape ###
 
 #all points 
@@ -2127,9 +2127,6 @@ summary(all_points_lm_DBH_elev)
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   drop_na(Canopy_short) %>%
   drop_na(all_points_slope_raster_15_data_pts)
-
-
-
 
 
 #short canopy axis

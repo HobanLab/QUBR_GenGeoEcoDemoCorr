@@ -15,6 +15,8 @@ library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 library(npreg) #to use the gsm function for the generalized additive models
 library(starsExtra) #to use dist_to_nearest
+library(MuMIn) #to use the dredge function
+library(rpart) #to use the function rpart to check recurissive binary
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -806,6 +808,14 @@ View(field_data_summarized)
 
 # all points 
 
+#Cook's D
+plot(all_points_multiple_lm_SCA)
+all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
+plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
 #had to remove points 174 and 175 because they had NAs in the slope data and there was a NA in elevation we needed to remove to continue the analysis
 all_points_fixed_field_data_processed_terrain_no_NA <- all_points_fixed_field_data_processed_terrain %>%
   filter(is.na(all_points_slope_raster_15_data_pts) == F) %>%
@@ -816,21 +826,11 @@ View(all_points_fixed_field_data_processed_terrain_no_NA)
 
 # SCA
 
-plot(all_points_multiple_lm_SCA)
-
-#Cook's D
-all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
+all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #removing outliers based on which points were deemed influential
 all_points_fixed_field_data_processed_terrain_no_NA_No_outliers <- all_points_fixed_field_data_processed_terrain_no_NA[-c(15, 24,26,27),]
-
-
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #checking to see which variables might be the most useful
 avPlots(all_points_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
@@ -961,6 +961,7 @@ all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_
 all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
 
+
 summary(all_points_add.gsm_SCA) #summarize the model
 
 #interaction model, difference is the * instead of +
@@ -976,7 +977,7 @@ sse.dif <- all_points_add.gsm_SCA$deviance - all_points_add.gsm_SCA_interact$dev
 df.dif <- all_points_add.gsm_SCA_interact$df - all_points_add.gsm_SCA$df
 Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
 pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
-c(Fstat, pvalue) #not significant, so do not need to consider the itneractions
+c(Fstat, pvalue) #not significant, so do not need to consider the interactions
 
 #GSM with gamma and inverse guassian
 
@@ -1006,21 +1007,31 @@ library(DHARMa)
 library(aod)
 
 summary(all_points_multiple_lm_SCA_simplified)
-summary(all_points_glm_gamma_SCA) #results of gamma family, lower aic
-summary(all_points_glm_inv_guass_SCA) #results of inverse guassian
+all_points_glm_gamma_SCA_summary <- summary(all_points_glm_gamma_SCA) #results of gamma family, lower aic
+all_points_glm_inv_guass_SCA_SCA_summary <- summary(all_points_glm_inv_guass_SCA) #results of inverse guassian
 
 #testing model fit with ANOVA F test and ANOVA Likelihood Ratio Test
 anova(all_points_glm_gamma_SCA, test = "F")
 anova(all_points_glm_gamma_SCA, test = "LRT")
 
+#deviance test, high value means good fit
+1 - pchisq(deviance(all_points_glm_gamma_SCA_summary), df.residual(all_points_glm_gamma_SCA_summary))
 
+# Attempt at using the Pearson chi-square statistic to determine the goodness of fit of the model, high value is good fit
 
+# Compute Pearson chi-square statistic
+pearson_chi_sq <- sum(residuals(all_points_glm_gamma_SCA, type = "pearson")^2)
 
-simulationOutput <- simulateResiduals(fittedModel = all_points_glm_gamma_SCA)
-plot(simulationOutput)
+# Get degrees of freedom
+df <- df.residual(all_points_glm_gamma_SCA)
 
-chisq.test(all_points_glm_gamma_SCA)
+# Compute p-value
+p_value <- pchisq(pearson_chi_sq, df, lower.tail = F)
 
+# Print results
+cat("Pearson Chi-Square Statistic:", pearson_chi_sq, "\n")
+cat("Degrees of Freedom:", df, "\n")
+cat("P-value:", p_value, "\n")
 
 
 # LCA
