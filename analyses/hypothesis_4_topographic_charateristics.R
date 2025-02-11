@@ -287,5 +287,90 @@ ggplot()+
 
 all_data_processed_with_topo_thinned <- rbind(LM_data_processed_with_topo_thinned, LC_data_processed_with_topo_thinned, SD_data_processed_with_topo_thinned)
 
-
+all_data_processed_with_topo_thinned %>%
+  group_by(Locality)%>%
+  summarize(n=n())
 ### Comparing the soil metrics between populations ###
+
+##elevation##
+kruskal.test(elev ~ Locality, data = all_data_processed_with_topo_thinned)
+
+pairwise.wilcox.test(all_data_processed_with_topo_thinned$elev, all_data_processed_with_topo_thinned$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = all_data_processed_with_topo_thinned, aes(Locality,elev))+
+  theme_minimal()
+
+
+##slope##
+kruskal.test(slope ~ Locality, data = all_data_processed_with_topo_thinned)
+
+pairwise.wilcox.test(all_data_processed_with_topo_thinned$slope, all_data_processed_with_topo_thinned$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+ggplot()+
+  geom_boxplot(data = all_data_processed_with_topo_thinned, aes(Locality,slope))+
+  theme_minimal()
+
+##aspect##
+kruskal.test(aspect ~ Locality, data = all_data_processed_with_topo_thinned)
+
+pairwise.wilcox.test(all_data_processed_with_topo_thinned$aspect, all_data_processed_with_topo_thinned$Locality,
+                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+
+ggplot()+
+  geom_boxplot(data = all_data_processed_with_topo_thinned, aes(Locality,aspect))+
+  theme_minimal()
+
+
+###Now doing nearly the same thing with distance to river####
+#upload ArcGIS river shapefile and filter out polygons for each population
+river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+river_LM  <- river_LM$geometry[1]
+
+river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+river_LC  <- river_LC$geometry[1]
+
+river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+river_SD <- river_SD$geometry[1]
+
+#changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
+
+
+#calc distance between each SD point and the closest point on the SD river raster, not including those inside (given a value of 0)
+LM_river_dists <- st_distance(LM_fixed_field_data_processed,river_LM_trans)
+LM_fixed_field_data_processed <- cbind(LM_fixed_field_data_processed, LM_river_dists) %>%
+  rename(dist_to_river = LM_river_dists)
+
+
+LC_river_dists <- st_distance(LC_fixed_field_data_processed,river_LC_trans)
+LC_fixed_field_data_processed <- cbind(LC_fixed_field_data_processed, LC_river_dists) %>%
+  rename(dist_to_river = LC_river_dists)
+
+SD_river_dists <- st_distance(SD_fixed_field_data_processed,river_SD_trans)
+SD_fixed_field_data_processed <- cbind(SD_fixed_field_data_processed, SD_river_dists) %>%
+  rename(dist_to_river = SD_river_dists)
+
+
+all_fixed_field_data_processed_with_river <- rbind(LM_fixed_field_data_processed, LC_fixed_field_data_processed, SD_fixed_field_data_processed) %>%
+  mutate(dist_to_river = as.numeric(dist_to_river))
+
+
+#staistical test# 
+#ANOVA
+##aspect##
+dist_aov <- aov(dist_to_river ~ Locality, data = all_fixed_field_data_processed_with_river)
+
+summary(dist_aov)
+
+#Welch's ANOVA, does not assume equal variances 
+tukey_hsd(dist_aov)
+
+ggplot()+
+  geom_boxplot(data = all_fixed_field_data_processed_with_river, aes(Locality,dist_to_river))+
+  theme_minimal()
