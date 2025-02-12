@@ -826,11 +826,11 @@ View(all_points_fixed_field_data_processed_terrain_no_NA)
 
 # SCA
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
-
 #removing outliers based on which points were deemed influential
 all_points_fixed_field_data_processed_terrain_no_NA_No_outliers <- all_points_fixed_field_data_processed_terrain_no_NA[-c(15, 24,26,27),]
+
+#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
+all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
 #checking to see which variables might be the most useful
 avPlots(all_points_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
@@ -912,7 +912,6 @@ ggplot(data = all_points_multiple_lm_SCA_simplified, (aes(x=Elevation..m.FIXED, 
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-
 #checking linearity with slope
 ggplot(data = all_points_multiple_lm_SCA_simplified, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
@@ -920,6 +919,23 @@ ggplot(data = all_points_multiple_lm_SCA_simplified, (aes(x=all_points_slope_ras
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
+#checking linearity by category
+all_points_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
+  #elevation
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+
+  #slope
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
   
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_multiple_lm_SCA_simplified, aes(x= all_points_multiple_lm_SCA_simplified$residuals))+
@@ -957,7 +973,28 @@ all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_
 #Because I could not get transformations and outliers to help the data meet the condition of normalized residuals, we will be using a generalized additive model (nonparametric)
 #I am still using the best model: all_points_multiple_lm_SCA_simplified
 
-# additive model (using all knots)
+#additive model
+library(mgcv)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+             data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                             data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#checking overall fit and potential issues
+gam.check(all_points_add.gam_SCA) 
+gam.check(all_points_add.gam_SCA_interact)
+
+#comparing the model's GCV value
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA_interact)
+
+#slimming down the variables in the interaction model
+dredge <- dredge(all_points_add.gam_SCA) #using the dredge model to narro the models down to the best choice
+dredge[1,] #extracting the best model
+
+#The first model has a lower 
+
+# generalized smooth model (using all knots)
 all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
 
@@ -977,7 +1014,8 @@ sse.dif <- all_points_add.gsm_SCA$deviance - all_points_add.gsm_SCA_interact$dev
 df.dif <- all_points_add.gsm_SCA_interact$df - all_points_add.gsm_SCA$df
 Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
 pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
-c(Fstat, pvalue) #not significant, so do not need to consider the interactions
+Fstat
+pvalue #not significant, so do not need to consider the interactions
 
 #GSM with gamma and inverse guassian
 
@@ -992,30 +1030,40 @@ summary(all_points_add.gsm_SCA_gamma)
 
 #GLM model to find regression for non-normal data
 
+library(DHARMa)
+library(aod)
+
 #gamma
 all_points_glm_gamma_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                 data = all_points_fixed_field_data_processed_terrain_no_NA, family = "Gamma")
 
 
 #inverse guassian, for when dependent variable is even more skewed to the right
-
 all_points_glm_inv_guass_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                     data = all_points_fixed_field_data_processed_terrain_no_NA, family = "inverse.gaussian")
   
 #comparing the results
-library(DHARMa)
-library(aod)
-
 summary(all_points_multiple_lm_SCA_simplified)
 all_points_glm_gamma_SCA_summary <- summary(all_points_glm_gamma_SCA) #results of gamma family, lower aic
 all_points_glm_inv_guass_SCA_SCA_summary <- summary(all_points_glm_inv_guass_SCA) #results of inverse guassian
 
+    #the gamma model has a lower AIC value, stronger model
+
 #testing model fit with ANOVA F test and ANOVA Likelihood Ratio Test
 anova(all_points_glm_gamma_SCA, test = "F")
 anova(all_points_glm_gamma_SCA, test = "LRT")
+anova(all_points_glm_gamma_SCA, test = "F")
+anova(all_points_glm_gamma_SCA, test = "Chisq")
+
+#dredging to see if there is a better simplified model
+dredge <- dredge(all_points_glm_gamma_SCA) #using the dredge model to narro the models down to the best choice
+dredge[1,] #extracting the best model
+
+#best result: all_points_glm_gamma_SCA
 
 #deviance test, high value means good fit
 1 - pchisq(deviance(all_points_glm_gamma_SCA_summary), df.residual(all_points_glm_gamma_SCA_summary))
+#good when it is approximately 1, small suggests not fitting weel
 
 # Attempt at using the Pearson chi-square statistic to determine the goodness of fit of the model, high value is good fit
 
@@ -1031,7 +1079,7 @@ p_value <- pchisq(pearson_chi_sq, df, lower.tail = F)
 # Print results
 cat("Pearson Chi-Square Statistic:", pearson_chi_sq, "\n")
 cat("Degrees of Freedom:", df, "\n")
-cat("P-value:", p_value, "\n")
+cat("P-value:", p_value, "\n") #failed goodness of fit test
 
 
 # LCA
@@ -1108,6 +1156,31 @@ anova(all_points_multiple_lm_LCA_interacts_simplified_dredge, all_points_multipl
 # Best Model: all_points_multiple_lm_LCA_simplified
 
 #the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
+#checking linearity with elevation
+ggplot(data = all_points_multiple_lm_LCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Long Canopy Axis")
+
+#checking linearity by category
+all_points_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
+#elevation
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Long Canopy Axis")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+
+#slope
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Long Canopy Axis")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_multiple_lm_LCA_simplified, aes(x= all_points_multiple_lm_LCA_simplified$residuals))+
@@ -1173,7 +1246,7 @@ summary(all_points_multiple_lm_CA_simplified) #best model, but still only 5% of 
 anova(all_points_multiple_lm_CA_simplified, all_points_multiple_lm_CA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
 
 #determing interactions with recursive binary partioning and regression tree
-all_points_potential_interactions_CA <- rpart(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
+all_points_potential_interactions_CA <- rpart(Canopy_area ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
                                         all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
 plot(all_points_potential_interactions_CA) # show the tree structure
@@ -1218,6 +1291,31 @@ anova(all_points_multiple_lm_CA_interacts_simplified_dredge, all_points_multiple
 # Best Model: all_points_multiple_lm_CA_simplified
 
 #the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
+#checking linearity with elevation
+ggplot(data = all_points_multiple_lm_CA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Canopy Area")
+
+#checking linearity by category
+all_points_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
+#elevation
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Canopy Area")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+
+#slope
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Canopy Area")+
+  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(all_points_multiple_lm_CA_simplified, aes(x= all_points_multiple_lm_CA_simplified$residuals))+
@@ -1573,6 +1671,31 @@ anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_simplified) #r
 # Best Model: LM_multiple_lm_SCA_simplified
 
 #the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
+
+#checking linearity with elevation
+ggplot(data = LM_multiple_lm_SCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")
+
+#checking linearity by category
+LM_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
+#elevation
+ggplot(data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Elevation (m)")+
+  ylab("Short Canopy Axis")+
+  facet_wrap(~ LM_aspect_raster_15_data_pts_8_categorical) 
+
+#slope
+ggplot(data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=LM_slope_raster_15_data_pts, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Slope (degrees)")+
+  ylab("Short Canopy Axis")+
+  facet_wrap(~ LM_aspect_raster_15_data_pts_8_categorical) 
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_multiple_lm_SCA_simplified, aes(x= LM_multiple_lm_SCA_simplified$residuals))+
