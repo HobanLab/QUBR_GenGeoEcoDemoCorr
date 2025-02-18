@@ -74,8 +74,6 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.))
 
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.))
 
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
 
@@ -87,6 +85,9 @@ LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
 
 SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "SD")
+
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  mutate(Elevation..m. = as.numeric(Elevation..m.))
 
 #creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
 fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
@@ -843,6 +844,29 @@ all_points_multiple_lm_SCA_vif <- car::vif(all_points_multiple_lm_SCA) #variance
 all_points_multiple_lm_SCA_VIF_multi_num <- (1 / (1-all_points_multiple_lm_SCA_summary$r.squared))
 all_points_multiple_lm_SCA_vif > all_points_multiple_lm_SCA_VIF_multi_num
 
+#checking VIF with reduced models
+    #aspect
+lm_check_no_aspect <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+lm_check_no_aspect_summary <- summary(lm_check_no_aspect)
+lm_check_no_aspect_vif <- car::vif(lm_check_no_aspect) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
+lm_check_no_aspect_VIF_multi_num <- (1 / (1-lm_check_no_aspect_summary$r.squared))
+lm_check_no_aspect_vif > lm_check_no_aspect_VIF_multi_num
+
+  #slope
+lm_check_no_slope <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+lm_check_no_slope_summary <- summary(lm_check_no_slope)
+lm_check_no_slope_vif <- car::vif(lm_check_no_slope) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
+lm_check_no_slope_VIF_multi_num <- (1 / (1-lm_check_no_slope_summary$r.squared))
+lm_check_no_slope_vif > lm_check_no_slope_VIF_multi_num
+
+  #aspect
+lm_check_no_elevation <-lm(Canopy_short ~  all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+lm_check_no_elevation_summary <- summary(lm_check_no_elevation)
+lm_check_no_elevation_vif <- car::vif(lm_check_no_elevation) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
+lm_check_no_elevation_VIF_multi_num <- (1 / (1-lm_check_no_elevation_summary$r.squared))
+lm_check_no_elevation_vif > lm_check_no_elevation_VIF_multi_num
+
+
 #determinging our main effects model with two methods: backward's regression and the dredge function 
 step(all_points_multiple_lm_SCA) #using backwards regression, where last model produced is the best fit
 
@@ -988,15 +1012,60 @@ gam.check(all_points_add.gam_SCA_interact)
 summary(all_points_add.gam_SCA)
 summary(all_points_add.gam_SCA_interact)
 
-#slimming down the variables in the interaction model
+#slimming down the variables in the best model
 dredge <- dredge(all_points_add.gam_SCA) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
+
+# Plot the data and the GAM fit, 3d plotting in plotly and with gg3D
+library(plotly)
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED
+
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                 z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+ggplot() +
+  geom_point(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(x = hp, y = mpg)) +
+  geom_line(data = data.frame(hp = new_data$hp, mpg = predictions$fit), 
+            aes(x = hp, y = mpg), color = "blue", size = 1) +
+  geom_ribbon(data = data.frame(hp = new_data$hp, fit = predictions$fit, 
+                                se = predictions$se.fit), aes(x = hp, 
+                                                              ymin = fit - 1.96 * se, 
+                                                              ymax = fit + 1.96 * se), alpha = 0.3) +
+  labs(title = "Generalized Additive Model (GAM) Fit for mpg vs. hp", 
+       x = "Horsepower", y = "Miles per Gallon") +
+  theme_minimal()
+
+
+
+
+
+
+
+
 
 #The first model has a lower 
 
 # generalized smooth model (using all knots)
 all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
+
 
 
 summary(all_points_add.gsm_SCA) #summarize the model
