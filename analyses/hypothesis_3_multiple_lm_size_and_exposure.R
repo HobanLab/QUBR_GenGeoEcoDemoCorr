@@ -1000,33 +1000,101 @@ all_points_multiple_lm_SCA_simplified_lg_summary <- summary(all_points_multiple_
 #additive model
 library(mgcv)
 all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
                              data = all_points_fixed_field_data_processed_terrain_no_NA)
 
 #checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
 gam.check(all_points_add.gam_SCA) 
 gam.check(all_points_add.gam_SCA_interact)
 
-#comparing the model's GCV value
+#comparing the models' AIC
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
+
+#comparing the model's the models summary values
 summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
 summary(all_points_add.gam_SCA_interact)
 
 #slimming down the variables in the best model
-dredge <- dredge(all_points_add.gam_SCA) #using the dredge model to narro the models down to the best choice
+dredge <- dredge(all_points_add.gam_SCA.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
 
-# Plot the data and the GAM fit, 3d plotting in plotly and with gg3D
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#While the dredged model does not include Aspect, I will keep it in because we are curious in how it influences the size variable
+
+#Chosen model: all_points_add.gam_SCA.smoothed
+
+#updating K values
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed)
+#after attempting to try different K values, the default values appear to work the best
+
+plot(all_points_add.gam_SCA.smoothed, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
+
+library(gratia)
+draw.gam
+draw.gam(all_points_add.gam_SCA.smoothed)
+
+ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(y =  ))
+
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, smooth = "s(Elevation..m.FIXED)")
+
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, smooth = "s(all_points_slope_raster_15_data_pts)")
+
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_line(color = "blue", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
+
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+library(visreg)
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+       gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+library(gridExtra)
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
 library(plotly)
 plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
         y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
         z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
         color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
-all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED
 
+
+#plotting with vis.gam
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
 
 #extracting the fitted values for the GAM for plotting the model
-fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA)
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
 
 devtools::install_github("AckerDWM/gg3D")
 library("gg3D")
@@ -1040,8 +1108,17 @@ ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.F
                 all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
                 all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
+
+#have yet to get this version to work
+
+library(mgcViz)
+library(rgl)
+all_points_add.gam_SCA <- getViz(all_points_add.gam_SCA)
+plotRGL(sm(all_points_add.gam_SCA, 1), fix = c("Canopy_short" = 1), residuals = TRUE)
+
+
 ggplot() +
-  geom_point(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(x = hp, y = mpg)) +
+  geom_point(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(x = hp, y = mpg)) +prin
   geom_line(data = data.frame(hp = new_data$hp, mpg = predictions$fit), 
             aes(x = hp, y = mpg), color = "blue", size = 1) +
   geom_ribbon(data = data.frame(hp = new_data$hp, fit = predictions$fit, 
