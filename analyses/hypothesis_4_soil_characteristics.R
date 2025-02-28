@@ -11323,8 +11323,12 @@ for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the val
 
 
 
+# creating a heat map of all of the p-values
 
-
+LM_soil_values_y <- 
+LM_size_variables_x <-
+LM_p_values <- 
+data <- expand.grid(X=x, Y= LM_soil_values_y)
 
 
 

@@ -19,6 +19,14 @@ library(mgcv) #needed for the gam function for generalized additive models
 library(starsExtra) #to use dist_to_nearest
 library(MuMIn) #to use the dredge function
 library(rpart) #to use the function rpart to check recurissive binary
+library(visreg) #package to be able to plot effects of categorical variables
+library(gratia) #using the function smooth estimates
+library(gridExtra) #way to arrange ggplots in one plot
+library(plotly) #3d plotting
+devtools::install_github("AckerDWM/gg3D") #3d plotting
+library("gg3D") #3d plotting
+library(mgcViz) #3d plotting
+library(rgl) #3d plotting
 
 
 
@@ -834,61 +842,73 @@ all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.F
 all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking overall fit and potential issues
-par(mfrow = c(2, 2))
-gam.check(all_points_add.gam_SCA.smoothed)
-gam.check(all_points_add.gam_SCA) 
-gam.check(all_points_add.gam_SCA_interact)
-
-#comparing the models' AIC
+#comparing the models' AIC, shows the smoothed model is the best fit
 AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
     all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#comparing the model's the models summary values
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
+
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
+
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
+
+
+#comparing the model's the models GCV summary values to see which is lowest
 summary(all_points_add.gam_SCA)
 summary(all_points_add.gam_SCA.smoothed)
-summary(all_points_add.gam_SCA_interact)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#slimming down the variables in the best model
-dredge <- dredge(all_points_add.gam_SCA.smoothed) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-
 all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
                                                data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#While the dredged model does not include Aspect, I will keep it in because we are curious in how it influences the size variable
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#Chosen model: all_points_add.gam_SCA.smoothed
-
-#updating K values
-all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA)
-k.check(all_points_add.gam_SCA.smoothed)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
 #after attempting to try different K values, the default values appear to work the best
 
-plot(all_points_add.gam_SCA.smoothed, all.terms = T)
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
 #par(mfrow = c(2,2))
 plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
 plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
-library(gratia)
-draw.gam
-draw.gam(all_points_add.gam_SCA.smoothed)
-
-ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(y =  ))
 
 # Extract smooth effects for Elevation
-elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, smooth = "s(Elevation..m.FIXED)")
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
 # Extract smooth effects for Slope
-slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, smooth = "s(all_points_slope_raster_15_data_pts)")
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
 # Plot Elevation Effect
 p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
-  geom_line(color = "blue", linewidth = 1) +
+  geom_smooth(se = T) + 
   geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
   labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
   theme_minimal()
+
 
 # Plot Slope Effect
 p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
@@ -897,16 +917,13 @@ p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .es
   labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
   theme_minimal()
 
-library(visreg)
 p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
              gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
 # Print the plots
-library(gridExtra)
 grid.arrange(p1, p2, p3, ncol = 2)
 
 # 3d plotting in plotly and with gg3D
-library(plotly)
 plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
         y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
         z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
@@ -914,6 +931,128 @@ plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED
 
 
 #plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+# LCA
+
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
+
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
+
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
+
+
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
+dredge[1,] #extracting the best model
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
+
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
+
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
+
+
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
+
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
+
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
+
+
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
 vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
         ylab = "Elevation (m)")
 
@@ -933,627 +1072,371 @@ ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.F
                 all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
-#have yet to get this version to work
-
-library(mgcViz)
-library(rgl)
-all_points_add.gam_SCA <- getViz(all_points_add.gam_SCA)
-plotRGL(sm(all_points_add.gam_SCA, 1), fix = c("Canopy_short" = 1), residuals = TRUE)
-
-
-ggplot() +
-  geom_point(data = all_points_fixed_field_data_processed_terrain_no_NA, aes(x = hp, y = mpg)) +prin
-geom_line(data = data.frame(hp = new_data$hp, mpg = predictions$fit), 
-          aes(x = hp, y = mpg), color = "blue", size = 1) +
-  geom_ribbon(data = data.frame(hp = new_data$hp, fit = predictions$fit, 
-                                se = predictions$se.fit), aes(x = hp, 
-                                                              ymin = fit - 1.96 * se, 
-                                                              ymax = fit + 1.96 * se), alpha = 0.3) +
-  labs(title = "Generalized Additive Model (GAM) Fit for mpg vs. hp", 
-       x = "Horsepower", y = "Miles per Gallon") +
-  theme_minimal()
-
-
-
-
-
-
-
-
-
-#The first model has a lower 
-
-# generalized smooth model (using all knots)
-all_points_add.gsm_SCA <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                              data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
-
-
-
-summary(all_points_add.gsm_SCA) #summarize the model
-
-#interaction model, difference is the * instead of +
-all_points_add.gsm_SCA_interact <- gsm(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
-                                       data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA)) 
-all_points_add.gsm_SCA_interact
-summary(all_points_add.gsm_SCA_interact) #summarize the model
-
-#comparing the additive and interaction models
-
-# pseudo F test of interaction effect
-sse.dif <- all_points_add.gsm_SCA$deviance - all_points_add.gsm_SCA_interact$deviance
-df.dif <- all_points_add.gsm_SCA_interact$df - all_points_add.gsm_SCA$df
-Fstat <- (sse.dif / df.dif) / all_points_add.gsm_SCA_interact$dispersion
-pvalue <- 1 - pf(Fstat, df1 = df.dif, df2 = nrow(Prestige) - all_points_add.gsm_SCA_interact$df)
-Fstat
-pvalue #not significant, so do not need to consider the interactions
-
-#GSM with gamma and inverse guassian
-
-all_points_add.gsm_SCA_gamma <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                                    data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA), family = "Gamma") 
-
-all_points_add.gsm_SCA_inv_guass <- gsm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                                        data = all_points_fixed_field_data_processed_terrain_no_NA, knots = nrow(all_points_fixed_field_data_processed_terrain_no_NA), family = "inverse.guassian") 
-
-summary(all_points_add.gsm_SCA_gamma)
-
-
-#GLM model to find regression for non-normal data
-
-library(DHARMa)
-library(aod)
-
-#gamma
-all_points_glm_gamma_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                                data = all_points_fixed_field_data_processed_terrain_no_NA, family = "Gamma")
-
-
-#inverse guassian, for when dependent variable is even more skewed to the right
-all_points_glm_inv_guass_SCA <- glm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = "inverse.gaussian")
-
-#comparing the results
-summary(all_points_multiple_lm_SCA_simplified)
-all_points_glm_gamma_SCA_summary <- summary(all_points_glm_gamma_SCA) #results of gamma family, lower aic
-all_points_glm_inv_guass_SCA_SCA_summary <- summary(all_points_glm_inv_guass_SCA) #results of inverse guassian
-
-#the gamma model has a lower AIC value, stronger model
-
-#testing model fit with ANOVA F test and ANOVA Likelihood Ratio Test
-anova(all_points_glm_gamma_SCA, test = "F")
-anova(all_points_glm_gamma_SCA, test = "LRT")
-anova(all_points_glm_gamma_SCA, test = "F")
-anova(all_points_glm_gamma_SCA, test = "Chisq")
-
-#dredging to see if there is a better simplified model
-dredge <- dredge(all_points_glm_gamma_SCA) #using the dredge model to narro the models down to the best choice
-dredge[1,] #extracting the best model
-
-#best result: all_points_glm_gamma_SCA
-
-#deviance test, high value means good fit
-1 - pchisq(deviance(all_points_glm_gamma_SCA_summary), df.residual(all_points_glm_gamma_SCA_summary))
-#good when it is approximately 1, small suggests not fitting weel
-
-# Attempt at using the Pearson chi-square statistic to determine the goodness of fit of the model, high value is good fit
-
-# Compute Pearson chi-square statistic
-pearson_chi_sq <- sum(residuals(all_points_glm_gamma_SCA, type = "pearson")^2)
-
-# Get degrees of freedom
-df <- df.residual(all_points_glm_gamma_SCA)
-
-# Compute p-value
-p_value <- pchisq(pearson_chi_sq, df, lower.tail = F)
-
-# Print results
-cat("Pearson Chi-Square Statistic:", pearson_chi_sq, "\n")
-cat("Degrees of Freedom:", df, "\n")
-cat("P-value:", p_value, "\n") #failed goodness of fit test
-
-
-# LCA
-
-plot(all_points_multiple_lm_LCA)
-
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_LCA <- lm(Canopy_long ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-
-#checking to see which variables might be the most useful
-avPlots(all_points_multiple_lm_LCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
-
-all_points_multiple_lm_LCA_summary <- summary(all_points_multiple_lm_LCA)
-
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-all_points_multiple_lm_LCA_vif <- car::vif(all_points_multiple_lm_SCA) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-all_points_multiple_lm_LCA_VIF_multi_num <- (1 / (1-all_points_multiple_lm_LCA_summary$r.squared))
-all_points_multiple_lm_LCA_vif > all_points_multiple_lm_LCA_VIF_multi_num
-
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(all_points_multiple_lm_LCA) #using backwards regression, where last model produced is the best fit
-
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(all_points_multiple_lm_LCA) #generates the best model and the rank of best models
-
-#the best simplified multiple linear regression model chosen
-all_points_multiple_lm_LCA_simplified <- lm(Canopy_long ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_LCA_simplified) #best model, but still only 5% of variability explained
-
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(all_points_multiple_lm_LCA_simplified, all_points_multiple_lm_LCA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#determing interactions with recursive binary partioning and regression tree
-all_points_potential_interactions_LCA <- rpart(Canopy_long ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                                 all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(all_points_potential_interactions_LCA) # show the tree structure
-text(all_points_potential_interactions_LCA, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree, branches mean that the variables likely have interactions with one another
-all_points_multiple_lm_LCA_interacts <- lm(Canopy_long ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                             all_points_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:all_points_slope_raster_15_data_pts +
-                                             I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical +
-                                             Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2) + Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical, 
-                                           data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_LCA_interacts)
-
-#slimming down the variables in the interaction model
-step(all_points_multiple_lm_LCA_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(all_points_multiple_lm_LCA_interacts) #using the dredge model to narro the models down to the best choice
-dredge[1,] #extracting the best model
-all_points_fixed_field_data_processed_terrain_no_NA$I(all_points_aspect_raster_15_data_pts_8_categorical^2)
-
-#including interactions, the best simplified multiple linear regression model chosen
-all_points_multiple_lm_LCA_interacts_simplified_step <- lm(Canopy_long ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2) + I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts,  data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_LCA_interacts_simplified_dredge <- lm(Canopy_long ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_LCA_interacts_simplified) #best model, but still only 5% of variability explained
-
-#nested F test to compare simplified interactions model using step and simplified interactions model using dredge
-anova(all_points_multiple_lm_LCA_interacts_simplified_step, all_points_multiple_lm_LCA_interacts_simplified_dredge) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-#because the dredge and step models are not signficiantly different, I will be using the dredge one because it is more simplified
-
-
-#nested F test to compare simplified interactions model made with dredge to full interactions model
-anova(all_points_multiple_lm_LCA_interacts_simplified_dredge, all_points_multiple_lm_LCA_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#nested F test to compare simplified interactions model made with dredge to simplified model without interactions
-anova(all_points_multiple_lm_LCA_interacts_simplified_dredge, all_points_multiple_lm_LCA_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: all_points_multiple_lm_LCA_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-#checking linearity with elevation
-ggplot(data = all_points_multiple_lm_LCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Long Canopy Axis")
-
-#checking linearity by category
-all_points_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
-#elevation
-ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Long Canopy Axis")+
-  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
-
-#slope
-ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_long)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Slope (degrees)")+
-  ylab("Long Canopy Axis")+
-  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
-
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_LCA_simplified, aes(x= all_points_multiple_lm_LCA_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(all_points_multiple_lm_LCA_simplified, aes(sample = all_points_multiple_lm_LCA_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(all_points_multiple_lm_LCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro test was singificant, so I will use a transformaed canopy_lung variable
-all_points_multiple_lm_LCA_simplified_lg <- lm(Canopy_long_lg ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_LCA_simplified_sqrt <- lm(Canopy_long_sqrt ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(all_points_multiple_lm_LCA_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
-
-
-#checking equal variance
-ggplot(data = all_points_multiple_lm_LCA_simplified_sqrt, aes(x = all_points_multiple_lm_LCA_simplified_sqrt$fitted.values, y = all_points_multiple_lm_LCA_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for sqrt(SCA) and Elevation")
-
-
-#extracting model characteristics and significant
-all_points_multiple_lm_LCA_summary <- summary(all_points_multiple_lm_LCA)
-all_points_multiple_lm_LCA_simplified_summary <- summary(all_points_multiple_lm_LCA_simplified_sqrt) #not significant, the square transformation changes the p-value a lot 
-all_points_multiple_lm_LCA_simplified_summary <- summary(all_points_multiple_lm_LCA_simplified) #significant 
 
 # CA
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_CA <- lm(Canopy_area ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(all_points_multiple_lm_CA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-all_points_multiple_lm_CA_summary <- summary(all_points_multiple_lm_CA) #storing a summary of the model
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-all_points_multiple_lm_CA_vif <- car::vif(all_points_multiple_lm_CA) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-all_points_multiple_lm_CA_VIF_multi_num <- (1 / (1-all_points_multiple_lm_CA_summary$r.squared))
-all_points_multiple_lm_CA_vif > all_points_multiple_lm_CA_VIF_multi_num
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(all_points_multiple_lm_CA) #using backwards regression, where last model produced is the best fit
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(all_points_multiple_lm_SCA) #generates the best model and the rank of best models
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#the best simplified multiple linear regression model chosen
-all_points_multiple_lm_CA_simplified <- lm(Canopy_area ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CA_simplified) #best model, but still only 5% of variability explained
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(all_points_multiple_lm_CA_simplified, all_points_multiple_lm_CA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-all_points_potential_interactions_CA <- rpart(Canopy_area ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                                all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(all_points_potential_interactions_CA) # show the tree structure
-text(all_points_potential_interactions_CA, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-all_points_multiple_lm_CA_interacts <- lm(Canopy_area ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                            all_points_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:all_points_slope_raster_15_data_pts +
-                                            I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical +
-                                            Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                          data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CA_interacts)
-
-#slimming down the variables in the interaction model
-step(all_points_multiple_lm_CA_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(all_points_multiple_lm_CA_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-all_points_fixed_field_data_processed_terrain_no_NA$I(all_points_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#including interactions, the best simplified multiple linear regression model chosen
-all_points_multiple_lm_CA_interacts_simplified_step <- lm(Canopy_area ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + I(Elevation..m.FIXED^2) + Elevation..m.FIXED:all_points_slope_raster_15_data_pts,  data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_CA_interacts_simplified_dredge <- lm(Canopy_area ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = all_points_fixed_field_data_processed_terrain_no_NA)
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model using step and simplified interactions model using dredge
-anova(all_points_multiple_lm_CA_interacts_simplified_step, all_points_multiple_lm_CA_interacts_simplified_dredge) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-#because the dredge and step models are not signficiantly different, I will be using the dredge one because it is more simplified
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#including interactions, the best simplified multiple linear regression model chosen
-all_points_multiple_lm_CA_interacts_simplified_dredge <- lm(Canopy_area ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2), data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CA_interacts_simplified_dredge) #best model, but still only 5% of variability explained
-
-#nested F test to compare simplified interactions model to full interactions model
-anova(all_points_multiple_lm_CA_interacts_simplified_dredge, all_points_multiple_lm_CA_interacts) #results are not significant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(all_points_multiple_lm_CA_interacts_simplified_dredge, all_points_multiple_lm_CA_simplified) #results are significant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: all_points_multiple_lm_CA_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-#checking linearity with elevation
-ggplot(data = all_points_multiple_lm_CA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_area)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Canopy Area")
-
-#checking linearity by category
-all_points_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
-#elevation
-ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_area)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Canopy Area")+
-  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
-
-#slope
-ggplot(data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_area)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Slope (degrees)")+
-  ylab("Canopy Area")+
-  facet_wrap(~ all_points_aspect_raster_15_data_pts_8_categorical) 
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_CA_simplified, aes(x= all_points_multiple_lm_CA_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#qqnorm plot
-ggplot(all_points_multiple_lm_CA_simplified, aes(sample = all_points_multiple_lm_CA_simplified$residuals))+
-  geom_qq()
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-shapiro.test(all_points_multiple_lm_CA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-all_points_multiple_lm_CA_simplified_lg <- lm(Canopy_area_lg ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_CA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(all_points_multiple_lm_CA_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
-
-#the results of the Shapiro-Wilk test suggest we should use the model where canopy area is square rooted
-
-#checking equal variance
-ggplot(data = all_points_multiple_lm_CA_simplified_sqrt, aes(x = all_points_multiple_lm_CA_simplified_sqrt$fitted.values, y = all_points_multiple_lm_CA_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for sqrt(SCA) and Elevation")
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
 
-#extracting model characteristics and significant
-all_points_multiple_lm_CA_summary <- summary(all_points_multiple_lm_CA) #sign
-all_points_multiple_lm_CA_simplified_summary <- summary(all_points_multiple_lm_CA_simplified) #sign
-all_points_multiple_lm_CA_simplified_sqrt_summary <- summary(all_points_multiple_lm_CA_simplified_sqrt) #sig
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # CS
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_CS <- lm(Crown_spread ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(all_points_multiple_lm_CS) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#storing a summary of the model
-all_points_multiple_lm_CS_summary <- summary(all_points_multiple_lm_CS)
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-all_points_multiple_lm_CS_vif <- car::vif(all_points_multiple_lm_CS) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-all_points_multiple_lm_CS_VIF_multi_num <- (1 / (1-all_points_multiple_lm_CS_summary$r.squared))
-all_points_multiple_lm_CS_vif > all_points_multiple_lm_CS_VIF_multi_num
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(all_points_multiple_lm_CS) #using backwards regression, where last model produced is the best fit
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(all_points_multiple_lm_CS) #generates the best model and the rank of best models
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-#both the step and dredge technique produced the same simplified model:
-all_points_multiple_lm_CS_simplified <- lm(Crown_spread ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CS_simplified) #best model, but still only 5% of variability explained
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(all_points_multiple_lm_CS_simplified, all_points_multiple_lm_CS) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
 
-#best simplified model without taking into account interactions: all_points_multiple_lm_CS_simplified
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-all_points_potential_interactions_CS <- rpart(Crown_spread ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                                all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(all_points_potential_interactions_CS) # show the tree structure
-text(all_points_potential_interactions_CS, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-all_points_multiple_lm_CS_interacts <- lm(Crown_spread ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                            all_points_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:all_points_slope_raster_15_data_pts +
-                                            I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical +
-                                            Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                          data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CS_interacts)
-
-#slimming down the variables in the interaction model
-step(all_points_multiple_lm_CS_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(all_points_multiple_lm_CS_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-all_points_fixed_field_data_processed_terrain_no_NA$I(all_points_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#the step and dredge methods produced the sample best model:
-#including interactions, the best simplified multiple linear regression model chosen
-all_points_multiple_lm_CS_interacts_simplified <- lm(Crown_spread ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_CS_interacts_simplified) #best model, but still only 5% of variability explained
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model to full interactions model
-anova(all_points_multiple_lm_CS_interacts_simplified, all_points_multiple_lm_CS_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(all_points_multiple_lm_CS_interacts_simplified, all_points_multiple_lm_CS_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: all_points_multiple_lm_CS_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_CS_simplified, aes(x= all_points_multiple_lm_CS_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation + Slope + Aspect")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(all_points_multiple_lm_CS_simplified, aes(sample = all_points_multiple_lm_CS_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(all_points_multiple_lm_CS_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-all_points_multiple_lm_CS_simplified_lg <- lm(Crown_spread_lg ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_CS_simplified_sqrt <- lm(Crown_spread_sqrt ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(all_points_multiple_lm_CS_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_CS_simplified_sqrt, aes(x= all_points_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for sqrt(Crown Spread) vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#qqnorm plot
-ggplot(all_points_multiple_lm_CS_simplified_sqrt, aes(sample = all_points_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_qq()
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-#checking equal variance
-ggplot(data = all_points_multiple_lm_CS_simplified_sqrt, aes(x = all_points_multiple_lm_CS_simplified_sqrt$fitted.values, y = all_points_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and Elevation + Slope + Aspect")
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
 
-#extracting model characteristics and significant
-all_points_multiple_lm_SCA_summary <- summary(all_points_multiple_lm_SCA) #sig
-all_points_multiple_lm_SCA_simplified_summary <- summary(all_points_multiple_lm_SCA_simplified) #sig
-all_points_multiple_lm_SCA_simplified_sqrt_summary <- summary(all_points_multiple_lm_CS_simplified_sqrt) #sig
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # DBH_ag
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_DBH <- lm(DBH_ag ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(all_points_multiple_lm_DBH) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#storing summary of the model
-all_points_multiple_lm_DBH_summary <- summary(all_points_multiple_lm_DBH)
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-all_points_multiple_lm_DBH_vif <- car::vif(all_points_multiple_lm_DBH) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-all_points_multiple_lm_DBH_VIF_multi_num <- (1 / (1-all_points_multiple_lm_DBH_summary$r.squared))
-all_points_multiple_lm_DBH_vif > all_points_multiple_lm_DBH_VIF_multi_num
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(all_points_multiple_lm_DBH) #using backwards regression, where last model produced is the best fit
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(all_points_multiple_lm_DBH) #generates the best model and the rank of best models
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#the best simplified multiple linear regression model chosen
-all_points_multiple_lm_DBH_simplified <- lm(DBH_ag ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_DBH_simplified) #best model, but still only 5% of variability explained
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(all_points_multiple_lm_DBH_simplified, all_points_multiple_lm_DBH) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-all_points_potential_interactions_DBH <- rpart(DBH_ag ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                                 all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(all_points_potential_interactions_DBH) # show the tree structure
-text(all_points_potential_interactions_DBH, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-all_points_multiple_lm_DBH_interacts <- lm(DBH_ag ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + 
-                                             all_points_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:all_points_slope_raster_15_data_pts +
-                                             I(all_points_slope_raster_15_data_pts^2) + all_points_slope_raster_15_data_pts:all_points_aspect_raster_15_data_pts_8_categorical +
-                                             Elevation..m.FIXED:all_points_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                           data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_DBH_interacts)
-
-#slimming down the variables in the interaction model
-step(all_points_multiple_lm_DBH_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(all_points_multiple_lm_DBH_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-all_points_fixed_field_data_processed_terrain_no_NA$I(all_points_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#including interactions, the best simplified multiple linear regression model chosen
-all_points_multiple_lm_DBH_interacts_simplified <- lm(DBH_ag ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-summary(all_points_multiple_lm_DBH_interacts_simplified) #best model, but still only 5% of variability explained
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model to full interactions model
-anova(all_points_multiple_lm_DBH_interacts_simplified, all_points_multiple_lm_DBH_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(all_points_multiple_lm_DBH_interacts_simplified, all_points_multiple_lm_DBH_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
-# our results indicate that the simplified interaction and simplified regular model are the same, so we could use either
-# for the now we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
 
-# Best Model: all_points_multiple_lm_DBH_simplified
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_DBH_simplified, aes(x= all_points_multiple_lm_DBH_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
-#qqnorm plot
-ggplot(all_points_multiple_lm_DBH_simplified, aes(sample = all_points_multiple_lm_DBH_simplified$residuals))+
-  geom_qq()
 
-shapiro.test(all_points_multiple_lm_DBH_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
 
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-all_points_multiple_lm_DBH_simplified_lg <- lm(DBH_ag_lg ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_multiple_lm_DBH_simplified_sqrt <- lm(DBH_ag_sqrt ~ Elevation..m.FIXED, data = all_points_fixed_field_data_processed_terrain_no_NA)
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
-shapiro.test(all_points_multiple_lm_DBH_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long varaible that has a logged transformation
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(all_points_multiple_lm_DBH_simplified_lg, aes(x= all_points_multiple_lm_DBH_simplified_lg$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for log(DBH) vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#qqnorm plot
-ggplot(all_points_multiple_lm_DBH_simplified_lg, aes(sample = all_points_multiple_lm_DBH_simplified_lg$residuals))+
-  geom_qq()
 
-#checking equal variance
-ggplot(data = all_points_multiple_lm_DBH_simplified_lg, aes(x = all_points_multiple_lm_DBH_simplified_lg$fitted.values, y = all_points_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for log(DBH) and Elevation")
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
 
-#extracting model characteristics and significant
-all_points_multiple_lm_DBH_summary <- summary(all_points_multiple_lm_DBH) #not sig
-all_points_multiple_lm_DBH_simplified_summary <- summary(all_points_multiple_lm_DBH_simplified) #sig
-all_points_multiple_lm_DBH_simplified_lg_summary <- summary(all_points_multiple_lm_DBH_simplified_lg) #sig
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
 
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # LM
@@ -1576,587 +1459,611 @@ LM_fixed_field_data_processed_terrain_no_NA_No_outliers <- LM_fixed_field_data_p
 
 # SCA
 
-plot(LM_multiple_lm_SCA)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-LM_multiple_lm_SCA_summary <- summary(LM_multiple_lm_SCA)
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#checking to see which variables might be the most useful
-avPlots(LM_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-LM_multiple_lm_SCA_vif <- car::vif(LM_multiple_lm_SCA) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-LM_multiple_lm_SCA_VIF_multi_num <- (1 / (1-LM_multiple_lm_SCA_summary$r.squared))
-LM_multiple_lm_SCA_vif > LM_multiple_lm_SCA_VIF_multi_num
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(LM_multiple_lm_SCA) #using backwards regression, where last model produced is the best fit
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(LM_multiple_lm_SCA) #generates the best model and the rank of best models
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#the best simplified multiple linear regression model chosen
-LM_multiple_lm_SCA_simplified <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-summary(LM_multiple_lm_SCA_simplified) #best model, but still only 5% of variability explained
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_SCA_simplified, LM_multiple_lm_SCA) #results are not significant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-LM_potential_interactions <- rpart(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                     LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(LM_potential_interactions) # show the tree structure
-text(LM_potential_interactions, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-LM_multiple_lm_SCA_interacts <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                     LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
-                                     I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
-                                     Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                   data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-summary(LM_multiple_lm_SCA_interacts)
-
-#slimming down the variables in the interaction model
-step(LM_multiple_lm_SCA_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(LM_multiple_lm_SCA_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
+
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
+
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_SCA_interacts_simplified <- lm(Canopy_short ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2), data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-summary(LM_multiple_lm_SCA_interacts_simplified) #best model, but still only 5% of variability explained
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#nested F test to compare simplified interactions model to full interactions model
-anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: LM_multiple_lm_SCA_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-
-#checking linearity with elevation
-ggplot(data = LM_multiple_lm_SCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Short Canopy Axis")
-
-#checking linearity by category
-LM_fixed_field_data_processed_terrain_no_NA_No_outliers$Elevation..m.FIXED
-#elevation
-ggplot(data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Elevation (m)")+
-  ylab("Short Canopy Axis")+
-  facet_wrap(~ LM_aspect_raster_15_data_pts_8_categorical) 
-
-#slope
-ggplot(data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=LM_slope_raster_15_data_pts, y=Canopy_short)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("Slope (degrees)")+
-  ylab("Short Canopy Axis")+
-  facet_wrap(~ LM_aspect_raster_15_data_pts_8_categorical) 
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_SCA_simplified, aes(x= LM_multiple_lm_SCA_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation + Slope + Aspect")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(LM_multiple_lm_SCA_simplified, aes(sample = LM_multiple_lm_SCA_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-LM_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-LM_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
-
-shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric test to look at slope, but we could use log to look at the 
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
 
-#checking equal variance
-ggplot(data = LM_multiple_lm_SCA, aes(x = LM_multiple_lm_SCA$fitted.values, y = LM_multiple_lm_SCA$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and Elevation + Slope + Aspect")
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
-#extracting model characteristics and significant
-LM_multiple_lm_SCA_summary <- summary(LM_multiple_lm_SCA)
-LM_multiple_lm_SCA_simplified_summary <- summary(LM_multiple_lm_SCA_simplified)
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
 
-View(LM_fixed_field_data_processed_terrain_no_NA)
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # LCA
 
-plot(LM_multiple_lm_LCA)
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_LCA <- lm(Canopy_long ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(LM_multiple_lm_LCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-LM_multiple_lm_LCA_summary <- summary(LM_multiple_lm_LCA)
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-LM_multiple_lm_LCA_vif <- car::vif(LM_multiple_lm_SCA) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-LM_multiple_lm_LCA_VIF_multi_num <- (1 / (1-LM_multiple_lm_LCA_summary$r.squared))
-LM_multiple_lm_LCA_vif > LM_multiple_lm_LCA_VIF_multi_num
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(LM_multiple_lm_LCA) #using backwards regression, where last model produced is the best fit
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(LM_multiple_lm_LCA) #generates the best model and the rank of best models
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#the best simplified multiple linear regression model chosen
-LM_multiple_lm_LCA_simplified <- lm(Canopy_long ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_LCA_simplified) #best model, but still only 5% of variability explained
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_LCA_simplified, LM_multiple_lm_LCA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-LM_potential_interactions_LCA <- rpart(Canopy_long ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                         LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(LM_potential_interactions_LCA) # show the tree structure
-text(LM_potential_interactions_LCA, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree, branches mean that the variables likely have interactions with one another
-LM_multiple_lm_LCA_interacts <- lm(Canopy_long ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                     LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
-                                     I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
-                                     Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2) + Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_LCA_interacts)
-
-#slimming down the variables in the interaction model
-step(LM_multiple_lm_LCA_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(LM_multiple_lm_LCA_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-LM_fixed_field_data_processed_terrain_no_NA$I(LM_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
+
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
+
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_LCA_interacts_simplified_step <- lm(Canopy_long ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2) + I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts,  data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_LCA_interacts_simplified_dredge <- lm(Canopy_long ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_LCA_interacts_simplified) #best model, but still only 5% of variability explained
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#nested F test to compare simplified interactions model using step and simplified interactions model using dredge
-anova(LM_multiple_lm_LCA_interacts_simplified_step, LM_multiple_lm_LCA_interacts_simplified_dredge) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-#because the dredge and step models are not signficiantly different, I will be using the dredge one because it is more simplified
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-
-#nested F test to compare simplified interactions model made with dredge to full interactions model
-anova(LM_multiple_lm_LCA_interacts_simplified_dredge, LM_multiple_lm_LCA_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#nested F test to compare simplified interactions model made with dredge to simplified model without interactions
-anova(LM_multiple_lm_LCA_interacts_simplified_dredge, LM_multiple_lm_LCA_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: LM_multiple_lm_LCA_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_LCA_simplified, aes(x= LM_multiple_lm_LCA_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(LM_multiple_lm_LCA_simplified, aes(sample = LM_multiple_lm_LCA_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(LM_multiple_lm_LCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro test was singificant, so I will use a transformaed canopy_lung variable
-LM_multiple_lm_LCA_simplified_lg <- lm(Canopy_long_lg ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_LCA_simplified_sqrt <- lm(Canopy_long_sqrt ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(LM_multiple_lm_LCA_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
 
-#checking equal variance
-ggplot(data = LM_multiple_lm_LCA_simplified_sqrt, aes(x = LM_multiple_lm_LCA_simplified_sqrt$fitted.values, y = LM_multiple_lm_LCA_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for sqrt(SCA) and Elevation")
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
-#extracting model characteristics and significant
-LM_multiple_lm_LCA_summary <- summary(LM_multiple_lm_LCA)
-LM_multiple_lm_LCA_simplified_summary <- summary(LM_multiple_lm_LCA_simplified_sqrt) #not significant, the square transformation changes the p-value a lot 
-LM_multiple_lm_LCA_simplified_summary <- summary(LM_multiple_lm_LCA_simplified) #significant 
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
 
 # CA
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_CA <- lm(Canopy_area ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#checking to see which variables might be the most useful
-avPlots(LM_multiple_lm_CA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-LM_multiple_lm_CA_summary <- summary(LM_multiple_lm_CA) #storing a summary of the model
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-LM_multiple_lm_CA_vif <- car::vif(LM_multiple_lm_CA) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-LM_multiple_lm_CA_VIF_multi_num <- (1 / (1-LM_multiple_lm_CA_summary$r.squared))
-LM_multiple_lm_CA_vif > LM_multiple_lm_CA_VIF_multi_num
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(LM_multiple_lm_CA) #using backwards regression, where last model produced is the best fit
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(LM_multiple_lm_SCA) #generates the best model and the rank of best models
 
-#the best simplified multiple linear regression model chosen
-LM_multiple_lm_CA_simplified <- lm(Canopy_area ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CA_simplified) #best model, but still only 5% of variability explained
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_CA_simplified, LM_multiple_lm_CA) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#determing interactions with recursive binary partioning and regression tree
-LM_potential_interactions_CA <- rpart(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                        LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(LM_potential_interactions_CA) # show the tree structure
-text(LM_potential_interactions_CA, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-LM_multiple_lm_CA_interacts <- lm(Canopy_area ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                    LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
-                                    I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
-                                    Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                  data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CA_interacts)
-
-#slimming down the variables in the interaction model
-step(LM_multiple_lm_CA_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(LM_multiple_lm_CA_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-LM_fixed_field_data_processed_terrain_no_NA$I(LM_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_CA_interacts_simplified_step <- lm(Canopy_area ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + I(Elevation..m.FIXED^2) + Elevation..m.FIXED:LM_slope_raster_15_data_pts,  data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_CA_interacts_simplified_dredge <- lm(Canopy_area ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = LM_fixed_field_data_processed_terrain_no_NA)
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model using step and simplified interactions model using dredge
-anova(LM_multiple_lm_CA_interacts_simplified_step, LM_multiple_lm_CA_interacts_simplified_dredge) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-#because the dredge and step models are not signficiantly different, I will be using the dredge one because it is more simplified
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_CA_interacts_simplified_dredge <- lm(Canopy_area ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2), data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CA_interacts_simplified_dredge) #best model, but still only 5% of variability explained
-
-#nested F test to compare simplified interactions model to full interactions model
-anova(LM_multiple_lm_CA_interacts_simplified_dredge, LM_multiple_lm_CA_interacts) #results are not significant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
-
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(LM_multiple_lm_CA_interacts_simplified_dredge, LM_multiple_lm_CA_simplified) #results are significant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: LM_multiple_lm_CA_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_CA_simplified, aes(x= LM_multiple_lm_CA_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(LM_multiple_lm_CA_simplified, aes(sample = LM_multiple_lm_CA_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(LM_multiple_lm_CA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-LM_multiple_lm_CA_simplified_lg <- lm(Canopy_area_lg ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_CA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(LM_multiple_lm_CA_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
-
-#the results of the Shapiro-Wilk test suggest we should use the model where canopy area is square rooted
-
-#checking equal variance
-ggplot(data = LM_multiple_lm_CA_simplified_sqrt, aes(x = LM_multiple_lm_CA_simplified_sqrt$fitted.values, y = LM_multiple_lm_CA_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for sqrt(SCA) and Elevation")
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#extracting model characteristics and significant
-LM_multiple_lm_CA_summary <- summary(LM_multiple_lm_CA) #sign
-LM_multiple_lm_CA_simplified_summary <- summary(LM_multiple_lm_CA_simplified) #sign
-LM_multiple_lm_CA_simplified_sqrt_summary <- summary(LM_multiple_lm_CA_simplified_sqrt) #sig
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
+
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
+
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
+
+
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
+
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # CS
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_CS <- lm(Crown_spread ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(LM_multiple_lm_CS) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#storing a summary of the model
-LM_multiple_lm_CS_summary <- summary(LM_multiple_lm_CS)
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-LM_multiple_lm_CS_vif <- car::vif(LM_multiple_lm_CS) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-LM_multiple_lm_CS_VIF_multi_num <- (1 / (1-LM_multiple_lm_CS_summary$r.squared))
-LM_multiple_lm_CS_vif > LM_multiple_lm_CS_VIF_multi_num
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(LM_multiple_lm_CS) #using backwards regression, where last model produced is the best fit
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(LM_multiple_lm_CS) #generates the best model and the rank of best models
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-#both the step and dredge technique produced the same simplified model:
-LM_multiple_lm_CS_simplified <- lm(Crown_spread ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CS_simplified) #best model, but still only 5% of variability explained
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_CS_simplified, LM_multiple_lm_CS) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
 
-#best simplified model without taking into account interactions: LM_multiple_lm_CS_simplified
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-LM_potential_interactions_CS <- rpart(Crown_spread ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                        LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(LM_potential_interactions_CS) # show the tree structure
-text(LM_potential_interactions_CS, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-LM_multiple_lm_CS_interacts <- lm(Crown_spread ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                    LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
-                                    I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
-                                    Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                  data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CS_interacts)
-
-#slimming down the variables in the interaction model
-step(LM_multiple_lm_CS_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(LM_multiple_lm_CS_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-LM_fixed_field_data_processed_terrain_no_NA$I(LM_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#the step and dredge methods produced the sample best model:
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_CS_interacts_simplified <- lm(Crown_spread ~ Elevation..m.FIXED + I(Elevation..m.FIXED^2),  data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_CS_interacts_simplified) #best model, but still only 5% of variability explained
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model to full interactions model
-anova(LM_multiple_lm_CS_interacts_simplified, LM_multiple_lm_CS_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(LM_multiple_lm_CS_interacts_simplified, LM_multiple_lm_CS_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
-
-# our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
-
-# Best Model: LM_multiple_lm_CS_simplified
-
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
-
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_CS_simplified, aes(x= LM_multiple_lm_CS_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation + Slope + Aspect")+
-  xlab("Residuals")+
-  ylab("Frequency")
-
-#qqnorm plot
-ggplot(LM_multiple_lm_CS_simplified, aes(sample = LM_multiple_lm_CS_simplified$residuals))+
-  geom_qq()
-
-shapiro.test(LM_multiple_lm_CS_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-LM_multiple_lm_CS_simplified_lg <- lm(Crown_spread_lg ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_CS_simplified_sqrt <- lm(Crown_spread_sqrt ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-
-shapiro.test(LM_multiple_lm_CS_simplified_sqrt$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long vaaraible that has a square root transformation
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_CS_simplified_sqrt, aes(x= LM_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for sqrt(Crown Spread) vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#qqnorm plot
-ggplot(LM_multiple_lm_CS_simplified_sqrt, aes(sample = LM_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_qq()
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-#checking equal variance
-ggplot(data = LM_multiple_lm_CS_simplified_sqrt, aes(x = LM_multiple_lm_CS_simplified_sqrt$fitted.values, y = LM_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and Elevation + Slope + Aspect")
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
 
-#extracting model characteristics and significant
-LM_multiple_lm_SCA_summary <- summary(LM_multiple_lm_SCA) #sig
-LM_multiple_lm_SCA_simplified_summary <- summary(LM_multiple_lm_SCA_simplified) #sig
-LM_multiple_lm_SCA_simplified_sqrt_summary <- summary(LM_multiple_lm_CS_simplified_sqrt) #sig
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
 
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
+
+
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
+
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
+
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 # DBH_ag
 
-#multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-LM_multiple_lm_DBH <- lm(DBH_ag ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                              data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                  data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                   data = all_points_fixed_field_data_processed_terrain_no_NA)
+all_points_add.gam_SCA_interact <- gam(Canopy_short ~ Elevation..m.FIXED * all_points_slope_raster_15_data_pts * all_points_aspect_raster_15_data_pts_8_categorical, 
+                                       data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#checking to see which variables might be the most useful
-avPlots(LM_multiple_lm_DBH) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
+#comparing the models' AIC, shows the smoothed model is the best fit
+AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
+    all_points_add.gam_SCA.smoothed_second_term, all_points_add.gam_SCA_interact)
 
-#storing summary of the model
-LM_multiple_lm_DBH_summary <- summary(LM_multiple_lm_DBH)
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed)
+#based on these results we can see that the normality condition is not well met, so we can try
 
-#checking for any multicollinarity, all of them have great than 1/(1-r^2)  VIF values, meaning there is multicollinarity
-LM_multiple_lm_DBH_vif <- car::vif(LM_multiple_lm_DBH) #variance inflation factor, looking for if values is greater than 5 or 10, or if  If the VIF is larger than 1/(1-R2), where R2 is the Multiple R-squared of the regression, then that predictor is more related to the other predictors than it is to the response.
-LM_multiple_lm_DBH_VIF_multi_num <- (1 / (1-LM_multiple_lm_DBH_summary$r.squared))
-LM_multiple_lm_DBH_vif > LM_multiple_lm_DBH_VIF_multi_num
+#using different distributions that don't care about the normal distribution: quasi, poisson, quasi-poisson (in order of complexity)
+all_points_add.gam_SCA.smoothed.quasi <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                             data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasi())
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA, family = poisson())
+all_points_add.gam_SCA.smoothed.quasipoisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, family = quasipoisson())
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
-step(LM_multiple_lm_DBH) #using backwards regression, where last model produced is the best fit
+#we then used liklihood ratio tests to see which level of complexity fits the models the best
+anova(all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed.quasi, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.poisson, test = "LRT") #quasi vs. poisson
+anova(all_points_add.gam_SCA.smoothed.quasi, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT")  #quasi vs. quasipoisson
+anova(all_points_add.gam_SCA.smoothed.poisson, all_points_add.gam_SCA.smoothed.quasipoisson, test = "LRT") #quasipoisson vs. poisson
+#these likelihood ratio tests demonstrate that a poisson model is sufficient and a better fit compared  a quasi and quasipoisson model 
 
-options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
-dredge(LM_multiple_lm_DBH) #generates the best model and the rank of best models
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(all_points_add.gam_SCA.smoothed.poisson)
 
-#the best simplified multiple linear regression model chosen
-LM_multiple_lm_DBH_simplified <- lm(DBH_ag ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_DBH_simplified) #best model, but still only 5% of variability explained
 
-#nested F test comparing the simplified model to the original, If model 1 is really correct, what is the chance that you would randomly obtain data that fits model 2 so much better?
-anova(LM_multiple_lm_DBH_simplified, LM_multiple_lm_DBH) #results are not signfiicant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#comparing the model's the models GCV summary values to see which is lowest
+summary(all_points_add.gam_SCA)
+summary(all_points_add.gam_SCA.smoothed)
+summary(all_points_add.gam_SCA.smoothed.poisson)
 
-#determing interactions with recursive binary partioning and regression tree
-LM_potential_interactions_DBH <- rpart(DBH_ag ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                         LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
-par(xpd = TRUE) # allows text to "eXPanD" (spill over outside the plotting area)
-plot(LM_potential_interactions_DBH) # show the tree structure
-text(LM_potential_interactions_DBH, pretty = 0) # add text labels
-
-#there does appear to be interactions, so we must make an interactions model
-
-#interactions model, based on results of regression tree
-LM_multiple_lm_DBH_interacts <- lm(DBH_ag ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + 
-                                     LM_aspect_raster_15_data_pts_8_categorical + Elevation..m.FIXED:LM_slope_raster_15_data_pts +
-                                     I(LM_slope_raster_15_data_pts^2) + LM_slope_raster_15_data_pts:LM_aspect_raster_15_data_pts_8_categorical +
-                                     Elevation..m.FIXED:LM_aspect_raster_15_data_pts_8_categorical + I(Elevation..m.FIXED^2), 
-                                   data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_DBH_interacts)
-
-#slimming down the variables in the interaction model
-step(LM_multiple_lm_DBH_interacts) #using backwards regression, where last model produced is the best fit
-dredge <- dredge(LM_multiple_lm_DBH_interacts) #using the dredge model to narro the models down to the best choice
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(all_points_add.gam_SCA.smoothed.poisson) #using the dredge model to narro the models down to the best choice
 dredge[1,] #extracting the best model
-LM_fixed_field_data_processed_terrain_no_NA$I(LM_aspect_raster_15_data_pts_8_categorical^2)
+all_points_add.gam_SCA.smoothed.dredged <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
 
-#including interactions, the best simplified multiple linear regression model chosen
-LM_multiple_lm_DBH_interacts_simplified <- lm(DBH_ag ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-summary(LM_multiple_lm_DBH_interacts_simplified) #best model, but still only 5% of variability explained
+#Chosen model: all_points_add.gam_SCA.smoothed.poisson
 
-#nested F test to compare simplified interactions model to full interactions model
-anova(LM_multiple_lm_DBH_interacts_simplified, LM_multiple_lm_DBH_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
+#updating K values, I did not in this scenario but if the k' and edf were close, we would raise the K 
+all_points_add.gam_SCA.smoothed.poisson <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                               data = all_points_fixed_field_data_processed_terrain_no_NA)
+k.check(all_points_add.gam_SCA.smoothed.poisson)
+#after attempting to try different K values, the default values appear to work the best
 
-#nested F test to compare simplified interactions model to simplified model without interactions
-anova(LM_multiple_lm_DBH_interacts_simplified, LM_multiple_lm_DBH_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
+plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
+#par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
-# our results indicate that the simplified interaction and simplified regular model are the same, so we could use either
-# for the now we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
 
-# Best Model: LM_multiple_lm_DBH_simplified
+# Extract smooth effects for Elevation
+elev_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(Elevation..m.FIXED)")
 
-#the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
+# Extract smooth effects for Slope
+slope_effects <- smooth_estimates(all_points_add.gam_SCA.smoothed, select = "s(all_points_slope_raster_15_data_pts)")
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_DBH_simplified, aes(x= LM_multiple_lm_DBH_simplified$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# Plot Elevation Effect
+p1 <- ggplot(elev_effects, aes(x = Elevation..m.FIXED, y = .estimate)) +
+  geom_smooth(se = T) + 
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "blue", alpha = 0.2) +
+  labs(x = "Elevation (m)", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Elevation") +
+  theme_minimal()
 
-#qqnorm plot
-ggplot(LM_multiple_lm_DBH_simplified, aes(sample = LM_multiple_lm_DBH_simplified$residuals))+
-  geom_qq()
 
-shapiro.test(LM_multiple_lm_DBH_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+# Plot Slope Effect
+p2 <- ggplot(slope_effects, aes(x = all_points_slope_raster_15_data_pts, y = .estimate)) +
+  geom_line(color = "darkgreen", linewidth = 1) +
+  geom_ribbon(aes(ymin = .estimate - se, ymax = .estimate + se), fill = "darkgreen", alpha = 0.2) +
+  labs(x = "Slope", y = "Effect on Short Canopy Axis", title = "Smooth Effect of Slope") +
+  theme_minimal()
 
-#shapiro-wilk test is significant, so we will use a model where canopy area is transformed
-LM_multiple_lm_DBH_simplified_lg <- lm(DBH_ag_lg ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
-LM_multiple_lm_DBH_simplified_sqrt <- lm(DBH_ag_sqrt ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed_terrain_no_NA)
+p3 <- visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
+             gg = TRUE, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
-shapiro.test(LM_multiple_lm_DBH_simplified_lg$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
-#based on the Shapiro-Wilk test we should used the canopy long varaible that has a logged transformation
+# Print the plots
+grid.arrange(p1, p2, p3, ncol = 2)
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_DBH_simplified_lg, aes(x= LM_multiple_lm_DBH_simplified_lg$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for log(DBH) vs. Elevation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#qqnorm plot
-ggplot(LM_multiple_lm_DBH_simplified_lg, aes(sample = LM_multiple_lm_DBH_simplified_lg$residuals))+
-  geom_qq()
 
-#checking equal variance
-ggplot(data = LM_multiple_lm_DBH_simplified_lg, aes(x = LM_multiple_lm_DBH_simplified_lg$fitted.values, y = LM_multiple_lm_CS_simplified_sqrt$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for log(DBH) and Elevation")
+#plotting with vis.gam
+dev.off() #resetting the plot for a new plot
+vis.gam(all_points_add.gam_SCA.smoothed, plot.type = "persp", theta = 25,  xlab = "Aspect", 
+        ylab = "Elevation (m)")
 
-#extracting model characteristics and significant
-LM_multiple_lm_DBH_summary <- summary(LM_multiple_lm_DBH) #not sig
-LM_multiple_lm_DBH_simplified_summary <- summary(LM_multiple_lm_DBH_simplified) #sig
-LM_multiple_lm_DBH_simplified_lg_summary <- summary(LM_multiple_lm_DBH_simplified_lg) #sig
+#extracting the fitted values for the GAM for plotting the model
+fitted_values_all_points_add.gam_SCA <- fitted.values(all_points_add.gam_SCA.smoothed)
 
+devtools::install_github("AckerDWM/gg3D")
+library("gg3D")
+ggplot(all_points_fixed_field_data_processed_terrain_no_NA, aes(x=Elevation..m.FIXED, y=all_points_slope_raster_15_data_pts, 
+                                                                z=Canopy_short, color=all_points_aspect_raster_15_data_pts_8_categorical)) + 
+  theme_void() +
+  axes_3D() +
+  stat_3D() + 
+  geom_smooth(method = "gam", formula = all_points_fixed_field_data_processed_terrain_no_NA$Canopy_short ~ 
+                all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts + 
+                all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 
 # LC
