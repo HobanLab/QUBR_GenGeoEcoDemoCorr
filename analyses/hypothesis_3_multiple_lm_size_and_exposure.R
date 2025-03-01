@@ -3476,4 +3476,56 @@ SD_multiple_lm_DBH_summary <- summary(SD_multiple_lm_DBH) #not sig
 SD_multiple_lm_DBH_simplified_summary <- summary(SD_multiple_lm_DBH_simplified) #sig
 SD_multiple_lm_DBH_simplified_lg_summary <- summary(SD_multiple_lm_DBH_simplified_lg) #sig
 
+LM_sca_clay_0.5_p_value
+LM_sca_clay_100_200_slopes_p_value
+LM_sca_silt_0.5_p_value
+LM_sca_silt_100_200_p_value
+LM_sca_sand_0.5_p_value
+LM_sca_sand_100_200_p_value
+LM_sca_ph_0.5_p_value
+LM_sca_ph_100_200_p_value
+LM_sca_soc_0.5_p_value
+LM_sca_soc_100_200_p_value
+LM_sca_vol_10_0.5_p_value
+LM_sca_vol_10_100_200_p_value
+LM_sca_vol_1500_0.5_p_value
+LM_sca_vol_1500_100_200_p_value
+LM_sca_nitrogen_0.5_p_value
+LM_sca_nitrogen_100_200_p_value
+
+LM_lca_clay_0.5_p_value
+LM_lca_clay_100_200_p_value
+LM_lca_silt_0.5_p_value
+LM_lca_silt_100_200_p_value
+LM_lca_sand_0.5_p_value
+LM_lca_sand_100_200_p_value
+LM_lca_ph_0.5_p_value
+LM_lca_ph_100_200_p_value
+LM_lca_soc_0.5_p_value
+LM_lca_soc_100_200_p_value # issue with this one
+LM_lca_vol_10_0.5_p_value
+LM_lca_vol_10_100_200_p_value
+LM_lca_vol_1500_0.5_p_value
+LM_lca_vol_1500_100_200_p_value
+LM_lca_nitrogen_0.5_p_value
+LM_lca_nitrogen_100_200_p_value
+
+LM_ca_clay_0.5_p_value
+LM_ca_clay_100_200_p_value
+LM_ca_silt_0.5_p_value
+LM_ca_silt_100_200_p_value
+LM_ca_sand_0.5_p_value
+LM_ca_sand_100_200_p_value
+LM_ca_ph_0.5_p_value
+LM_ca_ph_100_200_p_value
+LM_ca_soc_0.5_p_value
+LM_ca_soc_100_200_p_value
+LM_ca_vol_10_0.5_p_value
+LM_ca_vol_10_100_200_p_value
+LM_ca_vol_1500_0.5_p_value
+LM_ca_vol_1500_100_200_p_value
+
+
+
+
 
