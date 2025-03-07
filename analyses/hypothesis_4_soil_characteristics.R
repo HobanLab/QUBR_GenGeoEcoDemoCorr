@@ -3188,7 +3188,7 @@ for (i in 1:length(LM_ca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_ca_nitrogen_0.5_p_value <- (total / length(LM_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -3224,7 +3224,7 @@ for (i in 1:length(LM_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_ca_nitrogen_100_200_p_value <- (total / length(LM_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -3264,7 +3264,7 @@ for (i in 1:length(LM_cs_clay_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_clay_0.5_p_value <- (total / length(LM_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -3300,7 +3300,7 @@ for (i in 1:length(LM_cs_clay_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_clay_100_200_p_value <- (total / length(LM_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -3335,7 +3335,7 @@ for (i in 1:length(LM_cs_silt_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_silt_0.5_p_value <- (total / length(LM_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -3371,7 +3371,7 @@ for (i in 1:length(LM_cs_silt_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_silt_100_200_p_value <- (total / length(LM_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -3407,7 +3407,7 @@ for (i in 1:length(LM_cs_sand_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_sand_0.5_p_value <- (total / length(LM_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -3442,7 +3442,7 @@ for (i in 1:length(LM_cs_sand_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_sand_100_200_p_value <- (total / length(LM_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -3478,7 +3478,7 @@ for (i in 1:length(LM_cs_ph_0.5_slopes)){ #loop that adds 1 to the value total i
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_ph_0.5_p_value <- (total / length(LM_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -3514,7 +3514,7 @@ for (i in 1:length(LM_cs_ph_100_200_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_ph_100_200_p_value <- (total / length(LM_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -3550,7 +3550,7 @@ for (i in 1:length(LM_cs_soc_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_soc_0.5_p_value <- (total / length(LM_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -3586,7 +3586,7 @@ for (i in 1:length(LM_cs_soc_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_soc_100_200_p_value <- (total / length(LM_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -3622,7 +3622,7 @@ for (i in 1:length(LM_cs_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_vol_10_0.5_p_value <- (total / length(LM_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -3638,6 +3638,7 @@ for (i in 1:1000){ #for 1000 permutations
   LM_cs_vol_10_100_200_lm_sum <- summary(LM_cs_vol_10_100_200_lm) #extracting the linear regression information
   LM_cs_vol_10_100_200_slopes <- c(LM_cs_vol_10_100_200_slopes, LM_cs_vol_10_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
 }
+
 
 #extracting the slope of our points
 LM_cs_vol_10_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$vol_water_.10_100.200) #creating the linear regression
@@ -3659,7 +3660,7 @@ for (i in 1:length(LM_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_vol_10_100_200_p_value <- (total / length(LM_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -3696,7 +3697,7 @@ for (i in 1:length(LM_cs_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_vol_1500_0.5_p_value <- (total / length(LM_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -3733,7 +3734,7 @@ for (i in 1:length(LM_cs_vol_1500_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_vol_1500_100_200_p_value <- (total / length(LM_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -3769,7 +3770,7 @@ for (i in 1:length(LM_cs_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_nitrogen_0.5_p_value <- (total / length(LM_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -3805,7 +3806,7 @@ for (i in 1:length(LM_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_cs_nitrogen_100_200_p_value <- (total / length(LM_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -3845,7 +3846,7 @@ for (i in 1:length(LM_dbh_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_clay_0.5_p_value <- (total / length(LM_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -3881,7 +3882,7 @@ for (i in 1:length(LM_dbh_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_clay_100_200_p_value <- (total / length(LM_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -3916,7 +3917,7 @@ for (i in 1:length(LM_dbh_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_silt_0.5_p_value <- (total / length(LM_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -3952,7 +3953,7 @@ for (i in 1:length(LM_dbh_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_silt_100_200_p_value <- (total / length(LM_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -3988,7 +3989,7 @@ for (i in 1:length(LM_dbh_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_sand_0.5_p_value <- (total / length(LM_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -4023,7 +4024,7 @@ for (i in 1:length(LM_dbh_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_sand_100_200_p_value <- (total / length(LM_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -4059,7 +4060,7 @@ for (i in 1:length(LM_dbh_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_ph_0.5_p_value <- (total / length(LM_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -4095,7 +4096,7 @@ for (i in 1:length(LM_dbh_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_ph_100_200_p_value <- (total / length(LM_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -4131,7 +4132,7 @@ for (i in 1:length(LM_dbh_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_soc_0.5_p_value <- (total / length(LM_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -4167,7 +4168,7 @@ for (i in 1:length(LM_dbh_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_soc_100_200_p_value <- (total / length(LM_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -4203,7 +4204,7 @@ for (i in 1:length(LM_dbh_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_vol_10_0.5_p_value <- (total / length(LM_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -4240,7 +4241,7 @@ for (i in 1:length(LM_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_vol_10_100_200_p_value <- (total / length(LM_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -4277,7 +4278,8 @@ for (i in 1:length(LM_dbh_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LM_dbh_vol_1500_0.5_p_value <- (total / length(LM_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -4314,7 +4316,7 @@ for (i in 1:length(LM_dbh_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_vol_1500_100_200_p_value <- (total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -4350,7 +4352,7 @@ for (i in 1:length(LM_dbh_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_0.5_p_value <- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -4386,7 +4388,7 @@ for (i in 1:length(LM_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_100_200_p_value <- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -4429,7 +4431,7 @@ for (i in 1:length(LC_sca_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_clay_0.5_p_value <- (total / length(LC_sca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
   
 # Clay Content 100-200
 
@@ -4465,7 +4467,7 @@ for (i in 1:length(LC_sca_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_clay_100_200_p_value <- (total / length(LC_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -4500,7 +4502,7 @@ for (i in 1:length(LC_sca_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_silt_0.5_p_value <- (total / length(LC_sca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -4536,7 +4538,7 @@ for (i in 1:length(LC_sca_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_silt_100_200_p_value <- (total / length(LC_sca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -4572,7 +4574,7 @@ for (i in 1:length(LC_sca_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_sand_0.5_p_value <- (total / length(LC_sca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -4607,7 +4609,8 @@ for (i in 1:length(LC_sca_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_sand_100_200_p_value <- (total / length(LC_sca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -4643,7 +4646,7 @@ for (i in 1:length(LC_sca_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_ph_0.5_p_value <- (total / length(LC_sca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -4679,7 +4682,7 @@ for (i in 1:length(LC_sca_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_ph_100_200_p_value <- (total / length(LC_sca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -4715,7 +4718,8 @@ for (i in 1:length(LC_sca_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_soc_0.5_p_value <- (total / length(LC_sca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -4751,7 +4755,8 @@ for (i in 1:length(LC_sca_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_soc_100_200_p_value <- (total / length(LC_sca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -4787,7 +4792,8 @@ for (i in 1:length(LC_sca_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_vol_10_0.5_p_value <- (total / length(LC_sca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -4824,7 +4830,8 @@ for (i in 1:length(LC_sca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_vol_10_100_200_p_value <- (total / length(LC_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -4861,7 +4868,8 @@ for (i in 1:length(LC_sca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_vol_1500_0.5_p_value <- (total / length(LC_sca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -4898,7 +4906,8 @@ for (i in 1:length(LC_sca_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_sca_vol_1500_100_200_p_value <- (total / length(LC_sca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -4934,7 +4943,9 @@ for (i in 1:length(LC_sca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+LC_sca_nitrogen_0.5_p_value <- (total / length(LC_sca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -4970,7 +4981,7 @@ for (i in 1:length(LC_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_sca_nitrogen_100_200_p_value <- (total / length(LC_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -5011,7 +5022,7 @@ for (i in 1:length(LC_lca_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_clay_0.5_p_value <- (total / length(LC_lca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -5047,7 +5058,8 @@ for (i in 1:length(LC_lca_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_lca_clay_100_200_p_value <- (total / length(LC_lca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -5082,7 +5094,8 @@ for (i in 1:length(LC_lca_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_lca_silt_0.5_p_value <- (total / length(LC_lca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -5118,7 +5131,7 @@ for (i in 1:length(LC_lca_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_silt_100_200_p_value <- (total / length(LC_lca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -5154,7 +5167,7 @@ for (i in 1:length(LC_lca_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_sand_0.5_p_value <- (total / length(LC_lca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -5189,7 +5202,7 @@ for (i in 1:length(LC_lca_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_sand_100_200_p_value <- (total / length(LC_lca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -5225,7 +5238,8 @@ for (i in 1:length(LC_lca_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+LC_lca_ph_0.5_p_value <- (total / length(LC_lca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -5261,7 +5275,7 @@ for (i in 1:length(LC_lca_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_ph_100_200_p_value <- (total / length(LC_lca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -5297,7 +5311,7 @@ for (i in 1:length(LC_lca_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_soc_0.5_p_value <- (total / length(LC_lca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -5333,7 +5347,7 @@ for (i in 1:length(LC_lca_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_soc_100_200_p_value <- (total / length(LC_lca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -5369,7 +5383,7 @@ for (i in 1:length(LC_lca_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_vol_10_0.5_p_value <- (total / length(LC_lca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -5406,7 +5420,7 @@ for (i in 1:length(LC_lca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_vol_10_100_200_p_value <- (total / length(LC_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -5443,7 +5457,7 @@ for (i in 1:length(LC_lca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_vol_1500_0.5_p_value <- (total / length(LC_lca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -5480,7 +5494,7 @@ for (i in 1:length(LC_lca_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_vol_1500_100_200_p_value <- (total / length(LC_lca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -5516,7 +5530,7 @@ for (i in 1:length(LC_lca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_nitrogen_0.5_p_value <-(total / length(LC_lca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -5552,7 +5566,7 @@ for (i in 1:length(LC_lca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_lca_nitrogen_100_200_p_value <- (total / length(LC_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -5592,7 +5606,7 @@ for (i in 1:length(LC_ca_clay_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_clay_0.5_p_value <- (total / length(LC_ca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -5628,7 +5642,7 @@ for (i in 1:length(LC_ca_clay_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_clay_100_200_p_value <- (total / length(LC_ca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -5663,7 +5677,7 @@ for (i in 1:length(LC_ca_silt_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_silt_0.5_p_value <- (total / length(LC_ca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -5699,7 +5713,7 @@ for (i in 1:length(LC_ca_silt_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_silt_100_200_p_value <- (total / length(LC_ca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -5735,7 +5749,7 @@ for (i in 1:length(LC_ca_sand_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_sand_0.5_p_value <- (total / length(LC_ca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -5770,7 +5784,7 @@ for (i in 1:length(LC_ca_sand_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_sand_100_200_p_value <- (total / length(LC_ca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -5806,7 +5820,7 @@ for (i in 1:length(LC_ca_ph_0.5_slopes)){ #loop that adds 1 to the value total i
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_ph_0.5_p_value <- (total / length(LC_ca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -5842,7 +5856,7 @@ for (i in 1:length(LC_ca_ph_100_200_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_ph_100_200_p_value <- (total / length(LC_ca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -5878,7 +5892,7 @@ for (i in 1:length(LC_ca_soc_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_soc_0.5_p_value <- (total / length(LC_ca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -5914,7 +5928,7 @@ for (i in 1:length(LC_ca_soc_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_soc_100_200_p_value <- (total / length(LC_ca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -5950,7 +5964,7 @@ for (i in 1:length(LC_ca_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_vol_10_0.5_p_value <- (total / length(LC_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -5987,7 +6001,7 @@ for (i in 1:length(LC_ca_vol_10_100_200_slopes)){ #loop that adds 1 to the value
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_vol_10_100_200_p_value <- (total / length(LC_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -6024,7 +6038,7 @@ for (i in 1:length(LC_ca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_vol_1500_0.5_p_value <- (total / length(LC_ca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -6061,7 +6075,7 @@ for (i in 1:length(LC_ca_vol_1500_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_vol_1500_100_200_p_value <- (total / length(LC_ca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -6097,7 +6111,7 @@ for (i in 1:length(LC_ca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_nitrogen_0.5_p_value <- (total / length(LC_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -6133,7 +6147,7 @@ for (i in 1:length(LC_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_ca_nitrogen_100_200_p_value <- (total / length(LC_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -6174,7 +6188,7 @@ for (i in 1:length(LC_cs_clay_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_clay_0.5_p_value <- (total / length(LC_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -6210,7 +6224,7 @@ for (i in 1:length(LC_cs_clay_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_clay_100_200_p_value <- (total / length(LC_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -6245,7 +6259,7 @@ for (i in 1:length(LC_cs_silt_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_silt_0.5_p_value <- (total / length(LC_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -6281,7 +6295,7 @@ for (i in 1:length(LC_cs_silt_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_silt_100_200_p_value <- (total / length(LC_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -6317,7 +6331,7 @@ for (i in 1:length(LC_cs_sand_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_sand_0.5_p_value <- (total / length(LC_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -6352,7 +6366,7 @@ for (i in 1:length(LC_cs_sand_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_sand_100_200_p_value <- (total / length(LC_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -6388,7 +6402,7 @@ for (i in 1:length(LC_cs_ph_0.5_slopes)){ #loop that adds 1 to the value total i
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_ph_0.5_p_value <- (total / length(LC_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -6424,7 +6438,7 @@ for (i in 1:length(LC_cs_ph_100_200_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_ph_100_200_p_value <- (total / length(LC_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -6460,7 +6474,7 @@ for (i in 1:length(LC_cs_soc_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_soc_0.5_p_value <- (total / length(LC_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -6496,7 +6510,7 @@ for (i in 1:length(LC_cs_soc_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_soc_100_200_p_value <- (total / length(LC_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -6532,7 +6546,7 @@ for (i in 1:length(LC_cs_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_vol_10_0.5_p_value <- (total / length(LC_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -6569,7 +6583,7 @@ for (i in 1:length(LC_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_vol_10_100_200_p_value <- (total / length(LC_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -6606,7 +6620,7 @@ for (i in 1:length(LC_cs_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_vol_1500_0.5_p_value <-(total / length(LC_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -6643,7 +6657,7 @@ for (i in 1:length(LC_cs_vol_1500_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_vol_1500_100_200_p_value <- (total / length(LC_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -6679,7 +6693,7 @@ for (i in 1:length(LC_cs_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_nitrogen_0.5_p_value <- (total / length(LC_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -6715,7 +6729,7 @@ for (i in 1:length(LC_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_nitrogen_100_200_p_value <- (total / length(LC_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -6755,7 +6769,7 @@ for (i in 1:length(LC_dbh_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_clay_0.5_p_value <- (total / length(LC_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -6791,7 +6805,7 @@ for (i in 1:length(LC_dbh_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_clay_100_200_p_value <- (total / length(LC_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -6826,7 +6840,7 @@ for (i in 1:length(LC_dbh_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_silt_0.5_p_value <- (total / length(LC_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -6862,7 +6876,7 @@ for (i in 1:length(LC_dbh_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_silt_100_200_p_value <- (total / length(LC_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -6898,7 +6912,7 @@ for (i in 1:length(LC_dbh_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_sand_0.5_p_value <- (total / length(LC_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -6933,7 +6947,7 @@ for (i in 1:length(LC_dbh_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_sand_100_200_p_value <- (total / length(LC_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -6969,7 +6983,7 @@ for (i in 1:length(LC_dbh_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_ph_0.5_p_value <- (total / length(LC_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -7005,7 +7019,7 @@ for (i in 1:length(LC_dbh_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_ph_100_200_p_value <- (total / length(LC_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -7041,7 +7055,7 @@ for (i in 1:length(LC_dbh_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_soc_0.5_p_value <- (total / length(LC_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -7077,7 +7091,7 @@ for (i in 1:length(LC_dbh_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_soc_100_200_p_value <- (total / length(LC_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -7113,7 +7127,7 @@ for (i in 1:length(LC_dbh_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_vol_10_0.5_p_value <- (total / length(LC_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -7150,7 +7164,7 @@ for (i in 1:length(LC_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_vol_10_100_200_p_value <- (total / length(LC_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -7187,7 +7201,7 @@ for (i in 1:length(LC_dbh_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_vol_1500_0.5_p_value <- (total / length(LC_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -7224,7 +7238,7 @@ for (i in 1:length(LC_dbh_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_vol_1500_100_200_p_value <- (total / length(LC_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -7260,7 +7274,7 @@ for (i in 1:length(LC_dbh_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_nitrogen_0.5_p_value <- (total / length(LC_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -7296,7 +7310,7 @@ for (i in 1:length(LC_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(LC_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_dbh_nitrogen_100_200_p_value <- (total / length(LC_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -7338,7 +7352,7 @@ for (i in 1:length(SD_sca_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_clay_0.5_p_value <- (total / length(SD_sca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -7374,7 +7388,7 @@ for (i in 1:length(SD_sca_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_clay_100_200_p_value <- (total / length(SD_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -7409,7 +7423,7 @@ for (i in 1:length(SD_sca_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_silt_0.5_p_value <- (total / length(SD_sca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -7445,7 +7459,7 @@ for (i in 1:length(SD_sca_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_silt_100_200_p_value <- (total / length(SD_sca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -7481,7 +7495,7 @@ for (i in 1:length(SD_sca_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_sand_0.5_p_value <- (total / length(SD_sca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -7516,7 +7530,7 @@ for (i in 1:length(SD_sca_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_sand_100_200_p_value <- (total / length(SD_sca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -7552,7 +7566,7 @@ for (i in 1:length(SD_sca_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_ph_0.5_p_value <- (total / length(SD_sca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -7588,7 +7602,7 @@ for (i in 1:length(SD_sca_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_ph_100_200_p_value <- (total / length(SD_sca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -7624,7 +7638,7 @@ for (i in 1:length(SD_sca_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_soc_0.5_p_value <- (total / length(SD_sca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -7660,7 +7674,7 @@ for (i in 1:length(SD_sca_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_soc_100_200_p_value <- (total / length(SD_sca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -7696,7 +7710,7 @@ for (i in 1:length(SD_sca_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_vol_10_0.5_p_value <- (total / length(SD_sca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -7733,7 +7747,7 @@ for (i in 1:length(SD_sca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_vol_10_100_200_p_value <- (total / length(SD_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -7770,7 +7784,7 @@ for (i in 1:length(SD_sca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_vol_1500_0.5_p_value <- (total / length(SD_sca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -7807,7 +7821,7 @@ for (i in 1:length(SD_sca_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_vol_1500_100_200_p_value <- (total / length(SD_sca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -7843,7 +7857,7 @@ for (i in 1:length(SD_sca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_nitrogen_0.5_p_value <- (total / length(SD_sca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -7880,7 +7894,7 @@ for (i in 1:length(SD_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_sca_nitrogen_100_200_p_value <- (total / length(SD_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -7921,7 +7935,7 @@ for (i in 1:length(SD_lca_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_clay_0.5_p_value <- (total / length(SD_lca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -7957,7 +7971,7 @@ for (i in 1:length(SD_lca_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_clay_100_200_p_value <- (total / length(SD_lca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -7992,7 +8006,7 @@ for (i in 1:length(SD_lca_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_silt_0.5_p_value <- (total / length(SD_lca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -8028,7 +8042,7 @@ for (i in 1:length(SD_lca_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_silt_100_200_p_value <- (total / length(SD_lca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -8064,7 +8078,7 @@ for (i in 1:length(SD_lca_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_sand_0.5_p_value <- (total / length(SD_lca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -8099,7 +8113,7 @@ for (i in 1:length(SD_lca_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_sand_100_200_p_value <- (total / length(SD_lca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -8135,7 +8149,7 @@ for (i in 1:length(SD_lca_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_ph_0.5_p_value <- (total / length(SD_lca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -8171,7 +8185,7 @@ for (i in 1:length(SD_lca_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_ph_100_200_p_value <- (total / length(SD_lca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -8207,7 +8221,7 @@ for (i in 1:length(SD_lca_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_soc_0.5_p_value <- (total / length(SD_lca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -8243,7 +8257,7 @@ for (i in 1:length(SD_lca_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_soc_100_200_p_value <- (total / length(SD_lca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -8279,7 +8293,7 @@ for (i in 1:length(SD_lca_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_vol_10_0.5_p_value <- (total / length(SD_lca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -8316,7 +8330,7 @@ for (i in 1:length(SD_lca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_vol_10_100_200_p_value <- (total / length(SD_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -8353,7 +8367,7 @@ for (i in 1:length(SD_lca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_vol_1500_0.5_p_value <- (total / length(SD_lca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -8390,7 +8404,8 @@ for (i in 1:length(SD_lca_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+SD_lca_vol_1500_100_200_p_value <- (total / length(SD_lca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -8426,7 +8441,7 @@ for (i in 1:length(SD_lca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_nitrogen_0.5_p_value <- (total / length(SD_lca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -8462,7 +8477,7 @@ for (i in 1:length(SD_lca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_lca_nitrogen_100_200_p_value <- (total / length(SD_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -8502,7 +8517,8 @@ for (i in 1:length(SD_ca_clay_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+SD_ca_clay_0.5_p_value <- (total / length(SD_ca_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -8538,7 +8554,7 @@ for (i in 1:length(SD_ca_clay_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_clay_100_200_p_value <- (total / length(SD_ca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -8573,7 +8589,7 @@ for (i in 1:length(SD_ca_silt_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_silt_0.5_p_value <- (total / length(SD_ca_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -8609,7 +8625,7 @@ for (i in 1:length(SD_ca_silt_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_silt_100_200_p_value <- (total / length(SD_ca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -8645,7 +8661,7 @@ for (i in 1:length(SD_ca_sand_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_sand_0.5_p_value <- (total / length(SD_ca_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -8680,7 +8696,7 @@ for (i in 1:length(SD_ca_sand_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_sand_100_200_p_value <- (total / length(SD_ca_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -8716,7 +8732,7 @@ for (i in 1:length(SD_ca_ph_0.5_slopes)){ #loop that adds 1 to the value total i
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_ph_0.5_p_value <- (total / length(SD_ca_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -8752,7 +8768,7 @@ for (i in 1:length(SD_ca_ph_100_200_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_ph_100_200_p_value <- (total / length(SD_ca_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -8788,7 +8804,7 @@ for (i in 1:length(SD_ca_soc_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_soc_0.5_p_value <- (total / length(SD_ca_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -8824,7 +8840,8 @@ for (i in 1:length(SD_ca_soc_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+SD_ca_soc_100_200_p_value <- (total / length(SD_ca_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -8860,7 +8877,7 @@ for (i in 1:length(SD_ca_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_vol_10_0.5_p_value <- (total / length(SD_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -8897,7 +8914,7 @@ for (i in 1:length(SD_ca_vol_10_100_200_slopes)){ #loop that adds 1 to the value
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_vol_10_100_200_p_value <- (total / length(SD_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -8934,7 +8951,7 @@ for (i in 1:length(SD_ca_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_vol_1500_0.5_p_value <- (total / length(SD_ca_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -8971,7 +8988,7 @@ for (i in 1:length(SD_ca_vol_1500_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_vol_1500_100_200_p_value <- (total / length(SD_ca_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -9007,7 +9024,7 @@ for (i in 1:length(SD_ca_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_nitrogen_0.5_p_value <- (total / length(SD_ca_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -9043,7 +9060,7 @@ for (i in 1:length(SD_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_ca_nitrogen_100_200_p_value <- (total / length(SD_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -9084,7 +9101,7 @@ for (i in 1:length(SD_cs_clay_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_clay_0.5_p_value <- (total / length(SD_cs_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -9120,7 +9137,7 @@ for (i in 1:length(SD_cs_clay_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_clay_100_200_p_value <- (total / length(SD_cs_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -9155,7 +9172,7 @@ for (i in 1:length(SD_cs_silt_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_silt_0.5_p_value <- (total / length(SD_cs_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -9191,7 +9208,7 @@ for (i in 1:length(SD_cs_silt_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_silt_100_200_p_value <- (total / length(SD_cs_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -9227,7 +9244,7 @@ for (i in 1:length(SD_cs_sand_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_sand_0.5_p_value <- (total / length(SD_cs_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -9262,7 +9279,7 @@ for (i in 1:length(SD_cs_sand_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_sand_100_200_p_value <- (total / length(SD_cs_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -9298,7 +9315,7 @@ for (i in 1:length(SD_cs_ph_0.5_slopes)){ #loop that adds 1 to the value total i
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_ph_0.5_p_value <- (total / length(SD_cs_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -9334,7 +9351,7 @@ for (i in 1:length(SD_cs_ph_100_200_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_ph_100_200_p_value <- (total / length(SD_cs_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -9370,7 +9387,7 @@ for (i in 1:length(SD_cs_soc_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_soc_0.5_p_value <- (total / length(SD_cs_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -9406,8 +9423,7 @@ for (i in 1:length(SD_cs_soc_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
-
+SD_cs_soc_100_200_p_value <- (total / length(SD_cs_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #volume of water content at -10 kpa 0-5
 
@@ -9442,7 +9458,7 @@ for (i in 1:length(SD_cs_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_vol_10_0.5_p_value <- (total / length(SD_cs_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -9479,7 +9495,7 @@ for (i in 1:length(SD_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_vol_10_100_200_p_value <- (total / length(SD_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -9516,7 +9532,7 @@ for (i in 1:length(SD_cs_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_vol_1500_0.5_p_value <- (total / length(SD_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -9553,7 +9569,7 @@ for (i in 1:length(SD_cs_vol_1500_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_vol_1500_100_200_p_value <- (total / length(SD_cs_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -9589,7 +9605,7 @@ for (i in 1:length(SD_cs_nitrogen_0.5_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_nitrogen_0.5_p_value <- (total / length(SD_cs_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -9625,7 +9641,7 @@ for (i in 1:length(SD_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_cs_nitrogen_100_200_p_value <- (total / length(SD_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -9665,7 +9681,7 @@ for (i in 1:length(SD_dbh_clay_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_clay_0.5_p_value <- (total / length(SD_dbh_clay_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 # Clay Content 100-200
 
@@ -9701,7 +9717,7 @@ for (i in 1:length(SD_dbh_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_clay_100_200_p_value <- (total / length(SD_dbh_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -9736,7 +9752,7 @@ for (i in 1:length(SD_dbh_silt_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_silt_0.5_p_value <- (total / length(SD_dbh_silt_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #silt 100-200
@@ -9772,7 +9788,7 @@ for (i in 1:length(SD_dbh_silt_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_silt_100_200_p_value <- (total / length(SD_dbh_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #sand 0-5
@@ -9808,7 +9824,7 @@ for (i in 1:length(SD_dbh_sand_0.5_slopes)){ #loop that adds 1 to the value tota
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_sand_0.5_p_value <- (total / length(SD_dbh_sand_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #sand 100-200
 
@@ -9843,7 +9859,7 @@ for (i in 1:length(SD_dbh_sand_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_sand_100_200_p_value <- (total / length(SD_dbh_sand_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 ##ph 0-5
@@ -9879,7 +9895,7 @@ for (i in 1:length(SD_dbh_ph_0.5_slopes)){ #loop that adds 1 to the value total 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_ph_0.5_p_value <- (total / length(SD_dbh_ph_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph 100-200
@@ -9915,7 +9931,7 @@ for (i in 1:length(SD_dbh_ph_100_200_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_ph_100_200_p_value <- (total / length(SD_dbh_ph_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 0-5
@@ -9951,7 +9967,7 @@ for (i in 1:length(SD_dbh_soc_0.5_slopes)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_soc_0.5_p_value <- (total / length(SD_dbh_soc_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #soil organic carbon 100-200
@@ -9987,7 +10003,7 @@ for (i in 1:length(SD_dbh_soc_100_200_slopes)){ #loop that adds 1 to the value t
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_soc_100_200_p_value <- (total / length(SD_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 0-5
@@ -10023,7 +10039,7 @@ for (i in 1:length(SD_dbh_vol_10_0.5_slopes)){ #loop that adds 1 to the value to
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_vol_10_0.5_p_value <- (total / length(SD_dbh_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -10060,7 +10076,7 @@ for (i in 1:length(SD_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_vol_10_100_200_p_value <- (total / length(SD_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 0-5
@@ -10097,7 +10113,7 @@ for (i in 1:length(SD_dbh_vol_1500_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_vol_1500_0.5_p_value <- (total / length(SD_dbh_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -1500 kpa 100-200
@@ -10134,7 +10150,7 @@ for (i in 1:length(SD_dbh_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_vol_1500_100_200_p_value <- (total / length(SD_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -10170,7 +10186,7 @@ for (i in 1:length(SD_dbh_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_nitrogen_0.5_p_value <- (total / length(SD_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -10206,7 +10222,7 @@ for (i in 1:length(SD_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(SD_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+SD_dbh_nitrogen_100_200_p_value <- (total / length(SD_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #Summarizing results across population, size/shape, and soil variables
@@ -10276,6 +10292,60 @@ ggplot(Size_Slope_Results.df, aes(x = Sig., fill = interaction(Variable)))+
   facet_wrap(~Population)+
   theme_minimal()
 
+
+#Heat Map
+Size_Slope_Results.df$Population <- as.factor(Size_Slope_Results.df$Population)
+levels(Size_Slope_Results.df$Population)
+Size_Slope_Results.df$Variable
+
+#across all populations
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) 
+
+#across LM
+Size_Slope_Results.df.LM <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "LM", ] #isolating the LM p-values/slopes
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.LM) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) + 
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.LM) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) 
+
+#across LC
+Size_Slope_Results.df.LC <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "LC", ] #isolating the LM p-values/slopes
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.LC) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1)  + 
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.LC) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) 
+
+#across SD
+Size_Slope_Results.df.SD <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "SD", ] #isolating the LM p-values/slopes
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.SD) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) + 
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+
+ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.SD) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) 
+  
 
 
 ### PART 3: Comparing average soil values from inside populations to outside populations ###
