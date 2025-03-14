@@ -4081,13 +4081,13 @@ LM_dbh_ph_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fi
 LM_dbh_ph_100_200_lm_real_sum <- summary(LM_dbh_ph_100_200_lm_real) #extract the summary 
 LM_dbh_ph_100_200_lm_real_slope <- LM_dbh_ph_100_200_lm_real_sum$coefficients[2] #storing the slope
 
+
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
   geom_histogram(aes(x=LM_dbh_ph_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=LM_dbh_ph_100_200_lm_real_slope, col = "red")+ #line of our real slope
   xlab("Slopes of Shuffled dbh vs. ph Content 100-200 cm")+
   theme_classic()
-
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -10271,6 +10271,8 @@ p_values <- c(LM_sca_clay_0.5_p_value, LM_sca_clay_100_200_p_value, LM_sca_silt_
               SD_dbh_ph_100_200_p_value, SD_dbh_soc_0.5_p_value, SD_dbh_soc_100_200_p_value, SD_dbh_vol_10_0.5_p_value, SD_dbh_vol_10_100_200_p_value, SD_dbh_vol_1500_0.5_p_value, 
               SD_dbh_vol_1500_100_200_p_value, SD_dbh_nitrogen_0.5_p_value, SD_dbh_nitrogen_100_200_p_value)
               
+which(slopes > 17.518)
+slopes[119]
 
 slopes <- c(LM_sca_clay_0_5_lm_real_slope, LM_sca_clay_100_200_lm_real_slope, LM_sca_silt_0_5_lm_real_slope, LM_sca_silt_100_200_lm_real_slope, LM_sca_sand_0_5_lm_real_slope, LM_sca_sand_100_200_lm_real_slope,
               LM_sca_ph_0_5_lm_real_slope, LM_sca_ph_100_200_lm_real_slope, LM_sca_soc_0_5_lm_real_slope, LM_sca_soc_100_200_lm_real_slope, LM_sca_vol_10_0_5_lm_real_slope, LM_sca_vol_10_100_200_lm_real_slope, 
@@ -10325,7 +10327,7 @@ size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), 
                                                       "Nitrogen 0-5", "Nitrogen 100-200")),
                                  "Slope" = slopes, 
                                  "P_Value" = p_values,
-                                 "Significance" = ifelse(p_values < 0.5, "Y", "N"))
+                                 "Significance" = ifelse(p_values < 0.05, "Y", "N"))
 View(size.pop.slopes.df)
 
 
