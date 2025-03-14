@@ -1458,7 +1458,7 @@ for (i in 1:length(LM_sca_clay_100_200_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_sca_clay_100_200_slopes_p_value <- (total / length(LM_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_sca_clay_100_200_p_value <- (total / length(LM_sca_clay_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #silt 0-5
 
@@ -3041,7 +3041,7 @@ for (i in 1:length(LM_ca_vol_10_0.5_slopes)){ #loop that adds 1 to the value tot
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_ca_vol_10_0.5_slopes <- (total / length(LM_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_ca_vol_10_0.5_p_value <- (total / length(LM_ca_vol_10_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #volume of water content at -10 kpa 100-200
@@ -6286,6 +6286,7 @@ ggplot()+
   geom_vline(xintercept=LC_cs_silt_100_200_lm_real_slope, col = "red")+ #line of our real slope
   xlab("Slopes of Shuffled cs vs. Silt Content 100-200 cm")+
   theme_classic()
+
 
 
 #calculating pseudo p-value for 
@@ -10225,126 +10226,271 @@ for (i in 1:length(SD_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 SD_dbh_nitrogen_100_200_p_value <- (total / length(SD_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+# Making a dataframe from all of these slopes and p-values
+
+p_values <- c(LM_sca_clay_0.5_p_value, LM_sca_clay_100_200_p_value, LM_sca_silt_0.5_p_value, LM_sca_silt_100_200_p_value, LM_sca_sand_0.5_p_value, LM_sca_sand_100_200_p_value,
+              LM_sca_ph_0.5_p_value, LM_sca_ph_100_200_p_value, LM_sca_soc_0.5_p_value, LM_sca_soc_100_200_p_value, LM_sca_vol_10_0.5_p_value, LM_sca_vol_10_100_200_p_value, 
+              LM_sca_vol_1500_0.5_p_value, LM_sca_vol_1500_100_200_p_value, LM_sca_nitrogen_0.5_p_value, LM_sca_nitrogen_100_200_p_value, LM_lca_clay_0.5_p_value, LM_lca_clay_100_200_p_value,
+              LM_lca_silt_0.5_p_value, LM_lca_silt_100_200_p_value, LM_lca_sand_0.5_p_value, LM_lca_sand_100_200_p_value, LM_lca_ph_0.5_p_value, LM_lca_ph_100_200_p_value, 
+              LM_lca_soc_0.5_p_value, LM_lca_soc_100_200_p_value, LM_lca_vol_10_0.5_p_value, LM_lca_vol_10_100_200_p_value, LM_lca_vol_1500_0.5_p_value, LM_lca_vol_1500_100_200_p_value,
+              LM_lca_nitrogen_0.5_p_value, LM_lca_nitrogen_100_200_p_value, LM_ca_clay_0.5_p_value, LM_ca_clay_100_200_p_value, LM_ca_silt_0.5_p_value, LM_ca_silt_100_200_p_value,
+              LM_ca_sand_0.5_p_value, LM_ca_sand_100_200_p_value, LM_ca_ph_0.5_p_value, LM_ca_ph_100_200_p_value, LM_ca_soc_0.5_p_value, LM_ca_soc_100_200_p_value, LM_ca_vol_10_0.5_p_value,
+              LM_ca_vol_10_100_200_p_value, LM_ca_vol_1500_0.5_p_value, LM_ca_vol_1500_100_200_p_value, LM_ca_nitrogen_0.5_p_value, LM_ca_nitrogen_100_200_p_value,
+              LM_cs_clay_0.5_p_value, LM_cs_clay_100_200_p_value, LM_cs_silt_0.5_p_value, LM_cs_silt_100_200_p_value, LM_cs_sand_0.5_p_value, LM_cs_sand_100_200_p_value, 
+              LM_cs_ph_0.5_p_value, LM_cs_ph_100_200_p_value, LM_cs_soc_0.5_p_value, LM_cs_soc_100_200_p_value, LM_cs_vol_10_0.5_p_value, LM_cs_vol_10_100_200_p_value,
+              LM_cs_vol_1500_0.5_p_value, LM_cs_vol_1500_100_200_p_value, LM_cs_nitrogen_0.5_p_value, LM_cs_nitrogen_100_200_p_value, LM_dbh_clay_0.5_p_value, 
+              LM_dbh_clay_100_200_p_value, LM_dbh_silt_0.5_p_value, LM_dbh_silt_100_200_p_value, LM_dbh_sand_0.5_p_value, LM_dbh_sand_100_200_p_value, LM_dbh_ph_0.5_p_value,
+              LM_dbh_ph_100_200_p_value, LM_dbh_soc_0.5_p_value, LM_dbh_soc_100_200_p_value, LM_dbh_vol_10_0.5_p_value, LM_dbh_vol_10_100_200_p_value, LM_dbh_vol_1500_0.5_p_value, 
+              LM_dbh_vol_1500_100_200_p_value, LM_dbh_nitrogen_0.5_p_value, LM_dbh_nitrogen_100_200_p_value,
+              LC_sca_clay_0.5_p_value,LC_sca_clay_100_200_p_value, LC_sca_silt_0.5_p_value, LC_sca_silt_100_200_p_value, LC_sca_sand_0.5_p_value, LC_sca_sand_100_200_p_value,
+              LC_sca_ph_0.5_p_value, LC_sca_ph_100_200_p_value, LC_sca_soc_0.5_p_value, LC_sca_soc_100_200_p_value, LC_sca_vol_10_0.5_p_value, LC_sca_vol_10_100_200_p_value, 
+              LC_sca_vol_1500_0.5_p_value, LC_sca_vol_1500_100_200_p_value, LC_sca_nitrogen_0.5_p_value, LC_sca_nitrogen_100_200_p_value, LC_lca_clay_0.5_p_value, LC_lca_clay_100_200_p_value,
+              LC_lca_silt_0.5_p_value, LC_lca_silt_100_200_p_value, LC_lca_sand_0.5_p_value, LC_lca_sand_100_200_p_value, LC_lca_ph_0.5_p_value, LC_lca_ph_100_200_p_value, 
+              LC_lca_soc_0.5_p_value, LC_lca_soc_100_200_p_value, LC_lca_vol_10_0.5_p_value, LC_lca_vol_10_100_200_p_value, LC_lca_vol_1500_0.5_p_value, LC_lca_vol_1500_100_200_p_value,
+              LC_lca_nitrogen_0.5_p_value, LC_lca_nitrogen_100_200_p_value, LC_ca_clay_0.5_p_value, LC_ca_clay_100_200_p_value, LC_ca_silt_0.5_p_value, LC_ca_silt_100_200_p_value,
+              LC_ca_sand_0.5_p_value, LC_ca_sand_100_200_p_value, LC_ca_ph_0.5_p_value, LC_ca_ph_100_200_p_value, LC_ca_soc_0.5_p_value, LC_ca_soc_100_200_p_value, LC_ca_vol_10_0.5_p_value,
+              LC_ca_vol_10_100_200_p_value, LC_ca_vol_1500_0.5_p_value, LC_ca_vol_1500_100_200_p_value, LC_ca_nitrogen_0.5_p_value, LC_ca_nitrogen_100_200_p_value,
+              LC_cs_clay_0.5_p_value, LC_cs_clay_100_200_p_value, LC_cs_silt_0.5_p_value, LC_cs_silt_100_200_p_value, LC_cs_sand_0.5_p_value, LC_cs_sand_100_200_p_value, 
+              LC_cs_ph_0.5_p_value, LC_cs_ph_100_200_p_value, LC_cs_soc_0.5_p_value, LC_cs_soc_100_200_p_value, LC_cs_vol_10_0.5_p_value, LC_cs_vol_10_100_200_p_value,
+              LC_cs_vol_1500_0.5_p_value, LC_cs_vol_1500_100_200_p_value, LC_cs_nitrogen_0.5_p_value, LC_cs_nitrogen_100_200_p_value, LC_dbh_clay_0.5_p_value, 
+              LC_dbh_clay_100_200_p_value, LC_dbh_silt_0.5_p_value, LC_dbh_silt_100_200_p_value, LC_dbh_sand_0.5_p_value, LC_dbh_sand_100_200_p_value, LC_dbh_ph_0.5_p_value,
+              LC_dbh_ph_100_200_p_value, LC_dbh_soc_0.5_p_value, LC_dbh_soc_100_200_p_value, LC_dbh_vol_10_0.5_p_value, LC_dbh_vol_10_100_200_p_value, LC_dbh_vol_1500_0.5_p_value, 
+              LC_dbh_vol_1500_100_200_p_value, LC_dbh_nitrogen_0.5_p_value, LC_dbh_nitrogen_100_200_p_value,
+              SD_sca_clay_0.5_p_value,SD_sca_clay_100_200_p_value, SD_sca_silt_0.5_p_value, SD_sca_silt_100_200_p_value, SD_sca_sand_0.5_p_value, SD_sca_sand_100_200_p_value,
+              SD_sca_ph_0.5_p_value, SD_sca_ph_100_200_p_value, SD_sca_soc_0.5_p_value, SD_sca_soc_100_200_p_value, SD_sca_vol_10_0.5_p_value, SD_sca_vol_10_100_200_p_value, 
+              SD_sca_vol_1500_0.5_p_value, SD_sca_vol_1500_100_200_p_value, SD_sca_nitrogen_0.5_p_value, SD_sca_nitrogen_100_200_p_value, SD_lca_clay_0.5_p_value, SD_lca_clay_100_200_p_value,
+              SD_lca_silt_0.5_p_value, SD_lca_silt_100_200_p_value, SD_lca_sand_0.5_p_value, SD_lca_sand_100_200_p_value, SD_lca_ph_0.5_p_value, SD_lca_ph_100_200_p_value, 
+              SD_lca_soc_0.5_p_value, SD_lca_soc_100_200_p_value, SD_lca_vol_10_0.5_p_value, SD_lca_vol_10_100_200_p_value, SD_lca_vol_1500_0.5_p_value, SD_lca_vol_1500_100_200_p_value,
+              SD_lca_nitrogen_0.5_p_value, SD_lca_nitrogen_100_200_p_value, SD_ca_clay_0.5_p_value, SD_ca_clay_100_200_p_value, SD_ca_silt_0.5_p_value, SD_ca_silt_100_200_p_value,
+              SD_ca_sand_0.5_p_value, SD_ca_sand_100_200_p_value, SD_ca_ph_0.5_p_value, SD_ca_ph_100_200_p_value, SD_ca_soc_0.5_p_value, SD_ca_soc_100_200_p_value, SD_ca_vol_10_0.5_p_value,
+              SD_ca_vol_10_100_200_p_value, SD_ca_vol_1500_0.5_p_value, SD_ca_vol_1500_100_200_p_value, SD_ca_nitrogen_0.5_p_value, SD_ca_nitrogen_100_200_p_value,
+              SD_cs_clay_0.5_p_value, SD_cs_clay_100_200_p_value, SD_cs_silt_0.5_p_value, SD_cs_silt_100_200_p_value, SD_cs_sand_0.5_p_value, SD_cs_sand_100_200_p_value, 
+              SD_cs_ph_0.5_p_value, SD_cs_ph_100_200_p_value, SD_cs_soc_0.5_p_value, SD_cs_soc_100_200_p_value, SD_cs_vol_10_0.5_p_value, SD_cs_vol_10_100_200_p_value,
+              SD_cs_vol_1500_0.5_p_value, SD_cs_vol_1500_100_200_p_value, SD_cs_nitrogen_0.5_p_value, SD_cs_nitrogen_100_200_p_value, SD_dbh_clay_0.5_p_value, 
+              SD_dbh_clay_100_200_p_value, SD_dbh_silt_0.5_p_value, SD_dbh_silt_100_200_p_value, SD_dbh_sand_0.5_p_value, SD_dbh_sand_100_200_p_value, SD_dbh_ph_0.5_p_value,
+              SD_dbh_ph_100_200_p_value, SD_dbh_soc_0.5_p_value, SD_dbh_soc_100_200_p_value, SD_dbh_vol_10_0.5_p_value, SD_dbh_vol_10_100_200_p_value, SD_dbh_vol_1500_0.5_p_value, 
+              SD_dbh_vol_1500_100_200_p_value, SD_dbh_nitrogen_0.5_p_value, SD_dbh_nitrogen_100_200_p_value)
+              
+
+slopes <- c(LM_sca_clay_0_5_lm_real_slope, LM_sca_clay_100_200_lm_real_slope, LM_sca_silt_0_5_lm_real_slope, LM_sca_silt_100_200_lm_real_slope, LM_sca_sand_0_5_lm_real_slope, LM_sca_sand_100_200_lm_real_slope,
+              LM_sca_ph_0_5_lm_real_slope, LM_sca_ph_100_200_lm_real_slope, LM_sca_soc_0_5_lm_real_slope, LM_sca_soc_100_200_lm_real_slope, LM_sca_vol_10_0_5_lm_real_slope, LM_sca_vol_10_100_200_lm_real_slope, 
+              LM_sca_vol_1500_0_5_lm_real_slope, LM_sca_vol_1500_100_200_lm_real_slope, LM_sca_nitrogen_0_5_lm_real_slope, LM_sca_nitrogen_100_200_lm_real_slope, LM_lca_clay_0_5_lm_real_slope, LM_lca_clay_100_200_lm_real_slope,
+              LM_lca_silt_0_5_lm_real_slope, LM_lca_silt_100_200_lm_real_slope, LM_lca_sand_0_5_lm_real_slope, LM_lca_sand_100_200_lm_real_slope, LM_lca_ph_0_5_lm_real_slope, LM_lca_ph_100_200_lm_real_slope, 
+              LM_lca_soc_0_5_lm_real_slope, LM_lca_soc_100_200_lm_real_slope, LM_lca_vol_10_0_5_lm_real_slope, LM_lca_vol_10_100_200_lm_real_slope, LM_lca_vol_1500_0_5_lm_real_slope, LM_lca_vol_1500_100_200_lm_real_slope,
+              LM_lca_nitrogen_0_5_lm_real_slope, LM_lca_nitrogen_100_200_lm_real_slope, LM_ca_clay_0_5_lm_real_slope, LM_ca_clay_100_200_lm_real_slope, LM_ca_silt_0_5_lm_real_slope, LM_ca_silt_100_200_lm_real_slope,
+              LM_ca_sand_0_5_lm_real_slope, LM_ca_sand_100_200_lm_real_slope, LM_ca_ph_0_5_lm_real_slope, LM_ca_ph_100_200_lm_real_slope, LM_ca_soc_0_5_lm_real_slope, LM_ca_soc_100_200_lm_real_slope, LM_ca_vol_10_0_5_lm_real_slope,
+              LM_ca_vol_10_100_200_lm_real_slope, LM_ca_vol_1500_0_5_lm_real_slope, LM_ca_vol_1500_100_200_lm_real_slope, LM_ca_nitrogen_0_5_lm_real_slope, LM_ca_nitrogen_100_200_lm_real_slope,
+              LM_cs_clay_0_5_lm_real_slope, LM_cs_clay_100_200_lm_real_slope, LM_cs_silt_0_5_lm_real_slope, LM_cs_silt_100_200_lm_real_slope, LM_cs_sand_0_5_lm_real_slope, LM_cs_sand_100_200_lm_real_slope, 
+              LM_cs_ph_0_5_lm_real_slope, LM_cs_ph_100_200_lm_real_slope, LM_cs_soc_0_5_lm_real_slope, LM_cs_soc_100_200_lm_real_slope, LM_cs_vol_10_0_5_lm_real_slope, LM_cs_vol_10_100_200_lm_real_slope,
+              LM_cs_vol_1500_0_5_lm_real_slope, LM_cs_vol_1500_100_200_lm_real_slope, LM_cs_nitrogen_0_5_lm_real_slope, LM_cs_nitrogen_100_200_lm_real_slope, LM_dbh_clay_0_5_lm_real_slope, 
+              LM_dbh_clay_100_200_lm_real_slope, LM_dbh_silt_0_5_lm_real_slope, LM_dbh_silt_100_200_lm_real_slope, LM_dbh_sand_0_5_lm_real_slope, LM_dbh_sand_100_200_lm_real_slope, LM_dbh_ph_0_5_lm_real_slope,
+              LM_dbh_ph_100_200_lm_real_slope, LM_dbh_soc_0_5_lm_real_slope, LM_dbh_soc_100_200_lm_real_slope, LM_dbh_vol_10_0_5_lm_real_slope, LM_dbh_vol_10_100_200_lm_real_slope, LM_dbh_vol_1500_0_5_lm_real_slope, 
+              LM_dbh_vol_1500_100_200_lm_real_slope, LM_dbh_nitrogen_0_5_lm_real_slope, LM_dbh_nitrogen_100_200_lm_real_slope,
+              LC_sca_clay_0_5_LC_real_slope,LC_sca_clay_100_200_LC_real_slope, LC_sca_silt_0_5_LC_real_slope, LC_sca_silt_100_200_LC_real_slope, LC_sca_sand_0_5_LC_real_slope, LC_sca_sand_100_200_LC_real_slope,
+              LC_sca_ph_0_5_LC_real_slope, LC_sca_ph_100_200_LC_real_slope, LC_sca_soc_0_5_lm_real_slope, LC_sca_soc_100_200_lm_real_slope, LC_sca_vol_10_0_5_lm_real_slope, LC_sca_vol_10_100_200_lm_real_slope, 
+              LC_sca_vol_1500_0_5_lm_real_slope, LC_sca_vol_1500_100_200_lm_real_slope, LC_sca_nitrogen_0_5_lm_real_slope, LC_sca_nitrogen_100_200_lm_real_slope, LC_lca_clay_0_5_lm_real_slope, LC_lca_clay_100_200_lm_real_slope,
+              LC_lca_silt_0_5_lm_real_slope, LC_lca_silt_100_200_lm_real_slope, LC_lca_sand_0_5_lm_real_slope, LC_lca_sand_100_200_lm_real_slope, LC_lca_ph_0_5_lm_real_slope, LC_lca_ph_100_200_lm_real_slope, 
+              LC_lca_soc_0_5_lm_real_slope, LC_lca_soc_100_200_lm_real_slope, LC_lca_vol_10_0_5_lm_real_slope, LC_lca_vol_10_100_200_lm_real_slope, LC_lca_vol_1500_0_5_lm_real_slope, LC_lca_vol_1500_100_200_lm_real_slope,
+              LC_lca_nitrogen_0_5_lm_real_slope, LC_lca_nitrogen_100_200_lm_real_slope, LC_ca_clay_0_5_lm_real_slope, LC_ca_clay_100_200_lm_real_slope, LC_ca_silt_0_5_lm_real_slope, LC_ca_silt_100_200_lm_real_slope,
+              LC_ca_sand_0_5_lm_real_slope, LC_ca_sand_100_200_lm_real_slope, LC_ca_ph_0_5_lm_real_slope, LC_ca_ph_100_200_lm_real_slope, LC_ca_soc_0_5_lm_real_slope, LC_ca_soc_100_200_lm_real_slope, LC_ca_vol_10_0_5_lm_real_slope,
+              LC_ca_vol_10_100_200_lm_real_slope, LC_ca_vol_1500_0_5_lm_real_slope, LC_ca_vol_1500_100_200_lm_real_slope, LC_ca_nitrogen_0_5_lm_real_slope, LC_ca_nitrogen_100_200_lm_real_slope,
+              LC_cs_clay_0_5_lm_real_slope, LC_cs_clay_100_200_lm_real_slope, LC_cs_silt_0_5_lm_real_slope, LC_cs_silt_100_200_lm_real_slope, LC_cs_sand_0_5_lm_real_slope, LC_cs_sand_100_200_lm_real_slope, 
+              LC_cs_ph_0_5_lm_real_slope, LC_cs_ph_100_200_lm_real_slope, LC_cs_soc_0_5_lm_real_slope, LC_cs_soc_100_200_lm_real_slope, LC_cs_vol_10_0_5_lm_real_slope, LC_cs_vol_10_100_200_lm_real_slope,
+              LC_cs_vol_1500_0_5_lm_real_slope, LC_cs_vol_1500_100_200_lm_real_slope, LC_cs_nitrogen_0_5_lm_real_slope, LC_cs_nitrogen_100_200_lm_real_slope, LC_dbh_clay_0_5_lm_real_slope, 
+              LC_dbh_clay_100_200_lm_real_slope, LC_dbh_silt_0_5_lm_real_slope, LC_dbh_silt_100_200_lm_real_slope, LC_dbh_sand_0_5_lm_real_slope, LC_dbh_sand_100_200_lm_real_slope, LC_dbh_ph_0_5_lm_real_slope,
+              LC_dbh_ph_100_200_lm_real_slope, LC_dbh_soc_0_5_lm_real_slope, LC_dbh_soc_100_200_lm_real_slope, LC_dbh_vol_10_0_5_lm_real_slope, LC_dbh_vol_10_100_200_lm_real_slope, LC_dbh_vol_1500_0_5_lm_real_slope, 
+              LC_dbh_vol_1500_100_200_lm_real_slope, LC_dbh_nitrogen_0_5_lm_real_slope, LC_dbh_nitrogen_100_200_lm_real_slope,
+              SD_sca_clay_0_5_SD_real_slope,SD_sca_clay_100_200_SD_real_slope, SD_sca_silt_0_5_SD_real_slope, SD_sca_silt_100_200_SD_real_slope, SD_sca_sand_0_5_SD_real_slope, SD_sca_sand_100_200_SD_real_slope,
+              SD_sca_ph_0_5_SD_real_slope, SD_sca_ph_100_200_SD_real_slope, SD_sca_soc_0_5_lm_real_slope, SD_sca_soc_100_200_lm_real_slope, SD_sca_vol_10_0_5_lm_real_slope, SD_sca_vol_10_100_200_lm_real_slope, 
+              SD_sca_vol_1500_0_5_lm_real_slope, SD_sca_vol_1500_100_200_lm_real_slope, SD_sca_nitrogen_0_5_lm_real_slope, SD_sca_nitrogen_100_200_lm_real_slope, SD_lca_clay_0_5_lm_real_slope, SD_lca_clay_100_200_lm_real_slope,
+              SD_lca_silt_0_5_lm_real_slope, SD_lca_silt_100_200_lm_real_slope, SD_lca_sand_0_5_lm_real_slope, SD_lca_sand_100_200_lm_real_slope, SD_lca_ph_0_5_lm_real_slope, SD_lca_ph_100_200_lm_real_slope, 
+              SD_lca_soc_0_5_lm_real_slope, SD_lca_soc_100_200_lm_real_slope, SD_lca_vol_10_0_5_lm_real_slope, SD_lca_vol_10_100_200_lm_real_slope, SD_lca_vol_1500_0_5_lm_real_slope, SD_lca_vol_1500_100_200_lm_real_slope,
+              SD_lca_nitrogen_0_5_lm_real_slope, SD_lca_nitrogen_100_200_lm_real_slope, SD_ca_clay_0_5_lm_real_slope, SD_ca_clay_100_200_lm_real_slope, SD_ca_silt_0_5_lm_real_slope, SD_ca_silt_100_200_lm_real_slope,
+              SD_ca_sand_0_5_lm_real_slope, SD_ca_sand_100_200_lm_real_slope, SD_ca_ph_0_5_lm_real_slope, SD_ca_ph_100_200_lm_real_slope, SD_ca_soc_0_5_lm_real_slope, SD_ca_soc_100_200_lm_real_slope, SD_ca_vol_10_0_5_lm_real_slope,
+              SD_ca_vol_10_100_200_lm_real_slope, SD_ca_vol_1500_0_5_lm_real_slope, SD_ca_vol_1500_100_200_lm_real_slope, SD_ca_nitrogen_0_5_lm_real_slope, SD_ca_nitrogen_100_200_lm_real_slope,
+              SD_cs_clay_0_5_lm_real_slope, SD_cs_clay_100_200_lm_real_slope, SD_cs_silt_0_5_lm_real_slope, SD_cs_silt_100_200_lm_real_slope, SD_cs_sand_0_5_lm_real_slope, SD_cs_sand_100_200_lm_real_slope, 
+              SD_cs_ph_0_5_lm_real_slope, SD_cs_ph_100_200_lm_real_slope, SD_cs_soc_0_5_lm_real_slope, SD_cs_soc_100_200_lm_real_slope, SD_cs_vol_10_0_5_lm_real_slope, SD_cs_vol_10_100_200_lm_real_slope,
+              SD_cs_vol_1500_0_5_lm_real_slope, SD_cs_vol_1500_100_200_lm_real_slope, SD_cs_nitrogen_0_5_lm_real_slope, SD_cs_nitrogen_100_200_lm_real_slope, SD_dbh_clay_0_5_lm_real_slope, 
+              SD_dbh_clay_100_200_lm_real_slope, SD_dbh_silt_0_5_lm_real_slope, SD_dbh_silt_100_200_lm_real_slope, SD_dbh_sand_0_5_lm_real_slope, SD_dbh_sand_100_200_lm_real_slope, SD_dbh_ph_0_5_lm_real_slope,
+              SD_dbh_ph_100_200_lm_real_slope, SD_dbh_soc_0_5_lm_real_slope, SD_dbh_soc_100_200_lm_real_slope, SD_dbh_vol_10_0_5_lm_real_slope, SD_dbh_vol_10_100_200_lm_real_slope, SD_dbh_vol_1500_0_5_lm_real_slope, 
+              SD_dbh_vol_1500_100_200_lm_real_slope, SD_dbh_nitrogen_0_5_lm_real_slope, SD_dbh_nitrogen_100_200_lm_real_slope)
+
+
+size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), rep('SD', 80)),
+                                 "Variable" = rep(c(rep("SCA", 16), rep("LCA", 16), rep("CA", 16), rep("CS", 16),
+                                                  rep("DBH", 16)), 3),
+                                 "Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
+                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
+                                                      "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
+                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+                                 "Slope" = slopes, 
+                                 "P_Value" = p_values,
+                                 "Significance" = ifelse(p_values < 0.5, "Y", "N"))
+View(size.pop.slopes.df)
+
+
 #Summarizing results across population, size/shape, and soil variables
 
-#loading in all of the results from comparing the real slopes to randomized slopes 
-Size_Slope_Results.df <- read.csv("./data/Hypothesis_4_Size_Shape_Test_Results_Wanger_REU_2024.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
-View(Size_Slope_Results.df)
 
 #summarizing the data frame 
-summary(Size_Slope_Results.df)
+summary(size.pop.slopes.df)
 
 #number of yes or no by population 
-table(Size_Slope_Results.df$Population, Size_Slope_Results.df$Sig.)
+table(size.pop.slopes.df$Population, size.pop.slopes.df$Significance)
 
 # number of yes or nos for each size variables 
 
 #LM
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="LM"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LM"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="LM"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LM"])
 
 #LC
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="LC"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LC"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="LC"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LC"])
 
 #SD
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="SD"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="SD"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="SD"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="SD"])
 
 # number of yes or nos for each soil variables 
 
 #LM
-table(Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="LM"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LM"])
+table(size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="LM"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LM"])
 
 #LC
-table(Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="LC"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LC"])
+table(size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="LC"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LC"])
 
 #SD
-table(Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="SD"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="SD"])
+table(size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="SD"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="SD"])
 
 
 ## number of yes or nos for each size variables and each soil variable 
 
 #LM 
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="LM"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LM"], Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="LM"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="LM"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LM"], size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="LM"])
 
 #LC 
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="LC"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="LC"], Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="LC"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="LC"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="LC"], size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="LC"])
 
 #SD 
-table(Size_Slope_Results.df$Shape.Size.Variable[Size_Slope_Results.df$Population=="SD"], Size_Slope_Results.df$Sig.[Size_Slope_Results.df$Population=="SD"], Size_Slope_Results.df$Variable[Size_Slope_Results.df$Population=="SD"])
+table(size.pop.slopes.df$Shape.Size[size.pop.slopes.df$Population=="SD"], size.pop.slopes.df$Significance[size.pop.slopes.df$Population=="SD"], size.pop.slopes.df$Variable[size.pop.slopes.df$Population=="SD"])
 
 
 #plots to visualize the results
 
 #plot of population, yes/no, and the interaciton between size/shape and soil values
-ggplot(Size_Slope_Results.df, aes(x = Sig., fill = interaction(Shape.Size.Variable,Variable)))+
+ggplot(size.pop.slopes.df, aes(x = Significance, fill = interaction(Shape.Size,Variable)))+
   geom_bar(position = 'stack')+
   facet_wrap(~Population)+
   theme_minimal()
 
 #plot of population, yes/no, and  size/shape 
-ggplot(Size_Slope_Results.df, aes(x = Sig., fill = interaction(Shape.Size.Variable)))+
+ggplot(size.pop.slopes.df, aes(x = Significance, fill = interaction(Shape.Size)))+
   geom_bar(position = 'stack')+
   facet_wrap(~Population)+
   theme_minimal()
 
 #plot of population, yes/no, and soil values
-ggplot(Size_Slope_Results.df, aes(x = Sig., fill = interaction(Variable)))+
+ggplot(size.pop.slopes.df, aes(x = Significance, fill = interaction(Variable)))+
   geom_bar(position = 'stack')+
   facet_wrap(~Population)+
   theme_minimal()
 
 
-#Heat Map
-Size_Slope_Results.df$Population <- as.factor(Size_Slope_Results.df$Population)
-levels(Size_Slope_Results.df$Population)
-Size_Slope_Results.df$Variable
+### Heat Map
+size.pop.slopes.df$Population <- as.factor(size.pop.slopes.df$Population)
+levels(size.pop.slopes.df$Population)
+
+options(digits=3)
 
 #across all populations
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Values") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  coord_flip()
 
 #across LM
-Size_Slope_Results.df.LM <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "LM", ] #isolating the LM p-values/slopes
+size.pop.slopes.df.LM <- size.pop.slopes.df[size.pop.slopes.df$Population == "LM", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.LM) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df.LM) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value", 
+       title = "Las Matancitas Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P-values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = 1) + 
-  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
+  coord_flip()
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.LM) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LM) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope", 
+       title = "Las Matancitas Significant Associations between Soil and Size/Shape",
+       subtitle = "Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  geom_text(aes(label = round(Slope, 3))) +
+  coord_flip()
+
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LM) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope", 
+       title = "Las Matancitas Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
+  coord_flip()
 
 #across LC
-Size_Slope_Results.df.LC <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "LC", ] #isolating the LM p-values/slopes
+size.pop.slopes.df.LC <- size.pop.slopes.df[size.pop.slopes.df$Population == "LC", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.LC) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df.LC) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  
+       title = "La Cobriza Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P-values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = 1)  + 
-  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
+  coord_flip()
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.LC) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LC) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  
+       title = "La Cobriza Significant Associations between Soil and Size/Shape",
+       subtitle = "Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  coord_flip()
+
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LC) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  
+       title = "La Cobriza Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
+  coord_flip()
 
 #across SD
-Size_Slope_Results.df.SD <- Size_Slope_Results.df[Size_Slope_Results.df$Population == "SD", ] #isolating the LM p-values/slopes
+size.pop.slopes.df.SD <- size.pop.slopes.df[size.pop.slopes.df$Population == "SD", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = P.value), data = Size_Slope_Results.df.SD) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value") + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  title = "San Dionisio Significant Associations between Soil and Size/Shape") + 
   scale_fill_distiller(palette = "RdPu", direction = 1) + 
-  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
+  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
+  coord_flip()
 
-ggplot(aes(x = Shape.Size.Variable, y = Variable, fill = Slope), data = Size_Slope_Results.df.SD) +
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  title = "San Dionisio Significant Associations between Soil and Size/Shape",
+       subtitle = "Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  geom_text(aes(label = round(Slope, 3))) +
+  coord_flip()
+
+ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  title = "San Dionisio Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant Slopes Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
+  coord_flip()
   
 
 

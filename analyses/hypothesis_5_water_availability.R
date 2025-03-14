@@ -146,7 +146,7 @@ SD_box <- st_bbox(river_SD_trans)
 #LM
 
 #turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
+river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
 river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #create raster of lake edge points
 plot(river_LM_trans_point_raster)
 

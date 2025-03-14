@@ -4,7 +4,6 @@
 
 
 #### Loading libraries and relevant data ####
-
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
@@ -894,9 +893,10 @@ k.check(all_points_add.gam_SCA.smoothed.poisson)
 #after attempting to try different K values, the default values appear to work the best
 
 plot(all_points_add.gam_SCA.smoothed.poisson, all.terms = T)
-#par(mfrow = c(2,2))
-plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
-plot.gam(all_points_add.gam_SCA.smoothed, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
+
+par(mfrow = c(2,2))
+plot.gam(all_points_add.gam_SCA.smoothed, select=1, all.terms=T, xlab = "Elevation (m)", ylab = expression(f[1]*'(Elevation)'))
+plot.gam(all_points_add.gam_SCA.smoothed, select=2, all.terms=T, xlab = "Slope (º)", ylab = "f_1 (Slope), 3.38")
 
 
 # Extract smooth effects for Elevation
