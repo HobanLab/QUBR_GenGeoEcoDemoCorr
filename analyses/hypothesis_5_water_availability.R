@@ -30,7 +30,7 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
 #export the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
-fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
+fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "./data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
 View(fixed_field_data_processed_sf_transformed)
 
 #creating shapefiles for each population, turning sf of all points into sfc
@@ -1015,6 +1015,19 @@ summary(LC_slr_dist_dbh)
 
 #checking linearity 
 
+#removing outliers
+
+#Cook's D
+SD_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance)
+SD_slr_SCA_cooks <- cooks.distance(SD_slr_SCA) #calculating the cook.s D for each point
+plot(SD_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_slr_SCA_cooks[(SD_slr_SCA_cooks > (2 * mean(SD_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+influential_SD_slr_SCA <- as.numeric(names(influential))
+
+#removing outliers based on which points were deemed influential
+SD_fixed_field_data_processed_distance_sca_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_SCA,] 
+
 #plotting the linear model in ggplot for SCA
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
@@ -1024,6 +1037,8 @@ ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short))
 
 #creating the linear regression
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short ~ SD_fixed_field_data_processed_distance$d)
+
+SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long_lg ~ SD_fixed_field_data_processed_distance$d)
 
 
 #linear regression with transformations
@@ -1038,12 +1053,36 @@ SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short_sqrt 
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short_inv ~ SD_fixed_field_data_processed_distance$d)
 
 
+#linear regression with transformations and removal of outliers
+
+#logged transformations
+SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_lg ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
+
+#square root transformations
+SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_sqrt ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
+
+#inverse transformations
+SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_inv ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
+
+
+#plotting the linear model in ggplot for SCA
+ggplot(data = SD_fixed_field_data_processed_distance_sca_no_outliers, (aes(x=d, y=Canopy_short_sqrt)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  labs(title = "San Dionisio SCA vs. Distance from River") +
+  xlab("Distance (m)")+
+  ylab("sqrt(Short Canopy Axis) (m)") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 15),
+        title = element_text(size = 18)) 
+
 #checking normality
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_slr_dist_sca, aes(x= SD_slr_dist_sca$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Inverse Distance")+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
@@ -1064,13 +1103,12 @@ ggplot(data = SD_slr_dist_sca, aes(x = SD_slr_dist_sca$fitted.values, y = SD_slr
 
 #Slope Test visible in summary of the lm
 summary(SD_slr_dist_sca)
+# results show lack of association
 
 
 #LCA
 
 #checking linearity 
-
-SD_fixed_field_data_processed_distance$d
 
 #plotting the linear model in ggplot for SCA
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
@@ -1117,27 +1155,26 @@ ggplot(data = SD_slr_dist_lca, aes(x = SD_slr_dist_lca$fitted.values, y = SD_slr
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for LCA and Inverse Distance")
+  labs(title = "Residuals vs. Fitted Values for LCA and Distance")
 
 #Slope Test visible in summary of the lm
 summary(SD_slr_dist_lca)
+# results show lack of association
 
 #CA
 
 #checking linearity 
 
-
 #Cook's D
 SD_slr_CA <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance)
 SD_slr_CA_cooks <- cooks.distance(SD_slr_CA) #calculating the cook.s D for each point
 plot(SD_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_CA_cooks[(SD_slr_CA_cooks > (3 * mean(SD_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential <- SD_slr_CA_cooks[(SD_slr_CA_cooks > (2 * mean(SD_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 4 times the mean cook's D
 influential
+influential_SD_slr_CA <- as.numeric(names(influential))
 
 #removing outliers based on which points were deemed influential
-SD_fixed_field_data_processed_distance_ca_no_outliers <- SD_fixed_field_data_processed_distance[-c(24, 25, 26, 73, 85, 105, 
-                                                                                                   110, 134, 135, 136, 144, 145, 
-                                                                                                   146, 147, 152, 199, 206, 211),]
+SD_fixed_field_data_processed_distance_ca_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_CA,]
                                                                                                    
 #plotting the linear model in ggplot for SCA
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_area)))+ 
@@ -1160,6 +1197,17 @@ SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area_sqrt ~ 
 
 #inverse transformations
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area_inv ~ SD_fixed_field_data_processed_distance$d)
+
+#linear regression with transformations and removal of outliers
+
+#logged transformations
+SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_lg ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
+
+#square root transformations
+SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_sqrt ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
+
+#inverse transformations
+SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_inv ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
 
 
 #checking normality
@@ -1192,6 +1240,18 @@ summary(SD_slr_dist_ca)
 
 #CS
 
+#Cook's D
+SD_slr_CS <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance)
+SD_slr_CS_cooks <- cooks.distance(SD_slr_CS) #calculating the cook.s D for each point
+plot(SD_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- SD_slr_CS_cooks[(SD_slr_CS_cooks > (3 * mean(SD_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 4 times the mean cook's D
+influential
+influential_SD_slr_CS <- as.numeric(names(influential))
+
+#removing outliers based on which points were deemed influential
+SD_fixed_field_data_processed_distance_cs_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_CS,]
+
+
 #checking linearity 
 
 
@@ -1215,6 +1275,18 @@ SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread_sqrt ~
 
 #inverse transformations
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread_inv ~ SD_fixed_field_data_processed_distance$d)
+
+#linear regression with transformations and removal of outliers
+
+#logged transformations
+SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_lg ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
+
+#square root transformations
+SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_sqrt ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
+
+#inverse transformations
+SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_inv ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
+
 
 #checking normality
 
@@ -1250,7 +1322,7 @@ summary(SD_slr_dist_cs)
 SD_slr_dbh <- lm(DBH_ag ~ d, data = SD_fixed_field_data_processed_distance)
 SD_slr_dbh_cooks <- cooks.distance(SD_slr_dbh) #calculating the cook.s D for each point
 plot(SD_slr_dbh_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (2 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (1 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
 influential
 
 #removing outliers based on which points were deemed influential
