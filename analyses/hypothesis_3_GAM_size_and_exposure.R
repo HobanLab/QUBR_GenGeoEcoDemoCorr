@@ -823,12 +823,13 @@ all_points_fixed_field_data_processed_terrain_no_NA <- all_points_fixed_field_da
   filter(is.na(all_points_aspect_raster_15_data_pts_8_categorical) == F)
 
 #Cook's D
-plot(all_points_multiple_lm_SCA)
-all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
-all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+
+# plot(all_points_multiple_lm_SCA)
+# all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
+# all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
+# plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+# influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+# influential
 
 #SCA
 

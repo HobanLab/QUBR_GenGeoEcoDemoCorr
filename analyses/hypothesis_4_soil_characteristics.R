@@ -10197,7 +10197,7 @@ SD_dbh_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   SD_dbh_nitrogen_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   SD_dbh_nitrogen_100_200_lm_sum <- summary(SD_dbh_nitrogen_100_200_lm) #extracting the linear regression information
   SD_dbh_nitrogen_100_200_slopes <- c(SD_dbh_nitrogen_100_200_slopes, SD_dbh_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
@@ -10225,6 +10225,344 @@ for (i in 1:length(SD_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_dbh_nitrogen_100_200_p_value <- (total / length(SD_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+
+
+#creating empty dataframe for inputting the function into
+size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), rep('SD', 80)),
+                                 "Variable" = rep(c(rep("SCA", 16), rep("LCA", 16), rep("CA", 16), rep("CS", 16),
+                                                    rep("DBH", 16)), 3),
+                                 "Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
+                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
+                                                      "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
+                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+                                 "Slope" = c(rep(NA, 240)), 
+                                 "P_Value" = c(rep(NA, 240)),
+                                 "Significance" = ifelse(p_values < 0.05, "Y", "N"))
+
+slopes_simulations <- function () {
+  
+  for (y in size.pop.slopes.df[1:80,]) {
+    
+    w <- 1 #assigning a value for the first row in the dataframe
+    
+    #empty matrix for the slopes
+    LM_slopes <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(LM_slopes) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(LM_slopes) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                             "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                             "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                             "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                             "nitrogen.0.5", "nitrogen.100.200")
+    
+    #empty matrix for the p-values 
+    LM_p_values <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(LM_p_values) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(LM_p_values) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                               "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                               "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                               "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                               "nitrogen.0.5", "nitrogen.100.200")
+    
+    #creating lists of the variables
+    size_variables_list <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    soil_characteristics_list <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                                   "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                                   "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                                   "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                                   "nitrogen.0.5", "nitrogen.100.200")
+    
+    
+    #creating a dataframe of just the soil characteristics
+    LM_fixed_field_data_processed_soils.condensed <- LM_fixed_field_data_processed_soils[, c(33:40, 49:50, 53:58)]
+    LM_fixed_field_data_processed_soils.condensed <- st_drop_geometry(LM_fixed_field_data_processed_soils.condensed)
+    LM_fixed_field_data_processed_size_variables <- LM_fixed_field_data_processed_soils[, c(22:23, 29, 24, 20)]
+    LM_fixed_field_data_processed_size_variables <- st_drop_geometry(LM_fixed_field_data_processed_size_variables)
+    
+    for (i in 1:(ncol(LM_fixed_field_data_processed_soils.condensed))){ #iterating over the number of soil variables
+      
+      # soil_characteristics <- as.factor(soil_characteristics_list[i])
+      
+      for (j in 1:(ncol(LM_fixed_field_data_processed_size_variables))) { #iterating over the number of soil variables
+        #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+        slopes <- c() #creating empty list to collect p values
+        
+        
+        set.seed(21)
+        for (k in 1:1000){ #for 1000 permutations
+          fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, variable.shuffled = sample(LM_fixed_field_data_processed_size_variables[,j])) #create a data frame with a shuffled  LM_fixed_field_data_processed_size_variables[,i]
+          lm <- lm(fixed_field_data_processed_soils_shuffled$variable.shuffled ~ LM_fixed_field_data_processed_soils.condensed[,i]) #LM_fixed_field_data_processed_soils.condensed[,i]
+          lm_sum <- summary(lm) #extracting the linear regression information
+          slopes <- c(slopes, lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+        }
+        
+        #extracting the slope of our points
+        Size_Variable = as.factor(Size_Variable)
+        lm_real <- lm(LM_fixed_field_data_processed_size_variables[,j] ~ LM_fixed_field_data_processed_soils.condensed[,i]) #creating the linear regression
+        lm_real_sum <- summary(lm_real) #extract the summary 
+        lm_real_slope <- lm_real_sum$coefficients[2] #storing the slope
+        
+        #plotting the histogram of the randomly distributed p-values and our real slope
+        Size_Variable = as.character(Size_Variable)
+        ggplot()+
+          geom_histogram(aes(x=slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+          geom_vline(xintercept=lm_real_slope, col = "red") + #line of our real slope
+          xlab(paste(Population, "Slopes of Shuffled", Size_Variable, "vs. our", Size_Variable)) +
+          theme_classic()
+        
+        
+        #calculating pseudo p-value for 
+        total = 0  #set empty value
+        for (p in 1:length(slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+          if (slopes[p] > lm_real_slope){
+            total = total + 1
+          }
+        } #add number of values of in the random set of ANN values that are less than our mean ANN
+        p_value <- (total / length(slopes)) #the proportion of random ANNs that are less than our ANN
+        
+        size.pop.slopes.df$Slope[w] = lm_real_slope #assigning the each row in the dataframe with the new slope value
+        size.pop.slopes.df$P_Value[w] = p_value #assigning the each row in the dataframe with the new p-value
+        
+        
+        LM_slopes[j, i] = lm_real_slope
+        LM_p_values[j, i] = p_value
+        
+        print(paste("Updating:", j, i))
+        print(paste("Real slope:", lm_real_slope))
+        print(paste("P-value:", p_value))
+        
+        w <- w+1 #moving onto the next row in the size.pop.slopes.df dataframe
+        
+      }
+    }
+  }
+  
+  for (y in size.pop.slopes.df[81:160,]) {
+    
+    w <- 81 #assigning a value for the first row in the dataframe
+    
+    #empty matrix for the slopes
+    LC_slopes <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(LC_slopes) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(LC_slopes) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                             "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                             "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                             "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                             "nitrogen.0.5", "nitrogen.100.200")
+    
+    #empty matrix for the p-values 
+    LC_p_values <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(LC_p_values) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(LC_p_values) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                               "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                               "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                               "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                               "nitrogen.0.5", "nitrogen.100.200")
+    
+    #creating lists of the variables
+    size_variables_list <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    soil_characteristics_list <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                                   "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                                   "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                                   "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                                   "nitrogen.0.5", "nitrogen.100.200")
+    
+    
+    #creating a dataframe of just the soil characteristics
+    LC_fixed_field_data_processed_soils.condensed <- LC_fixed_field_data_processed_soils[, c(33:40, 49:50, 53:58)]
+    LC_fixed_field_data_processed_soils.condensed <- st_drop_geometry(LC_fixed_field_data_processed_soils.condensed)
+    LC_fixed_field_data_processed_size_variables <- LC_fixed_field_data_processed_soils[, c(22:23, 29, 24, 20)]
+    LC_fixed_field_data_processed_size_variables <- st_drop_geometry(LC_fixed_field_data_processed_size_variables)
+    
+    for (i in 1:(ncol(LC_fixed_field_data_processed_soils.condensed))){ #iterating over the number of soil variables
+      
+      # soil_characteristics <- as.factor(soil_characteristics_list[i])
+      
+      for (j in 1:(ncol(LC_fixed_field_data_processed_size_variables))) { #iterating over the number of soil variables
+        #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+        slopes <- c() #creating empty list to collect p values
+        
+        
+        set.seed(21)
+        for (k in 1:1000){ #for 1000 permutations
+          fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, variable.shuffled = sample(LC_fixed_field_data_processed_size_variables[,j])) #create a data frame with a shuffled  LC_fixed_field_data_processed_size_variables[,i]
+          lm <- lm(fixed_field_data_processed_soils_shuffled$variable.shuffled ~ LC_fixed_field_data_processed_soils.condensed[,i]) #LC_fixed_field_data_processed_soils.condensed[,i]
+          lm_sum <- summary(lm) #extracting the linear regression information
+          slopes <- c(slopes, lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+        }
+        
+        #extracting the slope of our points
+        Size_Variable = as.factor(Size_Variable)
+        lm_real <- lm(LC_fixed_field_data_processed_size_variables[,j] ~ LC_fixed_field_data_processed_soils.condensed[,i]) #creating the linear regression
+        lm_real_sum <- summary(lm_real) #extract the summary 
+        lm_real_slope <- lm_real_sum$coefficients[2] #storing the slope
+        
+        #plotting the histogram of the randomly distributed p-values and our real slope
+        Size_Variable = as.character(Size_Variable)
+        ggplot()+
+          geom_histogram(aes(x=slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+          geom_vline(xintercept=lm_real_slope, col = "red") + #line of our real slope
+          xlab(paste(Population, "Slopes of Shuffled", Size_Variable, "vs. our", Size_Variable)) +
+          theme_classic()
+        
+        
+        #calculating pseudo p-value for 
+        total = 0  #set empty value
+        for (p in 1:length(slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+          if (slopes[p] > lm_real_slope){
+            total = total + 1
+          }
+        } #add number of values of in the random set of ANN values that are less than our mean ANN
+        p_value <- (total / length(slopes)) #the proportion of random ANNs that are less than our ANN
+        
+        size.pop.slopes.df$Slope[w] = lm_real_slope #assigning the each row in the dataframe with the new slope value
+        size.pop.slopes.df$P_Value[w] = p_value #assigning the each row in the dataframe with the new p-value
+        
+        
+        LC_slopes[j, i] = lm_real_slope
+        LC_p_values[j, i] = p_value
+        
+        print(paste("Updating:", j, i))
+        print(paste("Real slope:", lm_real_slope))
+        print(paste("P-value:", p_value))
+        
+        w <- w+1 #moving onto the next row in the size.pop.slopes.df dataframe
+        
+      }
+    }
+  }
+  
+
+  for (y in size.pop.slopes.df[161:240,]) {
+    
+    w <- 161 #assigning a value for the first row in the dataframe
+    
+    #empty matrix for the slopes
+    SD_slopes <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(SD_slopes) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(SD_slopes) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                             "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                             "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                             "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                             "nitrogen.0.5", "nitrogen.100.200")
+    
+    #empty matrix for the p-values 
+    SD_p_values <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
+    rownames(SD_p_values) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    colnames(SD_p_values) <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                             "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                             "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                             "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                             "nitrogen.0.5", "nitrogen.100.200")
+    
+    #creating lists of the variables
+    size_variables_list <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
+    soil_characteristics_list <- c("clay.content.0.5", "clay.content.100.200", "silt.0.5", 
+                                   "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
+                                   "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
+                                   "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
+                                   "nitrogen.0.5", "nitrogen.100.200")
+  
+    
+    #creating a dataframe of just the soil characteristics
+    SD_fixed_field_data_processed_soils.condensed <- SD_fixed_field_data_processed_soils[, c(33:40, 49:50, 53:58)]
+    SD_fixed_field_data_processed_soils.condensed <- st_drop_geometry(SD_fixed_field_data_processed_soils.condensed)
+    SD_fixed_field_data_processed_size_variables <- SD_fixed_field_data_processed_soils[, c(22:23, 29, 24, 20)]
+    SD_fixed_field_data_processed_size_variables <- st_drop_geometry(SD_fixed_field_data_processed_size_variables)
+    
+    for (i in 1:(ncol(SD_fixed_field_data_processed_soils.condensed))){ #iterating over the number of soil variables
+      
+     # soil_characteristics <- as.factor(soil_characteristics_list[i])
+      
+      for (j in 1:(ncol(SD_fixed_field_data_processed_size_variables))) { #iterating over the number of soil variables
+        #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+        slopes <- c() #creating empty list to collect p values
+        
+
+        set.seed(21)
+        for (k in 1:1000){ #for 1000 permutations
+          fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, variable.shuffled = sample(SD_fixed_field_data_processed_size_variables[,j])) #create a data frame with a shuffled  SD_fixed_field_data_processed_size_variables[,i]
+          lm <- lm(fixed_field_data_processed_soils_shuffled$variable.shuffled ~ SD_fixed_field_data_processed_soils.condensed[,i]) #SD_fixed_field_data_processed_soils.condensed[,i]
+          lm_sum <- summary(lm) #extracting the linear regression information
+          slopes <- c(slopes, lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+        }
+        
+        #extracting the slope of our points
+        Size_Variable = as.factor(Size_Variable)
+        lm_real <- lm(SD_fixed_field_data_processed_size_variables[,j] ~ SD_fixed_field_data_processed_soils.condensed[,i]) #creating the linear regression
+        lm_real_sum <- summary(lm_real) #extract the summary 
+        lm_real_slope <- lm_real_sum$coefficients[2] #storing the slope
+        
+        #plotting the histogram of the randomly distributed p-values and our real slope
+        Size_Variable = as.character(Size_Variable)
+        ggplot()+
+          geom_histogram(aes(x=slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+          geom_vline(xintercept=lm_real_slope, col = "red") + #line of our real slope
+          xlab(paste(Population, "Slopes of Shuffled", Size_Variable, "vs. our", Size_Variable)) +
+          theme_classic()
+        
+        
+        #calculating pseudo p-value for 
+        total = 0  #set empty value
+        for (p in 1:length(slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+          if (slopes[p] > lm_real_slope){
+            total = total + 1
+          }
+        } #add number of values of in the random set of ANN values that are less than our mean ANN
+        p_value <- (total / length(slopes)) #the proportion of random ANNs that are less than our ANN
+    
+        size.pop.slopes.df$Slope[w] = lm_real_slope #assigning the each row in the dataframe with the new slope value
+        size.pop.slopes.df$P_Value[w] = p_value #assigning the each row in the dataframe with the new p-value
+        
+        
+        SD_slopes[j, i] = lm_real_slope
+        SD_p_values[j, i] = p_value
+        
+        print(paste("Updating:", j, i))
+        print(paste("Real slope:", lm_real_slope))
+        print(paste("P-value:", p_value))
+      
+        w <- w+1 #moving onto the next row in the size.pop.slopes.df dataframe
+        
+      }
+    }
+  }
+  
+  return(list(LM_slopes = LM_slopes, LM_p_values = LM_p_values, size.pop.slopes.df = size.pop.slopes.df))
+  return(list(SD_slopes = LC_slopes, LC_p_values = LC_p_values, size.pop.slopes.df = size.pop.slopes.df))
+  return(list(SD_slopes = SD_slopes, SD_p_values = SD_p_values, size.pop.slopes.df = size.pop.slopes.df))
+  
+}
+
+slope_simultations <- slopes_simulations()
+
+SD_slope_simultations$SD_slopes[1,]
+
+SD_slope_simultations$size.pop.slopes.df
+
+SD_slope_simultations_slopes <- as.data.frame(SD_slope_simultations$SD_slopes)
+
+
+#labeled p-values
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", 
+       fill = "P Value",  
+       title = "San Dionisio Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P Values Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
+  coord_flip()
+
+
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
+  geom_tile() + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", 
+       fill = "P Value",  
+       title = "San Dionisio Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P Values Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
+  coord_flip()
 
 # Making a dataframe from all of these slopes and p-values
 
@@ -10271,8 +10609,6 @@ p_values <- c(LM_sca_clay_0.5_p_value, LM_sca_clay_100_200_p_value, LM_sca_silt_
               SD_dbh_ph_100_200_p_value, SD_dbh_soc_0.5_p_value, SD_dbh_soc_100_200_p_value, SD_dbh_vol_10_0.5_p_value, SD_dbh_vol_10_100_200_p_value, SD_dbh_vol_1500_0.5_p_value, 
               SD_dbh_vol_1500_100_200_p_value, SD_dbh_nitrogen_0.5_p_value, SD_dbh_nitrogen_100_200_p_value)
               
-which(slopes > 17.518)
-slopes[119]
 
 slopes <- c(LM_sca_clay_0_5_lm_real_slope, LM_sca_clay_100_200_lm_real_slope, LM_sca_silt_0_5_lm_real_slope, LM_sca_silt_100_200_lm_real_slope, LM_sca_sand_0_5_lm_real_slope, LM_sca_sand_100_200_lm_real_slope,
               LM_sca_ph_0_5_lm_real_slope, LM_sca_ph_100_200_lm_real_slope, LM_sca_soc_0_5_lm_real_slope, LM_sca_soc_100_200_lm_real_slope, LM_sca_vol_10_0_5_lm_real_slope, LM_sca_vol_10_100_200_lm_real_slope, 
@@ -10403,97 +10739,90 @@ levels(size.pop.slopes.df$Population)
 options(digits=3)
 
 #across all populations
-ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df) +
+
+
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Values") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Values",
+       title = "All Sites Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P-values Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) +
   coord_flip()
 
 #across LM
 size.pop.slopes.df.LM <- size.pop.slopes.df[size.pop.slopes.df$Population == "LM", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df.LM) +
+#labeled p-values
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LM) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value", 
        title = "Las Matancitas Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P-values Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
-  coord_flip()
+  coord_flip() 
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LM) +
+#labeled slopes
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LM) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope", 
-       title = "Las Matancitas Significant Associations between Soil and Size/Shape",
-       subtitle = "Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
-  geom_text(aes(label = round(Slope, 3))) +
-  coord_flip()
-
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LM) +
-  geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope", 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value", 
        title = "Las Matancitas Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
-  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
-  coord_flip()
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA)), color = "black") + 
+  coord_flip()  
+
+
 
 #across LC
 size.pop.slopes.df.LC <- size.pop.slopes.df[size.pop.slopes.df$Population == "LC", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df.LC) +
+#labeled p-values
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LC) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  
        title = "La Cobriza Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P-values Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1)  + 
+  scale_fill_distiller(palette = "RdPu", direction = -1)  + 
   geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
   coord_flip()
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LC) +
+#labeled slopes
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LC) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  
-       title = "La Cobriza Significant Associations between Soil and Size/Shape",
-       subtitle = "Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
-  coord_flip()
-
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df.LC) +
-  geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  
+  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  
        title = "La Cobriza Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  scale_fill_distiller(palette = "RdPu", direction = -1)  + 
   geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
   coord_flip()
+
+
 
 #across SD
 size.pop.slopes.df.SD <- size.pop.slopes.df[size.pop.slopes.df$Population == "SD", ] #isolating the LM p-values/slopes
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = P_Value), data = size.pop.slopes.df) +
+#labeled p-values
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  title = "San Dionisio Significant Associations between Soil and Size/Shape") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) + 
+  labs(x = "Size Characteristic", y = "Soil Characteristic", 
+       fill = "P Value",  
+       title = "San Dionisio Significant Associations between Soil and Size/Shape",
+       subtitle = "Significant P Values Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
   coord_flip()
 
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df) +
+#labeled slopes
+ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
   geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  title = "San Dionisio Significant Associations between Soil and Size/Shape",
-       subtitle = "Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
-  geom_text(aes(label = round(Slope, 3))) +
-  coord_flip()
-
-ggplot(aes(x = Shape.Size, y = Variable, fill = Slope), data = size.pop.slopes.df) +
-  geom_tile() + 
-  labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "Slope",  title = "San Dionisio Significant Associations between Soil and Size/Shape",
+  labs(x = "Size Characteristic", y = "Soil Characteristic", 
+       fill = "P Value",  
+       title = "San Dionisio Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = 1) +
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
   coord_flip()
-  
 
 
 ### PART 3: Comparing average soil values from inside populations to outside populations ###

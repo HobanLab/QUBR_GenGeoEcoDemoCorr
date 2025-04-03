@@ -15,7 +15,22 @@ library(geostatsp)
 library(tmaptools)
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
-nrow(fixed_field_data_processed)
+
+#### Importing Shapefile #### 
+
+#turn the BCS polygon into a shapefile and visualize its outline
+BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+BCS_polygon <- st_as_sf(BCS_polygon)
+plot(BCS_polygon$geometry)
+
+#creating a shapefile of all points with lat lon coordinates in WGS 1984
+fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+                                          coords = c("long", "lat"), crs = 4326)
+
+#creating a transformed shapefile with UTM 12 N an equal area projection
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
+
+
 #OLD upload of old river shapefile and filter out polygons for each population, before adding the tributaries/roads
 rivers <- st_read("./data/QUBR Rivers and Trees.kml", "Rivers", crs = 4326)
 rivers_2d <- st_zm(rivers, drop = T) #we had a z dimension with max and min, so we got rid of it because it was giving us weird errors and disrupting later statistics
@@ -109,20 +124,6 @@ LC_fixed_field_data_processed <- fixed_field_data_processed %>%
 
 SD_fixed_field_data_processed <- fixed_field_data_processed %>%
   filter(Locality == "SD")
-
-#### Importing Shapefile #### 
-
-#turn the BCS polygon into a shapefile and visualize its outline
-BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
-BCS_polygon <- st_as_sf(BCS_polygon)
-plot(BCS_polygon$geometry)
-
-#creating a shapefile of all points with lat lon coordinates in WGS 1984
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                       coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
 #### Plot the Baja Polygons and Creating Shapefiles for Each Populations ####
 
@@ -632,7 +633,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_LM){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -782,7 +783,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for the disperse mean ANN value
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] > ann.p){
+  if (ann.r[i] < ann.p_LC){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -828,6 +829,10 @@ plot(rand.p)
 rand.p.crs <- rand.p %>% 
   st_as_sf()%>%
   st_set_crs(26912)
+
+#assigning average nearest neighbor values for the entire population of trees
+ann.p_SD <- mean(nndist(SD_ppp, k=1))
+ann.p_SD
 
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
@@ -891,7 +896,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_SD){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -934,7 +939,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_SD){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
