@@ -10237,7 +10237,7 @@ size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), 
                                                       "Nitrogen 0-5", "Nitrogen 100-200")),
                                  "Slope" = c(rep(NA, 240)), 
                                  "P_Value" = c(rep(NA, 240)),
-                                 "Significance" = ifelse(p_values < 0.05, "Y", "N"))
+                                 "Significance" = c(rep(NA, 240)))   #ifelse(p_values < 0.05, "Y", "N")
 
 slopes_simulations <- function () {
   
@@ -10275,6 +10275,7 @@ slopes_simulations <- function () {
     #creating a dataframe of just the soil characteristics
     LM_fixed_field_data_processed_soils.condensed <- LM_fixed_field_data_processed_soils[, c(33:40, 49:50, 53:58)]
     LM_fixed_field_data_processed_soils.condensed <- st_drop_geometry(LM_fixed_field_data_processed_soils.condensed)
+    #creating a dataframe of just the size variables
     LM_fixed_field_data_processed_size_variables <- LM_fixed_field_data_processed_soils[, c(22:23, 29, 24, 20)]
     LM_fixed_field_data_processed_size_variables <- st_drop_geometry(LM_fixed_field_data_processed_size_variables)
     
