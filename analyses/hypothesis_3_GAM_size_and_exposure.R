@@ -1403,6 +1403,24 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         z=LM_fixed_field_data_processed_terrain_no_NA$Canopy_long, type="scatter3d", mode="markers", 
         color=LM_fixed_field_data_processed_terrain_no_NA$LM_aspect_raster_15_data_pts_8_categorical)
 
+#looking for interaction
+LM_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                               data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+LM_add.gam_LCA.smoothed.inter <- gam(Canopy_long ~ s(Elevation..m.FIXED, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+summary(LM_add.gam_LCA.smoothed.inter)
+#there is a not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LM_add.gam_LCA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LM_add.gam_LCA.smoothed.inter, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Long Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
 
 
 # CA
@@ -1467,6 +1485,26 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         y=LM_fixed_field_data_processed_terrain_no_NA$LM_slope_raster_15_data_pts, 
         z=LM_fixed_field_data_processed_terrain_no_NA$Canopy_area, type="scatter3d", mode="markers", 
         color=LM_fixed_field_data_processed_terrain_no_NA$LM_aspect_raster_15_data_pts_8_categorical)
+
+
+#looking for interaction
+LM_add.gam_CA.smoothed <- gam(Canopy_area ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                               data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+LM_add.gam_CA.smoothed.inter <- gam(Canopy_area ~ s(Elevation..m.FIXED, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+summary(LM_add.gam_CA.smoothed.inter)
+#there is a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LM_add.gam_CA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LM_add.gam_CA.smoothed.inter, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
+
 
 # CS
 
@@ -1536,6 +1574,24 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         color=LM_fixed_field_data_processed_terrain_no_NA$LM_aspect_raster_15_data_pts_8_categorical)
 
 
+#looking for interaction
+LM_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                              data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+LM_add.gam_CS.smoothed.inter <- gam(Crown_spread ~ s(Elevation..m.FIXED, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                    data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+summary(LM_add.gam_CS.smoothed.inter)
+#there is a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LM_add.gam_CS.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LM_add.gam_CS.smoothed.inter, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Crown Spread")  # Uses ggplot2 for a cleaner plot
+
 
 # DBH_ag
 LM_add.gam_DBH <- gam(DBH_ag ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
@@ -1602,6 +1658,24 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         z=LM_fixed_field_data_processed_terrain_no_NA$DBH_ag, type="scatter3d", mode="markers", 
         color=LM_fixed_field_data_processed_terrain_no_NA$LM_aspect_raster_15_data_pts_8_categorical)
 
+
+#looking for interaction
+LM_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                              data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+LM_add.gam_DBH.smoothed.inter <- gam(DBH_ag ~ s(Elevation..m.FIXED, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                    data = LM_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+summary(LM_add.gam_DBH.smoothed.inter)
+#there is a not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LM_add.gam_DBH.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LM_add.gam_DBH.smoothed.inter, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on DBH")  # Uses ggplot2 for a cleaner plot
 
 
 
@@ -1675,6 +1749,25 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         color=LC_fixed_field_data_processed_terrain_no_NA$LC_aspect_raster_15_data_pts_8_categorical)
 
 
+#looking for interaction
+LC_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                               data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_add.gam_SCA.smoothed.inter <- gam(Canopy_short ~ s(Elevation..m.FIXED, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LC_fixed_field_data_processed_terrain_no_NA)
+summary(LC_add.gam_SCA.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LC_add.gam_SCA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LC_add.gam_SCA.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
+
 # LCA
 options(na.action = "na.omit")
 LC_add.gam_LCA <- gam(Canopy_long ~ Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
@@ -1737,6 +1830,25 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         y=LC_fixed_field_data_processed_terrain_no_NA$LC_slope_raster_15_data_pts, 
         z=LC_fixed_field_data_processed_terrain_no_NA$Canopy_long, type="scatter3d", mode="markers", 
         color=LC_fixed_field_data_processed_terrain_no_NA$LC_aspect_raster_15_data_pts_8_categorical)
+
+
+#looking for interaction
+LC_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                               data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_add.gam_LCA.smoothed.inter <- gam(Canopy_long ~ s(Elevation..m.FIXED, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LC_fixed_field_data_processed_terrain_no_NA)
+summary(LC_add.gam_LCA.smoothed.inter)
+#there is a not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LC_add.gam_LCA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LC_add.gam_LCA.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Long Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
 
 
@@ -1808,6 +1920,24 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         color=LC_fixed_field_data_processed_terrain_no_NA$LC_aspect_raster_15_data_pts_8_categorical)
 
 
+#looking for interaction
+LC_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                              data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_add.gam_CA.smoothed.inter <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                    data = LC_fixed_field_data_processed_terrain_no_NA)
+summary(LC_add.gam_CA.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LC_add.gam_CA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LC_add.gam_CA.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
+
 
 # CS
 
@@ -1877,6 +2007,25 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         z=LC_fixed_field_data_processed_terrain_no_NA$Crown_spread, type="scatter3d", mode="markers", 
         color=LC_fixed_field_data_processed_terrain_no_NA$LC_aspect_raster_15_data_pts_8_categorical)
 
+#looking for interaction
+LC_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                              data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_add.gam_CS.smoothed.inter <- gam(Crown_spread ~ s(Elevation..m.FIXED, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                    data = LC_fixed_field_data_processed_terrain_no_NA)
+summary(LC_add.gam_CS.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LC_add.gam_CS.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LC_add.gam_CS.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Crown Spread")  # Uses ggplot2 for a cleaner plot
+
+
 
 # DBH_ag
 
@@ -1943,6 +2092,25 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         y=LC_fixed_field_data_processed_terrain_no_NA$LC_slope_raster_15_data_pts, 
         z=LC_fixed_field_data_processed_terrain_no_NA$DBH_ag, type="scatter3d", mode="markers", 
         color=LC_fixed_field_data_processed_terrain_no_NA$LC_aspect_raster_15_data_pts_8_categorical)
+
+#looking for interaction
+LC_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                               data = LC_fixed_field_data_processed_terrain_no_NA)
+LC_add.gam_DBH.smoothed.inter <- gam(DBH_ag ~ s(Elevation..m.FIXED, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LC_fixed_field_data_processed_terrain_no_NA)
+summary(LC_add.gam_DBH.smoothed.inter)
+#there is a not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(LC_add.gam_DBH.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(LC_add.gam_DBH.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on DBH")  # Uses ggplot2 for a cleaner plot
+
 
 
 # SD
@@ -2016,6 +2184,24 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         z=SD_fixed_field_data_processed_terrain_no_NA$Canopy_short, type="scatter3d", mode="markers", 
         color=SD_fixed_field_data_processed_terrain_no_NA$SD_aspect_raster_15_data_pts_8_categorical)
 
+#looking for interaction
+SD_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                               data = SD_fixed_field_data_processed_terrain_no_NA)
+SD_add.gam_SCA.smoothed.inter <- gam(Canopy_short ~ s(Elevation..m.FIXED, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                     data = SD_fixed_field_data_processed_terrain_no_NA)
+summary(SD_add.gam_SCA.smoothed.inter)
+#there is a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(SD_add.gam_SCA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(SD_add.gam_SCA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
 
 # LCA
 
@@ -2078,6 +2264,25 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         y=SD_fixed_field_data_processed_terrain_no_NA$SD_slope_raster_15_data_pts, 
         z=SD_fixed_field_data_processed_terrain_no_NA$Canopy_long, type="scatter3d", mode="markers", 
         color=SD_fixed_field_data_processed_terrain_no_NA$SD_aspect_raster_15_data_pts_8_categorical)
+
+#looking for interaction
+SD_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                               data = SD_fixed_field_data_processed_terrain_no_NA)
+SD_add.gam_LCA.smoothed.inter <- gam(Canopy_long ~ s(Elevation..m.FIXED, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                     data = SD_fixed_field_data_processed_terrain_no_NA)
+summary(SD_add.gam_LCA.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(SD_add.gam_LCA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(SD_add.gam_LCA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Long Canopy Axis")  # Uses ggplot2 for a cleaner plot
+
 
 
 # CA
@@ -2144,6 +2349,23 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         z=SD_fixed_field_data_processed_terrain_no_NA$Canopy_area, type="scatter3d", mode="markers", 
         color=SD_fixed_field_data_processed_terrain_no_NA$SD_aspect_raster_15_data_pts_8_categorical)
 
+#looking for interaction
+SD_add.gam_CA.smoothed <- gam(Canopy_area ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                              data = SD_fixed_field_data_processed_terrain_no_NA)
+SD_add.gam_CA.smoothed.inter <- gam(Canopy_area ~ s(Elevation..m.FIXED, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                    data = SD_fixed_field_data_processed_terrain_no_NA)
+summary(SD_add.gam_CA.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(SD_add.gam_CA.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(SD_add.gam_CA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
 
 
 # CS
@@ -2215,6 +2437,26 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         color=SD_fixed_field_data_processed_terrain_no_NA$SD_aspect_raster_15_data_pts_8_categorical)
 
 
+#looking for interaction
+SD_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                              data = SD_fixed_field_data_processed_terrain_no_NA)
+SD_add.gam_CS.smoothed.inter <- gam(Crown_spread ~ s(Elevation..m.FIXED, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                    data = SD_fixed_field_data_processed_terrain_no_NA)
+summary(SD_add.gam_CS.smoothed.inter)
+#there is not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(SD_add.gam_CS.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(SD_add.gam_CS.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on Crown Spread")  # Uses ggplot2 for a cleaner plot
+
+
+
 # DBH_ag
 
 SD_add.gam_DBH <- gam(DBH_ag ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
@@ -2276,3 +2518,23 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED,
         y=SD_fixed_field_data_processed_terrain_no_NA$SD_slope_raster_15_data_pts, 
         z=SD_fixed_field_data_processed_terrain_no_NA$DBH_ag, type="scatter3d", mode="markers", 
         color=SD_fixed_field_data_processed_terrain_no_NA$SD_aspect_raster_15_data_pts_8_categorical)
+
+#looking for interaction
+SD_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                               data = SD_fixed_field_data_processed_terrain_no_NA)
+SD_add.gam_DBH.smoothed.inter <- gam(DBH_ag ~ s(Elevation..m.FIXED, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                     data = SD_fixed_field_data_processed_terrain_no_NA)
+summary(SD_add.gam_DBH.smoothed.inter)
+#there is a not a significant interaction term
+
+#interaction plots
+par(mfrow = c(2,2), mar = c(4.5, 4.5, 2, 2))
+plot.gam(SD_add.gam_DBH.smoothed.inter, select=1, 
+         all.terms=T, xlab = "s(Elevation (m):Slope (º))", main = "s(Elevation:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), legend = c("+1 SE", "Fit", "-1 SE"))
+visreg(SD_add.gam_DBH.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on DBH")  # Uses ggplot2 for a cleaner plot
+
+
