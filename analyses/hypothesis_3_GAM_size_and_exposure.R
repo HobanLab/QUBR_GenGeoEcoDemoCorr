@@ -832,8 +832,6 @@ all_points_fixed_field_data_processed_terrain_no_NA <- all_points_fixed_field_da
 # influential
 
 #SCA
-
-
 all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                               data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
@@ -893,6 +891,7 @@ all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(
 all_points_add.gam_SCA.smoothed.inter <- gam(Canopy_short ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                              data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_SCA.smoothed.inter)
+summary(all_points_add.gam_SCA.smoothed)
 #there is a significant interaction term
 
 #interaction plots
@@ -984,7 +983,7 @@ visreg(all_points_add.gam_SCA.smoothed.inter, "all_points_aspect_raster_15_data_
 
 # CA
 
-
+#we choose to log because the residuals were highly non-normal and it chances elevations significance
 all_points_add.gam_CA <- gam(log(Canopy_area) ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                               data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 all_points_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
@@ -1684,19 +1683,21 @@ visreg(LM_add.gam_DBH.smoothed.inter, "LM_aspect_raster_15_data_pts_8_categorica
 #had to remove points 174 and 175 because they had NAs in the slope data and there was a NA in elevation we needed to remove to continue the analysis
 LC_fixed_field_data_processed_terrain_no_NA <- LC_fixed_field_data_processed_terrain %>%
   filter(is.na(LC_slope_raster_15_data_pts) == F) %>%
-  filter(is.na(Elevation..m.FIXED) == F)
+  filter(is.na(Elevation..m.FIXED) == F) %>%
+  filter(is.na(LC_aspect_raster_15_data_pts_8_categorical) == F) %>%
+  filter(is.na(Canopy_short) == F)
 
 # SCA
 
-options(na.action = "na.omit")
+options(na.action = "na.fail")
 LC_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                      data = LC_fixed_field_data_processed_terrain) #na fail makes sure the later dredge does not have to worry about NAs
+                      data = LC_fixed_field_data_processed_terrain_no_NA, na.action = "na.omit") #na fail makes sure the later dredge does not have to worry about NAs
 LC_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                               data = LC_fixed_field_data_processed_terrain)
+                               data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 LC_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                                          data = LC_fixed_field_data_processed_terrain)
+                                          data = LC_fixed_field_data_processed_terrain_no_NA)
 LC_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                           data = LC_fixed_field_data_processed_terrain)
+                                           data = LC_fixed_field_data_processed_terrain_no_NA)
 
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -1705,17 +1706,20 @@ AIC(LC_add.gam_SCA, LC_add.gam_SCA.smoothed_first_term,
 anova(LC_add.gam_SCA, LC_add.gam_SCA.smoothed_first_term, 
       LC_add.gam_SCA.smoothed_second_term, LC_add.gam_SCA.smoothed)
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-LC_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                               data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_SCA.smoothed.slope.less <- gam(Canopy_short ~ s(Elevation..m.FIXED)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                          data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_SCA.smoothed.elevation.less <- gam(Canopy_short ~ s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                              data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(LC_add.gam_SCA.smoothed.slope.less, LC_add.gam_SCA.smoothed)
-anova(LC_add.gam_SCA.smoothed.elevation.less, LC_add.gam_SCA.smoothed)
-#We do not really need slope (since the one with only elevation was not significant, so the one with both variables 
-#was not as essential as just with elevation)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(LC_add.gam_SCA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+LC_add.gam_SCA.smoothed.dredge <-  gam(Canopy_short ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                               data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(LC_add.gam_SCA.smoothed.dredge, LC_add.gam_SCA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(LC_add.gam_SCA.smoothed.dredge, LC_add.gam_SCA.smoothed) 
+#results show marginal differences
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -1725,8 +1729,9 @@ gam.check(LC_add.gam_SCA.smoothed)
 #comparing the model's the models GCV summary values to see which is lowest
 summary(LC_add.gam_SCA)
 summary(LC_add.gam_SCA.smoothed)
+summary(LC_add.gam_SCA.smoothed.dredge)
 
-#Chosen model: LC_add.gam_SCA.smoothed
+#Chosen model: LC_add.gam_SCA.smoothed.dredge
 
 
 #checking K to see if we 
@@ -1773,7 +1778,7 @@ options(na.action = "na.omit")
 LC_add.gam_LCA <- gam(Canopy_long ~ Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
                               data = LC_fixed_field_data_processed_terrain_no_NA) #na fail makes sure the later dredge does not have to worry about NAs
 LC_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                       data = LC_fixed_field_data_processed_terrain_no_NA)
+                                       data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 LC_add.gam_LCA.smoothed_first_term <- gam(Canopy_long ~ s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
                                                   data = LC_fixed_field_data_processed_terrain_no_NA)
 LC_add.gam_LCA.smoothed_second_term <- gam(Canopy_long ~ Elevation..m.FIXED + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
@@ -1786,18 +1791,19 @@ AIC(LC_add.gam_LCA, LC_add.gam_LCA.smoothed, LC_add.gam_LCA.smoothed_first_term,
 anova(LC_add.gam_LCA, LC_add.gam_LCA.smoothed_first_term, 
     LC_add.gam_LCA.smoothed_second_term, LC_add.gam_LCA.smoothed)
 
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(LC_add.gam_LCA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-LC_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                               data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_LCA.smoothed.slope.less <- gam(Canopy_long ~ s(Elevation..m.FIXED)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                          data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_LCA.smoothed.elevation.less <- gam(Canopy_long ~ s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                              data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(LC_add.gam_LCA.smoothed.slope.less, LC_add.gam_LCA.smoothed)
-anova(LC_add.gam_LCA.smoothed.elevation.less, LC_add.gam_LCA.smoothed)
-#We do not really need slope (since the one with only elevation was not significant, so the one with both variables 
-#was not as essential as just with elevation)
+#fitting the dredged model
+LC_add.gam_LCA.smoothed.dredge <-  gam(Canopy_long ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                       data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(LC_add.gam_LCA.smoothed.dredge, LC_add.gam_LCA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(LC_add.gam_LCA.smoothed.dredge, LC_add.gam_LCA.smoothed) 
+#results show marginal differences
 
 
 #checking overall fit and potential issues
@@ -1855,13 +1861,13 @@ visreg(LC_add.gam_LCA.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorica
 # CA
 
 LC_add.gam_CA <- gam(log(Canopy_area) ~ Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                             data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                             data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 LC_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                      data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                      data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 LC_add.gam_CA.smoothed_first_term <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                 data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                 data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 LC_add.gam_CA.smoothed_second_term <- gam(log(Canopy_area) ~ Elevation..m.FIXED + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -1874,17 +1880,22 @@ summary(LC_add.gam_CA.smoothed)
 summary(LC_add.gam_CA.smoothed_first_term)
 #we can see that slope does not appear to be as useful
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-LC_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                               data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_CA.smoothed.slope.less <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                          data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_CA.smoothed.elevation.less <- gam(log(Canopy_area) ~ s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                              data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(LC_add.gam_CA.smoothed.slope.less, LC_add.gam_CA.smoothed)
-anova(LC_add.gam_CA.smoothed.elevation.less, LC_add.gam_CA.smoothed)
-#We do not really need slope (since the one with only elevation was not significant, so the one with both variables 
-#was not as essential as just with elevation)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(LC_add.gam_CA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+LC_add.gam_CA.smoothed.dredge <-  gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                       data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(LC_add.gam_CA.smoothed.dredge, LC_add.gam_CA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(LC_add.gam_CA.smoothed.dredge, LC_add.gam_CA.smoothed) 
+#results show marginal differences
+
+
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -1896,7 +1907,7 @@ summary(LC_add.gam_CA)
 summary(LC_add.gam_CA.smoothed)
 summary(LC_add.gam_CA.smoothed.slope.less)
 
-#Chosen model: LC_add.gam_CA.smoothed
+#Chosen model: LC_add.gam_CA.smoothed.dredge
 
 
 #checking K to see if we 
@@ -1943,14 +1954,14 @@ visreg(LC_add.gam_CA.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorical
 
 
 LC_add.gam_CS <- gam(Crown_spread ~ Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                             data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                             data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 LC_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                      data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                      data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 LC_add.gam_CS.smoothed_first_term <- gam(Crown_spread ~ s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                 data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                 data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 
 LC_add.gam_CS.smoothed_second_term <- gam(Crown_spread ~ Elevation..m.FIXED + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = LC_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -1963,17 +1974,21 @@ summary(LC_add.gam_CS.smoothed)
 summary(LC_add.gam_CS.smoothed_first_term)
 #we can see that elevation and slope does not appear to be as useful
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-LC_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                              data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_CS.smoothed.slope.less <- gam(Crown_spread ~ s(Elevation..m.FIXED)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                         data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_CS.smoothed.elevation.less <- gam(Crown_spread ~ s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                             data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(LC_add.gam_CS.smoothed.slope.less, LC_add.gam_CS.smoothed)
-anova(LC_add.gam_CS.smoothed.elevation.less, LC_add.gam_CS.smoothed)
-#We do not really need slope (since the one with only elevation was not significant, so the one with both variables 
-#was not as essential as just with elevation)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(LC_add.gam_CS.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+LC_add.gam_CS.smoothed.dredge <-  gam(Crown_spread ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                      data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(LC_add.gam_CS.smoothed.dredge, LC_add.gam_CS.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(LC_add.gam_CS.smoothed.dredge, LC_add.gam_CS.smoothed) 
+#results show marginal differences
+
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -2049,16 +2064,20 @@ summary(LC_add.gam_DBH.smoothed)
 summary(LC_add.gam_DBH.smoothed_first_term)
 #we can see that elevation and slope does not appear to be as useful
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-LC_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                              data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_DBH.smoothed.slope.less <- gam(DBH_ag ~ s(Elevation..m.FIXED)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                         data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-LC_add.gam_DBH.smoothed.elevation.less <- gam(DBH_ag ~ s(LC_slope_raster_15_data_pts)+ LC_aspect_raster_15_data_pts_8_categorical, 
-                                             data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(LC_add.gam_DBH.smoothed.slope.less, LC_add.gam_DBH.smoothed)
-anova(LC_add.gam_DBH.smoothed.elevation.less, LC_add.gam_DBH.smoothed)
-#We do not really need slope or elevation by themselves (since the one with only elevation and one with only slope was not significant)
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(LC_add.gam_DBH.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+LC_add.gam_DBH.smoothed.dredge <-  gam(DBH_ag ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                      data = LC_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(LC_add.gam_DBH.smoothed.dredge, LC_add.gam_DBH.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(LC_add.gam_DBH.smoothed.dredge, LC_add.gam_DBH.smoothed) 
+#results show marginal differences
+
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -2069,7 +2088,7 @@ gam.check(LC_add.gam_DBH.smoothed)
 summary(LC_add.gam_DBH)
 summary(LC_add.gam_DBH.smoothed)
 
-#Chosen model: LC_add.gam_DBH.smoothed
+#Chosen model: LC_add.gam_DBH.smoothed.dredge
 summary(LC_add.gam_DBH.smoothed)
 
 #checking K to see if we 
@@ -2119,20 +2138,20 @@ visreg(LC_add.gam_DBH.smoothed.inter, "LC_aspect_raster_15_data_pts_8_categorica
 #had to remove points 174 and 175 because they had NAs in the slope data and there was a NA in elevation we needed to remove to continue the analysis
 SD_fixed_field_data_processed_terrain_no_NA <- SD_fixed_field_data_processed_terrain %>%
   filter(is.na(SD_slope_raster_15_data_pts) == F) %>%
-  filter(is.na(Elevation..m.FIXED) == F)
-
+  filter(is.na(Elevation..m.FIXED) == F) %>%
+  filter(is.na(SD_aspect_raster_15_data_pts_8_categorical) == F)
 
 # SCA
 
 options(na.action = "na.omit")
 SD_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                      data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                      data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 SD_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                               data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                               data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                                          data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                          data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                           data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                           data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -2141,17 +2160,20 @@ AIC(SD_add.gam_SCA, SD_add.gam_SCA.smoothed_first_term,
 anova(SD_add.gam_SCA, SD_add.gam_SCA.smoothed_first_term, 
       SD_add.gam_SCA.smoothed_second_term, SD_add.gam_SCA.smoothed)
 
-#Because dredge was not working with SD, I compared with and without slope and aspect 
-SD_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                               data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_SCA.smoothed.slope.less <- gam(Canopy_short ~ s(Elevation..m.FIXED)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                          data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_SCA.smoothed.elevation.less <- gam(Canopy_short ~ s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                              data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(SD_add.gam_SCA.smoothed.slope.less, SD_add.gam_SCA.smoothed)
-anova(SD_add.gam_SCA.smoothed.elevation.less, SD_add.gam_SCA.smoothed)
-#We do not really need elevation (since the one with only slope was not significant, so the one with both variables 
-#was not as essential as just with slope)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(SD_add.gam_SCA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+SD_add.gam_SCA.smoothed.dredge <-  gam(Canopy_short ~ s(Elevation..m.FIXED) + s(Elevation..m.FIXED), 
+                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(SD_add.gam_SCA.smoothed.dredge, SD_add.gam_SCA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(SD_add.gam_SCA.smoothed.dredge, SD_add.gam_SCA.smoothed) 
+#results show marginal differences
 
 
 #checking overall fit and potential issues
@@ -2206,13 +2228,13 @@ visreg(SD_add.gam_SCA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorica
 # LCA
 
 SD_add.gam_LCA <- gam(Canopy_long ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                              data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                              data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 SD_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
+                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 SD_add.gam_LCA.smoothed_first_term <- gam(Canopy_long ~ s(Elevation..m.FIXED) + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_LCA.smoothed_second_term <- gam(Canopy_long ~ Elevation..m.FIXED + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                   data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                   data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -2221,17 +2243,20 @@ AIC(SD_add.gam_LCA, SD_add.gam_LCA.smoothed, SD_add.gam_LCA.smoothed_first_term,
 anova(SD_add.gam_LCA, SD_add.gam_LCA.smoothed_first_term, 
     SD_add.gam_LCA.smoothed_second_term, SD_add.gam_LCA.smoothed)
 
-#Because dredge was not working with SD, I compared with and without slope and aspect 
-SD_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                               data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_LCA.smoothed.slope.less <- gam(Canopy_long ~ s(Elevation..m.FIXED)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                          data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_LCA.smoothed.elevation.less <- gam(Canopy_long ~ s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                              data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(SD_add.gam_LCA.smoothed.slope.less, SD_add.gam_LCA.smoothed)
-anova(SD_add.gam_LCA.smoothed.elevation.less, SD_add.gam_LCA.smoothed)
-#We do not really need elevation (since the one with only slope was not significant, so the one with both variables 
-#was not as essential as just with slope)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(SD_add.gam_LCA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+SD_add.gam_LCA.smoothed.dredge <-  gam(Canopy_long ~ s(Elevation..m.FIXED) + s(Elevation..m.FIXED), 
+                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(SD_add.gam_LCA.smoothed.dredge, SD_add.gam_LCA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(SD_add.gam_LCA.smoothed.dredge, SD_add.gam_LCA.smoothed) 
+#results show marginal differences
 
 
 #checking overall fit and potential issues
@@ -2289,13 +2314,13 @@ visreg(SD_add.gam_LCA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorica
 
 
 SD_add.gam_CA <- gam(log(Canopy_area) ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                             data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                             data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 SD_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
+                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 SD_add.gam_CA.smoothed_first_term <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                 data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                 data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_CA.smoothed_second_term <- gam(log(Canopy_area) ~ Elevation..m.FIXED + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -2305,17 +2330,21 @@ AIC(SD_add.gam_CA, SD_add.gam_CA.smoothed, SD_add.gam_CA.smoothed_first_term,
 summary(SD_add.gam_CA.smoothed)
 #we can see that elevation does not appear to be as useful
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-SD_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                              data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_CA.smoothed.slope.less <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                         data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_CA.smoothed.elevation.less <- gam(log(Canopy_area) ~ s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                             data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(SD_add.gam_CA.smoothed.slope.less, SD_add.gam_CA.smoothed)
-anova(SD_add.gam_CA.smoothed.elevation.less, SD_add.gam_CA.smoothed)
-#We do not really need elevation (since the one with only slope was not significant, so the one with both variables 
-#was not as essential as just with slope)
+
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(SD_add.gam_CA.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+SD_add.gam_CA.smoothed.dredge <-  gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(Elevation..m.FIXED), 
+                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(SD_add.gam_CA.smoothed.dredge, SD_add.gam_CA.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(SD_add.gam_CA.smoothed.dredge, SD_add.gam_CA.smoothed) 
+#results show marginal differences
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -2372,13 +2401,13 @@ visreg(SD_add.gam_CA.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical
 
 
 SD_add.gam_CS <- gam(Crown_spread ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                             data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                             data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 SD_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
+                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 SD_add.gam_CS.smoothed_first_term <- gam(Crown_spread ~ s(Elevation..m.FIXED) + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                 data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                 data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_CS.smoothed_second_term <- gam(Crown_spread ~ Elevation..m.FIXED + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -2390,17 +2419,21 @@ AIC(SD_add.gam_CS, SD_add.gam_CS.smoothed_first_term,
 summary(SD_add.gam_CS.smoothed)
 #we can see that elevation does not appear to be as useful
 
-#Because dredge was not working with LC, I compared with and without slope and aspect 
-SD_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                              data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_CS.smoothed.slope.less <- gam(Crown_spread ~ s(Elevation..m.FIXED)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                         data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_CS.smoothed.elevation.less <- gam(Crown_spread ~ s(SD_slope_raster_15_data_pts)+ SD_aspect_raster_15_data_pts_8_categorical, 
-                                             data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(SD_add.gam_CS.smoothed.slope.less, SD_add.gam_CS.smoothed)
-anova(SD_add.gam_CS.smoothed.elevation.less, SD_add.gam_CS.smoothed)
-#We do not really need elevation (since the one with only slope was not significant, so the one with both variables 
-#was not as essential as just with slope)
+
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(SD_add.gam_CS.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+SD_add.gam_CS.smoothed.dredge <-  gam(Crown_spread ~ s(Elevation..m.FIXED) + s(Elevation..m.FIXED), 
+                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(SD_add.gam_CS.smoothed.dredge, SD_add.gam_CS.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(SD_add.gam_CS.smoothed.dredge, SD_add.gam_CS.smoothed) 
+#results show marginal differences
+
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
@@ -2460,13 +2493,13 @@ visreg(SD_add.gam_CS.smoothed.inter, "SD_aspect_raster_15_data_pts_8_categorical
 # DBH_ag
 
 SD_add.gam_DBH <- gam(DBH_ag ~ Elevation..m.FIXED + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                              data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit) #na fail makes sure the later dredge does not have to worry about NAs
+                              data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 SD_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
+                                       data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 SD_add.gam_DBH.smoothed_first_term <- gam(DBH_ag ~ s(Elevation..m.FIXED) + SD_slope_raster_15_data_pts + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                  data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 SD_add.gam_DBH.smoothed_second_term <- gam(DBH_ag ~ Elevation..m.FIXED + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                   data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.omit)
+                                                   data = SD_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
 #comparing the models' AIC, shows the smoothed model is the best fit
@@ -2476,29 +2509,33 @@ anova(SD_add.gam_DBH, SD_add.gam_DBH.smoothed_first_term,
     SD_add.gam_DBH.smoothed_second_term, SD_add.gam_DBH.smoothed)
 
 
-SD_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                               data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_DBH.smoothed.slope.less <- gam(DBH_ag ~ s(Elevation..m.FIXED) + SD_aspect_raster_15_data_pts_8_categorical, 
-                               data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-SD_add.gam_DBH.smoothed.elevation.less <- gam(DBH_ag ~ s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                        data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.omit)
-anova(SD_add.gam_DBH.smoothed.slope.less, SD_add.gam_DBH.smoothed)
-anova(SD_add.gam_DBH.smoothed.elevation.less, SD_add.gam_DBH.smoothed)
-#We do not need elevation,(since the one with only slope was not significant, so the one with both variables 
-#was not as essential as just with slope)
+#we do not need to dredge the poisson model, but hear is the 
+dredge <- dredge(SD_add.gam_DBH.smoothed) #using the dredge model to narro the models down to the best choice
+dredge[1,] 
+
+#fitting the dredged model
+SD_add.gam_DBH.smoothed.dredge <-  gam(DBH_ag ~ s(Elevation..m.FIXED) + s(Elevation..m.FIXED), 
+                                      data = SD_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+
+#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+anova(SD_add.gam_DBH.smoothed.dredge, SD_add.gam_DBH.smoothed, test = "F")
+#AIC comparing the dredge and full model 
+AIC(SD_add.gam_DBH.smoothed.dredge, SD_add.gam_DBH.smoothed) 
+#results show marginal differences
+
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
 gam.check(SD_add.gam_DBH.smoothed)
-gam.check(SD_add.gam_DBH.smoothed.elevation.less)
+gam.check(SD_add.gam_DBH.smoothed.dredge)
 #based on these results we can see that the normality condition is not well met, so we can try
 
 #comparing the model's the models GCV summary values to see which is lowest
 summary(SD_add.gam_DBH)
 summary(SD_add.gam_DBH.smoothed)
-summary(SD_add.gam_DBH.smoothed.slope.less)
+summary(SD_add.gam_DBH.smoothed.dredge)
 
-#Chosen model: SD_add.gam_DBH.smoothed.slope.less
+#Chosen model: SD_add.gam_DBH.smoothed
 summary(SD_add.gam_DBH.smoothed)
 
 

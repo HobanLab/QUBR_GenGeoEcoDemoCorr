@@ -374,3 +374,4 @@ tukey_hsd(dist_aov)
 ggplot()+
   geom_boxplot(data = all_fixed_field_data_processed_with_river, aes(Locality,dist_to_river))+
   theme_minimal()
+

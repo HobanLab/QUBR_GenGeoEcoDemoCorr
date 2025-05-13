@@ -10828,8 +10828,8 @@ ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, 
 
 ### PART 3: Comparing average soil values from inside populations to outside populations ###
 
-#downloading the locations of the 16 known populations
-all_pop_locations.df <- read.csv(file = "./data/All QUBR sites- all sites.csv")
+#downloading the locations of the 20 known populations
+all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPD coords for pops (12_2024).csv")
 View(all_pop_locations.df)
 
 
@@ -10855,15 +10855,27 @@ BCS_polygon_UTM <- st_as_sf(BCS_polygon_UTM)
 
 plot(BCS_polygon_UTM)
 
-#cropping the BCS polygon to just be the southern region 
-BCS_polygon_box <- st_bbox(BCS_polygon_UTM)
+#cropping the BCS polygon to just be the southern region of where the 20 known populations are with a 10 km radiu
+
+#BCS_polygon_box <- st_bbox(BCS_polygon_UTM)
+
+all_pop_locations.df_sf_trans_coordinates_box <- st_bbox(all_pop_locations.df_sf_trans_coordinates)
 
 
 #creating a cropped bbox 
 BCS_polygon_box_sf <- BCS_polygon_box %>% #turning the bbox into polygon
   st_as_sfc()
-BCS_polygon_box_spatial <- as(BCS_polygon_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop
-BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((BCS_polygon_box[1]+411199), (BCS_polygon_box[3]), (BCS_polygon_box[2]), (BCS_polygon_box[4]-432999))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+BCS_polygon_box_spatial <- as(BCS_polygon_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop + 5000000
+# BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((BCS_polygon_box[1] + 200000),  #400000.  411199 #492200
+#                                                                                 (BCS_polygon_box[3] - 300000), (BCS_polygon_box[2]), 
+#                                                                                 (BCS_polygon_box[4]- 432999))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((all_pop_locations.df_sf_trans_coordinates_box[1] - 7000),  #400000.  411199 #492200
+                                                                                (all_pop_locations.df_sf_trans_coordinates_box[3] + 7000), (all_pop_locations.df_sf_trans_coordinates_box[2] - 7000), 
+                                                                                (all_pop_locations.df_sf_trans_coordinates_box[4] + 7000))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+
+summary(all_pop_locations.df_sf_trans_coordinates)
+
+
 BCS_polygon_box_sf_cropped <-  BCS_polygon_box_spatial_cropped %>% #turning the spatial polygon into a polygon
   st_as_sfc()
 

@@ -356,6 +356,22 @@ SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance
   mutate(Crown_spread_inv = (1/Crown_spread))%>%
   mutate(DBH_ag_inv = (1/DBH_ag))
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #Simple Linear Regressions
 
 #comparing distance to river's edge to size values
