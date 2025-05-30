@@ -11596,8 +11596,8 @@ ggplot()+
   geom_sf(data=random_20, color ="blue")
 
 #storing the real means
-all_known_vol_wat_1500kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.10_0.5)
-all_known_vol_wat_1500kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.10_100.200)
+all_known_vol_wat_1500kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.1500kPa_0.5)
+all_known_vol_wat_1500kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.1500_100.200)
 
 #for vol_wat_1500kpa 0-5
 
@@ -11762,5 +11762,5 @@ ggplot(aes(x = Shape.Size, y = Significance, fill = P_Value), data = random_pop.
        title = "Association Between Soil Metrics and Population Locations",
        subtitle = "Significant P-Values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, round(P_Value, 4), NA))) +
+  geom_text(aes(label = ifelse(P_Value < 0.15, round(P_Value, 4), NA))) +
   coord_flip()
