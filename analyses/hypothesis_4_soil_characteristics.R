@@ -8,8 +8,9 @@ library(ggpmisc)
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the nndist function
-library(raster)
+library(raster) #to plot rasters
 library(rstatix) #to run the Games-Howell Test
+library(ggnewscale) #to be able to assign different colors to different layered rasters
 
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
@@ -231,7 +232,6 @@ soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_
 soil_stack_LM_extra <- stack(nitrogen_05_LM, nitrogen_200_LM, Soil_Organic_Carbon_05_LM, Soil_Organic_Carbon_200_LM)
 
 
-soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
 
 #plotting the stacked rasters
 plot(soil_stack_LM_soil_text) #version with soil textures
@@ -267,6 +267,7 @@ vol_wat_10kpa_200_LC <- crop(vol_wat_10kpa_200_utm, extent(LC_box[1]-100, LC_box
 vol_wat_33kpa_05_LC <- crop(vol_wat_33kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_33kpa_200_LC <- crop(vol_wat_33kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
+
 vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 nitrogen_05_LC <-  crop(nitrogen_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 nitrogen_200_LC <- crop(nitrogen_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
@@ -10740,8 +10741,6 @@ levels(size.pop.slopes.df$Population)
 options(digits=3)
 
 #across all populations
-
-
 ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Values",
@@ -10853,283 +10852,169 @@ BCS_polygon <- st_as_sf(BCS_polygon)
 BCS_polygon_UTM <- st_transform(BCS_polygon, crs = 26912) # this in UTM 12 N an equal area projection
 BCS_polygon_UTM <- st_as_sf(BCS_polygon_UTM)
 
-plot(BCS_polygon_UTM)
 
 #cropping the BCS polygon to just be the southern region of where the 20 known populations are with a 10 km radiu
 
 #BCS_polygon_box <- st_bbox(BCS_polygon_UTM)
 
-all_pop_locations.df_sf_trans_coordinates_box <- st_bbox(all_pop_locations.df_sf_trans_coordinates)
 
+# Get bbox of points
+bbox_points <- st_bbox(all_pop_locations.df_sf_trans_coordinates)
 
-#creating a cropped bbox 
-BCS_polygon_box_sf <- BCS_polygon_box %>% #turning the bbox into polygon
-  st_as_sfc()
-BCS_polygon_box_spatial <- as(BCS_polygon_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop + 5000000
-# BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((BCS_polygon_box[1] + 200000),  #400000.  411199 #492200
-#                                                                                 (BCS_polygon_box[3] - 300000), (BCS_polygon_box[2]), 
-#                                                                                 (BCS_polygon_box[4]- 432999))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
-BCS_polygon_box_spatial_cropped <- raster::crop(BCS_polygon_box_spatial, extent((all_pop_locations.df_sf_trans_coordinates_box[1] - 7000),  #400000.  411199 #492200
-                                                                                (all_pop_locations.df_sf_trans_coordinates_box[3] + 7000), (all_pop_locations.df_sf_trans_coordinates_box[2] - 7000), 
-                                                                                (all_pop_locations.df_sf_trans_coordinates_box[4] + 7000))) #cropping the xmin, xmax, ymin, and ymax by 20 m inside
+# Convert bbox to polygon
+bbox_poly <- st_as_sfc(bbox_points)
 
-summary(all_pop_locations.df_sf_trans_coordinates)
+# Buffer polygon by 7,000 meters (10 km)
+bbox_poly_buffered <- st_buffer(bbox_poly, dist = 7000)
 
+# Make sure CRS matches your big polygon
+bbox_poly_buffered <- st_transform(bbox_poly_buffered, st_crs(BCS_polygon_UTM))
 
-BCS_polygon_box_sf_cropped <-  BCS_polygon_box_spatial_cropped %>% #turning the spatial polygon into a polygon
-  st_as_sfc()
+# Crop (intersect) the big polygon with buffered bbox polygon
+BCS_polygon_box_sf_cropped <- st_intersection(BCS_polygon_UTM, bbox_poly_buffered)
 
-#cropping the points by the cropped box
-BCS_polygon_UTM_cropped<- st_crop(BCS_polygon_UTM, BCS_polygon_box_sf_cropped) #cropping the BCS polygon with the cropped bbox extent
-
-BCS_polygon_UTM_cropped <- BCS_polygon_UTM_cropped %>% #turning the cropped BCS polygon into a sf file
-  st_as_sf
+# Check bbox of cropped polygon (should be larger than original bbox of points)
+print(st_bbox(BCS_polygon_box_sf_cropped))
 
 #plotting the original extent and polygon and the cropped extent
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=bbox_poly_buffered)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
-  
-#creating a bbox around the cropped BCS file
-BCS_polygon_crop_bbox <- st_bbox(BCS_polygon_UTM_cropped) 
+
+#plotting just the cropped area
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
 
 
-#Load in extra environmental rasters because the lower portion of BCS needs to be covered by the 250 m soil rasters
-
-
-#loading in soil textures from CONABIO, theses are too larger, about 1 km^2 I believe
-clay_05_2 <- raster(paste0("./data/Soil Grid/clay content/clay content 0-5 part 2.tif"))
-clay_200_2 <- raster(paste0("./data/Soil Grid/clay content/clay contentn 100-200 part 2.tif"))
-silt_05_2 <- raster(paste0("./data/Soil Grid/silt/silt 0-5 part 2.tif"))
-silt_200_2 <-raster(paste0("./data/Soil Grid/silt/silt 100-200 part 2.tif"))
-sand_05_2 <- raster(paste0("./data/Soil Grid/sand/sand 0-5 part 2.tif"))
-sand_200_2 <- raster(paste0("./data/Soil Grid/sand/sand 100-200 part 2.tif"))
-ph_05_2 <- raster(paste0("./data/Soil Grid/pH/ph_0-5 part 2.tif")) #0-5 cm ph
-ph_200_2 <- raster(paste0("./data/Soil Grid/pH/ph_100-200 part 2.tif")) #100-200 ph
-ocd_05_2 <- raster(paste0("./data/Soil Grid/organic carbon density/OCD_0-5 part 2.tif")) #0-5cm organic carbon density
-ocd_200_2 <- raster(paste0("./data/Soil Grid/organic carbon density/OCD_100-200 part 2.tif")) #100-200cm organic carbon density
-coarse_frag_05_2 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_0-5_part_2.tif")) #0-5 cm coarse fragments
-coarse_frag_200_2 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_100-200_part_2.tif")) #100-200 cm coarse fragments
-cat_ex_cap_05_2 <-raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_0-5_part_2.tif")) #0-5 cm cation exchange capacity
-cat_ex_cap_200_2 <- raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_100-200_part_2.tif")) #100-200 cm cation exchange capacity
-bulk_dens_05_2 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_0-5_part_2.tif")) #0-5 cm bulk density
-bulk_dens_200_2 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_100_200_part_2.tif")) #100-200 cm bulk density
-vol_wat_10kpa_05_2 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_0-5  part 2.tif"))  #0-5 cm -10 kpa volumn water content
-vol_wat_10kpa_200_2 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_100-200 part 2.tif"))  #100-200 cm -10 kpa volumn water content
-vol_wat_1500kpa_05_2 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_0-5 part 2.tif"))  #0-5 cm -1500 kpa volumn water content
-vol_wat_1500kpa_200_2 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_100-200 part 2.tif")) #100-200 cm -1500 kpa volumn water content
-nitrogen_05_2 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 0-5 part 2.tif"))
-nitrogen_200_2 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 100-200 part 2.tif"))
-Soil_Organic_Carbon_05_2 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 0-5 part 2.tif"))
-Soil_Organic_Carbon_200_2 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 100-200 part 2.tif"))
-
-
-
-#project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
-clay_05_utm_2 <- projectRaster(clay_05_2, crs=26912) #converting the 0-5 cm clay raster to utm 12
-clay_200_utm_2 <- projectRaster(clay_200_2, crs=26912) #converting the 90-200 cm clay raster to utm 12
-silt_05_utm_2 <- projectRaster(silt_05_2, crs=26912)
-silt_200_utm_2 <- projectRaster(silt_200_2, crs=26912)
-sand_05_utm_2 <- projectRaster(sand_05_2, crs=26912)
-sand_200_utm_2 <- projectRaster(sand_200_2, crs=26912)
-ph_05_utm_2 <- projectRaster(ph_05_2, crs=26912) 
-ph_200_utm_2 <- projectRaster(ph_200_2, crs=26912) 
-ocd_05_utm_2 <- projectRaster(ocd_05_2, crs=26912)
-ocd_200_utm_2 <- projectRaster(ocd_200_2, crs=26912)
-coarse_frag_05_utm_2 <- projectRaster(coarse_frag_05_2, crs=26912)
-coarse_frag_200_utm_2 <- projectRaster(coarse_frag_200_2, crs=26912)
-cat_ex_cap_05_utm_2 <- projectRaster(cat_ex_cap_05_2, crs=26912)
-cat_ex_cap_200_utm_2 <- projectRaster(cat_ex_cap_200_2, crs=26912)
-bulk_dens_05_utm_2 <- projectRaster(bulk_dens_05_2, crs=26912)
-bulk_dens_200_utm_2 <- projectRaster(bulk_dens_200_2, crs=26912)
-vol_wat_10kpa_05_utm_2 <- projectRaster(vol_wat_10kpa_05_2, crs=26912)
-vol_wat_10kpa_200_utm_2 <- projectRaster(vol_wat_10kpa_200_2, crs=26912)
-vol_wat_1500kpa_05_utm_2 <- projectRaster(vol_wat_1500kpa_05_2, crs=26912)
-vol_wat_1500kpa_200_utm_2 <- projectRaster(vol_wat_1500kpa_200_2, crs=26912)
-nitrogen_05_utm_2 <- projectRaster(nitrogen_05_2, crs=26912)
-nitrogen_200_utm_2 <- projectRaster(nitrogen_200_2, crs=26912)
-Soil_Organic_Carbon_05_utm_2 <- projectRaster(Soil_Organic_Carbon_05_2, crs=26912)
-Soil_Organic_Carbon_200_utm_2 <- projectRaster(Soil_Organic_Carbon_200_2, crs=26912)
-
-
-#cropping the new rasters so they do not overlap with the older ones
-
-clay_05_utm_2_bbox <- clay_05_utm_2 %>%
-  st_bbox()
-clay_05_utm_2_crop <- crop(clay_05_utm_2, extent((clay_05_utm_2_bbox[1]), (clay_05_utm_2_bbox[3]), (clay_05_utm_2_bbox[2]), (2538644)))
-
-clay_200_utm_2_bbox <- clay_200_utm_2 %>%
-  st_bbox()
-clay_200_utm_2_crop <- crop(clay_200_utm_2, extent((clay_200_utm_2_bbox[1]), (clay_200_utm_2_bbox[3]), (clay_200_utm_2_bbox[2]), (2538644)))
-
-silt_05_utm_2_bbox <- silt_05_utm_2 %>%
-  st_bbox()
-silt_05_utm_2_crop <- crop(silt_05_utm_2, extent((silt_05_utm_2_bbox[1]), (silt_05_utm_2_bbox[3]), (silt_05_utm_2_bbox[2]), (2538644)))
-
-silt_200_utm_2_bbox <- silt_200_utm_2 %>%
-  st_bbox()
-silt_200_utm_2_crop <- crop(silt_200_utm_2, extent((silt_200_utm_2_bbox[1]), (silt_200_utm_2_bbox[3]), (silt_200_utm_2_bbox[2]), (2538644)))
-
-sand_05_utm_2_bbox <- sand_05_utm_2 %>%
-  st_bbox()
-sand_05_utm_2_crop <- crop(sand_05_utm_2, extent((sand_05_utm_2_bbox[1]), (sand_05_utm_2_bbox[3]), (sand_05_utm_2_bbox[2]), (2538644)))
-
-sand_200_utm_2_bbox <- sand_200_utm_2 %>%
-  st_bbox()
-sand_200_utm_2_crop <- crop(sand_200_utm_2, extent((sand_200_utm_2_bbox[1]), (sand_200_utm_2_bbox[3]), (sand_200_utm_2_bbox[2]), (2538644)))
-
-ph_05_utm_2_bbox <- ph_05_utm_2 %>%
-  st_bbox()
-ph_05_utm_2_crop <- crop(ph_05_utm_2, extent((ph_05_utm_2_bbox[1]), (ph_05_utm_2_bbox[3]), (ph_05_utm_2_bbox[2]), (2538644)))
-
-ph_200_utm_2_bbox <- ph_200_utm_2 %>%
-  st_bbox()
-ph_200_utm_2_crop <- crop(ph_200_utm_2, extent((ph_200_utm_2_bbox[1]), (ph_200_utm_2_bbox[3]), (ph_200_utm_2_bbox[2]), (2538644)))
-
-ocd_05_utm_2_bbox <- ocd_05_utm_2 %>%
-  st_bbox()
-ocd_05_utm_2_crop <- crop(ocd_05_utm_2, extent((ocd_05_utm_2_bbox[1]), (ocd_05_utm_2_bbox[3]), (ocd_05_utm_2_bbox[2]), (2538644)))
-
-ocd_200_utm_2_bbox <- ocd_200_utm_2 %>%
-  st_bbox()
-ocd_200_utm_2_crop <- crop(ocd_200_utm_2, extent((ocd_200_utm_2_bbox[1]), (ocd_200_utm_2_bbox[3]), (ocd_200_utm_2_bbox[2]), (2538644)))
-
-coarse_frag_05_utm_2_bbox <- coarse_frag_05_utm_2 %>%
-  st_bbox()
-coarse_frag_05_utm_2_crop <- crop(coarse_frag_05_utm_2, extent((coarse_frag_05_utm_2_bbox[1]), (coarse_frag_05_utm_2_bbox[3]), (coarse_frag_05_utm_2_bbox[2]), (2538644)))
-
-coarse_frag_200_utm_2_bbox <- coarse_frag_200_utm_2 %>%
-  st_bbox()
-coarse_frag_200_utm_2_crop <- crop(coarse_frag_200_utm_2, extent((coarse_frag_200_utm_2_bbox[1]), (coarse_frag_200_utm_2_bbox[3]), (coarse_frag_200_utm_2_bbox[2]), (2538644)))
-
-cat_ex_cap_05_utm_2_bbox <- cat_ex_cap_05_utm_2 %>%
-  st_bbox()
-cat_ex_cap_05_utm_2_crop <- crop(cat_ex_cap_05_utm_2, extent((cat_ex_cap_05_utm_2_bbox[1]), (cat_ex_cap_05_utm_2_bbox[3]), (cat_ex_cap_05_utm_2_bbox[2]), (2538644)))
-
-cat_ex_cap_200_utm_2_bbox <- cat_ex_cap_05_utm_2 %>%
-  st_bbox()
-cat_ex_cap_200_utm_2_crop <- crop(cat_ex_cap_05_utm_2, extent((cat_ex_cap_05_utm_2_bbox[1]), (cat_ex_cap_05_utm_2_bbox[3]), (cat_ex_cap_05_utm_2_bbox[2]), (2538644)))
-
-bulk_dens_05_utm_2_bbox <- bulk_dens_05_utm_2 %>%
-  st_bbox()
-bulk_dens_05_utm_2_crop <- crop(bulk_dens_05_utm_2, extent((bulk_dens_05_utm_2_bbox[1]), (bulk_dens_05_utm_2_bbox[3]), (bulk_dens_05_utm_2_bbox[2]), (2538644)))
-
-bulk_dens_200_utm_2_bbox <- bulk_dens_200_utm_2 %>%
-  st_bbox()
-bulk_dens_200_utm_2_crop <- crop(bulk_dens_200_utm_2, extent((bulk_dens_200_utm_2_bbox[1]), (bulk_dens_200_utm_2_bbox[3]), (bulk_dens_200_utm_2_bbox[2]), (2538644)))
-
-vol_wat_10kpa_05_utm_2_bbox <- vol_wat_10kpa_05_utm_2 %>%
-  st_bbox()
-vol_wat_10kpa_05_utm_2_crop <- crop(vol_wat_10kpa_05_utm_2, extent((vol_wat_10kpa_05_utm_2_bbox[1]), (vol_wat_10kpa_05_utm_2_bbox[3]), (vol_wat_10kpa_05_utm_2_bbox[2]), (2538644)))
-
-vol_wat_10kpa_200_utm_2_bbox <- vol_wat_10kpa_200_utm_2 %>%
-  st_bbox()
-vol_wat_10kpa_200_utm_2_crop <- crop(vol_wat_10kpa_200_utm_2, extent((vol_wat_10kpa_200_utm_2_bbox[1]), (vol_wat_10kpa_200_utm_2_bbox[3]), (vol_wat_10kpa_200_utm_2_bbox[2]), (2538644)))
-
-vol_wat_1500kpa_05_utm_2_bbox <- vol_wat_1500kpa_05_utm_2 %>%
-  st_bbox()
-vol_wat_1500kpa_05_utm_2_crop <- crop(vol_wat_1500kpa_05_utm_2, extent((vol_wat_1500kpa_05_utm_2_bbox[1]), (vol_wat_1500kpa_05_utm_2_bbox[3]), (vol_wat_1500kpa_05_utm_2_bbox[2]), (2538644)))
-
-vol_wat_1500kpa_200_utm_2_bbox <- vol_wat_1500kpa_200_utm_2 %>%
-  st_bbox()
-vol_wat_1500kpa_200_utm_2_crop <- crop(vol_wat_1500kpa_200_utm_2, extent((vol_wat_1500kpa_200_utm_2_bbox[1]), (vol_wat_1500kpa_200_utm_2_bbox[3]), (vol_wat_1500kpa_200_utm_2_bbox[2]), (2538644)))
-
-nitrogen_05_utm_2_bbox <- nitrogen_05_utm_2 %>%
-  st_bbox()
-nitrogen_05_utm_2_crop <- crop(nitrogen_05_utm_2, extent((nitrogen_05_utm_2_bbox[1]), (nitrogen_05_utm_2_bbox[3]), (nitrogen_05_utm_2_bbox[2]), (2538644)))
-
-nitrogen_200_utm_2_bbox <- nitrogen_200_utm_2 %>%
-  st_bbox()
-nitrogen_200_utm_2_crop <- crop(nitrogen_200_utm_2, extent((nitrogen_200_utm_2_bbox[1]), (nitrogen_200_utm_2_bbox[3]), (nitrogen_200_utm_2_bbox[2]), (2538644)))
-
-Soil_Organic_Carbon_05_utm_2_bbox <- Soil_Organic_Carbon_05_utm_2 %>%
-  st_bbox()
-Soil_Organic_Carbon_05_utm_2_crop <- crop(Soil_Organic_Carbon_05_utm_2, extent((Soil_Organic_Carbon_05_utm_2_bbox[1]), (Soil_Organic_Carbon_05_utm_2_bbox[3]), (Soil_Organic_Carbon_05_utm_2_bbox[2]), (2538644)))
-
-Soil_Organic_Carbon_200_utm_2_bbox <- Soil_Organic_Carbon_200_utm_2 %>%
-  st_bbox()
-Soil_Organic_Carbon_200_utm_2_crop <- crop(Soil_Organic_Carbon_200_utm_2, extent((Soil_Organic_Carbon_200_utm_2_bbox[1]), (Soil_Organic_Carbon_200_utm_2_bbox[3]), (Soil_Organic_Carbon_200_utm_2_bbox[2]), (2538644)))
-
-
-#crop the soil raster for the southern portion of baja
 
 #using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_all_pop <- crop(clay_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4])) 
-clay_200_all_pop <- crop(clay_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-silt_05_all_pop <- crop(silt_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-silt_200_all_pop <- crop(silt_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-sand_05_all_pop <- crop(sand_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-sand_200_all_pop <- crop(sand_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ph_05_all_pop <- crop(ph_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ph_200_all_pop <- crop(ph_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ocd_05_all_pop <- crop(ocd_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ocd_200_all_pop <- crop(ocd_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-coarse_frag_05_all_pop <- crop(coarse_frag_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-coarse_frag_200_all_pop <- crop(coarse_frag_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-cat_ex_cap_05_all_pop <- crop(cat_ex_cap_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-cat_ex_cap_200_all_pop <- crop(cat_ex_cap_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-bulk_dens_05_all_pop <- crop(bulk_dens_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-bulk_dens_200_all_pop <- crop(bulk_dens_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_10kpa_05_all_pop <- crop(vol_wat_10kpa_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_10kpa_200_all_pop <- crop(vol_wat_10kpa_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_33kpa_05_all_pop <- crop(vol_wat_33kpa_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_33kpa_200_all_pop <- crop(vol_wat_33kpa_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_1500kpa_05_all_pop <- crop(vol_wat_1500kpa_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_1500kpa_200_all_pop <- crop(vol_wat_1500kpa_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-nitrogen_05_all_pop <-  crop(nitrogen_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-nitrogen_200_all_pop <- crop(nitrogen_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-Soil_Organic_Carbon_05_all_pop <- crop(Soil_Organic_Carbon_05_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-Soil_Organic_Carbon_200_all_pop <- crop(Soil_Organic_Carbon_200_utm, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
+#clay 05
+clay_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_05_clipped <- crop(clay_05_utm, clay_05_bbox_poly_buffered) # Crop the raster to the polygon
+clay_05_all_pop <- mask(clay_05_clipped, clay_05_bbox_poly_buffered) # Mask the raster to the polygon
+#clay 200
+clay_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_200_clipped <- crop(clay_200_utm, clay_200_bbox_poly_buffered) # Crop the raster to the polygon
+clay_200_all_pop <- mask(clay_200_clipped, clay_200_bbox_poly_buffered) # Mask the raster to the polygon
+#silt 05
+silt_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(silt_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+silt_05_clipped <- crop(silt_05_utm, silt_05_bbox_poly_buffered) # Crop the raster to the polygon
+silt_05_all_pop <- mask(silt_05_clipped, silt_05_bbox_poly_buffered) # Mask the raster to the polygon
+#silt 200
+silt_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(silt_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+silt_200_clipped <- crop(silt_200_utm, silt_200_bbox_poly_buffered) # Crop the raster to the polygon
+silt_200_all_pop <- mask(silt_200_clipped, silt_200_bbox_poly_buffered) # Mask the raster to the polygon
+#sand 05
+sand_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sand_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sand_05_clipped <- crop(sand_05_utm, sand_05_bbox_poly_buffered) # Crop the raster to the polygon
+sand_05_all_pop <- mask(sand_05_clipped, sand_05_bbox_poly_buffered) # Mask the raster to the polygon
+#sand 200
+sand_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sand_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sand_200_clipped <- crop(sand_200_utm, sand_200_bbox_poly_buffered) # Crop the raster to the polygon
+sand_200_all_pop <- mask(sand_200_clipped, sand_200_bbox_poly_buffered) # Mask the raster to the polygon
+#ph 05
+ph_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_05_clipped <- crop(ph_05_utm, ph_05_bbox_poly_buffered) # Crop the raster to the polygon
+ph_05_all_pop <- mask(ph_05_clipped, ph_05_bbox_poly_buffered) # Mask the raster to the polygon
+#ph 200
+ph_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_200_clipped <- crop(ph_200_utm, ph_200_bbox_poly_buffered) # Crop the raster to the polygon
+ph_200_all_pop <- mask(ph_200_clipped, ph_200_bbox_poly_buffered) # Mask the raster to the polygon
+#ph 05
+ph_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_05_clipped <- crop(ph_05_utm, ph_05_bbox_poly_buffered) # Crop the raster to the polygon
+ph_05_all_pop <- mask(ph_05_clipped, ph_05_bbox_poly_buffered) # Mask the raster to the polygon
+#ph 200
+ph_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_200_clipped <- crop(ph_200_utm, ph_200_bbox_poly_buffered) # Crop the raster to the polygon
+ph_200_all_pop <- mask(ph_200_clipped, ph_200_bbox_poly_buffered) # Mask the raster to the polygon
+#ocd 05
+ocd_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ocd_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ocd_05_clipped <- crop(ocd_05_utm, ocd_05_bbox_poly_buffered) # Crop the raster to the polygon
+ocd_05_all_pop <- mask(ocd_05_clipped, ocd_05_bbox_poly_buffered) # Mask the raster to the polygon
+#ocd 200
+ocd_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ocd_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ocd_200_clipped <- crop(ocd_200_utm, ocd_200_bbox_poly_buffered) # Crop the raster to the polygon
+ocd_200_all_pop <- mask(ocd_200_clipped, ocd_200_bbox_poly_buffered) # Mask the raster to the polygon
+#coarse_frag 05
+coarse_frag_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(coarse_frag_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+coarse_frag_05_clipped <- crop(coarse_frag_05_utm, coarse_frag_05_bbox_poly_buffered) # Crop the raster to the polygon
+coarse_frag_05_all_pop <- mask(coarse_frag_05_clipped, coarse_frag_05_bbox_poly_buffered) # Mask the raster to the polygon
+#coarse_frag 200
+coarse_frag_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(coarse_frag_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+coarse_frag_200_clipped <- crop(coarse_frag_200_utm, coarse_frag_200_bbox_poly_buffered) # Crop the raster to the polygon
+coarse_frag_200_all_pop <- mask(coarse_frag_200_clipped, coarse_frag_200_bbox_poly_buffered) # Mask the raster to the polygon
+#cat_ex_cap 05
+cat_ex_cap_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(cat_ex_cap_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+cat_ex_cap_05_clipped <- crop(cat_ex_cap_05_utm, cat_ex_cap_05_bbox_poly_buffered) # Crop the raster to the polygon
+cat_ex_cap_05_all_pop <- mask(cat_ex_cap_05_clipped, cat_ex_cap_05_bbox_poly_buffered) # Mask the raster to the polygon
+#cat_ex_cap 200
+cat_ex_cap_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(cat_ex_cap_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+cat_ex_cap_200_clipped <- crop(cat_ex_cap_200_utm, cat_ex_cap_200_bbox_poly_buffered) # Crop the raster to the polygon
+cat_ex_cap_200_all_pop <- mask(cat_ex_cap_200_clipped, cat_ex_cap_200_bbox_poly_buffered) # Mask the raster to the polygon
+#bulk_dens 05
+bulk_dens_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(bulk_dens_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+bulk_dens_05_clipped <- crop(bulk_dens_05_utm, bulk_dens_05_bbox_poly_buffered) # Crop the raster to the polygon
+bulk_dens_05_all_pop <- mask(bulk_dens_05_clipped, bulk_dens_05_bbox_poly_buffered) # Mask the raster to the polygon
+#bulk_dens 200
+bulk_dens_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(bulk_dens_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+bulk_dens_200_clipped <- crop(bulk_dens_200_utm, bulk_dens_200_bbox_poly_buffered) # Crop the raster to the polygon
+bulk_dens_200_all_pop <- mask(bulk_dens_200_clipped, bulk_dens_200_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_10kpa 05
+vol_wat_10kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_10kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_10kpa_05_clipped <- crop(vol_wat_10kpa_05_utm, vol_wat_10kpa_05_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_10kpa_05_all_pop <- mask(vol_wat_10kpa_05_clipped, vol_wat_10kpa_05_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_10kpa 200
+vol_wat_10kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_10kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_10kpa_200_clipped <- crop(vol_wat_10kpa_200_utm, vol_wat_10kpa_200_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_10kpa_200_all_pop <- mask(vol_wat_10kpa_200_clipped, vol_wat_10kpa_200_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_33kpa 05
+vol_wat_33kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_33kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_33kpa_05_clipped <- crop(vol_wat_33kpa_05_utm, vol_wat_33kpa_05_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_33kpa_05_all_pop <- mask(vol_wat_33kpa_05_clipped, vol_wat_33kpa_05_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_33kpa 200
+vol_wat_33kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_33kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_33kpa_200_clipped <- crop(vol_wat_33kpa_200_utm, vol_wat_33kpa_200_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_33kpa_200_all_pop <- mask(vol_wat_33kpa_200_clipped, vol_wat_33kpa_200_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_1500kpa 05
+vol_wat_1500kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_1500kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_1500kpa_05_clipped <- crop(vol_wat_1500kpa_05_utm, vol_wat_1500kpa_05_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_1500kpa_05_all_pop <- mask(vol_wat_1500kpa_05_clipped, vol_wat_1500kpa_05_bbox_poly_buffered) # Mask the raster to the polygon
+#vol_wat_1500kpa 200
+vol_wat_1500kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_1500kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_1500kpa_200_clipped <- crop(vol_wat_1500kpa_200_utm, vol_wat_1500kpa_200_bbox_poly_buffered) # Crop the raster to the polygon
+vol_wat_1500kpa_200_all_pop <- mask(vol_wat_1500kpa_200_clipped, vol_wat_1500kpa_200_bbox_poly_buffered) # Mask the raster to the polygon
+#nitrogen 05
+nitrogen_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(nitrogen_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+nitrogen_05_clipped <- crop(nitrogen_05_utm, nitrogen_05_bbox_poly_buffered) # Crop the raster to the polygon
+nitrogen_05_all_pop <- mask(nitrogen_05_clipped, nitrogen_05_bbox_poly_buffered) # Mask the raster to the polygon
+#nitrogen 200
+nitrogen_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(nitrogen_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+nitrogen_200_clipped <- crop(nitrogen_200_utm, nitrogen_200_bbox_poly_buffered) # Crop the raster to the polygon
+nitrogen_200_all_pop <- mask(nitrogen_200_clipped, nitrogen_200_bbox_poly_buffered) # Mask the raster to the polygon
+#Soil_Organic_Carbon 05
+Soil_Organic_Carbon_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(Soil_Organic_Carbon_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+Soil_Organic_Carbon_05_clipped <- crop(Soil_Organic_Carbon_05_utm, Soil_Organic_Carbon_05_bbox_poly_buffered) # Crop the raster to the polygon
+Soil_Organic_Carbon_05_all_pop <- mask(Soil_Organic_Carbon_05_clipped, Soil_Organic_Carbon_05_bbox_poly_buffered) # Mask the raster to the polygon
+#Soil_Organic_Carbon 200
+Soil_Organic_Carbon_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(Soil_Organic_Carbon_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+Soil_Organic_Carbon_200_clipped <- crop(Soil_Organic_Carbon_200_utm, Soil_Organic_Carbon_200_bbox_poly_buffered) # Crop the raster to the polygon
+Soil_Organic_Carbon_200_all_pop <- mask(Soil_Organic_Carbon_200_clipped, Soil_Organic_Carbon_200_bbox_poly_buffered) # Mask the raster to the polygon
 
-
-
-#crop the soil raster for the southern portion of baja, for the southern most area
-
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_all_pop_2 <- crop(clay_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4])) 
-clay_200_all_pop_2 <- crop(clay_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-silt_05_all_pop_2 <- crop(silt_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-silt_200_all_pop_2 <- crop(silt_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-sand_05_all_pop_2 <- crop(sand_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-sand_200_all_pop_2 <- crop(sand_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ph_05_all_pop_2 <- crop(ph_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ph_200_all_pop_2 <- crop(ph_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ocd_05_all_pop_2 <- crop(ocd_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-ocd_200_all_pop_2 <- crop(ocd_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-coarse_frag_05_all_pop_2 <- crop(coarse_frag_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-coarse_frag_200_all_pop_2 <- crop(coarse_frag_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-cat_ex_cap_05_all_pop_2 <- crop(cat_ex_cap_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-cat_ex_cap_200_all_pop_2 <- crop(cat_ex_cap_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-bulk_dens_05_all_pop_2 <- crop(bulk_dens_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-bulk_dens_200_all_pop_2 <- crop(bulk_dens_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_10kpa_05_all_pop_2 <- crop(vol_wat_10kpa_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_10kpa_200_all_pop_2 <- crop(vol_wat_10kpa_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_1500kpa_05_all_pop_2 <- crop(vol_wat_1500kpa_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-vol_wat_1500kpa_200_all_pop_2 <- crop(vol_wat_1500kpa_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-nitrogen_05_all_pop_2 <-  crop(nitrogen_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-nitrogen_200_all_pop_2 <- crop(nitrogen_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-Soil_Organic_Carbon_05_all_pop_2 <- crop(Soil_Organic_Carbon_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-Soil_Organic_Carbon_200_all_pop_2 <- crop(Soil_Organic_Carbon_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-
-
-
-#attempt of using ggplot to plot clay layer with river shapefile
+#confirming I properly cropped the rasters by plotting the clay rasters with the cropped polygon around it
 ggplot()+
-  geom_raster(data = as.data.frame(clay_05_utm, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
-  geom_raster(data = as.data.frame(clay_05_all_pop, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = BCS_polygon_UTM_cropped)
+  geom_raster(data = as.data.frame(clay_05_utm, xy=T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  scale_fill_gradientn(colours=c("yellow","red"), name = "clay_05_utm")+
+  # Add new fill scale
+  ggnewscale::new_scale_fill() +
+  geom_raster(data = as.data.frame(clay_05_all_pop, xy=T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  scale_fill_gradientn(colours=c("lightblue","darkblue"), name = "clay_05_all_pop") +
+  geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
 
-#attempt of using ggplot to plot clay layer with river shapefile
-ggplot()+
-  geom_raster(data = as.data.frame(clay_05_utm_2, xy=T), aes(x=x, y=y, fill = clay.content.0.5.part.2))+
-  geom_sf(data = BCS_polygon_UTM_cropped)+
-  geom_raster(data = as.data.frame(clay_05_all_pop_2, xy=T), aes(x=x, y=y, fill = clay.content.0.5.part.2))+
-  geom_sf(data = river_LM_trans)
-  
 
 #creating a stack of the raster layers for the original rasters
 
@@ -11147,32 +11032,12 @@ soil_stack_nitrogen <- stack(nitrogen_05_all_pop, nitrogen_200_all_pop)  #stacke
 soil_stack_soc <- stack(Soil_Organic_Carbon_05_all_pop, Soil_Organic_Carbon_200_all_pop)  #stacked volume water content at 10 kpa
 
 
-
-#creating a stack of the raster layers for the southern raster
-
-soil_stack_clay_2 <- stack(clay_05_all_pop_2, clay_200_all_pop_2)  #stacked clay
-soil_stack_silt_2 <- stack(silt_05_all_pop_2, silt_200_all_pop_2) #stacked silt
-soil_stack_sand_2 <- stack(sand_05_all_pop_2, sand_200_all_pop_2) #stacked sand
-soil_stack_ph_2 <- stack(ph_05_all_pop_2, ph_200_all_pop_2) #stacked ph
-soil_stack_ocd_2 <- stack(ocd_05_all_pop_2, ocd_200_all_pop_2) #stacked ocd
-soil_stack_coarse_frag_2 <- stack(coarse_frag_05_all_pop_2, coarse_frag_200_all_pop_2)#stacked coarse fragment
-soil_stack_cat_ex_2 <- stack(cat_ex_cap_05_all_pop_2, cat_ex_cap_200_all_pop_2)  #stacked cation exchange capacity
-soil_stack_bulk_dens_2 <- stack(bulk_dens_05_all_pop_2, bulk_dens_200_all_pop_2) #stacked bulk density
-soil_stack_vol_wat_10kpa_2 <- stack(vol_wat_10kpa_05_all_pop_2, vol_wat_10kpa_200_all_pop_2) #stacked volume water content at 10 kpa
-soil_stack_vol_wat_1500kpa_2 <- stack(Soil_Organic_Carbon_05_all_pop_2, vol_wat_1500kpa_200_all_pop_2) #stacked volume water content at 1500 kpa
-soil_stack_nitrogen_2 <- stack(nitrogen_05_all_pop_2, nitrogen_200_all_pop_2)  #stacked volume water content at 10 kpa
-soil_stack_soc_2 <- stack(Soil_Organic_Carbon_05_all_pop_2, Soil_Organic_Carbon_200_all_pop_2)  #stacked volume water content at 10 kpa
-
-
-soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
-
 #plotting the stacked rasters, example with clay
 plot(soil_stack_clay) #version with soil textures
-plot(soil_stack_clay, zlim = c(0, 400)) #version where the plots have the same scale
+plot(soil_stack_clay, zlim = c(0, 350)) #version where the plots have the same scale
 
 
-#extracting the soil data for each point of the known 16 points 
-
+#extracting the soil data for each point of the known 20 points 
 all_known_pop_soil_clay <- extract(soil_stack_clay, all_pop_locations.df_sf_trans_coordinates) #extracting soil textures for each point value
 all_known_pop_soil_silt <- extract(soil_stack_silt, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_sand <- extract(soil_stack_sand, all_pop_locations.df_sf_trans_coordinates)
@@ -11186,6 +11051,7 @@ all_known_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, all_po
 all_known_pop_soil_nitrogen <- extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_soc <- extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates)
 
+#bind the soil textures data for each point to the all point dataframe so the soil values are available for each population point
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #bind the soil textures data for each point to the all point point dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_silt) #bind the soil textures data for each point to the all point point dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sand) #bind the soil textures data for each point to the all point point dataframe
@@ -11210,34 +11076,31 @@ random_clay_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
 
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
+  random_20 <- random_20 %>%
     st_as_sf()
-  random_16_pop_soil_clay <- extract(soil_stack_clay, random_16)
-  random_16_pop_soil_clay_2 <- extract(soil_stack_clay_2, random_16)
+  random_20_pop_soil_clay <- extract(soil_stack_clay, random_20) #extracting the soil metrics for the random points
   
-  for (i in 1:length(random_16_pop_soil_clay)){ #adding in the missing clay values from the second raster
-    if (is.na(random_16_pop_soil_clay[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_clay[i] = random_16_pop_soil_clay_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_clay_0.5_mean <- mean(random_16_pop_soil_clay[,1]) #storing the mean of the 0-5 value
-  random_clay_100.200_mean <- mean(random_16_pop_soil_clay[,2]) #storing the mean of the 100-200 value
+  random_clay_0.5_mean <- mean(random_20_pop_soil_clay[,1]) #storing the mean of the 0-5 value
+  random_clay_100.200_mean <- mean(random_20_pop_soil_clay[,2]) #storing the mean of the 100-200 value
   
   random_clay_0.5_means <- c(random_clay_0.5_means, random_clay_0.5_mean) #adding the 0-5 mean to the list of means
   random_clay_100.200_means <- c(random_clay_100.200_means, random_clay_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_clay_0.5_mean <- mean(all_known_pop_soils$clay.content.0.5)
@@ -11249,7 +11112,7 @@ all_known_clay_100.200_mean <- mean(all_known_pop_soils$clay.content.100.200)
 ggplot()+
   geom_histogram(aes(x=random_clay_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_clay_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean Clay 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean Clay 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_clay_0.5_means <- na.omit(random_clay_0.5_means) #remove NAs
@@ -11257,11 +11120,14 @@ random_clay_0.5_means <- na.omit(random_clay_0.5_means) #remove NAs
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_clay_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_clay_0.5_means[i] > all_known_clay_0.5_mean){
+  if (random_clay_0.5_means[i] < all_known_clay_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_clay_0.5_means)) #the proportion of random ANNs that are less than our ANN
+clay_0.5_random_p.value <- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are less than our ANN, our p-value
+clay_0.5_random_p.value
+1- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are greater than our ANN
+
 
 #for Clay 100-200
 
@@ -11269,20 +11135,20 @@ for (i in 1:length(random_clay_0.5_means)){ #loop that adds 1 to the value total
 ggplot()+
   geom_histogram(aes(x=random_clay_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_clay_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean Clay 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean Clay 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_clay_100.200_means <- na.omit(random_clay_100.200_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_clay_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
   if (random_clay_100.200_means[i] > all_known_clay_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_clay_100.200_means)) #the proportion of random ANNs that are less than our ANN
-
+clay_100.200_random_p.value <- (total / length(random_clay_100.200_means)) #the proportion of random ANNs that are less than our ANN
+clay_100.200_random_p.value
 
 
 
@@ -11296,34 +11162,31 @@ random_silt_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_silt <- extract(soil_stack_silt, random_16)
-  random_16_pop_soil_silt_2 <- extract(soil_stack_silt_2, random_16)
+  random_20_pop_soil_silt <- extract(soil_stack_silt, random_20) #extracting the soil metrics for the random points
   
-  for (i in 1:length(random_16_pop_soil_silt)){ #adding in the missing silt values from the second raster
-    if (is.na(random_16_pop_soil_silt[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_silt[i] = random_16_pop_soil_silt_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_silt_0.5_mean <- mean(random_16_pop_soil_silt[,1]) #storing the mean of the 0-5 value
-  random_silt_100.200_mean <- mean(random_16_pop_soil_silt[,2]) #storing the mean of the 100-200 value
+  random_silt_0.5_mean <- mean(random_20_pop_soil_silt[,1]) #storing the mean of the 0-5 value
+  random_silt_100.200_mean <- mean(random_20_pop_soil_silt[,2]) #storing the mean of the 100-200 value
   
   random_silt_0.5_means <- c(random_silt_0.5_means, random_silt_0.5_mean) #adding the 0-5 mean to the list of means
   random_silt_100.200_means <- c(random_silt_100.200_means, random_silt_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_silt_0.5_mean <- mean(all_known_pop_soils$silt.0.5)
@@ -11333,9 +11196,9 @@ all_known_silt_100.200_mean <- mean(all_known_pop_soils$silt.100.200)
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
-  geom_histogram(aes(x=random_silt_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_histogram(aes(x=random_silt_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50)+
   geom_vline(xintercept=all_known_silt_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean silt 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean silt 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_silt_0.5_means <- na.omit(random_silt_0.5_means) #remove NAs
@@ -11347,7 +11210,7 @@ for (i in 1:length(random_silt_0.5_means)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_silt_0.5_means)) #the proportion of random ANNs that are less than our ANN
+silt_0.5_random_p.value <- (total / length(random_silt_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for silt 100-200
 
@@ -11355,25 +11218,25 @@ for (i in 1:length(random_silt_0.5_means)){ #loop that adds 1 to the value total
 ggplot()+
   geom_histogram(aes(x=random_silt_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_silt_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean silt 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean silt 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_silt_100.200_means <- na.omit(random_silt_100.200_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_silt_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_silt_100.200_means[i] > all_known_silt_100.200_mean){
+  if (random_silt_100.200_means[i] < all_known_silt_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_silt_100.200_means)) #the proportion of random ANNs that are less than our ANN
-
+silt_100.200_random_p.value <- (total / length(random_silt_100.200_means)) #the proportion of random ANNs that are less than our ANN
+silt_100.200_random_p.value
 
 
 #sand
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_sand_0.5_means <- c() #creating empty list to collect means
 random_sand_100.200_means <- c() #creating empty list to collect means
@@ -11381,34 +11244,31 @@ random_sand_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_sand <- extract(soil_stack_sand, random_16)
-  random_16_pop_soil_sand_2 <- extract(soil_stack_sand_2, random_16)
+  random_20_pop_soil_sand <- extract(soil_stack_sand, random_20) #extracting the soil metrics for the random points
   
-  for (i in 1:length(random_16_pop_soil_sand)){ #adding in the missing sand values from the second raster
-    if (is.na(random_16_pop_soil_sand[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_sand[i] = random_16_pop_soil_sand_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_sand_0.5_mean <- mean(random_16_pop_soil_sand[,1]) #storing the mean of the 0-5 value
-  random_sand_100.200_mean <- mean(random_16_pop_soil_sand[,2]) #storing the mean of the 100-200 value
+  random_sand_0.5_mean <- mean(random_20_pop_soil_sand[,1]) #storing the mean of the 0-5 value
+  random_sand_100.200_mean <- mean(random_20_pop_soil_sand[,2]) #storing the mean of the 100-200 value
   
   random_sand_0.5_means <- c(random_sand_0.5_means, random_sand_0.5_mean) #adding the 0-5 mean to the list of means
   random_sand_100.200_means <- c(random_sand_100.200_means, random_sand_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_sand_0.5_mean <- mean(all_known_pop_soils$sand.0.5)
@@ -11432,7 +11292,7 @@ for (i in 1:length(random_sand_0.5_means)){ #loop that adds 1 to the value total
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_sand_0.5_means)) #the proportion of random ANNs that are less than our ANN
+sand_0.5_random_p.value <- (total / length(random_sand_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for sand 100-200
 
@@ -11448,16 +11308,16 @@ random_sand_100.200_means <- na.omit(random_sand_100.200_means) #remove NAs
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_sand_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_sand_100.200_means[i] < all_known_sand_100.200_mean){
+  if (random_sand_100.200_means[i] > all_known_sand_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_sand_100.200_means)) #the proportion of random ANNs that are less than our ANN
+sand_100.200_random_p.value <- (total / length(random_sand_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
 #ph
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_ph_0.5_means <- c() #creating empty list to collect means
 random_ph_100.200_means <- c() #creating empty list to collect means
@@ -11465,34 +11325,31 @@ random_ph_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_ph <- extract(soil_stack_ph, random_16)
-  random_16_pop_soil_ph_2 <- extract(soil_stack_ph_2, random_16)
-  
-  for (i in 1:length(random_16_pop_soil_ph)){ #adding in the missing ph values from the second raster
-    if (is.na(random_16_pop_soil_ph[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_ph[i] = random_16_pop_soil_ph_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_ph_0.5_mean <- mean(random_16_pop_soil_ph[,1]) #storing the mean of the 0-5 value
-  random_ph_100.200_mean <- mean(random_16_pop_soil_ph[,2]) #storing the mean of the 100-200 value
+  random_20_pop_soil_ph <- extract(soil_stack_ph, random_20) #extracting the soil metrics for the random points
+
+  random_ph_0.5_mean <- mean(random_20_pop_soil_ph[,1]) #storing the mean of the 0-5 value
+  random_ph_100.200_mean <- mean(random_20_pop_soil_ph[,2]) #storing the mean of the 100-200 value
   
   random_ph_0.5_means <- c(random_ph_0.5_means, random_ph_0.5_mean) #adding the 0-5 mean to the list of means
   random_ph_100.200_means <- c(random_ph_100.200_means, random_ph_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_ph_0.5_mean <- mean(all_known_pop_soils$ph_0.5)
@@ -11510,13 +11367,13 @@ ggplot()+
 random_ph_0.5_means <- na.omit(random_ph_0.5_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_ph_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_ph_0.5_means[i] < all_known_ph_0.5_mean){
+  if (random_ph_0.5_means[i] > all_known_ph_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_ph_0.5_means)) #the proportion of random ANNs that are less than our ANN
+ph_0.5_random_p.value <- (total / length(random_ph_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for ph 100-200
 
@@ -11524,7 +11381,7 @@ for (i in 1:length(random_ph_0.5_means)){ #loop that adds 1 to the value total i
 ggplot()+
   geom_histogram(aes(x=random_ph_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_ph_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean ph 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean ph 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_ph_100.200_means <- na.omit(random_ph_100.200_means) #remove NAs
@@ -11532,20 +11389,16 @@ random_ph_100.200_means <- na.omit(random_ph_100.200_means) #remove NAs
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_ph_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_ph_100.200_means[i] < all_known_ph_100.200_mean){
+  if (random_ph_100.200_means[i] > all_known_ph_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_ph_100.200_means)) #the proportion of random ANNs that are less than our ANN
-
-Soil_Organic_Carbon_05_all_pop_2 <- crop(Soil_Organic_Carbon_05_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-Soil_Organic_Carbon_200_all_pop_2 <- crop(Soil_Organic_Carbon_200_utm_2_crop, extent(BCS_polygon_crop_bbox[1], BCS_polygon_crop_bbox[3], BCS_polygon_crop_bbox[2], BCS_polygon_crop_bbox[4]))
-
+ph_100.200_random_p.value <- (total / length(random_ph_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
 #soc
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_soc_0.5_means <- c() #creating empty list to collect means
 random_soc_100.200_means <- c() #creating empty list to collect means
@@ -11553,34 +11406,31 @@ random_soc_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>%
     st_as_sf()
-  random_16_pop_soil_soc <- extract(soil_stack_soc, random_16)
-  random_16_pop_soil_soc_2 <- extract(soil_stack_soc_2, random_16)
+  random_20_pop_soil_soc <- extract(soil_stack_soc, random_20) #extracting the soil metrics for the random points
   
-  for (i in 1:length(random_16_pop_soil_soc)){ #adding in the missing soc values from the second raster
-    if (is.na(random_16_pop_soil_soc[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_soc[i] = random_16_pop_soil_soc_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_soc_0.5_mean <- mean(random_16_pop_soil_soc[,1]) #storing the mean of the 0-5 value
-  random_soc_100.200_mean <- mean(random_16_pop_soil_soc[,2]) #storing the mean of the 100-200 value
+  random_soc_0.5_mean <- mean(random_20_pop_soil_soc[,1]) #storing the mean of the 0-5 value
+  random_soc_100.200_mean <- mean(random_20_pop_soil_soc[,2]) #storing the mean of the 100-200 value
   
   random_soc_0.5_means <- c(random_soc_0.5_means, random_soc_0.5_mean) #adding the 0-5 mean to the list of means
   random_soc_100.200_means <- c(random_soc_100.200_means, random_soc_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_soc_0.5_mean <- mean(all_known_pop_soils$SOC.0.5)
@@ -11592,19 +11442,19 @@ all_known_soc_100.200_mean <- mean(all_known_pop_soils$SOC.100.200)
 ggplot()+
   geom_histogram(aes(x=random_soc_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_soc_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean soc 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean soc 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_soc_0.5_means <- na.omit(random_soc_0.5_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_soc_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_soc_0.5_means[i] > all_known_soc_0.5_mean){
+  if (random_soc_0.5_means[i] < all_known_soc_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_soc_0.5_means)) #the proportion of random ANNs that are less than our ANN
+soc_0.5_random_p.value <- (total / length(random_soc_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for soc 100-200
 
@@ -11612,7 +11462,7 @@ for (i in 1:length(random_soc_0.5_means)){ #loop that adds 1 to the value total 
 ggplot()+
   geom_histogram(aes(x=random_soc_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_soc_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean soc 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean soc 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_soc_100.200_means <- na.omit(random_soc_100.200_means) #remove NAs
@@ -11620,17 +11470,16 @@ random_soc_100.200_means <- na.omit(random_soc_100.200_means) #remove NAs
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_soc_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_soc_100.200_means[i] > all_known_soc_100.200_mean){
+  if (random_soc_100.200_means[i] < all_known_soc_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_soc_100.200_means)) #the proportion of random ANNs that are less than our ANN
-
+soc_100.200_random_p.value <- (total / length(random_soc_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
 #vol_wat_10kpa
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_vol_wat_10kpa_0.5_means <- c() #creating empty list to collect means
 random_vol_wat_10kpa_100.200_means <- c() #creating empty list to collect means
@@ -11638,34 +11487,31 @@ random_vol_wat_10kpa_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, random_16)
-  random_16_pop_soil_vol_wat_10kpa_2 <- extract(soil_stack_vol_wat_10kpa_2, random_16)
-  
-  for (i in 1:length(random_16_pop_soil_vol_wat_10kpa)){ #adding in the missing vol_wat_10kpa values from the second raster
-    if (is.na(random_16_pop_soil_vol_wat_10kpa[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_vol_wat_10kpa[i] = random_16_pop_soil_vol_wat_10kpa_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_vol_wat_10kpa_0.5_mean <- mean(random_16_pop_soil_vol_wat_10kpa[,1]) #storing the mean of the 0-5 value
-  random_vol_wat_10kpa_100.200_mean <- mean(random_16_pop_soil_vol_wat_10kpa[,2]) #storing the mean of the 100-200 value
+  random_20_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, random_20) #extracting the soil metrics for the random points
+
+  random_vol_wat_10kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_10kpa[,1]) #storing the mean of the 0-5 value
+  random_vol_wat_10kpa_100.200_mean <- mean(random_20_pop_soil_vol_wat_10kpa[,2]) #storing the mean of the 100-200 value
   
   random_vol_wat_10kpa_0.5_means <- c(random_vol_wat_10kpa_0.5_means, random_vol_wat_10kpa_0.5_mean) #adding the 0-5 mean to the list of means
   random_vol_wat_10kpa_100.200_means <- c(random_vol_wat_10kpa_100.200_means, random_vol_wat_10kpa_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_vol_wat_10kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.10_0.5)
@@ -11677,7 +11523,7 @@ all_known_vol_wat_10kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.10_1
 ggplot()+
   geom_histogram(aes(x=random_vol_wat_10kpa_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_vol_wat_10kpa_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean vol_wat_10kpa 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean vol_wat_10kpa 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_vol_wat_10kpa_0.5_means <- na.omit(random_vol_wat_10kpa_0.5_means) #remove NAs
@@ -11689,7 +11535,7 @@ for (i in 1:length(random_vol_wat_10kpa_0.5_means)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_vol_wat_10kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
+vol_wat_10kpa_0.5_random_p.value <- (total / length(random_vol_wat_10kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for vol_wat_10kpa 100-200
 
@@ -11697,7 +11543,7 @@ for (i in 1:length(random_vol_wat_10kpa_0.5_means)){ #loop that adds 1 to the va
 ggplot()+
   geom_histogram(aes(x=random_vol_wat_10kpa_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_vol_wat_10kpa_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean vol_wat_10kpa 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean vol_wat_10kpa 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_vol_wat_10kpa_100.200_means <- na.omit(random_vol_wat_10kpa_100.200_means) #remove NAs
@@ -11709,12 +11555,12 @@ for (i in 1:length(random_vol_wat_10kpa_100.200_means)){ #loop that adds 1 to th
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_vol_wat_10kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
+vol_wat_10kpa_100.200_random_p.value <- (total / length(random_vol_wat_10kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
 #vol_wat_1500kpa
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_vol_wat_1500kpa_0.5_means <- c() #creating empty list to collect means
 random_vol_wat_1500kpa_100.200_means <- c() #creating empty list to collect means
@@ -11722,34 +11568,32 @@ random_vol_wat_1500kpa_100.200_means <- c() #creating empty list to collect mean
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, random_16)
-  random_16_pop_soil_vol_wat_1500kpa_2 <- extract(soil_stack_vol_wat_1500kpa_2, random_16)
+  random_20_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, random_20) #extracting the soil metrics for the random points
+
   
-  for (i in 1:length(random_16_pop_soil_vol_wat_1500kpa)){ #adding in the missing vol_wat_1500kpa values from the second raster
-    if (is.na(random_16_pop_soil_vol_wat_1500kpa[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_vol_wat_1500kpa[i] = random_16_pop_soil_vol_wat_1500kpa_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_vol_wat_1500kpa_0.5_mean <- mean(random_16_pop_soil_vol_wat_1500kpa[,1]) #storing the mean of the 0-5 value
-  random_vol_wat_1500kpa_100.200_mean <- mean(random_16_pop_soil_vol_wat_1500kpa[,2]) #storing the mean of the 100-200 value
+  random_vol_wat_1500kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_1500kpa[,1]) #storing the mean of the 0-5 value
+  random_vol_wat_1500kpa_100.200_mean <- mean(random_20_pop_soil_vol_wat_1500kpa[,2]) #storing the mean of the 100-200 value
   
   random_vol_wat_1500kpa_0.5_means <- c(random_vol_wat_1500kpa_0.5_means, random_vol_wat_1500kpa_0.5_mean) #adding the 0-5 mean to the list of means
   random_vol_wat_1500kpa_100.200_means <- c(random_vol_wat_1500kpa_100.200_means, random_vol_wat_1500kpa_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_vol_wat_1500kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_.10_0.5)
@@ -11761,7 +11605,7 @@ all_known_vol_wat_1500kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_.10
 ggplot()+
   geom_histogram(aes(x=random_vol_wat_1500kpa_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_vol_wat_1500kpa_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean vol_wat_1500kpa 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean vol_wat_1500kpa 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_vol_wat_1500kpa_0.5_means <- na.omit(random_vol_wat_1500kpa_0.5_means) #remove NAs
@@ -11773,7 +11617,7 @@ for (i in 1:length(random_vol_wat_1500kpa_0.5_means)){ #loop that adds 1 to the 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_vol_wat_1500kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
+vol_wat_1500kpa_0.5_random_p.value <- (total / length(random_vol_wat_1500kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for vol_wat_1500kpa 100-200
 
@@ -11781,7 +11625,7 @@ for (i in 1:length(random_vol_wat_1500kpa_0.5_means)){ #loop that adds 1 to the 
 ggplot()+
   geom_histogram(aes(x=random_vol_wat_1500kpa_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_vol_wat_1500kpa_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean vol_wat_1500kpa 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean vol_wat_1500kpa 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_vol_wat_1500kpa_100.200_means <- na.omit(random_vol_wat_1500kpa_100.200_means) #remove NAs
@@ -11793,12 +11637,12 @@ for (i in 1:length(random_vol_wat_1500kpa_100.200_means)){ #loop that adds 1 to 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_vol_wat_1500kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
+vol_wat_1500kpa_100.200_random_p.value <- (total / length(random_vol_wat_1500kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_nitrogen_0.5_means <- c() #creating empty list to collect means
 random_nitrogen_100.200_means <- c() #creating empty list to collect means
@@ -11806,34 +11650,32 @@ random_nitrogen_100.200_means <- c() #creating empty list to collect means
 set.seed(20)
 for (i in 1:1000){ #for 1000 permutations
   
-  random_16 <- st_sample(BCS_polygon_UTM_cropped, 16) #select rando 16 points within the cropped BCS polygon
-  random_16 <- random_16 %>%
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_16_pop_soil_nitrogen <- extract(soil_stack_nitrogen, random_16)
-  random_16_pop_soil_nitrogen_2 <- extract(soil_stack_nitrogen_2, random_16)
+  random_20_pop_soil_nitrogen <- extract(soil_stack_nitrogen, random_20) #extracting the soil metrics for the random points
+
   
-  for (i in 1:length(random_16_pop_soil_nitrogen)){ #adding in the missing nitrogen values from the second raster
-    if (is.na(random_16_pop_soil_nitrogen[i]) == T) { #checking if there are NAs in the list of values
-      random_16_pop_soil_nitrogen[i] = random_16_pop_soil_nitrogen_2[i] #if there are NAs replace iwth value from the other raster
-    }
-  }
-  
-  random_nitrogen_0.5_mean <- mean(random_16_pop_soil_nitrogen[,1]) #storing the mean of the 0-5 value
-  random_nitrogen_100.200_mean <- mean(random_16_pop_soil_nitrogen[,2]) #storing the mean of the 100-200 value
+  random_nitrogen_0.5_mean <- mean(random_20_pop_soil_nitrogen[,1]) #storing the mean of the 0-5 value
+  random_nitrogen_100.200_mean <- mean(random_20_pop_soil_nitrogen[,2]) #storing the mean of the 100-200 value
   
   random_nitrogen_0.5_means <- c(random_nitrogen_0.5_means, random_nitrogen_0.5_mean) #adding the 0-5 mean to the list of means
   random_nitrogen_100.200_means <- c(random_nitrogen_100.200_means, random_nitrogen_100.200_mean) #adding the 100-200 mean to the list of means
   
 }
 
-#plotting the randomly selected points
+#plotting the randomly selected points on the Baja polygon
 ggplot()+
-  geom_sf(data=BCS_polygon_box_sf)+
-  geom_sf(data=BCS_polygon_box_sf_cropped)+
   geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_UTM_cropped, color = "red")+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_16, color ="blue")
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
 
 #storing the real means
 all_known_nitrogen_0.5_mean <- mean(all_known_pop_soils$nitrogen.0.5)
@@ -11845,19 +11687,19 @@ all_known_nitrogen_100.200_mean <- mean(all_known_pop_soils$nitrogen.100.200)
 ggplot()+
   geom_histogram(aes(x=random_nitrogen_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_nitrogen_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean nitrogen 0-5 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean nitrogen 0-5 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_nitrogen_0.5_means <- na.omit(random_nitrogen_0.5_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_nitrogen_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_nitrogen_0.5_means[i] > all_known_nitrogen_0.5_mean){
+  if (random_nitrogen_0.5_means[i] < all_known_nitrogen_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_nitrogen_0.5_means)) #the proportion of random ANNs that are less than our ANN
+nitrogen_0.5_random_p.value <- (total / length(random_nitrogen_0.5_means)) #the proportion of random ANNs that are less than our ANN
 
 #for nitrogen 100-200
 
@@ -11865,7 +11707,7 @@ for (i in 1:length(random_nitrogen_0.5_means)){ #loop that adds 1 to the value t
 ggplot()+
   geom_histogram(aes(x=random_nitrogen_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
   geom_vline(xintercept=all_known_nitrogen_100.200_mean, col = "red")+ #line of our real slope
-  xlab("Mean nitrogen 100-200 of Random Populations vs.Known Populations (n=16)")+
+  xlab("Mean nitrogen 100-200 of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
 random_nitrogen_100.200_means <- na.omit(random_nitrogen_100.200_means) #remove NAs
@@ -11873,20 +11715,52 @@ random_nitrogen_100.200_means <- na.omit(random_nitrogen_100.200_means) #remove 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_nitrogen_100.200_means[i] > all_known_nitrogen_100.200_mean){
+  if (random_nitrogen_100.200_means[i] < all_known_nitrogen_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(random_nitrogen_100.200_means)) #the proportion of random ANNs that are less than our ANN
+nitrogen_100.200_random_p.value <- (total / length(random_nitrogen_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
-
-# creating a heat map of all of the p-values
-
-LM_soil_values_y <- 
-LM_size_variables_x <-
-LM_p_values <- 
-data <- expand.grid(X=x, Y= LM_soil_values_y)
+#Heat Map 
 
 
+p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0.5_random_p.value,
+                    silt_100.200_random_p.value,
+                    sand_0.5_random_p.value,
+                    sand_100.200_random_p.value,
+                    ph_0.5_random_p.value,
+                    ph_100.200_random_p.value,
+                    soc_0.5_random_p.value,
+                    soc_100.200_random_p.value,
+                    vol_wat_10kpa_0.5_random_p.value,
+                    vol_wat_10kpa_100.200_random_p.value,
+                    vol_wat_1500kpa_0.5_random_p.value,
+                    vol_wat_1500kpa_100.200_random_p.value,
+                    nitrogen_0.5_random_p.value,
+                    nitrogen_100.200_random_p.value
+)
 
+#creating empty dataframe for inputting the function into
+random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
+                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
+                                                      "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
+                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+                                 "P_Value" = p_value_random,
+                                 "Significance" = c(rep(NA, 16)))   #ifelse(p_values < 0.05, "Y", "N")
+
+#creating the significance column for the p-values
+random_pop.df <- random_pop.df %>%
+  mutate(Significance = case_when(p_value_random < 0.05 ~ "Y",
+                                  p_value_random >= 0.05 ~ "N"))
+
+#labeled p-values
+ggplot(aes(x = Shape.Size, y = Significance, fill = P_Value), data = random_pop.df) +
+  geom_tile() + 
+  labs(y = "Significant P-Value", x  = "Soil Characteristic", 
+       fill = "P Value",  
+       title = "Association Between Soil Metrics and Population Locations",
+       subtitle = "Significant P-Values Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(P_Value < 0.05, round(P_Value, 4), NA))) +
+  coord_flip()

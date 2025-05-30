@@ -15,6 +15,8 @@ library(geostatsp)
 library(tmaptools)
 library(mgcv) #to use gam function 
 library(plotly) #to 3d plot variables
+library(MuMIn) #to be able to use dredge
+library(visreg) # to be able to plot Aspect/categorical variables with GAM
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
@@ -681,238 +683,6 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
 
 
-
-
-## Load in environmental rasters ##
-
-
-#loading in soil textures from CONABIO, theses are too larger, about 1 km^2 I believe
-clay_05 <- raster(paste0("./data/Soil Grid/clay content/clay content 0-5.tif"))
-clay_200 <- raster(paste0("./data/Soil Grid/clay content/clay content 100-200.tif"))
-silt_05 <- raster(paste0("./data/Soil Grid/silt/silt 0-5.tif"))
-silt_200 <-raster(paste0("./data/Soil Grid/silt/silt 100-200.tif"))
-sand_05 <- raster(paste0("./data/Soil Grid/sand/sand 0-5.tif"))
-sand_200 <- raster(paste0("./data/Soil Grid/sand/sand 100-200.tif"))
-
-ph_05 <- raster(paste0("./data/Soil Grid/pH/ph_0-5.tif")) #0-5 cm ph
-ph_200 <- raster(paste0("./data/Soil Grid/pH/ph_100-200.tif")) #100-200 ph
-ocd_05 <- raster(paste0("./data/Soil Grid/organic carbon density/OCD_0-5.tif")) #0-5cm organic carbon density
-ocd_200 <- raster(paste0("./data/Soil Grid/organic carbon density/OCR_100-200.tif")) #100-200cm organic carbon density
-coarse_frag_05 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_0-5.tif")) #0-5 cm coarse fragments
-coarse_frag_200 <- raster(paste0("./data/Soil Grid/coarse fragments/coarse_fragments_100-200.tif")) #100-200 cm coarse fragments
-cat_ex_cap_05 <-raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_0-5.tif")) #0-5 cm cation exchange capacity
-cat_ex_cap_200 <- raster(paste0("./data/Soil Grid/cation exchange capacity/Cat_exc_100-200.tif")) #100-200 cm cation exchange capacity
-bulk_dens_05 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_0-5.tif")) #0-5 cm bulk density
-bulk_dens_200 <- raster(paste0("./data/Soil Grid/bulk density/bulk_density_100-200.tif")) #100-200 cm bulk density
-vol_wat_10kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_0-5.tif"))  #0-5 cm -10 kpa volumn water content
-vol_wat_10kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -10 kPa/vol_water_-10_100-200.tif"))  #100-200 cm -10 kpa volumn water content
-vol_wat_33kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_0-5.tif")) #0-5 cm -33 kpa volumn water content
-vol_wat_33kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_100-200.tif")) #100-200 cm -33 kpa volumn water content
-vol_wat_1500kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500kPa_0-5.tif"))  #0-5 cm -1500 kpa volumn water content
-vol_wat_1500kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_100-200.tif")) #100-200 cm -1500 kpa volumn water content
-nitrogen_05 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 0-5.tif"))
-nitrogen_200 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 100-200.tif"))
-Soil_Organic_Carbon_05 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 0-5.tif"))
-Soil_Organic_Carbon_200 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 100-200.tif"))
-
-
-#project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
-clay_05_utm <- projectRaster(clay_05, crs=26912) #converting the 0-5 cm clay raster to utm 12
-clay_200_utm <- projectRaster(clay_200, crs=26912) #converting the 90-200 cm clay raster to utm 12
-silt_05_utm <- projectRaster(silt_05, crs=26912)
-silt_200_utm <- projectRaster(silt_200, crs=26912)
-sand_05_utm <- projectRaster(sand_05, crs=26912)
-sand_200_utm <- projectRaster(sand_200, crs=26912)
-
-ph_05_utm <- projectRaster(ph_05, crs=26912) 
-ph_200_utm <- projectRaster(ph_200, crs=26912) 
-ocd_05_utm <- projectRaster(ocd_05, crs=26912)
-ocd_200_utm <- projectRaster(ocd_200, crs=26912)
-coarse_frag_05_utm <- projectRaster(coarse_frag_05, crs=26912)
-coarse_frag_200_utm <- projectRaster(coarse_frag_200, crs=26912)
-cat_ex_cap_05_utm <- projectRaster(cat_ex_cap_05, crs=26912)
-cat_ex_cap_200_utm <- projectRaster(cat_ex_cap_200, crs=26912)
-bulk_dens_05_utm <- projectRaster(bulk_dens_05, crs=26912)
-bulk_dens_200_utm <- projectRaster(bulk_dens_200, crs=26912)
-vol_wat_10kpa_05_utm <- projectRaster(vol_wat_10kpa_05, crs=26912)
-vol_wat_10kpa_200_utm <- projectRaster(vol_wat_10kpa_200, crs=26912)
-vol_wat_33kpa_05_utm <- projectRaster(vol_wat_33kpa_05, crs=26912)
-vol_wat_33kpa_200_utm <- projectRaster(vol_wat_33kpa_200, crs=26912)
-vol_wat_1500kpa_05_utm <- projectRaster(vol_wat_1500kpa_05, crs=26912)
-vol_wat_1500kpa_200_utm <- projectRaster(vol_wat_1500kpa_200, crs=26912)
-nitrogen_05_utm <- projectRaster(nitrogen_05, crs=26912)
-nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
-Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
-Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
-
-
-
-#LM
-#examining the layers at different extents
-
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100)) 
-clay_200_LM <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-silt_05_LM <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-silt_200_LM <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-sand_05_LM <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-sand_200_LM <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
-ph_05_LM <- crop(ph_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-ph_200_LM <- crop(ph_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-ocd_05_LM <- crop(ocd_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-ocd_200_LM <- crop(ocd_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-coarse_frag_05_LM <- crop(coarse_frag_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-coarse_frag_200_LM <- crop(coarse_frag_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-cat_ex_cap_05_LM <- crop(cat_ex_cap_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-cat_ex_cap_200_LM <- crop(cat_ex_cap_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-bulk_dens_05_LM <- crop(bulk_dens_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-bulk_dens_200_LM <- crop(bulk_dens_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_10kpa_05_LM <- crop(vol_wat_10kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_10kpa_200_LM <- crop(vol_wat_10kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_33kpa_05_LM <- crop(vol_wat_33kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_33kpa_200_LM <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_1500kpa_05_LM <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-vol_wat_1500kpa_200_LM <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
-
-nitrogen_05_LM <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-nitrogen_200_LM <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-Soil_Organic_Carbon_05_LM <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-Soil_Organic_Carbon_200_LM <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
-
-#attempt of using ggplot to plot clay layer with river shapefile
-ggplot()+
-  geom_raster(data = as.data.frame(Soil_Organic_Carbon_05_LM, xy=T), aes(x=x, y=y, fill = SOC.0.5))+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed)
-
-
-ggplot()+
-  geom_raster(data = as.data.frame(ph_200_LM, xy=T), aes(x=x, y=y, fill = ph_100.200))+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed)
-
-#creating a stack of the raster layers
-soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
-soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_frag_05_LM, coarse_frag_200_LM, #the stack of all of the other soil variables, with different extents than the soil texture rasters
-                             cat_ex_cap_05_LM, cat_ex_cap_200_LM, bulk_dens_05_LM, bulk_dens_200_LM, vol_wat_10kpa_05_LM,
-                             vol_wat_10kpa_200_LM, vol_wat_33kpa_05_LM, vol_wat_33kpa_200_LM, vol_wat_1500kpa_05_LM, 
-                             vol_wat_1500kpa_200_LM) 
-soil_stack_LM_extra <- stack(nitrogen_05_LM, nitrogen_200_LM, Soil_Organic_Carbon_05_LM, Soil_Organic_Carbon_200_LM)
-
-
-soil_stack_LM.df <- as.data.frame(getValues(soil_stack_LM))
-
-#plotting the stacked rasters
-plot(soil_stack_LM_soil_text) #version with soil textures
-plot(soil_stack_LM_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
-plot(soil_stack_LM_other) #version with other variables
-plot(soil_stack_LM_other, zlim = c(30, 360)) #version where the plots have the same scale
-plot(soil_stack_LM_extra) #version with other variables
-plot(soil_stack_LM_extra, zlim = c(30, 360)) #version where the plots have the same scale
-
-
-#LC
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_LC <- crop(clay_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100)) 
-clay_200_LC <- crop(clay_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-silt_05_LC <- crop(silt_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-silt_200_LC <- crop(silt_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-sand_05_LC <- crop(sand_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-sand_200_LC <- crop(sand_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-
-ph_05_LC <- crop(ph_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-ph_200_LC <- crop(ph_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-ocd_05_LC <- crop(ocd_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-ocd_200_LC <- crop(ocd_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-coarse_frag_05_LC <- crop(coarse_frag_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-coarse_frag_200_LC <- crop(coarse_frag_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-cat_ex_cap_05_LC <- crop(cat_ex_cap_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-cat_ex_cap_200_LC <- crop(cat_ex_cap_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-bulk_dens_05_LC <- crop(bulk_dens_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-bulk_dens_200_LC <- crop(bulk_dens_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_10kpa_05_LC <- crop(vol_wat_10kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_10kpa_200_LC <- crop(vol_wat_10kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_33kpa_05_LC <- crop(vol_wat_33kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_33kpa_200_LC <- crop(vol_wat_33kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-nitrogen_05_LC <-  crop(nitrogen_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-nitrogen_200_LC <- crop(nitrogen_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-Soil_Organic_Carbon_05_LC <- crop(Soil_Organic_Carbon_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-Soil_Organic_Carbon_200_LC <- crop(Soil_Organic_Carbon_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-
-
-
-#creating a stack of the raster layers 
-soil_stack_LC_soil_text <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC) #the stack of all of the soil texture rasters
-soil_stack_LC_other <- stack(ph_05_LC, ph_200_LC, ocd_05_LC, ocd_200_LC, coarse_frag_05_LC, coarse_frag_200_LC, #the stack of all of the other soil variables, with different extents than the soil texture rasters
-                             cat_ex_cap_05_LC, cat_ex_cap_200_LC, bulk_dens_05_LC, bulk_dens_200_LC, vol_wat_10kpa_05_LC,
-                             vol_wat_10kpa_200_LC, vol_wat_33kpa_05_LC, vol_wat_33kpa_200_LC, vol_wat_1500kpa_05_LC, 
-                             vol_wat_1500kpa_200_LC) 
-soil_stack_LC_extra <- stack(nitrogen_05_LC, nitrogen_200_LC, Soil_Organic_Carbon_05_LC, Soil_Organic_Carbon_200_LC)
-
-#plotting the stacked rasters
-plot(soil_stack_LC_soil_text) #version with soil textures
-plot(soil_stack_LC_soil_text, zlim = c(100, 710)) #version where the plots have the same scale
-plot(soil_stack_LC_other) #version with other variables
-plot(soil_stack_LC_other, zlim = c(30, 360)) #version where the plots have the same scale
-plot(soil_stack_LC_extra) #version with other variables
-plot(soil_stack_LC_extra, zlim = c(30, 180)) #version where the plots have the same scale
-
-
-#SD
-
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-clay_05_SD <- crop(clay_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100)) 
-clay_200_SD <- crop(clay_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-silt_05_SD <- crop(silt_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-silt_200_SD <- crop(silt_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-sand_05_SD <- crop(sand_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-sand_200_SD <- crop(sand_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-
-ph_05_SD <- crop(ph_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-ph_200_SD <- crop(ph_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-ocd_05_SD <- crop(ocd_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-ocd_200_SD <- crop(ocd_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-coarse_frag_05_SD <- crop(coarse_frag_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-coarse_frag_200_SD <- crop(coarse_frag_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-cat_ex_cap_05_SD <- crop(cat_ex_cap_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-cat_ex_cap_200_SD <- crop(cat_ex_cap_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-bulk_dens_05_SD <- crop(bulk_dens_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-bulk_dens_200_SD <- crop(bulk_dens_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_10kpa_05_SD <- crop(vol_wat_10kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_10kpa_200_SD <- crop(vol_wat_10kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_33kpa_05_SD <- crop(vol_wat_33kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_33kpa_200_SD <- crop(vol_wat_33kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_1500kpa_05_SD <- crop(vol_wat_1500kpa_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-vol_wat_1500kpa_200_SD <- crop(vol_wat_1500kpa_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-nitrogen_05_SD <-  crop(nitrogen_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-nitrogen_200_SD <- crop(nitrogen_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-Soil_Organic_Carbon_05_SD <- crop(Soil_Organic_Carbon_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-Soil_Organic_Carbon_200_SD <- crop(Soil_Organic_Carbon_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-
-
-#creating a stack of the raster layers
-soil_stack_SD_soil_text <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD) #the stack of all of the soil texture rasters
-soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_frag_05_SD, coarse_frag_200_SD, #the stack of all of the other soil variables, with different extents than the soil texture rasters
-                             cat_ex_cap_05_SD, cat_ex_cap_200_SD, bulk_dens_05_SD, bulk_dens_200_SD, vol_wat_10kpa_05_SD,
-                             vol_wat_10kpa_200_SD, vol_wat_33kpa_05_SD, vol_wat_33kpa_200_SD, vol_wat_1500kpa_05_SD, 
-                             vol_wat_1500kpa_200_SD) 
-soil_stack_SD_extra <- stack(nitrogen_05_SD, nitrogen_200_SD,Soil_Organic_Carbon_05_SD,  Soil_Organic_Carbon_200_SD)
-
-#plotting the stacked rasters
-plot(soil_stack_SD_soil_text)
-plot(soil_stack_SD_soil_text, zlim = c(130, 710)) #version where the plots have the same scale
-plot(soil_stack_SD_other)
-plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the same scale
-plot(soil_stack_SD_extra)
-plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the same scale
-
-
 #creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
 
 #creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
@@ -927,407 +697,1488 @@ LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
 SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
   mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed))
 
-#Extracting the soil data to the tree points 
-
-#LM
-LM_soil_text_raster_250_data_pts <- extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
-LM_soil_other_raster_250_data_pts <- extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
-LM_soil_extra_raster_250_data_pts <- extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
-LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
-LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
-LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
-
-
-#LC
-LC_soil_text_raster_250_data_pts <- extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
-LC_soil_other_raster_250_data_pts <- extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
-LC_soil_extra_raster_250_data_pts <- extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
-LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
-LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
-LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
-
-
-#SD
-SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
-SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
-SD_soil_extra_raster_250_data_pts <- extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
-SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
-SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
-SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
-
-
 
 ## combining elevation, slope, aspect data with distance data 
 
 #LM
 LM_fixed_field_data_processed_terrain_dist <- cbind(LM_fixed_field_data_processed_terrain, LM_fixed_field_data_processed_distance)
-LM_fixed_field_data_processed_terrain_dist_soils <- cbind(LM_fixed_field_data_processed_terrain_dist, LM_fixed_field_data_processed_soils)
-
 
 #LC
 LC_fixed_field_data_processed_terrain_dist <- cbind(LC_fixed_field_data_processed_terrain, LC_fixed_field_data_processed_distance)
-LC_fixed_field_data_processed_terrain_dist_soils <- cbind(LC_fixed_field_data_processed_terrain_dist, LC_fixed_field_data_processed_soils)
-
 
 #SD
 SD_fixed_field_data_processed_terrain_dist <- cbind(SD_fixed_field_data_processed_terrain, SD_fixed_field_data_processed_distance)
-SD_fixed_field_data_processed_terrain_dist_soils <- cbind(SD_fixed_field_data_processed_terrain_dist, SD_fixed_field_data_processed_soils)
 
 
-# LM
+### LM ###
 
-#removing NAs
-LM_fixed_field_data_processed_terrain_dist_soils_no_NA <- LM_fixed_field_data_processed_terrain_dist_soils %>%
-  filter(is.na(LM_slope_raster_15_data_pts) == F) %>%
-  filter(is.na(Elevation..m.FIXED) == F) %>%
-  filter(is.na(LM_aspect_raster_15_data_pts_8_categorical) == F) %>%
-  filter(is.na(vol_water_.1500_100.200) == F) %>%
-  filter(is.na(vol_water_.1500kPa_0.5) == F) %>%
-  filter(is.na(vol_water_.10_0.5) == F) %>%
-  filter(is.na(SOC.100.200) == F) %>%
-  filter(is.na(silt.0.5) == F) %>%
-  filter(is.na(silt.100.200) == F) %>%
-  filter(is.na(sand.0.5) == F) %>%
-  filter(is.na(sand.100.200) == F) %>%
-  filter(is.na(ph_100.200) == F) %>%
-  filter(is.na(clay.content.0.5) == F) %>%
-  filter(is.na(clay.content.100.200) == F) 
+# removing the NAs from the explanatory variables, stored in a dataframe
+LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processed_terrain_dist %>% 
+  filter(!is.na(d)) %>% #distance NAs removed
+  filter(!is.na(Elevation..m.FIXED)) %>% #Elevation NAs removed
+  filter(!is.na(LM_slope_raster_15_data_pts)) %>%  #slope NAs removed
+  filter(!is.na(LM_aspect_raster_15_data_pts_8_categorical)) %>% #aspect NAs removed
+  filter(!is.na(Canopy_short)) %>% #short canopy axis NAs removed
+  filter(!is.na(Canopy_long)) %>% #long canopy axis NAs removed
+  filter(!is.na(Canopy_area)) %>% #canopy area NAs removed
+  filter(!is.na(Crown_spread)) %>% #Crown Spread NAs removed
+  filter(!is.na(DBH_ag)) #DBH NAs removed
 
+## SCA ##
 
-# SCA
-LM_fixed_field_data_processed_terrain_dist_soils_no_NA <- st_drop_geometry(LM_fixed_field_data_processed_terrain_dist_soils_no_NA)
+#removing the spatial geometry to be able to use the gam function
+LM_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(LM_fixed_field_data_processed_terrain_dist_no_NA)
 
-pairs(LM_fixed_field_data_processed_terrain_dist_soils_no_NA[, c("Canopy_short", "d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts", "vol_water_.1500_100.200", 
-                                                                 "vol_water_.1500kPa_0.5", "vol_water_.10_0.5", "SOC.100.200", "silt.0.5", "silt.100.200",
-                                                                 "sand.0.5", "sand.100.200", "ph_100.200", "clay.content.0.5", "clay.content.100.200")])
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                          data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#elevation has significant non-linear function 
 
 #dredging the gam to see which variables to keep
-dredge <- dredge(LM_add.gam_SCA.terrain_dist) #using the dredge model to narro the models down to the best choice
-dredge[1:5,] 
+dredge <- dredge(LM_add.gam_SCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
 
-#GAM with all the variables
-LM_add_SCA.all <- gam(Canopy_short ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical + vol_water_.1500_100.200
-                        + vol_water_.1500kPa_0.5 + vol_water_.10_0.5 + SOC.100.200 + silt.0.5 + silt.100.200 + sand.0.5 + sand.100.200 + ph_100.200 +
-                        clay.content.0.5 + clay.content.100.200, 
-                      data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-#looking at if any variables are significant
-summary(LM_add.gam_SCA.all)
-#in this case, none are significant at explaining more variation than any other variable
+# Checking a GAM with just elevation smoothing splines s()
+LM_add.gam_SCA.terrain_dist.just.elevation.smooth <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist.just.elevation.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#none of the linear fits are significant
 
 #dredging the gam to see which variables to keep
-dredge <- dredge(LM_add.gam_SCA.all) #using the dredge model to narro the models down to the best choice
-dredge[1:5,] 
+dredge <- dredge(LM_add.gam_SCA.terrain_dist.just.elevation.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants only s(elevation)
 
-#plotting all of the model AICs as df changes to see how different from one another the samller models are
-plot(dredge$AICc ~ dredge$df)
-points(x= dredge[1,]$df, y = dredge[1,]$AICc, col = "red")
-points(x= dredge[2,]$df, y = dredge[2,]$AICc, col = "blue")
-points(x= dredge[3,]$df, y = dredge[3,]$AICc, col = "green")
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.just.elevation) # AICs
+anova(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.just.elevation)  #ANOVA F-Test
+#the more complex model with smoothing splines on all three quantitative variables is preferable
 
-LM_add.gam_SCA.all_vif <- car::vif(LM_add.gam_SCA.clay)
-LM_add.gam_SCA.all_vif_multi_num <- (1 / (1-all_points_multiple_lm_LCA_summary$r.squared))
-LM_add.gam_SCA.all_vif > LM_add.gam_SCA.all_vif_multi_num
+# setting up the dredge GAM of the larger equation, just quant variables
+LM_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 
+#comparing model with smoothing with and without aspect
+AIC(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist)
+summary(LM_add.gam_SCA.terrain_dist.dredge)
+#aspect does not appear to be necessary
 
-LM_add.gam_SCA.1 <- gam(Canopy_short ~ s(clay.content.100.200), 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#making a gam with just elevation smoothed, no aspect
+LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth)
+dredge <- dredge(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+#just s(elevation is preferred)
 
-LM_add.gam_SCA.2 <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(clay.content.100.200), 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#making a dredge model with just smooth elevation
+LM_add.gam_SCA.terrain_dist.dredge.just.elev <- gam(Canopy_short ~ s(Elevation..m.FIXED), 
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth)
 
-LM_add.gam_SCA.3 <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(clay.content.100.200), 
-                      data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#comparing the models with smoothed distance, elevation, and slope to one with just smoothed elevation and the other variables, and one with only s(elevation)
+AIC(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth, LM_add.gam_SCA.terrain_dist.dredge.just.elev)
+#LM_add.gam_SCA.terrain_dist.dredge has lowest AIC
 
-LM_add.gam_SCA.clay <- gam(Canopy_short ~ clay.content.100.200, 
-                                  data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_SCA.elev <- gam(Canopy_short ~ Elevation..m.FIXED, 
-                            data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_SCA.d <- gam(Canopy_short ~ d, 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-
-AIC(LM_add.gam_SCA.1, LM_add.gam_SCA.2, LM_add.gam_SCA.3, LM_add.gam_SCA.clay, 
-    LM_add.gam_SCA.elev, LM_add.gam_SCA.d)
-
-#Based on the AIC values, I will use the three variable model
-summary(LM_add.gam_SCA.3)
-summary(LM_add.gam_SCA.clay)
-summary(LM_add.gam_SCA.elev)
-summary(LM_add.gam_SCA.d)
-
-
-#Based on the results of the AICs: the chosen model is LM_add.gam_SCA.3
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_SCA.terrain_dist.dredge 
+summary(LM_add.gam_SCA.terrain_dist.dredge)
+#but a model with just s(Elevation) seems like it can do similarly as well and is simpler
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_SCA.3)
+gam.check(LM_add.gam_SCA.terrain_dist.dredge) #pretty normal residuals and no heterodescadisticty 
 
-#looking atsignificance
-summary(LM_add.gam_SCA.3)
+#looking at significance
+summary(LM_add.gam_SCA.terrain_dist.dredge)
 
-#we do not need to dredge the poisson model, but hear is the 
-dredge <- dredge(LM_add.gam_SCA.3) #using the dredge model to narro the models down to the best choice
-dredge[1,] 
+#Chosen model: LM_add.gam_SCA.terrain_dist.dredge
 
-#the model with all tree variables is good enough
-
-#Chosen model: LM_add.gam_SCA.3
-
-par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_SCA.3, select=1, 
-         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(LM_add.gam_SCA.3, select=2, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_SCA.3, select=3, 
-         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
-         se = TRUE , col = "black")
-
-
-# 3d plotting in plotly and with gg3D
-plot_ly(x=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$Elevation..m.FIXED, 
-        y=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$d, 
-        z=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$clay.content.100.200, 
-        type="scatter3d", mode="markers")
-
-
-#looking for interaction using tensor interaction to get interaction smooths
-LM_add.gam_SCA.3.inter <- gam(Canopy_short ~ ti(Elevation..m.FIXED, d, clay.content.100.200), 
-                                     data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA,  na.action = na.fail)
-summary(LM_add.gam_SCA.3.inter)
-#there is a significant interaction term
-
-#interaction plots
-plot.gam(LM_add.gam_SCA.3.inter, select=1, 
-         all.terms=T, main = "s(Elevation:Slope:clay content)", 
-         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
-         cex.axis = 1, cex.main = 1, cex.lab = 1)
-
-AIC(LM_add.gam_SCA.3.inter, LM_add.gam_SCA.3)
-
-#overall best model:LM_add.gam_SCA.3.inter
-
-
-
-# LCA
-
-pairs(LM_fixed_field_data_processed_terrain_dist_soils_no_NA[, c("Canopy_long", "d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts", "vol_water_.1500_100.200", 
-                                                                 "vol_water_.1500kPa_0.5", "vol_water_.10_0.5", "SOC.100.200", "silt.0.5", "silt.100.200",
-                                                                 "sand.0.5", "sand.100.200", "ph_100.200", "clay.content.0.5", "clay.content.100.200")])
-
-LM_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-#dredging the gam to see which variables to keep
-dredge <- dredge(LM_add.gam_LCA.terrain_dist) #using the dredge model to narro the models down to the best choice
-dredge[1:5,] 
-#elevation seems to be the most important variable when not considering soil metrics
-
-#GAM with all the variables
-LM_add_LCA.all <- gam(Canopy_long ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical + vol_water_.1500_100.200
-                      + vol_water_.1500kPa_0.5 + vol_water_.10_0.5 + SOC.100.200 + silt.0.5 + silt.100.200 + sand.0.5 + sand.100.200 + ph_100.200 +
-                        clay.content.0.5 + clay.content.100.200, 
-                      data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-#looking at if any variables are significant
-summary(LM_add_LCA.all)
-#in this case, none are significant at explaining more variation than any other variable
-
-#dredging the gam to see which variables to keep
-dredge <- dredge(LM_add_LCA.all) #using the dredge model to narro the models down to the best choice
-dredge[1:5,] 
-
-#plotting all of the model AICs as df changes to see how different from one another the samller models are
-plot(dredge$AICc ~ dredge$df)
-points(x= dredge[1,]$df, y = dredge[1,]$AICc, col = "red")
-points(x= dredge[2,]$df, y = dredge[2,]$AICc, col = "blue")
-points(x= dredge[3,]$df, y = dredge[3,]$AICc, col = "green")
-
-#VIFs are showing low levels of correlation with other variables
-LM_add.gam_LCA.all_vif <- car::vif(LM_add_LCA.all)
-LM_add.gam_LCA.all_vif
-
-LM_add.gam_LCA.1 <- gam(Canopy_long ~ s(sand.100.200), 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_LCA.2 <- gam(Canopy_long ~ s(clay.content.100.200) + s(sand.100.200), 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_LCA.3 <- gam(Canopy_long ~ s(clay.content.100.200) + s(sand.0.5) + s(sand.100.200), 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_LCA.sand.10.200 <- gam(Canopy_long ~ sand.100.200, 
-                           data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_LCA.san.0.5 <- gam(Canopy_long ~ sand.0.5, 
-                           data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-LM_add.gam_LCA.clay.100.200 <- gam(Canopy_long ~ clay.content.100.200, 
-                        data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-
-AIC(LM_add.gam_LCA.1, LM_add.gam_LCA.2, LM_add.gam_LCA.3, LM_add.gam_LCA.sand.10.200, 
-    LM_add.gam_LCA.san.0.5, LM_add.gam_LCA.clay.100.200)
-
-#Based on the AIC values, I will use the three variable model
-summary(LM_add.gam_LCA.1)
-summary(LM_add.gam_LCA.2)
-summary(LM_add.gam_LCA.3)
-summary(LM_add.gam_LCA.sand.10.200)
-summary(LM_add.gam_LCA.san.0.5)
-summary(LM_add.gam_LCA.clay.100.200)
-
-#Based on the results of the AICs: the chosen model is LM_add.gam_LCA.3
-
-#checking overall fit and potential issues
-par(mfrow = c(2, 2))
-gam.check(LM_add.gam_LCA.sand.10.200)
-
-#looking atsignificance
-summary(LM_add.gam_LCA.sand.10.200)
-
-#we do not need to dredge the poisson model, but hear is the 
-dredge <- dredge(LM_add.gam_LCA.3) #using the dredge model to narro the models down to the best choice
-dredge[1,] 
-
-#the model with all tree variables is good enough
-
-#Chosen model: LM_add.gam_LCA.sand.10.200
-
-par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_LCA.sand.10.200, select=1, 
-         all.terms=T, xlab = 'Sand Content 100-200 cm (‰)', ylab = expression(f[1]*'(Sand Content)'))
-
-plot(Canopy_long ~ sand.100.200, 
-     data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, cex = .5, col = "darkgrey", 
-     xlab = "Sand Content 100-200 cm (‰)",
-     ylab = "Canopy Long")
-fit <- smooth.spline(LM_fixed_field_data_processed_terrain_dist_soils_no_NA$Canopy_long ~ 
-                        LM_fixed_field_data_processed_terrain_dist_soils_no_NA$sand.100.200, 
-                      cv = TRUE)
-lines(fit, col = "blue", lwd = 2)
-
-
-#looking for interaction using tensor interaction to get interaction smooths
-LM_add.gam_LCA.inter <- gam(Canopy_long ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + ti(clay.content.100.200, 
-                                                                             sand.100.200, sand.0.5), 
-                              data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA,  na.action = na.fail)
-summary(LM_add.gam_LCA.inter)
-#there is a significant interaction term
-
-#interaction plots
-plot.gam(LM_add.gam_LCA.inter, select=1, 
-         all.terms=T, main = "s(Elevation:Slope:clay content)", 
-         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
-         cex.axis = 1, cex.main = 1, cex.lab = 1)
-plot.gam(LM_add.gam_LCA.inter, select=2, 
-         all.terms=T, main = "s(Elevation:Slope:clay content)", 
-         ylab = expression(f[1]*'clay content 100-200 (‰): Sand content 100-200 (‰): Sand content 0-5 (‰)'), se = TRUE,
-         cex.axis = 1, cex.main = 1, cex.lab = 1)
-
-AIC(LM_add.gam_LCA.inter, LM_add.gam_LCA.sand.10.200)
-
-#overall best model:LM_add.gam_LCA.inter
-
-
-### AVOIDING USING SOIL CHARACTERISTICS AND FOLLOWING DREDGE'S ADVICE 
-
-
-# SCA
-LM_fixed_field_data_processed_terrain_dist_soils_no_NA <- st_drop_geometry(LM_fixed_field_data_processed_terrain_dist_soils_no_NA)
-
-pairs(LM_fixed_field_data_processed_terrain_dist_soils_no_NA[, c("Canopy_short", "d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts")])
-
-
-LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                         data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-LM_add.gam_SCA.terrain_dist.first <- gam(Canopy_short ~ s(d) + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-LM_add.gam_SCA.terrain_dist.second <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                         data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-LM_add.gam_SCA.terrain_dist.third <- gam(Canopy_short ~ d + Elevation..m.FIXED + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                         data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-LM_add.gam_SCA.terrain_dist.smoothed <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-AIC(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.first, LM_add.gam_SCA.terrain_dist.second, 
-    LM_add.gam_SCA.terrain_dist.third, LM_add.gam_SCA.terrain_dist.smoothed)
-
-#dredging the gam to see which variables to keep
-dredge <- dredge(LM_add.gam_SCA.terrain_dist.smoothed) #using the dredge model to narro the models down to the best choice
-dredge[1:5,] 
-
-#GAM with all the variables
-LM_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                          data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-
-summary <- summary(LM_add.gam_SCA.terrain_dist.dredge)
-summary
-
-#checking for multicollinearity
-LM_add.gam_SCA.all_vif <- car::vif(LM_add.gam_SCA.terrain_dist.dredge)
-LM_add.gam_SCA.all_vif
-
-
-#Based on the results of the AICs: the chosen model is LM_add.gam_SCA.3
-
-#checking overall fit and potential issues
-par(mfrow = c(2, 2))
-gam.check(LM_add.gam_SCA.terrain_dist.dredge)
-
-#the model with all tree variables is good enough
-
-#Chosen model: LM_add.gam_SCA.3
-
+#plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(LM_add.gam_SCA.terrain_dist.dredge, select=1, 
          all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
 plot.gam(LM_add.gam_SCA.terrain_dist.dredge, select=2, 
          all.terms=T, xlab = "Elevation (m)", 
          ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-visreg(LM_add.gam_SCA.terrain_dist.dredge, "LM_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
-
+plot.gam(LM_add.gam_SCA.terrain_dist.dredge, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LM_add.gam_SCA.terrain_dist, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on SCA") 
 
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$Elevation..m.FIXED, 
-        y=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$d, 
-        z=LM_fixed_field_data_processed_terrain_dist_soils_no_NA$clay.content.100.200, 
+plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LM_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LM_fixed_field_data_processed_terrain_dist_no_NA$LM_slope_raster_15_data_pts, 
+        color = LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_pts_8_categorical,
         type="scatter3d", mode="markers")
 
 
 #looking for interaction using tensor interaction to get interaction smooths
-LM_add.gam_SCA.terrain_dist.dredge.inter <- gam(Canopy_short ~ ti(LM_slope_raster_15_data_pts, Elevation..m.FIXED) + LM_aspect_raster_15_data_pts_8_categorical, 
-                              data = LM_fixed_field_data_processed_terrain_dist_soils_no_NA,  na.action = na.fail)
-summary(LM_add.gam_SCA.terrain_dist.dredge.inter)
-#there is a significant interaction term
+LM_add.gam_SCA.inter <- gam(Canopy_short ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                     data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LM_add.gam_SCA.inter)
+#there was no significant interaction term after checking combinations
 
 #interaction plots
-plot.gam(LM_add.gam_SCA.terrain_dist.dredge.inter, select=1, 
+plot.gam(LM_add.gam_SCA.inter, select=1, 
          all.terms=T, main = "s(Elevation:Slope:clay content)", 
          ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
-AIC(LM_add.gam_SCA.terrain_dist.dredge.inter, LM_add.gam_SCA.terrain_dist.dredge)
+AIC(LM_add.gam_SCA.inter, LM_add.gam_SCA.terrain_dist.dredge)
 
 #overall best model:LM_add.gam_SCA.terrain_dist.dredge
 
 
 
+## LCA ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LM_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#distance, elevation, and slope have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+LM_add.gam_LCA.terrain_dist.no.aspect <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
+                                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_LCA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_LCA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.no.aspect) # AICs
+anova(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is not significantly better
+
+#making a dredge model with just smooth elevation
+LM_add.gam_LCA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_long ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
+                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_LCA.terrain_dist.dredge.just.elev.smooth)
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.no.aspect, LM_add.gam_LCA.terrain_dist.dredge.just.elev.smooth)
+#LM_add.gam_LCA.terrain_dist has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_LCA.terrain_dist.dredge 
+summary(LM_add.gam_LCA.terrain_dist)
+#but a model with aspect seems like it can do similarly as well and is simpler
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LM_add.gam_LCA.terrain_dist) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LM_add.gam_LCA.terrain_dist)
+
+#Chosen model: LM_add.gam_LCA.terrain_dist
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LM_add.gam_LCA.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LM_add.gam_LCA.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LM_add.gam_LCA.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LM_add.gam_LCA.terrain_dist, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on LCA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LM_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LM_fixed_field_data_processed_terrain_dist_no_NA$LM_slope_raster_15_data_pts, 
+        color = LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LM_add.gam_LCA.inter <- gam(Canopy_long ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LM_add.gam_LCA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LM_add.gam_LCA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Slope:clay content)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LM_add.gam_LCA.inter, LM_add.gam_LCA.terrain_dist)
+
+#overall best model: LM_add.gam_LCA.terrain_dist
+
+
+## CA ##
+
+# I am using the logged transformation of canop area to get more normal residuals and less heteroscedasticity
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LM_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#elevation have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_CA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+LM_add.gam_CA.terrain_dist.no.aspect <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
+                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_CA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.no.aspect) # AICs
+anova(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is not significantly better
+
+#making a dredge model with just smooth elevation and no aspect
+LM_add.gam_CA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_area_lg ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CA.terrain_dist.dredge.just.elev.smooth)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.no.aspect, LM_add.gam_CA.terrain_dist.dredge.just.elev.smooth)
+#LM_add.gam_CA.terrain_dist has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CA.terrain_dist.no.aspect 
+summary(LM_add.gam_CA.terrain_dist.no.aspect)
+#but all models seem to do similarly well
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LM_add.gam_CA.terrain_dist.no.aspect) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LM_add.gam_CA.terrain_dist.no.aspect)
+
+#Chosen model: LM_add.gam_CA.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LM_add.gam_CA.terrain_dist.no.aspect, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LM_add.gam_CA.terrain_dist.no.aspect, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LM_add.gam_CA.terrain_dist.no.aspect, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LM_add.gam_CA.terrain_dist, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LM_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LM_fixed_field_data_processed_terrain_dist_no_NA$LM_slope_raster_15_data_pts, 
+        color = LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LM_add.gam_CA.inter <- gam(Canopy_area ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LM_add.gam_CA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LM_add.gam_CA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Slope:clay content)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LM_add.gam_CA.inter, LM_add.gam_CA.terrain_dist.no.aspect)
+
+#overall best model: LM_add.gam_CA.terrain_dist.no.aspect
+
+
+## CS ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LM_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#distance, slope, elevation have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_CS.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+LM_add.gam_CS.terrain_dist.no.aspect <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CS.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_CS.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LM_add.gam_CS.terrain_dist, LM_add.gam_CS.terrain_dist.no.aspect) # AICs
+anova(LM_add.gam_CS.terrain_dist, LM_add.gam_CS.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is not significantly better
+
+#making a dredge model with just smooth elevation and no aspect
+LM_add.gam_CS.terrain_dist.dredge.just.elev.smooth <- gam(Crown_spread ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
+                                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CS.terrain_dist.dredge.just.elev.smooth)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LM_add.gam_CS.terrain_dist, LM_add.gam_CS.terrain_dist.no.aspect, LM_add.gam_CS.terrain_dist.dredge.just.elev.smooth)
+#LM_add.gam_CS.terrain_dist.no.aspect has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CS.terrain_dist.no.aspect 
+summary(LM_add.gam_CS.terrain_dist.no.aspect)
+#but all models seem to do similarly well
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LM_add.gam_CS.terrain_dist.no.aspect) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LM_add.gam_CS.terrain_dist.no.aspect)
+
+#Chosen model: LM_add.gam_CS.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LM_add.gam_CS.terrain_dist.no.aspect, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LM_add.gam_CS.terrain_dist.no.aspect, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LM_add.gam_CS.terrain_dist.no.aspect, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LM_add.gam_CS.terrain_dist, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LM_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LM_fixed_field_data_processed_terrain_dist_no_NA$LM_slope_raster_15_data_pts, 
+        color = LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LM_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LM_add.gam_CS.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LM_add.gam_CS.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Slope:clay content)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LM_add.gam_CS.inter, LM_add.gam_CS.terrain_dist.no.aspect)
+
+#overall best model: LM_add.gam_CS.terrain_dist.no.aspect
+
+
+## DBH ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LM_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#only elevation have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_DBH.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+LM_add.gam_DBH.terrain_dist.no.aspect <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LM_add.gam_DBH.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.no.aspect) # AICs
+anova(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is significantly better
+
+#making a dredge model with just smooth elevation and no aspect
+LM_add.gam_DBH.terrain_dist.dredge.just.elev.smooth <- gam(DBH_ag ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
+                                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.just.elev.smooth)
+#s(elevation) is marginally not significantly  non-linear, slope and distance are not significantly useful with the linear fit
+
+#making a model with no smoothing splines
+LM_add.gam_DBH.terrain_dist.dredge.no.smooth <- gam(DBH_ag ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#s(elevation) is marginally not significantly  non-linear, slope and distance are not significantly useful with the linear fit
+
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.no.aspect, LM_add.gam_DBH.terrain_dist.dredge.just.elev.smooth, LM_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#LM_add.gam_DBH.terrain_dist.no.aspect has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_DBH.terrain_dist.dredge.no.smooth 
+summary(LM_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#the linear model seems to do the best, the GAM model with all smoothing is close behind
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LM_add.gam_DBH.terrain_dist.dredge.no.smooth) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LM_add.gam_DBH.terrain_dist.dredge.no.smooth)
+
+#Chosen model: LM_add.gam_DBH.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LM_add.gam_DBH.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LM_add.gam_DBH.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LM_add.gam_DBH.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LM_add.gam_DBH.terrain_dist, "LM_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LM_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LM_fixed_field_data_processed_terrain_dist_no_NA$LM_slope_raster_15_data_pts, 
+        color = LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LM_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LM_add.gam_DBH.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LM_add.gam_DBH.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Slope:clay content)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LM_add.gam_DBH.inter, LM_add.gam_DBH.terrain_dist)
+#while there is no significant interaction, the model with the interaction performs significantly better
+
+#overall best model: LM_add.gam_DBH.terrain_dist.dredge.no.smooth (a multiple linear regression)
+
+
+### LC ###
+
+# removing the NAs from the explanatory variables, stored in a dataframe
+LC_fixed_field_data_processed_terrain_dist_no_NA <- LC_fixed_field_data_processed_terrain_dist %>% 
+  filter(!is.na(d)) %>% #distance NAs removed
+  filter(!is.na(Elevation..m.FIXED)) %>% #Elevation NAs removed
+  filter(!is.na(LC_slope_raster_15_data_pts)) %>%  #slope NAs removed
+  filter(!is.na(LC_aspect_raster_15_data_pts_8_categorical)) %>% #aspect NAs removed
+  filter(!is.na(Canopy_short)) %>% #short canopy axis NAs removed
+  filter(!is.na(Canopy_long)) %>% #long canopy axis NAs removed
+  filter(!is.na(Canopy_area)) %>% #canopy area NAs removed
+  filter(!is.na(Crown_spread)) %>% #Crown Spread NAs removed
+  filter(!is.na(DBH_ag)) #DBH NAs removed
+
+## SCA ##
+
+#removing the spatial geometry to be able to use the gam function
+LC_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(LC_fixed_field_data_processed_terrain_dist_no_NA)
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LC_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#none of the variables has significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_SCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation) and aspect
+
+# Checking a GAM with just elevation smoothing splines s()
+LC_add.gam_SCA.terrain_dist.just.elevation.smooth <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
+                                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_SCA.terrain_dist.just.elevation.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#none of the linear fits are significant
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_SCA.terrain_dist.just.elevation.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants only s(elevation) and aspect
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_SCA.terrain_dist, LC_add.gam_SCA.terrain_dist.just.elevation.smooth) # AICs
+anova(LC_add.gam_SCA.terrain_dist, LC_add.gam_SCA.terrain_dist.just.elevation.smooth)  #ANOVA F-Test
+#the more complex model with smoothing splines on all three quantitative variables is preferable
+
+# setting up the dredge model aspect and s(elevation)
+LC_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+
+#comparing model with smoothing with and without aspect
+AIC(LC_add.gam_SCA.terrain_dist.dredge, LC_add.gam_SCA.terrain_dist, LC_add.gam_SCA.terrain_dist.just.elevation.smooth)
+#LC_add.gam_SCA.terrain_dist.dredge has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_SCA.terrain_dist.dredge 
+summary(LC_add.gam_SCA.terrain_dist.dredge)
+#but a model with just s(Elevation) seems like it can do similarly as well and is simpler
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LC_add.gam_SCA.terrain_dist.dredge) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LC_add.gam_SCA.terrain_dist.dredge)
+
+#Chosen model: LC_add.gam_SCA.terrain_dist.dredge
+
+
+#plotting the model LC_add.gam_SCA.terrain_dist.dredge
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_SCA.terrain_dist.dredge, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+visreg(LC_add.gam_SCA.terrain_dist.dredge, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on SCA")
+
+#plotting the model LC_add.gam_SCA.terrain_dist
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_SCA.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LC_add.gam_SCA.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LC_add.gam_SCA.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LC_add.gam_SCA.terrain_dist, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on SCA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LC_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_slope_raster_15_data_pts, 
+        color = LC_fixed_field_data_processed_terrain_dist_no_NA$LC_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LC_add.gam_SCA.inter <- gam(Canopy_short ~ ti(Elevation..m.FIXED, d, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LC_add.gam_SCA.inter)
+#there was a significant interaction term 
+
+#interaction plots
+plot.gam(LC_add.gam_SCA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LC_add.gam_SCA.inter, LC_add.gam_SCA.terrain_dist.dredge)
+
+#overall best model: LC_add.gam_SCA.inter
+
+
+## LCA ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LC_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#distance, elevation, and slope do not have significant non-linear function, aspect is significant linearly for W
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation)
+
+# Checking a GAM without aspect
+LC_add.gam_LCA.terrain_dist.no.aspect.slope <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED), 
+                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.no.aspect.slope) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_LCA.terrain_dist.no.aspect.slope) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.no.aspect.slope) # AICs
+anova(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.no.aspect.slope)  #ANOVA F-Test
+#the model with aspect and slope is significantly better
+
+#making a dredge model with just smooth elevation
+LC_add.gam_LCA.terrain_dist.dredge.just.elev.d.smooth <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
+                                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.dredge.just.elev.d.smooth)
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.no.aspect.slope, LC_add.gam_LCA.terrain_dist.dredge.just.elev.d.smooth)
+#none of the models have much better AIC values 
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_LCA.terrain_dist.dredge 
+summary(LC_add.gam_LCA.terrain_dist)
+#but a model with aspect seems like it can do similarly as well and is simpler
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LC_add.gam_LCA.terrain_dist) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LC_add.gam_LCA.terrain_dist)
+
+#Chosen model: LC_add.gam_LCA.terrain_dist
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_LCA.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LC_add.gam_LCA.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LC_add.gam_LCA.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LC_add.gam_LCA.terrain_dist, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on LCA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LC_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_slope_raster_15_data_pts, 
+        color = LC_fixed_field_data_processed_terrain_dist_no_NA$LC_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LC_add.gam_LCA.inter <- gam(Canopy_long ~ ti(Elevation..m.FIXED, d, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LC_add.gam_LCA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LC_add.gam_LCA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Slope:clay content)", 
+         ylab = expression(f[1]*'(Elevation (m):Slope (º)):clay content (‰)'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LC_add.gam_LCA.inter, LC_add.gam_LCA.terrain_dist)
+
+#overall best model: LC_add.gam_LCA.terrain_dist
+
+
+## CA ##
+
+# I am using the logged transformation of canop area to get more normal residuals and less heteroscedasticity
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LC_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+ #elevation have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_CA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), aspect
+
+# Checking a GAM without s(slope) but slope instead
+LC_add.gam_CA.terrain_dist.less.s <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.less.s) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_CA.terrain_dist.less.s) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), aspect
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.less.s) # AICs
+anova(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.less.s)  #ANOVA F-Test
+#the model with s(slope) is significantly better
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_CA.terrain_dist.dredge.no.slope <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.dredge.no.slope)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.less.s, LC_add.gam_CA.terrain_dist.dredge.no.slope)
+#LC_add.gam_CA.terrain_dist.dredge.no.slope has lowest AIC, but really none are much better
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_CA.terrain_dist.dredge.no.slope 
+summary(LC_add.gam_CA.terrain_dist.dredge.no.slope)
+#but all models seem to do similarly well
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LC_add.gam_CA.terrain_dist.dredge.no.slope) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LC_add.gam_CA.terrain_dist.dredge.no.slope)
+
+#Chosen model: LC_add.gam_CA.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_CA.terrain_dist.dredge.no.slope, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LC_add.gam_CA.terrain_dist.dredge.no.slope, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LC_add.gam_CA.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LC_add.gam_CA.terrain_dist.dredge.no.slope, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LC_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_slope_raster_15_data_pts, 
+        color = LC_fixed_field_data_processed_terrain_dist_no_NA$LC_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LC_add.gam_CA.inter <- gam(Canopy_area ~ ti(Elevation..m.FIXED, d, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                           data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LC_add.gam_CA.inter)
+#there was is a significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LC_add.gam_CA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LC_add.gam_CA.inter, LC_add.gam_CA.terrain_dist.no.aspect)
+
+#overall best model: LC_add.gam_CA.terrain_dist.no.aspect
+
+
+## CS ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LC_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#distance, slope, elevation have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_CS.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+LC_add.gam_CS.terrain_dist.no.aspect <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_CS.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.no.aspect) # AICs
+anova(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is not significantly better
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_CS.terrain_dist.dredge.just.elev.smooth <- gam(Crown_spread ~ d + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts, 
+                                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.dredge.just.elev.smooth)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.no.aspect, LC_add.gam_CS.terrain_dist.dredge.just.elev.smooth)
+#LC_add.gam_CS.terrain_dist.no.aspect has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_CS.terrain_dist.no.aspect 
+summary(LC_add.gam_CS.terrain_dist.no.aspect)
+#but all models seem to do similarly well
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LC_add.gam_CS.terrain_dist.no.aspect) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LC_add.gam_CS.terrain_dist.no.aspect)
+
+#Chosen model: LC_add.gam_CS.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_CS.terrain_dist.no.aspect, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LC_add.gam_CS.terrain_dist.no.aspect, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LC_add.gam_CS.terrain_dist.no.aspect, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LC_add.gam_CS.terrain_dist, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LC_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_slope_raster_15_data_pts, 
+        color = LC_fixed_field_data_processed_terrain_dist_no_NA$LC_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LC_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m.FIXED, d, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                           data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LC_add.gam_CS.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LC_add.gam_CS.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LC_add.gam_CS.inter, LC_add.gam_CS.terrain_dist.no.aspect)
+
+#overall best model: LC_add.gam_CS.terrain_dist.no.aspect
+
+
+## DBH ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+LC_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#none have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_DBH.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d)
+
+# Checking a GAM without aspect
+LC_add.gam_DBH.terrain_dist.only.distance <- gam(DBH_ag ~ s(d), 
+                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.only.distance) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(LC_add.gam_DBH.terrain_dist.only.distance) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.only.distance) # AICs
+anova(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.only.distance)  #ANOVA F-Test
+#the model with only distance is sufficient
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.just.dist.smooth <- gam(DBH_ag ~ s(d) + Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
+                                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.just.dist.smooth)
+#s(distance) is marginally not significantly  non-linear, slope and elevation are not significantly useful with the linear fit
+
+#making a model with no smoothing splines
+LC_add.gam_DBH.terrain_dist.dredge.no.smooth <- gam(DBH_ag ~ d + Elevation..m.FIXED + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
+                                                    data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#s(elevation) is marginally not significantly  non-linear, slope and distance are not significantly useful with the linear fit
+
+
+#comparing the models 
+AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.only.distance, LC_add.gam_DBH.terrain_dist.dredge.just.dist.smooth, LC_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#LC_add.gam_DBH.terrain_dist.no.aspect has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_DBH.terrain_dist.dredge.no.smooth 
+summary(LC_add.gam_DBH.terrain_dist)
+#the model with just distance smooth is marginally better, so I will use the one with smoothing splines on all of the quantitative variables
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(LC_add.gam_DBH.terrain_dist) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(LC_add.gam_DBH.terrain_dist)
+
+#Chosen model: LC_add.gam_DBH.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(LC_add.gam_DBH.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(LC_add.gam_DBH.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(LC_add.gam_DBH.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(LC_add.gam_DBH.terrain_dist, "LC_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED, 
+        y=LC_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_slope_raster_15_data_pts, 
+        color = LC_fixed_field_data_processed_terrain_dist_no_NA$LC_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+LC_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m.FIXED, d, LC_slope_raster_15_data_pts) + LC_aspect_raster_15_data_pts_8_categorical, 
+                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(LC_add.gam_DBH.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(LC_add.gam_DBH.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(LC_add.gam_DBH.inter, LC_add.gam_DBH.terrain_dist)
+#while there is significant interaction, the model with the interaction performs significantly better
+
+#overall best model: LC_add.gam_DBH.inter
 
 
 
+### SD ###
+
+# removing the NAs from the explanatory variables, stored in a dataframe
+SD_fixed_field_data_processed_terrain_dist_no_NA <- SD_fixed_field_data_processed_terrain_dist %>% 
+  filter(!is.na(d)) %>% #distance NAs removed
+  filter(!is.na(Elevation..m.)) %>% #Elevation NAs removed
+  filter(!is.na(SD_slope_raster_15_data_pts)) %>%  #slope NAs removed
+  filter(!is.na(SD_aspect_raster_15_data_pts_8_categorical)) %>% #aspect NAs removed
+  filter(!is.na(Canopy_short)) %>% #short canopy axis NAs removed
+  filter(!is.na(Canopy_long)) %>% #long canopy axis NAs removed
+  filter(!is.na(Canopy_area)) %>% #canopy area NAs removed
+  filter(!is.na(Crown_spread)) %>% #Crown Spread NAs removed
+  filter(!is.na(DBH_ag)) %>% #DBH NAs removed
+  mutate(Elevation..m. = as.numeric(Elevation..m.))
+
+## SCA ##
+
+#removing the spatial geometry to be able to use the gam function
+SD_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(SD_fixed_field_data_processed_terrain_dist_no_NA)
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+SD_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#slope has significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_SCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM with no aspect
+SD_add.gam_SCA.terrain_dist.no.aspect <- gam(Canopy_short ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
+                                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#slope of the linear fits are significant
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_SCA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect) # AICs
+anova(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model without aspect is better
+
+# setting up the dredge GAM with only slope being smoothed
+SD_add.gam_SCA.terrain_dist.slope.smooth <- gam(Canopy_short ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants elevation, s(slope)
+
+# setting up the dredge GAM with only slope being smoothed, no distance
+SD_add.gam_SCA.terrain_dist.slope.smooth.dredge <- gam(Canopy_short ~ Elevation..m. + s(SD_slope_raster_15_data_pts), 
+                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge)
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
 
 
+#comparing models 
+AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect,  SD_add.gam_SCA.terrain_dist.slope.smooth, SD_add.gam_SCA.terrain_dist.slope.smooth.dredge)
+summary(SD_add.gam_SCA.terrain_dist.no.aspect)
+#SD_add.gam_SCA.terrain_dist.no.aspect has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_SCA.terrain_dist.dredge 
+summary(SD_add.gam_SCA.terrain_dist.no.aspect)
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(SD_add.gam_SCA.terrain_dist.no.aspect) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(SD_add.gam_SCA.terrain_dist.no.aspect)
+
+#Chosen model: SD_add.gam_SCA.terrain_dist.dredge
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(SD_add.gam_SCA.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on SCA") 
 
 
+# 3d plotting in plotly and with gg3D
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+SD_add.gam_SCA.inter <- gam(Canopy_short ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(SD_add.gam_SCA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(SD_add.gam_SCA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(SD_add.gam_SCA.inter, SD_add.gam_SCA.terrain_dist.no.aspect)
+
+#overall best model:SD_add.gam_SCA.terrain_dist.no.aspect
+
+
+## LCA ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+SD_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#slope have significant non-linear function and sw was significant aspect
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(slope) and aspect
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.slope.smooth <- gam(Canopy_long ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.slope.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only west is significant
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_LCA.terrain_dist.slope.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#making a dredge model with just smooth elevation
+SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist <- gam(Canopy_long ~ s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+#s(slope) and NE and SW are significant
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(SD_add.gam_LCA.terrain_dist, SD_add.gam_LCA.terrain_dist.slope.smooth, SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+#SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist 
+summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(SD_add.gam_LCA.terrain_dist)
+
+#Chosen model: SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(SD_add.gam_LCA.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(SD_add.gam_LCA.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist, select=1, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on LCA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+SD_add.gam_LCA.inter <- gam(Canopy_long ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(SD_add.gam_LCA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(SD_add.gam_LCA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(SD_add.gam_LCA.inter, SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+
+#overall best model: SD_add.gam_LCA.inter
+
+
+## CA ##
+
+# I am using the logged transformation of canop area to get more normal residuals and less heteroscedasticity
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+SD_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#slope have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_CA.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+# Checking a GAM without aspect
+SD_add.gam_CA.terrain_dist.no.aspect <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation is significant)
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_CA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(d), s(elevation), s(slope)
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect) # AICs
+anova(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect)  #ANOVA F-Test
+#the model with aspect is not significantly better
+
+#making a dredge model with just smooth elevation and slope and no aspect
+SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth <- gam(Canopy_area_lg ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
+                                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#making a dredge model with just smooth elevation and slope
+SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist <- gam(Canopy_area_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
+                                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+
+#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
+AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect, SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth, SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist)
+#SD_add.gam_CA.terrain_dist.no.aspect  has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_CA.terrain_dist.no.aspect 
+summary(SD_add.gam_CA.terrain_dist.no.aspect)
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(SD_add.gam_CA.terrain_dist.no.aspect) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(SD_add.gam_CA.terrain_dist.no.aspect)
+
+#Chosen model: SD_add.gam_CA.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(SD_add.gam_CA.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+SD_add.gam_CA.inter <- gam(Canopy_area ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                           data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(SD_add.gam_CA.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(SD_add.gam_CA.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(SD_add.gam_CA.inter, SD_add.gam_CA.terrain_dist.no.aspect)
+
+#overall best model: SD_add.gam_CA.terrain_dist.no.aspect
+
+
+## CS ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+SD_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#slope have significant non-linear function and Southwest are significant
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_CS.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope), and aspect
+
+# Checking a GAM without d smoothed
+SD_add.gam_CS.terrain_dist.no.dist.smooth <- gam(Crown_spread ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation and slope) are significant
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_CS.terrain_dist.no.dist.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope), aspect
+
+#making a dredge model with just smooth elevation and no aspect
+SD_add.gam_CS.terrain_dist.no.dist <- gam(Crown_spread ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.no.dist)
+#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+
+#comparing the models
+AIC(SD_add.gam_CS.terrain_dist, SD_add.gam_CS.terrain_dist.no.dist.smooth, SD_add.gam_CS.terrain_dist.no.dist)
+#SD_add.gam_CS.terrain_dist has lowest AIC, but none are significantlt better than the others
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_CS.terrain_dist.no.aspect 
+summary(SD_add.gam_CS.terrain_dist)
+#but all models seem to do similarly well
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(SD_add.gam_CS.terrain_dist) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(SD_add.gam_CS.terrain_dist)
+
+#Chosen model: SD_add.gam_CS.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(SD_add.gam_CS.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(SD_add.gam_CS.terrain_dist, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_CS.terrain_dist, select=3, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(SD_add.gam_CS.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+SD_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                           data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(SD_add.gam_CS.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(SD_add.gam_CS.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(SD_add.gam_CS.inter, SD_add.gam_CS.terrain_dist)
+
+#overall best model: SD_add.gam_CS.terrain_dist
+
+
+## DBH ##
+
+# Checking a GAM with smoothing splines s(), can't put splines on a categorical variable
+SD_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+
+#only slope have significant non-linear function 
+
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_DBH.terrain_dist) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope)
+
+# Checking a GAM without smoothing distance 
+SD_add.gam_DBH.terrain_dist.no.dist.smooth <- gam(DBH_ag ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_DBH.terrain_dist.no.dist.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope)
+
+#making a dredge model with just smooth elevation and no aspect
+SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
+                                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+#s(slope) is significantly non-linear but not s(elevation), slope and distance are not significantly useful with the linear fit
+#dredging the gam to see which variables to keep
+dredge <- dredge(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth) #using the dredge model to narrow the models down to the best choice
+dredge[1:5,] #looking at the top five best models, lowest AIC is the best, rule of thumb is that a difference of 2 is a significant difference
+# it wants s(elevation), s(slope)
+
+#comparing the models 
+AIC(SD_add.gam_DBH.terrain_dist, SD_add.gam_DBH.terrain_dist.no.dist.smooth, SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+#SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth has lowest AIC
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_DBH.terrain_dist.dredge.no.smooth 
+summary(SD_add.gam_DBH.terrain_dist.dredge.no.smooth)
+#the linear model seems to do the best, the GAM model with all smoothing is close behind
+
+#checking overall fit and potential issues
+par(mfrow = c(2, 2))
+gam.check(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth) #pretty normal residuals and no heterodescadisticty 
+
+#looking at significance
+summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+
+#Chosen model: SD_add.gam_DBH.terrain_dist.no.aspect
+
+#plotting the model
+par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
+plot.gam(SD_add.gam_DBH.terrain_dist, select=1, 
+         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
+plot.gam(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth, select=2, 
+         all.terms=T, xlab = "Elevation (m)", 
+         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth, select=1, 
+         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+         se = TRUE , col = "black")
+visreg(SD_add.gam_DBH.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
+       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+
+
+# 3d plotting in plotly and with gg3D
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+        type="scatter3d", mode="markers")
+
+
+#looking for interaction using tensor interaction to get interaction smooths
+SD_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+summary(SD_add.gam_DBH.inter)
+#there was no significant interaction term after checking combinations
+
+#interaction plots
+plot.gam(SD_add.gam_DBH.inter, select=1, 
+         all.terms=T, main = "s(Elevation:Distance:Slope)", 
+         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+#the interaction is not significant
+
+#overall best model: SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth 
 
 
 
