@@ -11027,6 +11027,7 @@ soil_stack_coarse_frag <- stack(coarse_frag_05_all_pop, coarse_frag_200_all_pop)
 soil_stack_cat_ex <- stack(cat_ex_cap_05_all_pop, cat_ex_cap_200_all_pop)  #stacked cation exchange capacity
 soil_stack_bulk_dens <- stack(bulk_dens_05_all_pop, bulk_dens_200_all_pop)  #stacked bulk density
 soil_stack_vol_wat_10kpa <- stack(vol_wat_10kpa_05_all_pop, vol_wat_10kpa_200_all_pop)  #stacked volume water content at 10 kpa
+soil_stack_vol_wat_33kpa <- stack(vol_wat_33kpa_05_all_pop, vol_wat_33kpa_200_all_pop)  #stacked volume water content at 33 kpa
 soil_stack_vol_wat_1500kpa <- stack(vol_wat_1500kpa_05_all_pop, vol_wat_1500kpa_200_all_pop) #stacked volume water content at 1500 kpa
 soil_stack_nitrogen <- stack(nitrogen_05_all_pop, nitrogen_200_all_pop)  #stacked volume water content at 10 kpa
 soil_stack_soc <- stack(Soil_Organic_Carbon_05_all_pop, Soil_Organic_Carbon_200_all_pop)  #stacked volume water content at 10 kpa
@@ -11047,6 +11048,7 @@ all_known_pop_soil_coarse_frag <- extract(soil_stack_coarse_frag, all_pop_locati
 all_known_pop_soil_cat_ex <- extract(soil_stack_cat_ex, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_bulk_dens <- extract(soil_stack_bulk_dens, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_vol_wat_33kpa <- extract(soil_stack_vol_wat_33kpa, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_nitrogen <- extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates)
 all_known_pop_soil_soc <- extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates)
@@ -11060,6 +11062,7 @@ all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_ocd)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_cat_ex)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_bulk_dens)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_10kpa)
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_33kpa)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_1500kpa)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_nitrogen)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_soc)
@@ -11558,6 +11561,88 @@ for (i in 1:length(random_vol_wat_10kpa_100.200_means)){ #loop that adds 1 to th
 vol_wat_10kpa_100.200_random_p.value <- (total / length(random_vol_wat_10kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
 
+#vol_wat_33kpa
+
+#extracting means from randomly selected 20 points 
+
+random_vol_wat_33kpa_0.5_means <- c() #creating empty list to collect means
+random_vol_wat_33kpa_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
+    st_as_sf()
+  random_20_pop_soil_vol_wat_33kpa <- extract(soil_stack_vol_wat_33kpa, random_20) #extracting the soil metrics for the random points
+  
+  random_vol_wat_33kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_33kpa[,1]) #storing the mean of the 0-5 value
+  random_vol_wat_33kpa_100.200_mean <- mean(random_20_pop_soil_vol_wat_33kpa[,2]) #storing the mean of the 100-200 value
+  
+  random_vol_wat_33kpa_0.5_means <- c(random_vol_wat_33kpa_0.5_means, random_vol_wat_33kpa_0.5_mean) #adding the 0-5 mean to the list of means
+  random_vol_wat_33kpa_100.200_means <- c(random_vol_wat_33kpa_100.200_means, random_vol_wat_33kpa_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points on the Baja polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+
+#storing the real means
+all_known_vol_wat_33kpa_0.5_mean <- mean(all_known_pop_soils$vol_water_0.5)
+all_known_vol_wat_33kpa_100.200_mean <- mean(all_known_pop_soils$vol_water_100.200)
+
+#for vol_wat_33kpa 0-5
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_33kpa_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_33kpa_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_33kpa 0-5 of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_vol_wat_33kpa_0.5_means <- na.omit(random_vol_wat_33kpa_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_33kpa_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_33kpa_0.5_means[i] > all_known_vol_wat_33kpa_0.5_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+vol_wat_33kpa_0.5_random_p.value <- (total / length(random_vol_wat_33kpa_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+#for vol_wat_33kpa 100-200
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_vol_wat_33kpa_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_vol_wat_33kpa_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean vol_wat_33kpa 100-200 of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_vol_wat_33kpa_100.200_means <- na.omit(random_vol_wat_33kpa_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(random_vol_wat_33kpa_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_vol_wat_33kpa_100.200_means[i] > all_known_vol_wat_33kpa_100.200_mean){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+vol_wat_33kpa_100.200_random_p.value <- (total / length(random_vol_wat_33kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
 #vol_wat_1500kpa
 
 #extracting means from randomly selected 20 points 
@@ -11735,6 +11820,8 @@ p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0
                     soc_100.200_random_p.value,
                     vol_wat_10kpa_0.5_random_p.value,
                     vol_wat_10kpa_100.200_random_p.value,
+                    vol_wat_33kpa_0.5_random_p.value,
+                    vol_wat_33kpa_100.200_random_p.value,
                     vol_wat_1500kpa_0.5_random_p.value,
                     vol_wat_1500kpa_100.200_random_p.value,
                     nitrogen_0.5_random_p.value,
@@ -11743,11 +11830,13 @@ p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0
 
 #creating empty dataframe for inputting the function into
 random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
-                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
-                                                      "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
+                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", 
+                                                 "Volume of water content -10 kpa 0-5", "Volume of water content -10 kpa 100-200",
+                                                 "Volume of water content -33 kpa 0-5", "Volume of water content -33 kpa 100-200",
+                                                       "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
                                                       "Nitrogen 0-5", "Nitrogen 100-200")),
                                  "P_Value" = p_value_random,
-                                 "Significance" = c(rep(NA, 16)))   #ifelse(p_values < 0.05, "Y", "N")
+                                 "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")
 
 #creating the significance column for the p-values
 random_pop.df <- random_pop.df %>%

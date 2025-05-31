@@ -1,10 +1,10 @@
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
-library(moments) # for caSDulating the moments of each variable
+library(moments) # for casdulating the moments of each variable
 library(sf) # for plotting spatial objects
 library(spatstat) # to run the nndist function
-library(spdep) # to use morna's I functions like lag.listw
+library(spdep) # to use Moran's I functions like lag.listw
 library(ape) # for computing the Moran's I stat
 library(raster) #to use point distance
 library(nlme) # linear mixed effect models

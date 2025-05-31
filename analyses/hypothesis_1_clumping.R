@@ -259,10 +259,10 @@ ggplot(LC_fixed_field_data_processed_box)+
 # SD
 
 #finding minimum and maximum lat and long values for SD
-SD_min_all_locality_long <- min(SD_fixed_field_data_processed$long)#*1.0002
-SD_max_all_locality_long <- max(SD_fixed_field_data_processed$long)# - (max(LM_fixed_field_data_processed$long) *.0002)
-SD_min_all_locality_lat <- min(SD_fixed_field_data_processed$lat)#*1.002
-SD_max_all_locality_lat <- max(SD_fixed_field_data_processed$lat) #- (max(LM_fixed_field_data_processed$lat)*.002)
+SD_min_all_locality_long <- min(SD_fixed_field_data_processed$long)
+SD_max_all_locality_long <- max(SD_fixed_field_data_processed$long)
+SD_min_all_locality_lat <- min(SD_fixed_field_data_processed$lat)
+SD_max_all_locality_lat <- max(SD_fixed_field_data_processed$lat) 
 
 #plotting the BCS SD polygon with the tree points
 ggplot(data = BCS_polygon) +
