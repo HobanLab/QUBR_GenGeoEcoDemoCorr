@@ -380,8 +380,8 @@ plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Rip
 LC_win_convex <- as.owin(river_LC_convex_hull) #turning the convex hull into a window
 LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win_convex) #creating the poisson point pattern for lm
 plot(LC_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
-LC_k <- Kest(LC_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
-plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
+LC_k_convex <- Kest(LC_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
+plot(LC_k_convex, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 # Buffer River
 LC_win_buffer <- as.owin(river_buffer_LC) #turning the buffer into a window
@@ -398,6 +398,8 @@ title(ylab = bquote(italic("K(r), La Cobriza trees")), cex = 1.2, line = 4)
 title(xlab = bquote(italic("r (m)")),)
 
 #Ripley's K for SD
+
+# Bounding Box
 SD_win <- as.owin(SD_fixed_field_data_processed_box) #turning the box into a window
 SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win) #creating the poisson point pattern for lm
 plot(SD_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
@@ -814,7 +816,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_LC){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -856,7 +858,7 @@ as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p){
+  if (ann.r[i] < ann.p_LC){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN

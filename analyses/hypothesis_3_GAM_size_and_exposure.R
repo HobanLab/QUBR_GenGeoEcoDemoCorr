@@ -1,4 +1,4 @@
-#After having trouble with multiple linear rgressions because of issues 
+#After having trouble with multiple linear regressions because of issues 
 #with the normality conditions and some nervousness about linearity. 
 #We decided to use Generalized Additive Models (GAMs)
 
