@@ -254,9 +254,30 @@ ggplot(data=MC_local.df)+
   ylab("Expected Moran's I Statistic")
 
 #calculating the p-values for each individual tree Moran's I, observed vs. expected
-fixed_field_data_processed_NN_UTM$p  <- MC_local.df$`Pr(folded) Sim`
+fixed_field_data_processed_NN_UTM$p.canopy.long  <- MC_local.df$`Pr(folded) Sim`
 
-length(which(fixed_field_data_processed_NN_UTM$p < 0.05))
+#adjusting the p-vlaues to take into account multiple tests
+LM_fixed_field_data_processed$p.canopy.long.adjusted <- p.adjust(LM_fixed_field_data_processed$p.canopy.long, 
+                                                                  method = "fdr", n=length(LM_fixed_field_data_processed$p.canopy.long))
+
+#representing the p-values of the points on a map
+LM_box <- st_bbox(river_LM_trans)
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  mutate(pval_sig = p.canopy.long.adjusted <= .05)
+
+#Number of trees with significant adjusted Moran's I
+length(which(LM_fixed_field_data_processed$p.canopy.long.adjusted < 0.05))
+
+#filtering out significant p-values
+LM_fixed_field_data_processed_sign <- LM_fixed_field_data_processed %>%
+  filter(pval_sig == T)
+
+ggplot() +
+  geom_sf(data =river_LM_trans) +
+  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.long.adjusted)) +
+  geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
+  coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
+  labs(color = "Adjusted P Value for SCA")
 
 ###Test for LM###
 
@@ -360,10 +381,6 @@ ggplot() +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   xlim(c(585700.6, 585903.6))+
   ylim(c(2654803,2654983))
-max(LM_fixed_field_data_processed$X.1)
-max(LM_fixed_field_data_processed$Y)
-
-#looking at whether similarity is larger or smaller values 
 
 
 ###Long Canopy Axis
@@ -444,6 +461,7 @@ Moran.I(LM_fixed_field_data_processed$Crown_spread, LM.tree.dist.inv)
 
 #creating lags for each tree, which computes the average neighboring crown spread for each tree
 LM_fixed_field_data_processed$lag.crown.spread <- lag.listw(lw.dist.LM, LM_fixed_field_data_processed$Crown_spread)
+
 # Create a regression model of the lagged response variable (average amongst closest trees) vs. the known response variable 
 M.LM.crown.spread <- lm(lag.crown.spread ~ Crown_spread, LM_fixed_field_data_processed)
 
@@ -465,7 +483,7 @@ MC.LM.crown.spread
 
 #plot of simulated Moran's I values against our value
 plot(MC.LM.crown.spread, main="", las=1, xlab = "Crown Spread")
-MC.LM.crown.spread$p.value #extracting the pvalue
+MC.LM.crown.spread$p.value #extracting the p-value
 
 #Local Moran's I 
 

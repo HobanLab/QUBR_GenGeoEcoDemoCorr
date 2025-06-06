@@ -618,7 +618,6 @@ river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns t
 river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
 plot(river_buffer_LM_point_raster)
 
-
 #making a stars object of the distances of each cell in the buffer raster from the river edge points
 river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
 dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
