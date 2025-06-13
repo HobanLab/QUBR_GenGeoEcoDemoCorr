@@ -4,8 +4,8 @@
 
 #This script is for investigating whether Quercus brandegeei seeds are predominantly dispersed either by heavy rainfall or gravity, 
 #which may impact both the spatial distribution and the genetic structure of a given population. 
-  #If they were dispersed by heavy rainfall, we would expect more dispersal than at random. 
-  #If they were dispersed by gravity, we would expect more clumping of trees than at random. 
+#If they were dispersed by heavy rainfall, we would expect more dispersal than at random. 
+#If they were dispersed by gravity, we would expect more clumping of trees than at random. 
 #To test this, we used a Ripley's K and compared the known tree locations to randomly generated locations
 #produced in convex hulls, the river shapefiles, and buffers around the river 
 #(all three were attempted seperately and compared) to determine whether the 
@@ -22,11 +22,11 @@
 #points distribution.
 
 # The script is broken into sections of 
-        #1) loading and processing the packages and spatial data for the trees in the Las Matancitas,
+#1) loading and processing the packages and spatial data for the trees in the Las Matancitas,
 #San Dionisio, and La Cobriza populations, 
-        #2) running the Ripley's K analysis, 
-        #3) running the Average Nearest Neighber (ANN) analysis,
-        #4) running the Poisson Point Model Analysis. 
+#2) running the Ripley's K analysis, 
+#3) running the Average Nearest Neighber (ANN) analysis,
+#4) running the Poisson Point Model Analysis. 
 
 
 #### Loading libraries and relevant data ####
@@ -317,16 +317,16 @@ ggplot(river_SD_convex_hull)+
 ## Calculating the Ripley's K ##
 
 # For all Ripley's K:
-  # 1) Turn the bounding box into a window object
-  # 2) Create the Poisson Point Pattern within the window (a randomized version of the point locations)
-  # 3) Calculate the Ripley's K function (Kest), using the Ripley's correction (edge correction)
-  # 4) Plot the Ripley's K function output. Dotted red line is the randomized point locations. 
-        # r is the distance from a center point (radius)
-        # K(r) is the expected number of random points within the radius of a point
-        # If the K(r) of our known points (black line) is lower than the randomized points (red line) than the points are more 
-              #dispersed than expected at random
-        # If the K(r) of our known points (black line) is higher than the randomized points (red line) than the points are more 
-              #clustered than expected at random
+# 1) Turn the bounding box into a window object
+# 2) Create the Poisson Point Pattern within the window (a randomized version of the point locations)
+# 3) Calculate the Ripley's K function (Kest), using the Ripley's correction (edge correction)
+# 4) Plot the Ripley's K function output. Dotted red line is the randomized point locations. 
+# r is the distance from a center point (radius)
+# K(r) is the expected number of random points within the radius of a point
+# If the K(r) of our known points (black line) is lower than the randomized points (red line) than the points are more 
+#dispersed than expected at random
+# If the K(r) of our known points (black line) is higher than the randomized points (red line) than the points are more 
+#clustered than expected at random
 
 # All points
 
@@ -435,12 +435,12 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 #### ANN Analysis (test for clustering/dispersion) ####
 
 # For all ANN Analyses (for each population and for convex hulls/buffers/and river shapefiles):
-  # 1) Find Average Nearest Neighbor Value for the trees of a population
-  # 2) Simulate a randomized distribution of points, calculate and store the average nearest neighbor, 599 times
-  # 3) Make sure the randomized points have the correct coordinate reference system for mapping
-  # 4) Plot the Randomized Points, convex hukk, and river shapefile
-  # 5) Plot the histogram of simulated randomized average nearest neighbor values with a line for the actuall ANN value
-  # 6) Calculate and store the p-value 
+# 1) Find Average Nearest Neighbor Value for the trees of a population
+# 2) Simulate a randomized distribution of points, calculate and store the average nearest neighbor, 599 times
+# 3) Make sure the randomized points have the correct coordinate reference system for mapping
+# 4) Plot the Randomized Points, convex hull, and river shapefile
+# 5) Plot the histogram of simulated randomized average nearest neighbor values with a line for the actuall ANN value
+# 6) Calculate and store the p-value 
 
 # The convex hull windows were used because they produced the most close to the original point distances as possible.
 
@@ -449,153 +449,10 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 # When the average nearest neighbor is to the left of the histogram the points are more clustered than expected at random
 # When the average nearest neighbor is to the right of the histogram the points are more dispersed than expected at random
 
-## Convex Hull
 
-# LM
+# creating the river rasters for the ANN analysis 
 
- #calculating the average nearest neighbor value for the entire population of trees
-ann.p_LM <- mean(nndist(LM_ppp, k=1))
-ann.p_LM
-
-#simulation to create a list of ANN from randomly placed points
-n <- 566L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), win = river_LM_convex_hull) # generating the random points within the convex hull window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the number of points at LM, it assigns a random point within the convex hull window
-plot(rand.p) #plotting the random points
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and the river
-ggplot()+ 
-  geom_sf(data=river_LM_trans)+ #plotting the river
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#creating a histogram of the ANN Simulation Results
-as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
-  ggplot()+
-    geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
-    xlim(range(ann.p, ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
-    geom_vline(xintercept=ann.p, col = "red") + #adds a verticle line of our tree'\s' ANN
-    xlab("ANN")+
-  theme_classic()
-
-
-# LC
-
-#assigning average nearest neighbor values for the entire population of trees
-ann.p_LC <- mean(nndist(LC_ppp, k=1))
-ann.p_LC
-
-#simulation to create a list of ANN from randomly placed points
-n <- 566L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){
-  rand.p <- rpoint(n=length(LC_fixed_field_data_processed_sf), win = river_LC_convex_hull) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the convex hull window
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and the river
-ggplot()+ 
-  geom_sf(data=river_LC_trans)+ #plotting the river 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-
-#creating a histogram of the ANN Simulation Results
-as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
-  xlim(range(ann.p_LC, ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
-  geom_vline(xintercept=ann.p_LC, col = "red") + #adds a verticle line of our tree's ANN
-  xlab("ANN")+
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (ann.r[i] < ann.p_LC){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-# SD
-
-#assigning average nearest neighbor values for the entire population of trees
-ann.p_SD <- mean(nndist(SD_ppp, k=1))
-ann.p_SD
-
-#simulation to create a list of ANN from randomly placed points
-n <- 566L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){
-  rand.p <- rpoint(n=length(SD_fixed_field_data_processed_sf), win = river_SD_convex_hull) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the convex hull window
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and the river
-ggplot()+ 
-  geom_sf(data=river_SD_trans)+ #plotting the river edge raster
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#creating a histogram of the ANN Simulation Results
-as_tibble(ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
-  xlim(range(ann.p_SD, ann.r)) + #sets the limit of the x-axis to encompass the ANN for our trees and histogram of ANNs from the simulation
-  geom_vline(xintercept=ann.p_SD, col = "red") + #adds a verticle line of our tree's ANN
-  xlab("ANN")+
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (ann.r[i] < ann.p_SD){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-#### ANN Analysis (test for clustering/dispersion) while controlling for the river ####
-
-# The steps for this ANN are the same as previously, except we use three different versions of the windows in which we generate random points
-# with varying levels of control for the river to see if the points still seem significantly clustered despite the 
-# presence of the rivers (similar to the PPM analysis later).
-
-# The three ways of controlling for the river include 
-    # a) controlling for the river border (using a river multipoint raster window), 
-    # b) controlling for on, inside, and around the river (using an inverse distance raster window), and 
-    # c) controlling for on and inside the river (using a raster of the river window)
-
-
-# To do this, we add new steps in the beginning 
-  # 1) Create rasters of the river shapefile, river buffer, and create a raster with the inverse distances of 
-        #each cell to the river shapefile (closer cells are weighted higher)
-        #cells within a certain distance of the river equal 1 and the other points equals 1/distance
-  # 2) Run the simulations whereby the windows either use the river border raster, the inverse distance raster where 
-        #the randomized points are placed more likely based on the raster or the higher cell weights, and the river polygon raster
-
-###  LM
+#LM
 
 # creating the rasters that will be used for point generation later
 
@@ -613,7 +470,7 @@ plot(river_buffer_LM_point_raster)
 river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
 dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
 dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_LM_inverse)
+plot(LM_fixed_field_data_processed_sf)
 
 #creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
@@ -623,131 +480,7 @@ dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a n
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_LM_inverse)
 
-
-## Version of ANN analysis controlling for the river with just the river multipoint 
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), f = as.im(river_LM_trans_point_raster)) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point on top of the river's edge while controlling for the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and probability/distance raster
-ggplot()+ 
-  geom_stars(data=river_LM_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs$geom, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_LM, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LM, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LM){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-
-## Version of ANN analysis controlling for the river with inside, on, and outside the river
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf),
-                   f = as.im(dist_near_river_buffer_LM_inverse)) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the distance raster while controlling for distance to the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and probability/distance raster
-ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_LM_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_LM, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LM, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LM){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-
-## Version of ANN analysis controlling for the river with on and inside the river 
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LM_fixed_field_data_processed_sf), f = as.im(st_rasterize(river_LM_trans))) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the raster while controlling for the river
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and river raster
-ggplot()+ 
-  geom_stars(data=st_rasterize(river_LM_trans))+ #plotting the river raster 
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_LM, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LM, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LM){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-### LC
+#LC
 
 #turning river polygon into multipoints and then into a raster for using them to calculate the distances
 river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
@@ -772,132 +505,7 @@ dist_near_river_buffer_LC_inverse <- dist_near_river_buffer_LC %>% #creating a n
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_LC_inverse)
 
-## Version of ANN analysis controlling for the river with just the river multipoint 
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LC_fixed_field_data_processed_sf), f = as.im(river_LC_trans_point_raster)) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point on top of the river's edge while controlling for the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and probability/distance raster
-ggplot()+ 
-  geom_stars(data=river_LC_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_LC, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LC, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LC){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-
-## Version of ANN analysis controlling for the river with inside, on, and outside the river
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LC_fixed_field_data_processed_sf),
-                   f = as.im(dist_near_river_buffer_LC_inverse)) # generating the random points within the window
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the distance raster while controlling for distance to the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and probability/distance raster
-ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_LC_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_LC, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LC, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LC){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-
-## Version of ANN analysis controlling for the river with on and inside the river 
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(LC_fixed_field_data_processed_sf), f = as.im(st_rasterize(river_LC_trans))) #dist_near_river_buffer_LM_inverse 
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the raster while controlling for the river
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#plotting the randomly generated points, tree points, and river raster
-ggplot()+ 
-  geom_stars(data=st_rasterize(river_LC_trans))+ #plotting the river raster 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
-#graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
-  xlim(range(ann.p_LC, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_LC, col = "red", size = 1.2) + #plotting our tree's mean ANN
-  xlab("Average Nearest Neighbor (ANN)") +
-  theme_classic()+
-  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15))
-
-#calculating pseudo p-value for the disperse mean ANN value
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_LC){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-###test for SD
+#SD
 
 #turning river polygon into multipoints and then into a raster for using them to calculate the distances
 river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
@@ -922,146 +530,379 @@ dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a n
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_SD_inverse)
 
+#creating ANN Analysis function
+
+ANN_analysis <- function(population, window) {
+  if (population == "LM") {
+    ppp <- LM_ppp #assigning poisson point pattern 
+    dataframe <- LM_fixed_field_data_processed_sf #assigning dataframe
+
+    #window selection
+    if (window == "Convex Hull"){ #ANN without controlling for river
+      selected_window <- river_LM_convex_hull
+    } else if (window == "Just River"){ #ANN with controlling for river
+      selected_window <- river_LM_trans_point_raster
+    } else if (window == "Inside, On, and Outside River"){
+      selected_window <- dist_near_river_buffer_LM_inverse
+    } else if (window == "On and Inside River"){
+      selected_window <- st_rasterize(river_LM_trans)
+    }
+  }
+  
+  if (population == "LC") {
+    ppp <- LC_ppp #assigning poisson point model
+    dataframe <- LC_fixed_field_data_processed_sf #assigning dataframe
+    
+    #window selection
+    if (window == "Convex Hull"){ #ANN without controlling for river
+      selected_window <- river_LC_convex_hull
+    } else if (window == "Just River"){ #ANN with controlling for river
+      selected_window <- river_LC_trans_point_raster
+    } else if (window == "Inside, On, and Outside River"){
+      selected_window <- dist_near_river_buffer_LC_inverse
+    } else if (window == "On and Inside River"){
+      selected_window <- st_rasterize(river_LC_trans)
+    }
+  }
+  
+  if (population == "SD") {
+    ppp <- SD_ppp #assigning poisson point pattern
+    dataframe <- SD_fixed_field_data_processed_sf #assigning dataframe
+
+    #ANN without controlling for river
+    if (window == "Convex Hull"){
+      selected_window <- river_SD_convex_hull
+    } else if (window == "Just River"){ #ANN with controlling for river
+      selected_window <- river_SD_trans_point_raster
+    } else if (window == "Inside, On, and Outside River"){
+      selected_window <- dist_near_river_buffer_SD_inverse
+    } else if (window == "On and Inside River"){
+      selected_window <- st_rasterize(river_SD_trans)
+    }
+  }
+  
+  #calculating the average nearest neighbor value for the entire population of trees
+  ann.p <- mean(nndist(ppp, k=1))
+  ann.p
+  
+  #simulating the random points and caluclating the average nearest neighbor for each 566 permutations
+  if (window == "Convex Hull"){ 
+    #simulation to create a list of ANN from randomly placed points
+    n <- 566L #defines the number of simulations
+    ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
+    for (i in 1:n){
+      rand.p <- rpoint(n=length(dataframe), win = as.owin(selected_window)) # generating the random points within the convex hull window
+      ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
+    } #for the number of points at LM, it assigns a random point within the convex hull window
+  } else { 
+    #ANN analysis controlling for river
+    n <- 599L #defines the number of simulations
+    ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
+    for (i in 1:n){ 
+      rand.p <- rpoint(n=length(dataframe), f = as.im(selected_window)) # generating the random points within the window
+      ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
+    } #for the length of the number of points at LM, it assigns a random point on top of the river's edge while controlling for the river's edge
+  }
+  
+  #adding the UTM 12 crs to rand.p
+  rand.p.crs <- rand.p %>% 
+    st_as_sf()%>%
+    st_set_crs(26912)
+  
+  #calculating pseudo p-value for 
+  total = 0  #set empty vaue
+  for (i in 1:length(ann.r)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+    if (ann.r[i] < ann.p){
+      total = total + 1
+    }
+  } #add number of values of in the random set of ANN values that are less than our mean ANN
+  p_value <- total / length(ann.r)
+  
+  plot(rand.p)
+  print(paste0("Average Nearest Neighbor for Original Trees: ", ann.p))
+  print(paste0("P-Value: ", p_value))
+  return(list(random_points = rand.p.crs, observed_ANN = ann.p, ann.r = ann.r, p.value = p_value)) #the proportion of random ANNs that are less than our ANN (p-value)
+  
+}
+
+## Convex Hull
+
+# LM
+
+LM_ANN_Anlysis <- ANN_analysis("LM", "Convex Hull")
+LM_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and the river
+ggplot()+ 
+  geom_sf(data=river_LM_trans)+ #plotting the river
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_ANN_Anlysis$random_points, fill = NA) #plotting the random points
+
+#creating a histogram of the ANN Simulation Results
+as_tibble(LM_ANN_Anlysis$ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
+  xlim(range(LM_ANN_Anlysis$observed_ANN, LM_ANN_Anlysis$ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
+  geom_vline(xintercept=LM_ANN_Anlysis$observed_ANN, col = "red") + #adds a verticle line of our tree'\s' ANN
+  xlab("ANN")+
+  theme_classic()
+
+# LC
+
+LC_ANN_Anlysis <- ANN_analysis("LC", "Convex Hull")
+LC_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and the river
+ggplot()+ 
+  geom_sf(data=river_LC_trans)+ #plotting the river 
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_ANN_Anlysis$random_points, fill = NA) #plotting the random points
+
+#creating a histogram of the ANN Simulation Results
+as_tibble(LC_ANN_Anlysis$ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
+  xlim(range(LC_ANN_Anlysis$observed_ANN, LC_ANN_Anlysis$ann.r)) + #sets the limit of the xaxis to encompass the ANN for our trees and histogram of ANNs from the simulation
+  geom_vline(xintercept=LC_ANN_Anlysis$observed_ANN, col = "red") + #adds a verticle line of our tree's ANN
+  xlab("ANN")+
+  theme_classic()
+
+# SD
+
+SD_ANN_Anlysis <- ANN_analysis("SD", "Convex Hull")
+SD_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and the river
+ggplot()+ 
+  geom_sf(data=river_SD_trans)+ #plotting the river edge raster
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_ANN_Anlysis$random_points, fill = NA) #plotting the random points
+
+#creating a histogram of the ANN Simulation Results
+as_tibble(SD_ANN_Anlysis$ann.r) %>%  #turns the list of ann values from the simulations of random points and turns it into a tibble/dataframe
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) +
+  xlim(range(SD_ANN_Anlysis$observed_ANN, SD_ANN_Anlysis$ann.r)) + #sets the limit of the x-axis to encompass the ANN for our trees and histogram of ANNs from the simulation
+  geom_vline(xintercept=SD_ANN_Anlysis$observed_ANN, col = "red") + #adds a verticle line of our tree's ANN
+  xlab("ANN")+
+  theme_classic()
+
+#### ANN Analysis (test for clustering/dispersion) while controlling for the river ####
+
+# The steps for this ANN are the same as previously, except we use three different versions of the windows in which we generate random points
+# with varying levels of control for the river to see if the points still seem significantly clustered despite the 
+# presence of the rivers (similar to the PPM analysis later).
+
+# The three ways of controlling for the river include 
+# a) controlling for the river border (using a river multipoint raster window), 
+# b) controlling for on, inside, and around the river (using an inverse distance raster window), and 
+# c) controlling for on and inside the river (using a raster of the river window)
+
+
+# To do this, we add new steps in the beginning 
+# 1) Create rasters of the river shapefile, river buffer, and create a raster with the inverse distances of 
+#each cell to the river shapefile (closer cells are weighted higher)
+#cells within a certain distance of the river equal 1 and the other points equals 1/distance
+# 2) Run the simulations whereby the windows either use the river border raster, the inverse distance raster where 
+#the randomized points are placed more likely based on the raster or the higher cell weights, and the river polygon raster
+
+###  LM
+
 ## Version of ANN analysis controlling for the river with just the river multipoint 
-
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(SD_fixed_field_data_processed_sf), f = as.im(river_SD_trans_point_raster)) 
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point on top of the river's edge while controlling for the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
-
-#assigning average nearest neighbor values for the entire population of trees
-ann.p_SD <- mean(nndist(SD_ppp, k=1))
-ann.p_SD
+LM_ANN_Anlysis_river <- ANN_analysis("LM", "Just River")
+LM_ANN_Anlysis_river #first index is the ANN value, the second is the left-tailed p-value
 
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
-  geom_stars(data=river_SD_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
+  geom_stars(data=river_LM_trans_point_raster)+ #plotting the river edge raster
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_ANN_Anlysis_river$random_points$geom, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
+as_tibble(LM_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_SD, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_SD, col = "red") + #plotting our tree's mean ANN
+  xlim(range(LM_ANN_Anlysis_river$observed_ANN, LM_ANN_Anlysis_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LM_ANN_Anlysis_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
   xlab("ANN") +
   theme_classic()
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_SD){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
 
 ## Version of ANN analysis controlling for the river with inside, on, and outside the river
 
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(SD_fixed_field_data_processed_sf),
-                   f = as.im(dist_near_river_buffer_SD_inverse)) #dist_near_river_buffer_LM_inverse #forcewin = T, win=as.owin(river_LM_convex_hull)
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the distance raster while controlling for distance to the river's edge
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
+LM_ANN_Anlysis_inside_on_outside_river <- ANN_analysis("LM", "Inside, On, and Outside River")
+LM_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second is the left-tailed p-value
 
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_SD_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA)+ #plotting the random points
-  labs(color = "Trees", fill = "Inverse Distance (m)")
-  
-  
+  geom_stars(data=dist_near_river_buffer_LM_inverse)+ #plotting the distance inverse raster 
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
+
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
+as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
-  xlim(range(ann.p_SD, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_SD, col = "red") + #plotting our tree's mean ANN
+  xlim(range(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, LM_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
   xlab("ANN") +
   theme_classic()
 
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_SD){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
-
-
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
-#ANN analysis controlling for river
-n <- 599L #defines the number of simulations
-ann.r <- vector(length = n) #creates the empty object that we can store ANN values in
-for (i in 1:n){ 
-  rand.p <- rpoint(n=length(SD_fixed_field_data_processed_sf), f = as.im(st_rasterize(river_SD_trans))) #assigns a random point for the number of trees in SD favoring placements in the river raster
-  ann.r[i] <- mean(nndist(rand.p, k=1)) #for each simulated random distribution of points it calculates the mean ANN across all of the trees
-} #for the length of the number of points at LM, it assigns a random point within the raster while controlling for the river
-plot(rand.p)
-
-#adding the UTM 12 crs to rand.p
-rand.p.crs <- rand.p %>% 
-  st_as_sf()%>%
-  st_set_crs(26912)
+LM_ANN_Anlysis_on_inside_river <- ANN_analysis("LM", "On and Inside River")
+LM_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the left-tailed p-value
 
 #plotting the randomly generated points, tree points, and river raster
 ggplot()+ 
-  geom_stars(data=st_rasterize(river_SD_trans))+ #plotting the river raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
+  geom_stars(data=st_rasterize(river_LM_trans))+ #plotting the river raster 
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
 
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
+as_tibble(LM_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  xlim(range(LM_ANN_Anlysis_on_inside_river$observed_ANN, LM_ANN_Anlysis_on_inside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LM_ANN_Anlysis_on_inside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("ANN") +
+  theme_classic()
 
+### LC
+
+## Version of ANN analysis controlling for the river with just the river multipoint 
+LC_ANN_Anlysis_river <- ANN_analysis("LC", "Just River")
+LC_ANN_Anlysis_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and probability/distance raster
+ggplot()+ 
+  geom_stars(data=river_LC_trans_point_raster)+ #plotting the river edge raster
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_ANN_Anlysis_river$random_points, fill = NA) #plotting the random points
+
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
+as_tibble(LC_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  xlim(range(LC_ANN_Anlysis_river$observed_ANN, LC_ANN_Anlysis_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(LC_ANN_Anlysis_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("ANN") +
+  theme_classic()
+
+## Version of ANN analysis controlling for the river with inside, on, and outside the river
+
+LC_ANN_Anlysis_inside_on_outside_river <- ANN_analysis("LC", "Inside, On, and Outside River")
+LC_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and probability/distance raster
+ggplot()+ 
+  geom_stars(data=dist_near_river_buffer_LC_inverse)+ #plotting the distance inverse raster 
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
+
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
+as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  xlim(range(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, LC_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("ANN") +
+  theme_classic()
+
+## Version of ANN analysis controlling for the river with on and inside the river 
+
+LC_ANN_Anlysis_on_inside_river <- ANN_analysis("LC", "On and Inside River")
+LC_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and river raster
+ggplot()+ 
+  geom_stars(data=st_rasterize(river_LC_trans))+ #plotting the river raster 
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
+
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
-  xlim(range(ann.p_SD, ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=ann.p_SD, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlim(range(LC_ANN_Anlysis_on_inside_river$observed_ANN, LC_ANN_Anlysis_on_inside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LC_ANN_Anlysis_on_inside_river$observed_ANN, col = "red", size = 1.2) + #plotting our tree's mean ANN
   xlab("Average Nearest Neighbor (ANN)") +
   theme_classic()+
   theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
         axis.title.y =element_text(size= 15))
 
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(ann.r)){
-  if (ann.r[i] < ann.p_SD){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-(total / length(ann.r)) #the proportion of random ANNs that are less than our ANN
+###test for SD
+
+## Version of ANN analysis controlling for the river with just the river multipoint 
+
+SD_ANN_Anlysis_river <- ANN_analysis("SD", "Just River")
+SD_ANN_Anlysis_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and probability/distance raster
+ggplot()+ 
+  geom_stars(data=river_SD_trans_point_raster)+ #plotting the river edge raster
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_ANN_Anlysis_river$random_points, fill = NA) #plotting the random points
+
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
+as_tibble(SD_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  xlim(range(SD_ANN_Anlysis_river$observed_ANN, SD_ANN_Anlysis_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=SD_ANN_Anlysis_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("ANN") +
+  theme_classic()
+
+## Version of ANN analysis controlling for the river with inside, on, and outside the river
+
+SD_ANN_Anlysis_inside_on_outside_river <- ANN_analysis("SD", "Inside, On, and Outside River")
+SD_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and probability/distance raster
+ggplot()+ 
+  geom_stars(data=dist_near_river_buffer_SD_inverse)+ #plotting the distance inverse raster 
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA)+ #plotting the random points
+  labs(color = "Trees", fill = "Inverse Distance (m)")
+
+#graphing the histogram of simulated ANN values and the mean ANN from our trees
+as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("ANN") +
+  theme_classic()
+
+## Version of ANN analysis controlling for the river with on and inside the river 
+
+SD_ANN_Anlysis_on_inside_river <- ANN_analysis("SD", "On and Inside River")
+SD_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the left-tailed p-value
+
+#plotting the randomly generated points, tree points, and river raster
+ggplot()+ 
+  geom_stars(data=st_rasterize(river_SD_trans))+ #plotting the river raster 
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
+
+as_tibble(SD_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(SD_ANN_Anlysis_on_inside_river$observed_ANN, SD_ANN_Anlysis_on_inside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=SD_ANN_Anlysis_on_inside_river$observed_ANN, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Average Nearest Neighbor (ANN)") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15))
 
 #### PPM analysis ####
 
 # for every PPM analysis 
 
-  # 1) generate an image object of inverse distance raster 
-  # 2) create the Poisson Point Model using ppm() function with the river influencing the location of the points (Alternative Hypothesis Model)
-  # 3) create the Poisson Point Model using ppm() function with the river not influencing the location of the points (Null Hypothesis Model)
-  # 4) Use an ANOVA likelihood Ratio Test to compare the Alternate and Null hypotheses
-  # 5) Plot the influence of the river as the distance to the river decreases (inverse distance)
+# 1) generate an image object of inverse distance raster 
+# 2) create the Poisson Point Model using ppm() function with the river influencing the location of the points (Alternative Hypothesis Model)
+# 3) create the Poisson Point Model using ppm() function with the river not influencing the location of the points (Null Hypothesis Model)
+# 4) Use an ANOVA likelihood Ratio Test to compare the Alternate and Null hypotheses
+# 5) Plot the influence of the river as the distance to the river decreases (inverse distance)
 
 #Test for LM
 
@@ -1102,9 +943,6 @@ anova(PPM0, PPM1, test="LRT")
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im", se.fit = TRUE), main = "Distance to River of La Cobriza",
      ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
-
-
-
 
 #Test for SD
 

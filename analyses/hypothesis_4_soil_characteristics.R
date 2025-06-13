@@ -11724,7 +11724,6 @@ for (i in 1:length(random_vol_wat_1500kpa_100.200_means)){ #loop that adds 1 to 
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 vol_wat_1500kpa_100.200_random_p.value <- (total / length(random_vol_wat_1500kpa_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
-
 #nitrogen
 
 #extracting means from randomly selected 20 points 
@@ -11828,6 +11827,10 @@ p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0
                     nitrogen_100.200_random_p.value
 )
 
+# Bonferroni correcting for multiple testing
+p_bonf_corrected <- p.adjust(p_value_random, method = "bonferroni")
+p_bonf_corrected
+
 #creating empty dataframe for inputting the function into
 random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
                                                       "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", 
@@ -11835,13 +11838,13 @@ random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", 
                                                  "Volume of water content -33 kpa 0-5", "Volume of water content -33 kpa 100-200",
                                                        "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
                                                       "Nitrogen 0-5", "Nitrogen 100-200")),
-                                 "P_Value" = p_value_random,
+                                 "P_Value" = p_bonf_corrected,
                                  "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")
 
 #creating the significance column for the p-values
 random_pop.df <- random_pop.df %>%
-  mutate(Significance = case_when(p_value_random < 0.05 ~ "Y",
-                                  p_value_random >= 0.05 ~ "N"))
+  mutate(Significance = case_when(p_bonf_corrected < 0.05 ~ "Y",
+                                  p_bonf_corrected >= 0.05 ~ "N"))
 
 #labeled p-values
 ggplot(aes(x = Shape.Size, y = Significance, fill = P_Value), data = random_pop.df) +

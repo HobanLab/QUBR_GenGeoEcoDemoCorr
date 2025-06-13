@@ -390,7 +390,7 @@ SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance
   mutate(Crown_spread_inv = (1/Crown_spread))%>%
   mutate(DBH_ag_inv = (1/DBH_ag))
 
-
+plot(CEM_15_utm_SD)
 
 #Importing the cropped rasters for LM, LC, and SD
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
@@ -1466,7 +1466,7 @@ gam.check(LC_add.gam_CA.terrain_dist.dredge.no.slope) #pretty normal residuals a
 #looking at significance
 summary(LC_add.gam_CA.terrain_dist.dredge.no.slope)
 
-#Chosen model: LC_add.gam_CA.terrain_dist.no.aspect
+#Chosen model: LC_add.gam_CA.terrain_dist.dredge.no.slope
 
 #plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
@@ -1642,7 +1642,7 @@ summary(LC_add.gam_DBH.terrain_dist.dredge.no.smooth)
 
 #comparing the models 
 AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.only.distance, LC_add.gam_DBH.terrain_dist.dredge.just.dist.smooth, LC_add.gam_DBH.terrain_dist.dredge.no.smooth)
-#LC_add.gam_DBH.terrain_dist.no.aspect has lowest AIC
+#LC_add.gam_DBH.terrain_dist.dredge.no.smooth has lowest AIC
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_DBH.terrain_dist.dredge.no.smooth 
 summary(LC_add.gam_DBH.terrain_dist)
@@ -1655,7 +1655,7 @@ gam.check(LC_add.gam_DBH.terrain_dist) #pretty normal residuals and no heterodes
 #looking at significance
 summary(LC_add.gam_DBH.terrain_dist)
 
-#Chosen model: LC_add.gam_DBH.terrain_dist.no.aspect
+#Chosen model: LC_add.gam_DBH.terrain_dist
 
 #plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
@@ -1723,6 +1723,7 @@ SD_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.) + s(SD
                                    data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
+
 #slope has significant non-linear function 
 
 #dredging the gam to see which variables to keep
@@ -1779,7 +1780,7 @@ gam.check(SD_add.gam_SCA.terrain_dist.no.aspect) #pretty normal residuals and no
 #looking at significance
 summary(SD_add.gam_SCA.terrain_dist.no.aspect)
 
-#Chosen model: SD_add.gam_SCA.terrain_dist.dredge
+#Chosen model: SD_add.gam_SCA.terrain_dist.no.aspect
 
 #plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
@@ -1862,7 +1863,7 @@ par(mfrow = c(2, 2))
 gam.check(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist) #pretty normal residuals and no heterodescadisticty 
 
 #looking at significance
-summary(SD_add.gam_LCA.terrain_dist)
+summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
 
 #Chosen model: SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist
 
@@ -2036,20 +2037,20 @@ summary(SD_add.gam_CS.terrain_dist.no.dist)
 
 #comparing the models
 AIC(SD_add.gam_CS.terrain_dist, SD_add.gam_CS.terrain_dist.no.dist.smooth, SD_add.gam_CS.terrain_dist.no.dist)
-#SD_add.gam_CS.terrain_dist has lowest AIC, but none are significantlt better than the others
+#SD_add.gam_CS.terrain_dist.no.dist has lowest AIC, but none are significantlt better than the others
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_CS.terrain_dist.no.aspect 
-summary(SD_add.gam_CS.terrain_dist)
+summary(SD_add.gam_CS.terrain_dist.no.dist)
 #but all models seem to do similarly well
 
 #checking overall fit and potential issues
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_CS.terrain_dist) #pretty normal residuals and no heterodescadisticty 
+gam.check(SD_add.gam_CS.terrain_dist.no.dist) #pretty normal residuals and no heterodescadisticty 
 
 #looking at significance
-summary(SD_add.gam_CS.terrain_dist)
+summary(SD_add.gam_CS.terrain_dist.no.dist)
 
-#Chosen model: SD_add.gam_CS.terrain_dist.no.aspect
+#Chosen model: SD_add.gam_CS.terrain_dist.no.dist
 
 #plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
@@ -2139,7 +2140,7 @@ gam.check(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth) #pretty nor
 #looking at significance
 summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
 
-#Chosen model: SD_add.gam_DBH.terrain_dist.no.aspect
+#Chosen model: SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth
 
 #plotting the model
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))

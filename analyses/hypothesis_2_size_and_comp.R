@@ -37,7 +37,7 @@ library(raster) #to use point distance
 library(nlme) # linear mixed effect models
 library(MuMIn) #to be able to use model.sel for fitting linear models with spatial autocorrelation
 library(geoR) # to be able to use variograms with the lme, requires XQuartz from 
-library(Kendall)# to use the Mann-Kendall test to look for non-parametric correlations in the data
+library(Kendall)# to use the Kendall's Tau test to look for non-parametric correlations in the data
 
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
@@ -1419,9 +1419,9 @@ length(which(SD_fixed_field_data_processed$p.dbh.ag.adjusted <0.05))
 
 #### Linear Model ####
 
-# To see if trees that face more competition (they face closer and larger trees) are smaller, for each populatio,
+# To see if trees that face more competition (they face closer and larger trees) are smaller, for each population,
       # 1) we create a bounding box around the points and then cropped the bounding box of the points by 20 m on all sides to avoid edge effects
-      # 2) randomly select a tree (focal tree) from each grid cell with a tree in it
+      # 2) randomly select a tree (focal tree) from each grid cell (width/lenth of 40*mean DBH) with a tree in it
       # 3) filtering out trees to just the focal points and finding the trees that are within a buffer of the 
               #focal tree with a radius of 40 times the mean population DBH
       # 4) filtering and storing the focal trees without any neighbors
@@ -1441,7 +1441,7 @@ length(which(SD_fixed_field_data_processed$p.dbh.ag.adjusted <0.05))
                 #and the slope test to see if there is significant impact of competition/facilitation on the growth of the trees.
                 # A significant positive slope indicates facilitation.
                 # A significant negative slope indicates competition.
-          # f) use a non-parametric Mann-Kendall Test to see if there is a significant correlation between the competition metric
+          # f) use a non-parametric Kendall's Tau Test to see if there is a significant correlation between the competition metric
                 #and the size of the focal trees for the data with no outliers
 
 
@@ -1453,7 +1453,6 @@ fixed_field_data_processed_NN_UTM_log <- fixed_field_data_processed_NN_UTM %>%
   mutate(Crown_spread_lg = log(Crown_spread))%>%
   mutate(DBH_ag_lg = log(DBH_ag))%>%
   mutate(ANN = log(ANN))
-View(fixed_field_data_processed_NN_UTM_log)
 
 #creating columns with transformations: square root all of the variables
 fixed_field_data_processed_NN_UTM_sqrt <- fixed_field_data_processed_NN_UTM %>%
@@ -1463,7 +1462,6 @@ fixed_field_data_processed_NN_UTM_sqrt <- fixed_field_data_processed_NN_UTM %>%
   mutate(Crown_spread_lg = sqrt(Crown_spread))%>%
   mutate(DBH_ag_lg = sqrt(DBH_ag))%>%
   mutate(ANN = sqrt(ANN))
-View(fixed_field_data_processed_NN_UTM_sqrt)
 
 #creating columns with transformations: square root all of the variables
 fixed_field_data_processed_NN_UTM_inverse <- fixed_field_data_processed_NN_UTM %>%
@@ -1473,12 +1471,11 @@ fixed_field_data_processed_NN_UTM_inverse <- fixed_field_data_processed_NN_UTM %
   mutate(Crown_spread_lg = 1/(Crown_spread))%>%
   mutate(DBH_ag_lg = 1/(DBH_ag))%>%
   mutate(ANN = 1/(ANN))
-View(fixed_field_data_processed_NN_UTM_inverse)
 
 
 #LM
 
-#creating a grid over the points with a 10 m edge buffer
+#creating a grid over the points with a 20 m edge buffer
 
 # creating a bounding box based on the point locations
 LM_box <- st_bbox(LM_fixed_field_data_processed_sf)
@@ -1490,7 +1487,7 @@ LM_box_sf <- LM_box %>% #turning the bbox into polygon
   st_as_sfc()
 LM_box_spatial <- as(LM_box_sf, 'Spatial') #turning the polygon into a spatial polygon to be able to use raster::crop
 LM_box_spatial_cropped <- raster::crop(LM_box_spatial, extent((LM_box[1]+20), (LM_box[3]-20), (LM_box[2]+20), (LM_box[4]-20))) #cropping the bounding box xmin, xmax, ymin, and ymax by 20 m inside
-LM_box_sf_cropped <-  LM_box_spatial_cropped %>% #turning the spatial polygon into a polygon
+LM_box_sf_cropped <-  LM_box_spatial_cropped %>% #turning the spatial polygon into a sfc polygon
   st_as_sfc()
 
 #cropping the points by the cropped box
@@ -1503,9 +1500,9 @@ LM_tree_grid_cropped <- st_make_grid(LM_fixed_field_data_processed_sf_cropped, c
 ggplot()+
   geom_sf(data=LM_box_sf)+ #old box
   geom_sf(data=LM_box_sf_cropped)+ #cropped box
+  geom_sf(data = river_LM) +
   geom_sf(data=LM_fixed_field_data_processed_sf)+ #original points
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped, color = "red") #old points
-
 
 #randomly selecting a focal point from each grid cell with trees within them
 LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #find which points are within which grid cells, make sure row number in the data frame of grid cells corresponds to the order of the points dataframe within st_contains
@@ -1737,11 +1734,7 @@ influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_fo
 influential
 
 #removing outliers based on which points were deemed influential, meaning they change the slope of the linear model too much
-LM_fixed_field_data_all_focal_trees_no_SCA_outliers <- LM_fixed_field_data_all_focal_trees[-c(10, 16),]
-
-#removing the outlier sum of size over distance values skewing the results
-LM_fixed_field_data_all_focal_trees <- LM_fixed_field_data_all_focal_trees %>%
-  filter(sum_SCA_over_distance < 2)
+LM_fixed_field_data_all_focal_trees_no_SCA_outliers <- LM_fixed_field_data_all_focal_trees[-c(21),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
 LM_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
@@ -1751,9 +1744,11 @@ LM_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation 
 LM_gls_focal_SCA_lin <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 
-#ordering models by which ones have the lowest Akaike information criterion
+#ordering models by which ones have the lowest Akaike information criterion, lowest AIC is the best predictive model
 LM_AIC_test <- model.sel(LM_gls_focal_SCA, LM_gls_focal_SCA_exp, LM_gls_focal_SCA_gaus, LM_gls_focal_SCA_spher, LM_gls_focal_SCA_lin, LM_gls_focal_SCA_ratio)
 LM_AIC_test
+
+# While LM_gls_focal_SCA_lin has the lowest AIC, but we have had trouble with it, so we are using the second best option. 
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA$residuals))+
@@ -1766,8 +1761,8 @@ ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_SCA$residuals))+
 ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_SCA$residuals))+
   geom_qq()
 
-#Shapiro test 
-shapiro.test(LM_gls_focal_SCA$residuals) #shapiro wilk test, not significant so it is normal 
+#Shapiro test
+shapiro.test(LM_gls_focal_SCA$residuals) #not significant so it is normal 
 
 #checking equal variance
 ggplot(data = LM_fixed_field_data_all_focal_trees, aes(x = LM_gls_focal_SCA$fitted, y = LM_gls_focal_SCA$residuals))+
@@ -1776,7 +1771,6 @@ ggplot(data = LM_fixed_field_data_all_focal_trees, aes(x = LM_gls_focal_SCA$fitt
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
-
 
 #checking we have appropriately removed the spatial autocorrelation
 semivario <- Variogram( LM_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
@@ -1787,8 +1781,9 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LM_gls_focal_SCA)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LM_tau_result_SCA <- cor.test(LM_fixed_field_data_all_focal_trees$sum_SCA_over_distance, LM_fixed_field_data_all_focal_trees$Canopy_short,  method = "kendall")
+#non parametric Kendall's Tau Test for if the the residuals are not normal or if scatterplot seems non-linear 
+LM_tau_result_SCA <- cor.test(LM_fixed_field_data_all_focal_trees$sum_SCA_over_distance, 
+                              LM_fixed_field_data_all_focal_trees$Canopy_short,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LM_tau_result_SCA)
@@ -1824,16 +1819,17 @@ influential
 LM_fixed_field_data_all_focal_trees_no_LCA_outliers <- LM_fixed_field_data_all_focal_trees[-c(27),]
 
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)LM_gls_focal_LCA <- gls(Canopy_short ~ sum_LCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
-LM_gls_focal_LCA_exp <- gls(Canopy_short ~ sum_LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
-LM_gls_focal_LCA_gaus <- gls(Canopy_short ~ sum_LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
-LM_gls_focal_LCA_spher <- gls(Canopy_short ~ sum_LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
-LM_gls_focal_LCA_lin <- gls(Canopy_short ~ sum_LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
-LM_gls_focal_LCA_ratio <- gls(Canopy_short ~ sum_LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
+LM_gls_focal_LCA <- gls(Canopy_long ~ sum_LCA_over_distance, data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_LCA_exp <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_LCA_gaus <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_LCA_spher <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_LCA_lin <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_LCA_ratio <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
 LM_AIC_test_LCA <- model.sel(LM_gls_focal_LCA, LM_gls_focal_LCA_exp, LM_gls_focal_LCA_gaus, LM_gls_focal_LCA_spher, LM_gls_focal_LCA_lin, LM_gls_focal_LCA_ratio)
-View(LM_AIC_test_LCA)
+LM_AIC_test_LCA
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_LCA$residuals))+
@@ -1842,10 +1838,12 @@ ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_LCA$residuals))+
   xlab("Residuals")+
   ylab("Frequency")
 
+#qq norm plots
 ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_LCA$residuals))+
   geom_qq()
 
-shapiro.test(LM_gls_focal_LCA$residuals) #shaprio wilk test, not sign so our residuals are normally distribtued
+#shaprio wilk test, not significant so our residuals are normally distributed
+shapiro.test(LM_gls_focal_LCA$residuals) 
 
 #checking equal variance
 ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_LCA$fitted, y = LM_gls_focal_LCA$residuals))+
@@ -1865,8 +1863,9 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LM_gls_focal_LCA)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LM_tau_result_LCA <- cor.test(LM_fixed_field_data_all_focal_trees$sum_LCA_over_distance, LM_fixed_field_data_all_focal_trees$Canopy_long,  method = "kendall")
+#non parametric Kendall's Tau Test for the version without outliers
+LM_tau_result_LCA <- cor.test(LM_fixed_field_data_all_focal_trees$sum_LCA_over_distance, 
+                              LM_fixed_field_data_all_focal_trees$Canopy_long,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LM_tau_result_LCA)
@@ -1902,7 +1901,8 @@ influential
 LM_fixed_field_data_all_focal_trees_no_CA_outliers <- LM_fixed_field_data_all_focal_trees[-c(27),]
 
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)LM_gls_focal_CA <- gls(Canopy_short ~ sum_CA_over_distance, data = LM_fixed_field_data_all_focal_trees)
+#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
+LM_gls_focal_CA <- gls(Canopy_long ~ sum_CA_over_distance, data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CA_exp <- gls(Canopy_short ~ sum_CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CA_gaus <- gls(Canopy_short ~ sum_CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CA_spher <- gls(Canopy_short ~ sum_CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
@@ -1910,8 +1910,8 @@ LM_gls_focal_CA_lin <- gls(Canopy_short ~ sum_CA_over_distance, correlation = co
 LM_gls_focal_CA_ratio <- gls(Canopy_short ~ sum_CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_CA <- model.sel(LM_gls_focal_CA, LM_gls_focal_CA_exp, LM_gls_focal_CA_gaus, LM_gls_focal_CA_spher, LM_gls_focal_CA_ratio,LM_gls_focal_CA_lin) #LM_gls_focal_CA_lin
-View(LM_AIC_test_CA)
+LM_AIC_test_CA <- model.sel(LM_gls_focal_CA, LM_gls_focal_CA_exp, LM_gls_focal_CA_gaus, LM_gls_focal_CA_spher, LM_gls_focal_CA_ratio) #LM_gls_focal_CA_lin
+LM_AIC_test_CA
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_CA$residuals))+
@@ -1920,10 +1920,12 @@ ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_CA$residuals))+
   xlab("Residuals")+
   ylab("Frequency")
 
+#qq norm
 ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_CA$residuals))+
   geom_qq()
 
-shapiro.test(LM_gls_focal_CA$residuals) # shapiro-wilk, not sign so the residuals are normally distributed
+# shapiro-wilk, not sign so the residuals are normally distributed
+shapiro.test(LM_gls_focal_CA$residuals) 
 
 #checking equal variance
 ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_CA$fitted, y = LM_gls_focal_CA$residuals))+
@@ -1942,10 +1944,8 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_CA)
-summary(LM_AIC_test_CA)
 
-
-#non parametric Mann-Kendall Test for the version without outliers
+#non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_CA <- cor.test(LM_fixed_field_data_all_focal_trees$sum_CA_over_distance, LM_fixed_field_data_all_focal_trees$Canopy_area,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
@@ -1980,7 +1980,8 @@ influential
 #removing outliers based on which points were deemed influential
 LM_fixed_field_data_all_focal_trees_no_CS_outliers <- LM_fixed_field_data_all_focal_trees[-c(27),]
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)LM_gls_focal_CS <- gls(Canopy_short ~ sum_CS_over_distance, data = LM_fixed_field_data_all_focal_trees)
+#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
+LM_gls_focal_CS <- gls(Canopy_long ~ sum_CS_over_distance, data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CS_exp <- gls(Canopy_short ~ sum_CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CS_gaus <- gls(Canopy_short ~ sum_CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 LM_gls_focal_CS_spher <- gls(Canopy_short ~ sum_CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
@@ -1989,10 +1990,10 @@ LM_gls_focal_CS_ratio <- gls(Canopy_short ~ sum_CS_over_distance, correlation = 
 
 #ordering models by which ones have the lowest Akaike information criterion
 LM_AIC_test_CS <- model.sel(LM_gls_focal_CS, LM_gls_focal_CS_lin, LM_gls_focal_CS_exp, LM_gls_focal_CS_gaus, LM_gls_focal_CS_spher, LM_gls_focal_CS_ratio) #without linear correlation
-View(LM_AIC_test_CS)
+LM_AIC_test_CS
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_fixed_field_data_all_focal_trees_no_CS_outliers, aes(x= LM_gls_focal_CS$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_CS$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
@@ -2022,9 +2023,8 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_CS)
-summary(LM_AIC_test_CA)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_CS <- cor.test(LM_fixed_field_data_all_focal_trees$sum_Cs_over_distance, LM_fixed_field_data_all_focal_trees$Crown_spread,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
@@ -2060,33 +2060,33 @@ influential
 LM_fixed_field_data_all_focal_trees_no_CS_outliers <- LM_fixed_field_data_all_focal_trees[-c(27),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_DBH <- gls(Canopy_short ~ sum_DBH_over_distance, data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
-LM_gls_focal_DBH_exp <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
-LM_gls_focal_DBH_gaus <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
-LM_gls_focal_DBH_spher <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
-LM_gls_focal_DBH_lin <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
-LM_gls_focal_DBH_ratio <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees_no_CS_outliers)
+LM_gls_focal_DBH <- gls(Canopy_short ~ sum_DBH_over_distance, data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_DBH_exp <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_DBH_gaus <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_DBH_spher <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_DBH_lin <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
+LM_gls_focal_DBH_ratio <- gls(Canopy_short ~ sum_DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
 LM_AIC_test_DHB <- model.sel(LM_gls_focal_DBH, LM_gls_focal_DBH_exp, LM_gls_focal_DBH_lin, LM_gls_focal_DBH_gaus, LM_gls_focal_DBH_spher, LM_gls_focal_DBH_ratio)
-View(LM_AIC_test_CS)
+LM_AIC_test_DHB
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_fixed_field_data_all_focal_trees_no_CS_outliers, aes(x= LM_gls_focal_DBH$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(x= LM_gls_focal_DBH$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LM_fixed_field_data_all_focal_trees_no_CS_outliers, aes(sample = LM_gls_focal_DBH$residuals))+
+ggplot(LM_fixed_field_data_all_focal_trees, aes(sample = LM_gls_focal_DBH$residuals))+
   geom_qq()
 
 # shapiro-wilk, not sign so the residuals are normally distributed
-shapiro.test(LM_gls_focal_CA$residuals) 
+shapiro.test(LM_gls_focal_DBH$residuals) 
 
 #checking equal variance
-ggplot(data = LM_fixed_field_data_all_focal_trees_no_CS_outliers , aes(x = LM_gls_focal_DBH$fitted, y = LM_gls_focal_DBH$residuals))+
+ggplot(data = LM_fixed_field_data_all_focal_trees , aes(x = LM_gls_focal_DBH$fitted, y = LM_gls_focal_DBH$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2102,9 +2102,8 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_DBH)
-summary(LM_gls_focal_DBH)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_DBH <- cor.test(LM_fixed_field_data_all_focal_trees$sum_DBH_over_distance, LM_fixed_field_data_all_focal_trees$DBH_ag,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
@@ -2122,11 +2121,6 @@ ggplot() +
 
 
 # LC
-
-#creating x and y columns of the UTM 12N 
-LC_fixed_field_data_all_focal_trees$X.1 <- st_coordinates(LC_fixed_field_data_all_focal_trees)[,1]
-LC_fixed_field_data_all_focal_trees$Y <- st_coordinates(LC_fixed_field_data_all_focal_trees)[,2]
-
 
 #creating a grid over the points with a 10 m edge buffer
 
@@ -2159,7 +2153,6 @@ ggplot()+
 #creating an x_sequential column that is 1 through the number of LC points
 LC_fixed_field_data_processed_sf <- LC_fixed_field_data_processed_sf %>%
   mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed_sf))
-View(LC_fixed_field_data_processed_sf)
 
 #selecting a focal point from each grid cell with trees within them
 LC_list_grids_and_points <- st_contains(LC_tree_grid_cropped, LC_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
@@ -2176,7 +2169,6 @@ LC_list_grids_and_focal_trees <- lapply(LC_list_grids_and_points, function(cell)
   return(focal_pt)
 })
 
-View(LC_fixed_field_data_processed_sf)
 
 #creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
 LC_list_grids_and_focal_trees_df <- as.data.frame(unlist(LC_list_grids_and_focal_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
@@ -2189,8 +2181,6 @@ LC_list_grids_and_focal_trees_fixed <- LC_list_grids_and_focal_trees_df %>% #fil
 #filtering out point data to be just the focal points
 LC_fixed_field_data_processed_focal <- LC_fixed_field_data_processed_sf %>%
   filter(X_sequential %in% LC_list_grids_and_focal_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
-
-View(LC_fixed_field_data_processed_focal)
 
 #creating the buffer around the focal points
 LC_focal_tree_buffers <-st_buffer(LC_fixed_field_data_processed_focal$geometry, 40*mean(LC_fixed_field_data_processed_focal$DBH_ag))
@@ -2244,7 +2234,6 @@ LC_tree_buffer_inside <- LC_focal_tree_buffers %>%
   st_as_sf() %>% 
   mutate(row = row_number()) %>% #create a column with row numbers
   filter(row %in% LC_tree_buffers_points_within$row) #only keep buffers that match the row number of the buffers cells with trees within them 
-View(LC_tree_buffer_inside)
 
 #plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
 ggplot()+
@@ -2332,8 +2321,7 @@ for (i in 1:nrow(LC_fixed_field_data_processed_focal)){ #for the length of the b
   
   
 }
-View(LC_fixed_field_data_neighbor_trees)
-View(LC_fixed_field_data_all_focal_trees)
+
 
 #plotting the tree points and their competition metrics
 ggplot()+
@@ -2402,7 +2390,7 @@ influential
 LC_fixed_field_data_all_focal_trees_no_SCA_outliers <- LC_fixed_field_data_all_focal_trees[-c(3),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
+LC_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LC_fixed_field_data_all_focal_trees)
 LC_gls_focal_SCA_exp <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 LC_gls_focal_SCA_gaus <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 LC_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
@@ -2411,7 +2399,7 @@ LC_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation 
 
 #ordering models by which ones have the lowest Akaike information criterion
 LC_AIC_test <- model.sel(LC_gls_focal_SCA, LC_gls_focal_SCA_exp, LC_gls_focal_SCA_gaus, LC_gls_focal_SCA_spher, LC_gls_focal_SCA_lin, LC_gls_focal_SCA_ratio)
-View(LC_AIC_test)
+LC_AIC_test
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LC_fixed_field_data_all_focal_trees, aes(x= LC_gls_focal_SCA$residuals))+
@@ -2444,16 +2432,16 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LC_gls_focal_SCA)
-summary(LC_gls_focal_SCA_lin)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LC_tau_result_SCA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_SCA_over_distance, LC_fixed_field_data_all_focal_trees$Canopy_long,  method = "kendall")
+#non parametric Kendall's Tau Test for the version without outliers
+LC_tau_result_SCA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_SCA_over_distance, 
+                              LC_fixed_field_data_all_focal_trees$Canopy_short,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LC_tau_result_SCA)
 
 # Calculate the trend line
-LC_trend_line_SCA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_long ~ LC_fixed_field_data_all_focal_trees$sum_SCA_over_distance))
+LC_trend_line_SCA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_short ~ LC_fixed_field_data_all_focal_trees$sum_SCA_over_distance))
 
 # Create a trend line plot
 ggplot() +
@@ -2481,34 +2469,35 @@ influential
 #removing outliers based on which points were deemed influential
 LC_fixed_field_data_all_focal_trees_no_LCA_outliers <- LC_fixed_field_data_all_focal_trees[-c(3),]
 
-View(LC_fixed_field_data_all_focal_trees)
-
-#unlogged version of generlized linear model
-LC_gls_focal_LCA <- gls(Canopy_long ~ sum_LCA_over_distance, data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
-LC_gls_focal_LCA_exp <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
-LC_gls_focal_LCA_gaus <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
-LC_gls_focal_LCA_spher <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
-LC_gls_focal_LCA_lin <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
-LC_gls_focal_LCA_ratio <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_LCA_outliers)
+#unlogged version of generalized linear model
+LC_gls_focal_LCA <- gls(Canopy_long ~ sum_LCA_over_distance, data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_LCA_exp <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_LCA_gaus <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_LCA_spher <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_LCA_lin <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_LCA_ratio <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_LCA <- model.sel(LC_gls_focal_LCA, LC_gls_focal_LCA_exp, LC_gls_focal_LCA_gaus, LC_gls_focal_LCA_spher, LC_gls_focal_LCA_lin, LC_gls_focal_LCA_ratio)
-View(LC_AIC_test_LCA)
+LC_AIC_test_LCA <- model.sel(LC_gls_focal_LCA, LC_gls_focal_LCA_exp, LC_gls_focal_LCA_gaus, LC_gls_focal_LCA_spher, LC_gls_focal_LCA_ratio) #LC_gls_focal_LCA_lin
+LC_AIC_test_LCA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_LCA_outliers, aes(x= LC_gls_focal_LCA$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(x= LC_gls_focal_LCA_gaus$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance")+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance",
+       subtitle = "Using Gaussian Control for Spatial Autocorrelation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_all_focal_trees_no_LCA_outliers, aes(sample = LC_gls_focal_LCA$residuals))+
+#qq norm
+ggplot(LC_fixed_field_data_all_focal_trees, aes(sample = LC_gls_focal_LCA_gaus$residuals))+
   geom_qq()
 
-shapiro.test(LC_gls_focal_LCA$residuals) #shapiro-wilk test, sign so non-normal residuals
+#shapiro-wilk test, significant so non-normal residuals
+shapiro.test(LC_gls_focal_LCA_gaus$residuals) 
 
 #checking equal variance
-ggplot(data = LC_fixed_field_data_all_focal_trees , aes(x = LC_gls_focal_LCA$fitted, y = LC_gls_focal_LCA$residuals))+
+ggplot(data = LC_fixed_field_data_all_focal_trees, aes(x = LC_gls_focal_LCA_gaus$fitted, y = LC_gls_focal_LCA_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2517,17 +2506,20 @@ ggplot(data = LC_fixed_field_data_all_focal_trees , aes(x = LC_gls_focal_LCA$fit
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_LCA, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_LCA_gaus, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_LCA)
-summary(LC_gls_focal_LCA_lin)
+summary(LC_gls_focal_LCA_gaus)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LC_tau_result_LCA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, LC_fixed_field_data_all_focal_trees$Canopy_long,  method = "kendall")
+#because the residuals are not normal, we will use the Kendall's Tau correlation non-parametric test to see if the relationship is significant
+
+#non parametric Kendall's Tau Test because the data is non-parametric and has ties 
+LC_tau_result_LCA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, 
+                              LC_fixed_field_data_all_focal_trees$Canopy_long,  
+                              method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LC_tau_result_LCA)
@@ -2535,10 +2527,19 @@ print(LC_tau_result_LCA)
 # Calculate the trend line
 LC_trend_line_LCA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_long ~ LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance))
 
+# Extract fitted values from the GLS model
+fitted_canopy <- fitted(LC_gls_focal_LCA_gaus)
+
+# Create the data frame for plotting
+line_df <- data.frame(
+  sum_LCA_over_distance = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance,
+  fitted_canopy = fitted_canopy
+)
+
 # Create a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
-  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
+  geom_line(data = line_df, aes(x = sum_LCA_over_distance, y = fitted_canopy), color = "red") +
   labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
   theme_minimal()
 
@@ -2562,33 +2563,33 @@ influential
 LC_fixed_field_data_all_focal_trees_no_CA_outliers <- LC_fixed_field_data_all_focal_trees[-c(3),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_CA <- gls(Canopy_area ~ sum_CA_over_distance, data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
-LC_gls_focal_CA_exp <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
-LC_gls_focal_CA_gaus <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
-LC_gls_focal_CA_spher <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
-LC_gls_focal_CA_lin <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
-LC_gls_focal_CA_ratio <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CA_outliers)
+LC_gls_focal_CA <- gls(Canopy_area ~ sum_CA_over_distance, data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CA_exp <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CA_gaus <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CA_spher <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CA_lin <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CA_ratio <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
 LC_AIC_test_CA <- model.sel(LC_gls_focal_CA, LC_gls_focal_CA_exp, LC_gls_focal_CA_gaus, LC_gls_focal_CA_spher, LC_gls_focal_CA_lin, LC_gls_focal_CA_ratio)
-View(LC_AIC_test_CA)
+LC_AIC_test_CA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_CA_outliers, aes(x= LC_gls_focal_CA_lin$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(x= LC_gls_focal_CA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LC_fixed_field_data_all_focal_trees_no_CA_outliers, aes(sample = LC_gls_focal_CA_lin$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(sample = LC_gls_focal_CA$residuals))+
   geom_qq()
 
-# shapiro-wilk, not sign so normal residuals for no outliers, and sign for when residuals so we are using a Mann-Kendall non-parametric
-shapiro.test(LC_gls_focal_CA_lin$residuals) 
+# shapiro-wilk, sign for when residuals so we are using a Kendall's Tau Correlation Test non-parametric data
+shapiro.test(LC_gls_focal_CA$residuals) 
 
 #checking equal variance
-ggplot(data = LC_fixed_field_data_all_focal_trees_no_CA_outliers , aes(x = LC_gls_focal_CA_lin$fitted, y = LC_gls_focal_CA_lin$residuals))+
+ggplot(data = LC_fixed_field_data_all_focal_trees , aes(x = LC_gls_focal_CA$fitted, y = LC_gls_focal_CA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2597,17 +2598,17 @@ ggplot(data = LC_fixed_field_data_all_focal_trees_no_CA_outliers , aes(x = LC_gl
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CA_lin, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_CA, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_CA_lin)
-summary(LC_AIC_test_CA)
+summary(LC_gls_focal_CA)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LC_tau_result_CA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, LC_fixed_field_data_all_focal_trees$Canopy_area,  method = "kendall")
+#non parametric Kendall's Tau Test Test for the version without outliers
+LC_tau_result_CA <- cor.test(LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, 
+                             LC_fixed_field_data_all_focal_trees$Canopy_area,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LC_tau_result_CA)
@@ -2616,9 +2617,20 @@ print(LC_tau_result_CA)
 LC_trend_line_CA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_area ~ LC_fixed_field_data_all_focal_trees$sum_CA_over_distance))
 
 # Create a trend line plot
+
+# Extract fitted values from the GLS model
+fitted_canopy <- fitted(LC_gls_focal_CA)
+
+# Create the data frame for plotting
+line_df <- data.frame(
+  sum_CA_over_distance = LC_fixed_field_data_all_focal_trees$sum_CA_over_distance,
+  fitted_canopy = fitted_canopy
+)
+
+#plotting
 ggplot() +
-  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_area), color = "blue")) +
-  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, y = LC_trend_line_CA), color = "red") +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_area), color = "red")) +
+  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CA_over_distance, y = fitted_canopy), color = "red") +
   labs(x = "CA over Distance", y = "Canopy Area", title = "Trend Line Plot") +
   theme_minimal()
 
@@ -2642,32 +2654,33 @@ influential
 LC_fixed_field_data_all_focal_trees_no_CS_outliers <- LC_fixed_field_data_all_focal_trees[-c(3),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_CS <- gls(Crown_spread ~ sum_CS_over_distance, data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
-LC_gls_focal_CS_exp <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
-LC_gls_focal_CS_gaus <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
-LC_gls_focal_CS_spher <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
-LC_gls_focal_CS_lin <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
-LC_gls_focal_CS_ratio <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_CS_outliers)
+LC_gls_focal_CS <- gls(Crown_spread ~ sum_CS_over_distance, data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CS_exp <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CS_gaus <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CS_spher <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CS_lin <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_CS_ratio <- gls(Crown_spread ~ sum_CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
 LC_AIC_test_CS <- model.sel(LC_gls_focal_CS, LC_gls_focal_CS_exp, LC_gls_focal_CS_gaus, LC_gls_focal_CS_ratio) #without linear correlation and without spherical
+LC_AIC_test_CS
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_CS_outliers, aes(x= LC_gls_focal_CS$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(x= LC_gls_focal_CS_gaus$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 # qq norm
-ggplot(LC_fixed_field_data_all_focal_trees_no_CS_outliers, aes(sample = LC_gls_focal_CS$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(sample = LC_gls_focal_CS_gaus$residuals))+
   geom_qq()
 
-# shapiro-wilk, n sign for both versions with and without outliers so used mann-kendall non-parametric test
-shapiro.test(LC_gls_focal_CA$residuals) # shapiro-wilk, n sign for both versions with and without outliers so used mann-kendall non-parametric test
+# shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau non-parametric test
+shapiro.test(LC_gls_focal_CA$residuals) # shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau Test non-parametric test
 
 #checking equal variance
-ggplot(data = LC_fixed_field_data_all_focal_trees_no_CS_outliers , aes(x = LC_gls_focal_CS$fitted, y = LC_gls_focal_CS$residuals))+
+ggplot(data = LC_fixed_field_data_all_focal_trees , aes(x = LC_gls_focal_CS_gaus$fitted, y = LC_gls_focal_CS_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2676,17 +2689,18 @@ ggplot(data = LC_fixed_field_data_all_focal_trees_no_CS_outliers , aes(x = LC_gl
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_CS_gaus, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_CS)
-summary(LC_AIC_test_CA)
+summary(LC_gls_focal_CS_gaus)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LC_tau_result_CS <- cor.test(LC_fixed_field_data_all_focal_trees_no_CS_outliers$sum_CS_over_distance, LC_fixed_field_data_all_focal_trees_no_CS_outliers$Crown_spread,  method = "kendall")
+#non parametric Kendall's Tau Test Test for the version without outliers
+LC_tau_result_CS <- cor.test(LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, 
+                             LC_fixed_field_data_all_focal_trees$Crown_spread,  
+                             method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LC_tau_result_CS)
@@ -2694,10 +2708,19 @@ print(LC_tau_result_CS)
 # Calculate the trend line
 LC_trend_line_CS <- predict(loess(LC_fixed_field_data_all_focal_trees$Crown_spread ~ LC_fixed_field_data_all_focal_trees$sum_CS_over_distance))
 
+# Extract fitted values from the GLS model
+fitted_crown <- fitted(LC_gls_focal_CS_gaus)
+
+# Create the data frame for plotting
+line_df <- data.frame(
+  sum_CA_over_distance = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance,
+  fitted_crown = fitted_crown
+)
+
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "red")) +
+  geom_line(data = line_df, aes(x = sum_CS_over_distance, y = fitted_crown), color = "red") +
   labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
   theme_minimal()
 
@@ -2718,35 +2741,36 @@ influential <- LC_lm_focal_DBH_cooks[(LC_lm_focal_DBH_cooks > (3 * mean(LC_lm_fo
 influential
 
 #removing outliers based on which points were deemed influential
-LC_fixed_field_data_all_focal_trees_no_DBH_outliers <- LC_fixed_field_data_all_focal_trees[-c(3),]
+LC_fixed_field_data_all_focal_trees_no_DBH_outliers <- LC_fixed_field_data_all_focal_trees[-c(16, 19),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_DBH <- gls(DBH_ag ~ sum_DBH_over_distance, data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
-LC_gls_focal_DBH_exp <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
-LC_gls_focal_DBH_gaus <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
-LC_gls_focal_DBH_spher <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
-LC_gls_focal_DBH_lin <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
-LC_gls_focal_DBH_ratio <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers)
+LC_gls_focal_DBH <- gls(DBH_ag ~ sum_DBH_over_distance, data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_DBH_exp <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_DBH_gaus <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_DBH_spher <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_DBH_lin <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
+LC_gls_focal_DBH_ratio <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_DHB <- model.sel(LC_gls_focal_DBH, LC_gls_focal_DBH_exp, LC_gls_focal_DBH_lin, LC_gls_focal_DBH_gaus, LC_gls_focal_DBH_spher, LC_gls_focal_DBH_ratio) #without linear correlation
+LC_AIC_test_DHB <- model.sel(LC_gls_focal_DBH, LC_gls_focal_DBH_exp, LC_gls_focal_DBH_gaus, LC_gls_focal_DBH_spher, LC_gls_focal_DBH_ratio) #without linear correlation
+LC_AIC_test_DHB
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_DBH_outliers, aes(x= LC_gls_focal_DBH_gaus$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(x= LC_gls_focal_DBH_gaus$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_DBH_outliers, aes(sample = LC_gls_focal_DBH_gaus$residuals))+
+ggplot(LC_fixed_field_data_all_focal_trees, aes(sample = LC_gls_focal_DBH_gaus$residuals))+
   geom_qq()
 
-# shapiro-wilk, significant so non-normal residuals for both
+# shapiro-wilk, not significant so normal residuals
 shapiro.test(LC_gls_focal_DBH_gaus$residuals)
 
 #checking equal variance
-ggplot(data = LC_fixed_field_data_all_focal_trees_no_DBH_outliers, aes(x = LC_gls_focal_DBH$fitted, y = LC_gls_focal_DBH$residuals))+
+ggplot(data = LC_fixed_field_data_all_focal_trees, aes(x = LC_gls_focal_DBH$fitted, y = LC_gls_focal_DBH$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -2761,22 +2785,31 @@ plot(semivario, smooth = TRUE)
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_DBH)
 summary(LC_gls_focal_DBH_gaus)
 
-#non parametric Mann-Kendall Test for the version without outliers
-LC_tau_result_DBH <- cor.test(LC_fixed_field_data_all_focal_trees_no_DBH_outliers$sum_CS_over_distance, LC_fixed_field_data_all_focal_trees_no_DBH_outliers$DBH_ag,  method = "kendall")
+#non parametric Kendall's Tau Test Test for the version without outliers
+LC_tau_result_DBH <- cor.test(LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, 
+                              LC_fixed_field_data_all_focal_trees$DBH_ag,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(LC_tau_result_DBH)
 
 # Calculate the trend line
-LC_trend_line_DBH <- predict(loess(LC_fixed_field_data_all_focal_trees_no_DBH_outliers$DBH_ag ~ LC_fixed_field_data_all_focal_trees_no_DBH_outliers$sum_DBH_over_distance))
+LC_trend_line_DBH <- predict(loess(LC_fixed_field_data_all_focal_trees$DBH_ag ~ LC_fixed_field_data_all_focal_trees$sum_DBH_over_distance))
+
+# Extract fitted values from the GLS model
+fitted_DBH <- fitted(LC_gls_focal_DBH_gaus)
+
+# Create the data frame for plotting
+LC_line_df_DBH <- data.frame(
+  sum_DBH_over_distance = LC_fixed_field_data_all_focal_trees$sum_DBH_over_distance,
+  fitted_DBH = fitted_DBH
+)
 
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
+  geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$DBH_ag), color = "red")) +
+  geom_line(data = LC_line_df_DBH, aes(x = sum_DBH_over_distance, y = fitted_DBH), color = "red") +
   labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
   theme_minimal()
 
@@ -2808,6 +2841,7 @@ SD_tree_grid_cropped <- st_make_grid(SD_fixed_field_data_processed_sf_cropped, c
 ggplot()+
   geom_sf(data=SD_box_sf)+ #old box
   geom_sf(data=SD_box_sf_cropped)+ #cropped box 
+  geom_sf(data = river_SD) +
   geom_sf(data=SD_fixed_field_data_processed_sf)+ #original points
   geom_sf(data=SD_fixed_field_data_processed_sf_cropped, color = "red") #old points
 
@@ -2831,8 +2865,6 @@ SD_list_grids_and_focal_trees <- lapply(SD_list_grids_and_points, function(cell)
   return(focal_pt)
 })
 
-View(SD_fixed_field_data_processed_sf)
-
 #creating a dataframe of all of the focal trees with their row number in the overall tree point dataframe and in which grid cell they are in
 SD_list_grids_and_focal_trees_df <- as.data.frame(unlist(SD_list_grids_and_focal_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
 colnames(SD_list_grids_and_focal_trees_df) <- c("tree_row_num") #changes the column name 
@@ -2845,8 +2877,6 @@ SD_list_grids_and_focal_trees_fixed <- SD_list_grids_and_focal_trees_df %>% #fil
 SD_fixed_field_data_processed_focal <- SD_fixed_field_data_processed_sf %>%
   filter(X_sequential %in% SD_list_grids_and_focal_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
 
-View(SD_fixed_field_data_processed_focal)
-
 #creating the buffer around the focal points
 SD_focal_tree_buffers <-st_buffer(SD_fixed_field_data_processed_focal$geometry, 40*mean(SD_fixed_field_data_processed_focal$DBH_ag))
 
@@ -2855,9 +2885,9 @@ ggplot()+
   geom_sf(data = SD_tree_grid_cropped)+
   geom_sf(data=SD_focal_tree_buffers, color = "blue") +
   geom_sf(data = SD_fixed_field_data_processed) +
-  geom_sf(data= SD_fixed_field_data_processed_focal, aes(color = X))
+  geom_sf(data= SD_fixed_field_data_processed_focal, col = "red") #, aes(color = X)
 
-#caSDulating the size/distance for focal trees and neighbors within buffers for buffers with only the focal tree and with more 
+#calculating the size/distance for focal trees and neighbors within buffers for buffers with only the focal tree and with more 
 
 #create a tibble with the the number of trees within the buffers that contain trees
 SD_tree_buffers_points_within_0 <- st_contains(SD_focal_tree_buffers, SD_fixed_field_data_processed_sf, sparse =F) %>%
@@ -2899,7 +2929,6 @@ SD_tree_buffer_inside <- SD_focal_tree_buffers %>%
   st_as_sf() %>% 
   mutate(row = row_number()) %>% #create a column with row numbers
   filter(row %in% SD_tree_buffers_points_within$row) #only keep buffers that match the row number of the buffers cells with trees within them 
-View(SD_tree_buffer_inside)
 
 #plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
 ggplot()+
@@ -2928,9 +2957,8 @@ ggplot()+
   geom_sf(data=SD_fixed_field_data_processed_focal_row, color = 'red')+
   theme_light()
 
-
-
-SD_fixed_field_data_all_focal_trees <- tibble()#creating the empty tibble 
+#creating the empty tibble 
+SD_fixed_field_data_all_focal_trees <- tibble()
 
 #calculating the distances of each tree within the buffer to the focal tree and the competition metric values
 for (i in 1:nrow(SD_fixed_field_data_processed_focal)){ #for the length of the buffers with trees inside of them #SD_fixed_field_data_processed_focal_row
@@ -2998,8 +3026,6 @@ for (i in 1:nrow(SD_fixed_field_data_processed_focal)){ #for the length of the b
   
   
 }
-View(SD_fixed_field_data_neighbor_trees)
-View(SD_fixed_field_data_all_focal_trees)
 
 #descriptive statistics
 
@@ -3058,36 +3084,36 @@ influential <- SD_lm_focal_SCA_cooks[(SD_lm_focal_SCA_cooks > (3 * mean(SD_lm_fo
 influential
 
 #removing outliers based on which points were deemed influential
-LC_fixed_field_data_all_focal_trees_no_SCA_outliers <- LC_fixed_field_data_all_focal_trees[-c(3, 24),]
+SD_fixed_field_data_all_focal_trees_no_SCA_outliers <- SD_fixed_field_data_all_focal_trees[-c(3, 24),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
-SD_gls_focal_SCA_exp <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
-SD_gls_focal_SCA_gaus <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
-SD_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
-SD_gls_focal_SCA_lin <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
-SD_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers)
+SD_gls_focal_SCA <- gls(Canopy_short ~ sum_SCA_over_distance, data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_SCA_exp <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_SCA_gaus <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_SCA_spher <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_SCA_lin <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_SCA_ratio <- gls(Canopy_short ~ sum_SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_SCA <- model.sel(SD_gls_focal_SCA, SD_gls_focal_SCA_lin, SD_gls_focal_SCA_exp, SD_gls_focal_SCA_gaus, SD_gls_focal_SCA_spher, SD_gls_focal_SCA_ratio) #without linear
-View(SD_AIC_test_SCA)
+SD_AIC_test_SCA <- model.sel(SD_gls_focal_SCA, SD_gls_focal_SCA_lin, SD_gls_focal_SCA_exp, SD_gls_focal_SCA_gaus, SD_gls_focal_SCA_spher, SD_gls_focal_SCA_ratio) 
+SD_AIC_test_SCA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_fixed_field_data_all_focal_trees_no_SCA_outliers, aes(x= SD_gls_focal_SCA$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_SCA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 # qq nrom
-ggplot(LC_fixed_field_data_all_focal_trees_no_SCA_outliers, aes(sample = SD_gls_focal_SCA$residuals))+
-  geom_qq()
+ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_SCA$residuals))+
+  geom_qq() 
 
-#shapiro-welk test, not sign so normal residuals
+#shapiro-welk test, not significant so normal residuals
 shapiro.test(SD_gls_focal_SCA$residuals)
 
 #checking equal variance
-ggplot(data = LC_fixed_field_data_all_focal_trees_no_SCA_outliers , aes(x = SD_gls_focal_SCA$fitted, y = SD_gls_focal_SCA_gaus$residuals))+
+ggplot(data = SD_fixed_field_data_all_focal_trees , aes(x = SD_gls_focal_SCA$fitted, y = SD_gls_focal_SCA_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -3104,8 +3130,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(SD_gls_focal_SCA)
 
-#non parametric Mann-Kendall Test
-SD_tau_result_SCA <- cor.test(SD_fixed_field_data_all_focal_trees_no_LCA_outliers$sum_SCA_over_distance, SD_fixed_field_data_all_focal_trees_no_SCA_outliers$Canopy_short,  method = "kendall")
+#non parametric Kendall's Tau Test
+SD_tau_result_SCA <- cor.test(SD_fixed_field_data_all_focal_trees$sum_SCA_over_distance, 
+                              SD_fixed_field_data_all_focal_trees_no_SCA_outliers$Canopy_short,  
+                              method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(SD_tau_result_SCA)
@@ -3113,10 +3141,19 @@ print(SD_tau_result_SCA)
 # Calculate the trend line
 SD_trend_line_SCA <- predict(loess(SD_fixed_field_data_all_focal_trees$Canopy_short ~ SD_fixed_field_data_all_focal_trees$sum_SCA_over_distance))
 
+# Extract fitted values from the GLS model
+fitted_SCA <- fitted(SD_gls_focal_SCA)
+
+# Create the data frame for plotting
+SD_line_df_SCA <- data.frame(
+  sum_SCA_over_distance = SD_fixed_field_data_all_focal_trees$sum_SCA_over_distance,
+  fitted_SCA = fitted_SCA
+)
+
 # Create a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_SCA_over_distance, y = (SD_fixed_field_data_all_focal_trees$Canopy_short), color = "blue")) +
-  geom_line(aes(x = SD_fixed_field_data_all_focal_trees$sum_SCA_over_distance, y = SD_trend_line_SCA), color = "red") +
+  geom_line(data = SD_line_df_SCA, aes(x = sum_SCA_over_distance, y = fitted_SCA), color = "red") +
   labs(x = "Sum of SCA over Distance", y = "Short Canopy Axis ", title = "Trend Line Plot") +
   theme_minimal()
 
@@ -3149,7 +3186,8 @@ SD_gls_focal_LCA_lin <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = c
 SD_gls_focal_LCA_ratio <- gls(Canopy_long ~ sum_LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_LCA <- model.sel(SD_gls_focal_LCA, SD_gls_focal_LCA_exp, SD_gls_focal_LCA_gaus, SD_gls_focal_LCA_spher, SD_gls_focal_LCA_lin, SD_gls_focal_LCA_ratio)
+SD_AIC_test_LCA <- model.sel(SD_gls_focal_LCA, SD_gls_focal_LCA_exp, SD_gls_focal_LCA_gaus, SD_gls_focal_LCA_spher, SD_gls_focal_LCA_ratio) #without the linear correction model
+SD_AIC_test_LCA
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_LCA$residuals))+
@@ -3162,7 +3200,7 @@ ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_LCA$residuals))+
 ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_LCA$residuals))+
   geom_qq()
 
-#shapiro-wilk test, not sign so normal residuals for with outliers, and sign without outliers
+#shapiro-wilk test, not sign so normal residuals
 shapiro.test(SD_gls_focal_LCA$residuals) 
 
 #checking equal variance
@@ -3182,9 +3220,8 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(SD_gls_focal_LCA)
-summary(SD_gls_focal_LCA_lin)
 
-#non parametric Mann-Kendall Test
+#non parametric Kendall's Tau Test
 SD_tau_result_LCA <- cor.test(SD_fixed_field_data_all_focal_trees_no_LCA_outliers$sum_LCA_over_distance, SD_fixed_field_data_all_focal_trees_no_LCA_outliers$Canopy_long,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
@@ -3193,11 +3230,20 @@ print(SD_tau_result_LCA)
 # Calculate the trend line
 SD_trend_line_LCA <- predict(loess(SD_fixed_field_data_all_focal_trees$Canopy_long ~ SD_fixed_field_data_all_focal_trees$sum_LCA_over_distance))
 
+# Extract fitted values from the GLS model
+fitted_LCA <- fitted(SD_gls_focal_LCA)
+
+# Create the data frame for plotting
+SD_line_df_LCA <- data.frame(
+  sum_LCA_over_distance = SD_fixed_field_data_all_focal_trees$sum_LCA_over_distance,
+  fitted_LCA = fitted_LCA
+)
+
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (SD_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = SD_trend_line_CS), color = "red") +
-  labs(x = "Sum of LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
+  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (SD_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
+  geom_line(data = SD_line_df_LCA, aes(x = sum_LCA_over_distance, y = fitted_LCA), color = "red") +
+  labs(x = "Sum of LCA over Distance", y = "Long Canopy Axis ", title = "Trend Line Plot") +
   theme_minimal()
 
 #CA
@@ -3207,7 +3253,13 @@ ggplot(data = SD_fixed_field_data_all_focal_trees, (aes(x=sum_CA_over_distance, 
   geom_smooth(method='glm')+
   geom_point()+
   xlab("CA over Distance")+
-  ylab("Canopy Area")
+  ylab("Canopy Area")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 14))
+
 
 #Cook's D
 SD_lm_focal_CA <- lm(Canopy_area ~ sum_CA_over_distance, data = SD_fixed_field_data_all_focal_trees)
@@ -3217,36 +3269,36 @@ influential <- SD_lm_focal_CA_cooks[(SD_lm_focal_CA_cooks > (3 * mean(SD_lm_foca
 influential
 
 #removing outliers based on which points were deemed influential
-SD_fixed_field_data_all_focal_trees_no_CA_outliers <- SD_fixed_field_data_all_focal_trees[-c(3,14,23,24),]
+SD_fixed_field_data_all_focal_trees_no_CA_outliers <- SD_fixed_field_data_all_focal_trees[-c(22),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_CA <- gls(Canopy_area ~ sum_CA_over_distance, data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
-SD_gls_focal_CA_exp <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
-SD_gls_focal_CA_gaus <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
-SD_gls_focal_CA_spher <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
-SD_gls_focal_CA_lin <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
-SD_gls_focal_CA_ratio <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees_no_CA_outliers)
+SD_gls_focal_CA <- gls(Canopy_area ~ sum_CA_over_distance, data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_CA_exp <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_CA_gaus <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_CA_spher <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_CA_lin <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
+SD_gls_focal_CA_ratio <- gls(Canopy_area ~ sum_CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_fixed_field_data_all_focal_trees)
 
 #ordering models by which ones have the lowest Akaike information criterion
 SD_AIC_test_CA <- model.sel(SD_gls_focal_CA, SD_gls_focal_CA_exp, SD_gls_focal_CA_gaus, SD_gls_focal_CA_lin, SD_gls_focal_CA_ratio) #SD_gls_focal_CA_spher
-View(SD_AIC_test_CA)
+SD_AIC_test_CA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_fixed_field_data_all_focal_trees_no_CA_outliers, aes(x= SD_gls_focal_CA$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_CA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_fixed_field_data_all_focal_trees_no_CA_outliers, aes(sample = SD_gls_focal_CA$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_CA$residuals))+
   geom_qq()
 
-# shapiro-wilk, for both versions with and without outliers sign so residuals non-normal
+# shapiro-wilk, significant so residuals non-normal
 shapiro.test(SD_gls_focal_CA$residuals) 
 
 #checking equal variance
-ggplot(data = SD_fixed_field_data_all_focal_trees, aes(x = SD_gls_focal_CA_ratio$fitted, y = SD_gls_focal_CA_ratio$residuals))+
+ggplot(data = SD_fixed_field_data_all_focal_trees, aes(x = SD_gls_focal_CA$fitted, y = SD_gls_focal_CA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -3261,23 +3313,32 @@ plot(semivario, smooth = TRUE)
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_CA_ratio)
 summary(SD_AIC_test_CA)
 
-#non parametric Mann-Kendall Test
-SD_tau_result_CA <- cor.test(SD_fixed_field_data_all_focal_trees_no_CA_outliers$sum_CA_over_distance, SD_fixed_field_data_all_focal_trees_no_CA_outliers$Canopy_area,  method = "kendall")
+#non parametric Kendall's Tau Test
+SD_tau_result_CA <- cor.test(SD_fixed_field_data_all_focal_trees$sum_CA_over_distance, 
+                             SD_fixed_field_data_all_focal_trees$Canopy_area,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
 print(SD_tau_result_CA)
 
 # Calculate the trend line
-SD_trend_line_CA <- predict(loess(SD_fixed_field_data_all_focal_trees_no_CA_outliers$Canopy_area ~ SD_fixed_field_data_all_focal_trees_no_CA_outliers$sum_CA_over_distance))
+SD_trend_line_CA <- predict(loess(SD_fixed_field_data_all_focal_trees$Canopy_area ~ SD_fixed_field_data_all_focal_trees$sum_CA_over_distance))
+
+# Extract fitted values from the GLS model
+fitted_CA <- fitted(SD_gls_focal_CA)
+
+# Create the data frame for plotting
+SD_line_df_CA <- data.frame(
+  sum_CA_over_distance = SD_fixed_field_data_all_focal_trees$sum_CA_over_distance,
+  fitted_CA = fitted_CA
+)
 
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (SD_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = SD_trend_line_CS), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CA_over_distance, y = (SD_fixed_field_data_all_focal_trees$Canopy_area), color = "red")) +
+  geom_line(data = SD_line_df_CA, aes(x = sum_CA_over_distance, y = fitted_CA), color = "red") +
+  labs(x = "Sum of CA over Distance", y = "Canopy Area", title = "Trend Line Plot") +
   theme_minimal()
 
 #CS
@@ -3295,7 +3356,7 @@ ggplot(data = SD_fixed_field_data_all_focal_trees, (aes(x=sum_CS_over_distance, 
     axis.title.y = element_text(size = 16),
     axis.text.y = element_text(size = 14))
   
-View(SD_fixed_field_data_all_focal_trees)
+
 #Cook's D
 SD_lm_focal_CS <- lm(Crown_spread ~ sum_CS_over_distance, data = SD_fixed_field_data_all_focal_trees)
 SD_lm_focal_CS_cooks <- cooks.distance(SD_lm_focal_CS) #calculating the cook.s D for each point
@@ -3304,7 +3365,7 @@ influential <- SD_lm_focal_CS_cooks[(SD_lm_focal_CS_cooks > (3 * mean(SD_lm_foca
 influential
 
 #removing outliers based on which points were deemed influential
-SD_fixed_field_data_all_focal_trees_no_CS_outliers <- SD_fixed_field_data_all_focal_trees[-c(3),]
+SD_fixed_field_data_all_focal_trees_no_CS_outliers <- SD_fixed_field_data_all_focal_trees[-c(22, 28),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
 SD_gls_focal_CS <- gls(Crown_spread ~ sum_CS_over_distance, data = SD_fixed_field_data_all_focal_trees)
@@ -3316,57 +3377,63 @@ SD_gls_focal_CS_ratio <- gls(Crown_spread ~ sum_CS_over_distance, correlation = 
 
 #ordering models by which ones have the lowest Akaike information criterion
 SD_AIC_test_CS <- model.sel(SD_gls_focal_CS, SD_gls_focal_CS_exp, SD_gls_focal_CS_gaus, SD_gls_focal_CS_spher, SD_gls_focal_CS_ratio) #without linear correlation
-View(SD_AIC_test_CS)
+SD_AIC_test_CS
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_fixed_field_data_all_focal_trees_no_CS_outliers, aes(x= SD_gls_focal_CS_lin$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_CS$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_fixed_field_data_all_focal_trees_no_CS_outliers, aes(sample = SD_gls_focal_CS_lin$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_CS$residuals))+
   geom_qq()
 
-# shapiro-wilk, not signficant, meaning not signficantly different from normal
+# shapiro-wilk, not signficant, meaning not significantly different from normal
 shapiro.test(SD_gls_focal_CS$residuals) 
 
 #checking equal variance
-ggplot(data = SD_fixed_field_data_all_focal_trees_no_CS_outliers , aes(x = SD_gls_focal_CS_lin$fitted, y = SD_gls_focal_CS$residuals))+
+ggplot(data = SD_fixed_field_data_all_focal_trees , aes(x = SD_gls_focal_CS$fitted, y = SD_gls_focal_CS$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
   ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
-
-fligner.test(Canopy_short ~ sum_CS_over_distance, data = SD_fixed_field_data_all_focal_trees_no_CS_outliers) #checks if residuals are normal, even if residuals not normal and having difficulty removing outliers, null is group variances are equal
+  labs(title = "Residuals vs. Fitted Values for CS and CS over Distance")
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_CS_lin, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(SD_gls_focal_CS)
-summary(SD_gls_focal_CS_gaus)
 
-#non parametric Mann-Kendall Test
-SD_tau_result_CA <- cor.test(SD_fixed_field_data_all_focal_trees_no_CA_outliers$sum_CA_over_distance, SD_fixed_field_data_all_focal_trees_no_CA_outliers$Canopy_area,  method = "kendall")
+#non parametric Kendall's Tau Test
+SD_tau_result_CS <- cor.test(SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, SD_fixed_field_data_all_focal_trees$Crown_spread,  method = "kendall")
 
 # Print Kendall's tau and its associated p-value
-print(SD_tau_result_CA)
+print(SD_tau_result_CS)
 
 # Calculate the trend line
-SD_trend_line_CA <- predict(loess(SD_fixed_field_data_all_focal_trees_no_CA_outliers$Canopy_area ~ SD_fixed_field_data_all_focal_trees_no_CA_outliers$sum_CA_over_distance))
+SD_trend_line_CS <- predict(loess(SD_fixed_field_data_all_focal_trees$Crown_spread ~ SD_fixed_field_data_all_focal_trees$sum_CS_over_distance))
+
+# Extract fitted values from the GLS model
+fitted_CS <- fitted(SD_gls_focal_CS)
+
+# Create the data frame for plotting
+SD_line_df_CS <- data.frame(
+  sum_CS_over_distance = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance,
+  fitted_CS = fitted_CS
+)
 
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (SD_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = SD_trend_line_CS), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (SD_fixed_field_data_all_focal_trees$Crown_spread), color = "red")) +
+  geom_line(data = SD_line_df_CS, aes(x = sum_CS_over_distance, y = fitted_CS), color = "red") +
+  labs(x = "Sum of CS over Distance", y = "Crown Spread", title = "Trend Line Plot") +
   theme_minimal()
 
 
@@ -3394,7 +3461,7 @@ influential <- SD_lm_focal_DBH_cooks[(SD_lm_focal_DBH_cooks > (3 * mean(SD_lm_fo
 influential
 
 #removing outliers based on which points were deemed influential
-SD_fixed_field_data_all_focal_trees_no_DBH_outliers <- SD_fixed_field_data_all_focal_trees[-c(3,23,24),]
+SD_fixed_field_data_all_focal_trees_no_DBH_outliers <- SD_fixed_field_data_all_focal_trees[-c(22),]
 
 #creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
 SD_gls_focal_DBH <- gls(DBH_ag ~ sum_DBH_over_distance, data = SD_fixed_field_data_all_focal_trees)
@@ -3406,24 +3473,24 @@ SD_gls_focal_DBH_ratio <- gls(DBH_ag ~ sum_DBH_over_distance, correlation = corR
 
 #ordering models by which ones have the lowest Akaike information criterion
 SD_AIC_test_DHB <- model.sel(SD_gls_focal_DBH, SD_gls_focal_DBH_lin, SD_gls_focal_DBH_exp, SD_gls_focal_DBH_lin, SD_gls_focal_DBH_gaus, SD_gls_focal_DBH_spher, SD_gls_focal_DBH_ratio) 
-View(SD_AIC_test_CS)
+SD_AIC_test_DHB
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_DBH_ratio$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(x= SD_gls_focal_DBH$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_DBH_ratio$residuals))+
+ggplot(SD_fixed_field_data_all_focal_trees, aes(sample = SD_gls_focal_DBH$residuals))+
   geom_qq()
 
 # shapiro-wilk, not significant so normal
-shapiro.test(SD_gls_focal_DBH_ratio$residuals) 
+shapiro.test(SD_gls_focal_DBH$residuals) 
 
 #checking equal variance
-ggplot(data = SD_fixed_field_data_all_focal_trees , aes(x = SD_gls_focal_DBH_ratio$fitted, y = SD_gls_focal_DBH_ratio$residuals))+
+ggplot(data = SD_fixed_field_data_all_focal_trees , aes(x = SD_gls_focal_DBH$fitted, y = SD_gls_focal_DBH$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -3432,25 +3499,33 @@ ggplot(data = SD_fixed_field_data_all_focal_trees , aes(x = SD_gls_focal_DBH_rat
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_DBH_ratio, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_DBH, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_DBH_ratio)
-summary(SD_gls_focal_DBH_gaus)
+summary(SD_gls_focal_DBH)
 
 # Print Kendall's tau and its associated p-value
-print(SD_tau_result_CA)
+print(SD_tau_result_DBH)
 
 # Calculate the trend line
-SD_trend_line_CA <- predict(loess(SD_fixed_field_data_all_focal_trees_no_CA_outliers$Canopy_area ~ SD_fixed_field_data_all_focal_trees_no_CA_outliers$sum_CA_over_distance))
+SD_trend_line_DBH <- predict(loess(SD_fixed_field_data_all_focal_trees$DBH_ag ~ SD_fixed_field_data_all_focal_trees$sum_DBH_over_distance))
+
+# Extract fitted values from the GLS model
+fitted_DBH <- fitted(SD_gls_focal_DBH)
+
+# Create the data frame for plotting
+SD_line_df_DBH <- data.frame(
+  sum_DBH_over_distance = SD_fixed_field_data_all_focal_trees$sum_DBH_over_distance,
+  fitted_DBH = fitted_DBH
+)
 
 # Create a trend line plot
 ggplot() +
-  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (SD_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
-  geom_line(aes(x = SD_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = SD_trend_line_CS), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
+  geom_point(aes(x = SD_fixed_field_data_all_focal_trees$sum_DBH_over_distance, y = (SD_fixed_field_data_all_focal_trees$DBH_ag), color = "red")) +
+  geom_line(data = SD_line_df_DBH, aes(x = sum_DBH_over_distance, y = fitted_DBH), color = "red") +
+  labs(x = "Sum of DBH over Distance", y = "DBH", title = "Trend Line Plot") +
   theme_minimal()
 
