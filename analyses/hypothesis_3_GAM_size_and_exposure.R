@@ -1,9 +1,16 @@
-#After having trouble with multiple linear regressions because of issues 
-#with the normality conditions and some nervousness about linearity. 
-#We decided to use Generalized Additive Models (GAMs)
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%Looking to see if Q. brandegeei size/shape relate to their exposure%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# The purpose of this script is to evaluated whether the size and shape of Quercus brandegeei 
+# individuals across all sites is impacted by their slope and/or elevation and/or aspect 
+# using generalized additive models (GAMs)
+
+# We used Generalized Additive Models (GAMs) after having trouble with multiple linear 
+# regressions because of issues with the normality conditions and some nervousness about linearity. 
 
 #### Loading libraries and relevant data ####
+
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
@@ -27,8 +34,7 @@ library("gg3D") #3d plotting
 library(mgcViz) #3d plotting
 library(rgl) #3d plotting
 
-
-
+#loading in the tree data
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #transforming the data into shapefiles with either WGS84 
@@ -87,17 +93,17 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
 
 #### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
 
+#Las Matancitas (LM)
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LM")
 
+#La Cobriza (LC)
 LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LC")
 
+#San Dionisio (SD)
 SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "SD")
-
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.))
 
 #creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
 fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
@@ -105,9 +111,9 @@ fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_s
                                         (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
-View(fixed_field_data_processed_sf_trans_coordinates)
 #creating a new elevation column so the values that were mistakenly put in feet are in meters
 LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+  mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
                                         (Elevation..m. < 700) ~ Elevation..m.))
 
@@ -118,11 +124,7 @@ LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
 
 #plotting the tree points by elevation (m)
 ggplot()+
-  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
-
-ggplot()+
   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates, aes(color = Elevation..m.FIXED))
-
 
 ##creating a new elevation column so that the 360 m outlier is 460
 SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
@@ -141,7 +143,6 @@ plot(river_LC)
 river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
-
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
@@ -193,7 +194,7 @@ LM_box <- st_bbox(river_LM_trans)
 LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
-#creating the aspect and slope rasters
+#### Creating the elevation, aspect, and slope columns in the dataframe ####
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
@@ -320,14 +321,20 @@ SD_box <- st_bbox(river_SD_trans)
 #   geom_sf(data = SD_fixed_field_data_processed)
 
 
-#Importing the cropped rasters for LM, LC, and SD
+#Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912")
+
 CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912")
+
 CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912")
 
 #creating the all points raster by merging the LM, LC, and SD rasters
 CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
 
+#plotting all of the elevation rasters and tree points
 ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = fixed_field_data_processed_sf_transformed)
@@ -437,9 +444,6 @@ all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed
 all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
 all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
 
-View(all_points_fixed_field_data_processed_terrain)
-
-
 #LM
 
 LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
@@ -449,10 +453,6 @@ LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
-
-View(LM_fixed_field_data_processed_terrain)
-
-
 #LC
 LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
 LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
@@ -461,10 +461,6 @@ LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
-
-View(LC_fixed_field_data_processed_terrain)
-
-
 #SD
 SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
 SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
@@ -472,8 +468,6 @@ SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_pr
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
-
-View(SD_fixed_field_data_processed_terrain)
 
 #recategorizing the aspect data
 
@@ -518,8 +512,6 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
                                                                         (all_points_aspect_raster_15_data_pts >= 202.5 & all_points_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
                                                                         (all_points_aspect_raster_15_data_pts >= 247.5 & all_points_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                         (all_points_aspect_raster_15_data_pts >= 292.5 & all_points_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts[584]
-all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical[584]
 
 # North, East, South, West
 
@@ -530,9 +522,6 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
                                                                         (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
                                                                         (all_points_aspect_raster_15_data_pts >= 135 & all_points_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
                                                                         (all_points_aspect_raster_15_data_pts >= 225 & all_points_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
-
-# all_points_fixed_field_data_processed_terrain_download <- write.csv(all_points_fixed_field_data_processed_terrain, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/all_points_fixed_field_data_processed_terrain.csv", row.names = F)
-# View(all_points_fixed_field_data_processed_terrain)
 
 # LM
 
@@ -810,7 +799,13 @@ View(field_data_summarized)
 #descriptive summary for LM
 
 
-### Generalized Additive Models ###
+#### Generalized Additive Models ####
+
+# For each population/all populations and each size/shape metric we created
+     #generalized additive models whereby...
+
+    # a) We removed NAs from the explanatory and response variables
+    # b) 
 
 #using only the 8 categories
 

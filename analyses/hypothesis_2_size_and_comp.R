@@ -44,7 +44,6 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 
 
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
-
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 # creating the point shapefiles of the tree locations for each population in UTM 12 N

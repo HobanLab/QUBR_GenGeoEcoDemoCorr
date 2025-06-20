@@ -12,7 +12,7 @@ library(raster) #to plot rasters
 library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
 
-
+#loading in the data
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #transforming the data into shapefiles with either WGS84 
@@ -122,7 +122,6 @@ silt_05 <- raster(paste0("./data/Soil Grid/silt/silt 0-5.tif"))
 silt_200 <-raster(paste0("./data/Soil Grid/silt/silt 100-200.tif"))
 sand_05 <- raster(paste0("./data/Soil Grid/sand/sand 0-5.tif"))
 sand_200 <- raster(paste0("./data/Soil Grid/sand/sand 100-200.tif"))
-
 ph_05 <- raster(paste0("./data/Soil Grid/pH/ph_0-5.tif")) #0-5 cm ph
 ph_200 <- raster(paste0("./data/Soil Grid/pH/ph_100-200.tif")) #100-200 ph
 ocd_05 <- raster(paste0("./data/Soil Grid/organic carbon density/OCD_0-5.tif")) #0-5cm organic carbon density
@@ -183,6 +182,7 @@ Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
 clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100)) 
 clay_200_LM <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 silt_05_LM <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
+
 silt_200_LM <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_05_LM <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_200_LM <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
@@ -534,779 +534,7 @@ fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees
 #creating a locality as factor column to be able to use Tamhane's T2 Test later
 fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_data_processed_trees_soils$Locality)
 
-
-#ANOVA comparing mean soil values between population 
-
-##clay 0-5 cm
-
-anova_clay_0_5 <- aov(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5))+
-  theme_minimal()
-
-# checking to see if residuals are normal
-hist(anova_clay_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content vs. Population")
-
-qqnorm(anova_clay_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_0_5$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay.content.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_0_5 <- tapply(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_0_5, na.rm = T) / min(thumb_test_clay_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(clay.content.0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-##clay 100-200 
-
-anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))
-
-# checking to see if residuals are normal
-hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_clay_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay.content.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data does not meet the condition of normal residuals and equal variance, meaning we will use a Kruskal-Wallis test
-
-#kruskall wallis test
-kruskal.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-#silt 0-5
-
-anova_silt_0_5 <- aov(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))
-
-# checking to see if residuals are normal
-hist(anova_silt_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_silt_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_silt_0_5$residuals) #Shapiro-Wilk test, significant, meaning residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils) #not significant so semi equal variance
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$silt.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_silt_0_5 <- tapply(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_silt_0_5, na.rm = T) / min(thumb_test_silt_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test, the data does not meet the condition of normal residuals, meaning we will use a Kruskal-Wallis test
-
-#kruskall wallis test
-kruskal.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-##silt 100-200
-
-anova_silt_100_200 <- aov(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))
-
-# checking to see if residuals are normal
-hist(anova_silt_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_silt_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_silt_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$silt.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
-
-#ANOVA test 
-anova(anova_silt_100_200)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-##sand  0-5 
-
-anova_sand_0_5 <- aov(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))
-
-# checking to see if residuals are normal
-hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_sand_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_sand_0_5$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sand.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sand_0_5 <- tapply(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sand_0_5, na.rm = T) / min(thumb_test_sand_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
-
-#ANOVA test 
-anova(anova_sand_0_5)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-
-## sand 100-200
-
-anova_sand_100_200 <- aov(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))
-
-# checking to see if residuals are normal
-hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_sand_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_sand_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sand.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sand_100_200 <- tapply(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sand_100_200, na.rm = T) / min(thumb_test_sand_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the fligner-killeen test, the data appears to meet he equal variance condition, so we will use the welch's anova and tamhane's t2 post hoc test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(sand.100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-
-## ph 0-5
-
-anova_ph_0_5 <- aov(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))
-
-# checking to see if residuals are normal
-hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_ph_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_ph_0_5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$ph_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-kruskal.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-##ph 100-200
-
-anova_ph_100_200 <- aov(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))
-
-# checking to see if residuals are normal
-hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_ph_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_ph_100_200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$ph_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-kruskal.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-##soil organic carbon 0-5
-
-anova_soc_0_5 <- aov(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5))
-
-# checking to see if residuals are normal
-hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_soc_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_soc_0_5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$SOC.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_soc_0_5 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_soc_0_5, na.rm = T) / min(thumb_test_soc_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-kruskal.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-#soil organic carbon 100-200
-
-anova_soc_100_200 <- aov(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200))
-
-# checking to see if residuals are normal
-hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_soc_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_soc_100_200$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$SOC.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_soc_100_200 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_soc_100_200, na.rm = T) / min(thumb_test_soc_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the conditions and we can use a regular ANOVA and pairwise t test
-
-#ANOVA test 
-anova(anova_soc_100_200)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-#volume of water content at -10 kpa 0-5
-
-anova_vol_water_10_0.5 <- aov(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_10_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_10_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_10_0.5 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_10_0.5, na.rm = T) / min(thumb_test_vol_water_10_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
-
-#kruskall wallis test
-kruskal.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-#volume of water content at -10 kpa 100-200
-
-anova_vol_water_10_100.200 <- aov(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_10_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_10_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_10_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_10_100.200, na.rm = T) / min(thumb_test_vol_water_10_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
-
-#kruskall wallis test
-kruskal.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-#volume of water content at -1500 kpa 0-5
-
-anova_vol_water_1500_0.5 <- aov(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_1500_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_1500_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_1500_0.5$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_1500_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_1500_0.5, na.rm = T) / min(thumb_test_vol_water_1500_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the condition of normal residuals but not equal variance so we will use a welch's anova and tamhanes t2 posthoc test
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(vol_water_.1500kPa_0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-kruskal.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
-
-#volume of water content at -1500 kpa 100-200
-
-anova_vol_water_1500_100.200 <- aov(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_1500_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_1500_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_1500_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_1500_100.200, na.rm = T) / min(thumb_test_vol_water_1500_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-kruskal.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-#nitrogen 05-
-
-anova_nitrogen_0.5 <- aov(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5))
-
-# checking to see if residuals are normal
-hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_nitrogen_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_nitrogen_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$nitrogen.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_nitrogen_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_nitrogen_0.5, na.rm = T) / min(thumb_test_nitrogen_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-kruskal.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-# nitrogen 100-200
-
-
-anova_nitrogen_100.200 <- aov(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200))
-
-# checking to see if residuals are normal
-hist(anova_nitrogen_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_nitrogen_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_nitrogen_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$nitrogen.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_nitrogen_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_nitrogen_100.200, na.rm = T) / min(thumb_test_nitrogen_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-kruskal.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-### Comparing the soil vs. size values ###
+#### Comparing the soil vs. size values ####
 
 
 #FOR THIS WE ARE GOING TO SHUFFLE THE SHAPE/SIZE VALUES BETWEEN ALL OF THE POINTS IN 
@@ -1443,6 +671,7 @@ ggplot(data = LM_sca_clay_100_200_lm_real, aes(x = LM_sca_clay_100_200_lm_real$f
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Clay Content 100-200")
 
+summary(LM_sca_clay_100_200_lm_real)
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1511,6 +740,7 @@ ggplot(data = LM_sca_silt_0_5_lm_real, aes(x = LM_sca_silt_0_5_lm_real$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Silt Content 0-5")
 
+summary(LM_sca_silt_0_5_lm_real)
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1580,6 +810,7 @@ ggplot(data = LM_sca_silt_100_200_lm_real, aes(x = LM_sca_silt_100_200_lm_real$f
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Silt Content 100-200")
 
+summary(LM_sca_silt_100_200_lm_real)
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1649,6 +880,7 @@ ggplot(data = LM_sca_sand_0_5_lm_real, aes(x = LM_sca_sand_0_5_lm_real$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for Canopy Short vs. Sand Content 0-5")
 
+summary(LM_sca_sand_0_5_lm_real)
 
 #plotting the histogram of the randomly distributed p-values and our real slope
 ggplot()+
@@ -1691,7 +923,6 @@ ggplot()+
   geom_vline(xintercept=LM_sca_sand_100_200_lm_real_slope, col = "red")+ #line of our real slope
   xlab("Slopes of Shuffled sca vs. Sand Content 100-200 cm")+
   theme_classic()
-
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -1780,16 +1011,19 @@ LM_sca_ph_100_200_p_value <- (total / length(LM_sca_ph_100_200_slopes)) #the pro
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_sca_soc_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use complete cases only
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$SOC.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_soc_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.0.5)
   LM_sca_soc_0_5_lm_sum <- summary(LM_sca_soc_0_5_lm) #extracting the linear regression information
   LM_sca_soc_0.5_slopes <- c(LM_sca_soc_0.5_slopes, LM_sca_soc_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_sca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$SOC.0.5) #creating the linear regression
+LM_sca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$SOC.0.5) #creating the linear regression
 LM_sca_soc_0_5_lm_real_sum <- summary(LM_sca_soc_0_5_lm_real) #extract the summary 
 LM_sca_soc_0_5_lm_real_slope <- LM_sca_soc_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -1816,16 +1050,19 @@ LM_sca_soc_0.5_p_value <- (total / length(LM_sca_soc_0.5_slopes)) #the proportio
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_sca_soc_100_200_slopes <- c() #creating empty list to collect p values
 
+#use complete cases only
+LM_fixed_field_data_processed_soils.complete.2 <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$SOC.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete.2, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_soc_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.100.200)
   LM_sca_soc_100_200_lm_sum <- summary(LM_sca_soc_100_200_lm) #extracting the linear regression information
   LM_sca_soc_100_200_slopes <- c(LM_sca_soc_100_200_slopes, LM_sca_soc_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_sca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$SOC.100.200) #creating the linear regression
+LM_sca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete.2$Canopy_short~LM_fixed_field_data_processed_soils.complete.2$SOC.100.200) #creating the linear regression
 LM_sca_soc_100_200_lm_real_sum <- summary(LM_sca_soc_100_200_lm_real) #extract the summary 
 LM_sca_soc_100_200_lm_real_slope <- LM_sca_soc_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -1918,6 +1155,78 @@ for (i in 1:length(LM_sca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_sca_vol_10_100_200_p_value <- (total / length(LM_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_vol_33_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LM_sca_vol_33_0_5_lm_sum <- summary(LM_sca_vol_33_0_5_lm) #extracting the linear regression information
+  LM_sca_vol_33_0.5_slopes <- c(LM_sca_vol_33_0.5_slopes, LM_sca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_vol_33_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LM_sca_vol_33_0_5_lm_real_sum <- summary(LM_sca_vol_33_0_5_lm_real) #extract the summary 
+LM_sca_vol_33_0_5_lm_real_slope <- LM_sca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_sca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_vol_33_0.5_slopes[i] > LM_sca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_vol_33_0.5_p_value <- 1- (total / length(LM_sca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_vol_33_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LM_sca_vol_33_100_200_lm_sum <- summary(LM_sca_vol_33_100_200_lm) #extracting the linear regression information
+  LM_sca_vol_33_100_200_slopes <- c(LM_sca_vol_33_100_200_slopes, LM_sca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_vol_33_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LM_sca_vol_33_100_200_lm_real_sum <- summary(LM_sca_vol_33_100_200_lm_real) #extract the summary 
+LM_sca_vol_33_100_200_lm_real_slope <- LM_sca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_sca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_vol_33_100_200_slopes[i] < LM_sca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_vol_33_100_200_p_value <- (total / length(LM_sca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -1998,16 +1307,19 @@ LM_sca_vol_1500_100_200_p_value <- (total / length(LM_sca_vol_1500_100_200_slope
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_sca_nitrogen_0.5_slopes <- c() #creating empty list to collect p values 
 
+#only use complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$nitrogen.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_nitrogen_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.0.5)
   LM_sca_nitrogen_0_5_lm_sum <- summary(LM_sca_nitrogen_0_5_lm) #extracting the linear regression information
   LM_sca_nitrogen_0.5_slopes <- c(LM_sca_nitrogen_0.5_slopes, LM_sca_nitrogen_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_sca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$nitrogen.0.5) #creating the linear regression
+LM_sca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$nitrogen.0.5) #creating the linear regression
 LM_sca_nitrogen_0_5_lm_real_sum <- summary(LM_sca_nitrogen_0_5_lm_real) #extract the summary 
 LM_sca_nitrogen_0_5_lm_real_slope <- LM_sca_nitrogen_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2034,16 +1346,19 @@ LM_sca_nitrogen_0.5_p_value <- (total / length(LM_sca_nitrogen_0.5_slopes)) #the
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_sca_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
+#only use complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$nitrogen.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_nitrogen_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   LM_sca_nitrogen_100_200_lm_sum <- summary(LM_sca_nitrogen_100_200_lm) #extracting the linear regression information
   LM_sca_nitrogen_100_200_slopes <- c(LM_sca_nitrogen_100_200_slopes, LM_sca_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_sca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_short~LM_fixed_field_data_processed_soils$nitrogen.100.200) #creating the linear regression
+LM_sca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$nitrogen.100.200) #creating the linear regression
 LM_sca_nitrogen_100_200_lm_real_sum <- summary(LM_sca_nitrogen_100_200_lm_real) #extract the summary 
 LM_sca_nitrogen_100_200_lm_real_slope <- LM_sca_nitrogen_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2361,16 +1676,20 @@ LM_lca_ph_100_200_p_value <- (total / length(LM_lca_ph_100_200_slopes)) #the pro
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_lca_soc_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$SOC.0.5),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
   LM_lca_soc_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.0.5)
   LM_lca_soc_0_5_lm_sum <- summary(LM_lca_soc_0_5_lm) #extracting the linear regression information
   LM_lca_soc_0.5_slopes <- c(LM_lca_soc_0.5_slopes, LM_lca_soc_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_lca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$SOC.0.5) #creating the linear regression
+LM_lca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$SOC.0.5) #creating the linear regression
 LM_lca_soc_0_5_lm_real_sum <- summary(LM_lca_soc_0_5_lm_real) #extract the summary 
 LM_lca_soc_0_5_lm_real_slope <- LM_lca_soc_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2397,16 +1716,19 @@ LM_lca_soc_0.5_p_value <- (total / length(LM_lca_soc_0.5_slopes)) #the proportio
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_lca_soc_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$SOC.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
   LM_lca_soc_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.100.200)
   LM_lca_soc_100_200_lm_sum <- summary(LM_lca_soc_100_200_lm) #extracting the linear regression information
   LM_lca_soc_100_200_slopes <- c(LM_lca_soc_100_200_slopes, LM_lca_soc_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_lca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$SOC.100.200) #creating the linear regression
+LM_lca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$SOC.100.200) #creating the linear regression
 LM_lca_soc_100_200_lm_real_sum <- summary(LM_lca_soc_100_200_lm_real) #extract the summary 
 LM_lca_soc_100_200_lm_real_slope <- LM_lca_soc_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2500,6 +1822,79 @@ for (i in 1:length(LM_lca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_lca_vol_10_100_200_p_value <- (total / length(LM_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_vol_33_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LM_lca_vol_33_0_5_lm_sum <- summary(LM_lca_vol_33_0_5_lm) #extracting the linear regression information
+  LM_lca_vol_33_0.5_slopes <- c(LM_lca_vol_33_0.5_slopes, LM_lca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_vol_33_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LM_lca_vol_33_0_5_lm_real_sum <- summary(LM_lca_vol_33_0_5_lm_real) #extract the summary 
+LM_lca_vol_33_0_5_lm_real_slope <- LM_lca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_lca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_vol_33_0.5_slopes[i] > LM_lca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_vol_33_0.5_p_value <- 1- (total / length(LM_lca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_vol_33_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LM_lca_vol_33_100_200_lm_sum <- summary(LM_lca_vol_33_100_200_lm) #extracting the linear regression information
+  LM_lca_vol_33_100_200_slopes <- c(LM_lca_vol_33_100_200_slopes, LM_lca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_vol_33_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LM_lca_vol_33_100_200_lm_real_sum <- summary(LM_lca_vol_33_100_200_lm_real) #extract the summary 
+LM_lca_vol_33_100_200_lm_real_slope <- LM_lca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_lca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_vol_33_100_200_slopes[i] < LM_lca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_vol_33_100_200_p_value <- (total / length(LM_lca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -2580,16 +1975,19 @@ LM_lca_vol_1500_100_200_p_value <- (total / length(LM_lca_vol_1500_100_200_slope
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_lca_nitrogen_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$nitrogen.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
   LM_lca_nitrogen_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.0.5)
   LM_lca_nitrogen_0_5_lm_sum <- summary(LM_lca_nitrogen_0_5_lm) #extracting the linear regression information
   LM_lca_nitrogen_0.5_slopes <- c(LM_lca_nitrogen_0.5_slopes, LM_lca_nitrogen_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_lca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$nitrogen.0.5) #creating the linear regression
+LM_lca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$nitrogen.0.5) #creating the linear regression
 LM_lca_nitrogen_0_5_lm_real_sum <- summary(LM_lca_nitrogen_0_5_lm_real) #extract the summary 
 LM_lca_nitrogen_0_5_lm_real_slope <- LM_lca_nitrogen_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2616,16 +2014,19 @@ LM_lca_nitrogen_0.5_p_value <- (total / length(LM_lca_nitrogen_0.5_slopes)) #the
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_lca_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$nitrogen.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
   LM_lca_nitrogen_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   LM_lca_nitrogen_100_200_lm_sum <- summary(LM_lca_nitrogen_100_200_lm) #extracting the linear regression information
   LM_lca_nitrogen_100_200_slopes <- c(LM_lca_nitrogen_100_200_slopes, LM_lca_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_lca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_long~LM_fixed_field_data_processed_soils$nitrogen.100.200) #creating the linear regression
+LM_lca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$nitrogen.100.200) #creating the linear regression
 LM_lca_nitrogen_100_200_lm_real_sum <- summary(LM_lca_nitrogen_100_200_lm_real) #extract the summary 
 LM_lca_nitrogen_100_200_lm_real_slope <- LM_lca_nitrogen_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2942,16 +2343,20 @@ LM_ca_ph_100_200_p_value <- (total / length(LM_ca_ph_100_200_slopes)) #the propo
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_ca_soc_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$SOC.0.5),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
   LM_ca_soc_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.0.5)
   LM_ca_soc_0_5_lm_sum <- summary(LM_ca_soc_0_5_lm) #extracting the linear regression information
   LM_ca_soc_0.5_slopes <- c(LM_ca_soc_0.5_slopes, LM_ca_soc_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_ca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$SOC.0.5) #creating the linear regression
+LM_ca_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$SOC.0.5) #creating the linear regression
 LM_ca_soc_0_5_lm_real_sum <- summary(LM_ca_soc_0_5_lm_real) #extract the summary 
 LM_ca_soc_0_5_lm_real_slope <- LM_ca_soc_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -2978,16 +2383,20 @@ LM_ca_soc_0.5_p_value <- (total / length(LM_ca_soc_0.5_slopes)) #the proportion 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_ca_soc_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$SOC.100.200),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
   LM_ca_soc_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.100.200)
   LM_ca_soc_100_200_lm_sum <- summary(LM_ca_soc_100_200_lm) #extracting the linear regression information
   LM_ca_soc_100_200_slopes <- c(LM_ca_soc_100_200_slopes, LM_ca_soc_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_ca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$SOC.100.200) #creating the linear regression
+LM_ca_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$SOC.100.200) #creating the linear regression
 LM_ca_soc_100_200_lm_real_sum <- summary(LM_ca_soc_100_200_lm_real) #extract the summary 
 LM_ca_soc_100_200_lm_real_slope <- LM_ca_soc_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3081,6 +2490,78 @@ for (i in 1:length(LM_ca_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_ca_vol_10_100_200_p_value <- (total / length(LM_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_vol_33_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LM_ca_vol_33_0_5_lm_sum <- summary(LM_ca_vol_33_0_5_lm) #extracting the linear regression information
+  LM_ca_vol_33_0.5_slopes <- c(LM_ca_vol_33_0.5_slopes, LM_ca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_vol_33_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LM_ca_vol_33_0_5_lm_real_sum <- summary(LM_ca_vol_33_0_5_lm_real) #extract the summary 
+LM_ca_vol_33_0_5_lm_real_slope <- LM_ca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_ca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_vol_33_0.5_slopes[i] > LM_ca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_vol_33_0.5_p_value <- 1- (total / length(LM_ca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_vol_33_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LM_ca_vol_33_100_200_lm_sum <- summary(LM_ca_vol_33_100_200_lm) #extracting the linear regression information
+  LM_ca_vol_33_100_200_slopes <- c(LM_ca_vol_33_100_200_slopes, LM_ca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_vol_33_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LM_ca_vol_33_100_200_lm_real_sum <- summary(LM_ca_vol_33_100_200_lm_real) #extract the summary 
+LM_ca_vol_33_100_200_lm_real_slope <- LM_ca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_ca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_vol_33_100_200_slopes[i] < LM_ca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_vol_33_100_200_p_value <- (total / length(LM_ca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -3161,16 +2642,19 @@ LM_ca_vol_1500_100_200_p_value <- (total / length(LM_ca_vol_1500_100_200_slopes)
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_ca_nitrogen_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$nitrogen.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
   LM_ca_nitrogen_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.0.5)
   LM_ca_nitrogen_0_5_lm_sum <- summary(LM_ca_nitrogen_0_5_lm) #extracting the linear regression information
   LM_ca_nitrogen_0.5_slopes <- c(LM_ca_nitrogen_0.5_slopes, LM_ca_nitrogen_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_ca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$nitrogen.0.5) #creating the linear regression
+LM_ca_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$nitrogen.0.5) #creating the linear regression
 LM_ca_nitrogen_0_5_lm_real_sum <- summary(LM_ca_nitrogen_0_5_lm_real) #extract the summary 
 LM_ca_nitrogen_0_5_lm_real_slope <- LM_ca_nitrogen_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3197,16 +2681,19 @@ LM_ca_nitrogen_0.5_p_value <- (total / length(LM_ca_nitrogen_0.5_slopes)) #the p
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_ca_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$nitrogen.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
   LM_ca_nitrogen_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   LM_ca_nitrogen_100_200_lm_sum <- summary(LM_ca_nitrogen_100_200_lm) #extracting the linear regression information
   LM_ca_nitrogen_100_200_slopes <- c(LM_ca_nitrogen_100_200_slopes, LM_ca_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_ca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Canopy_area~LM_fixed_field_data_processed_soils$nitrogen.100.200) #creating the linear regression
+LM_ca_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$nitrogen.100.200) #creating the linear regression
 LM_ca_nitrogen_100_200_lm_real_sum <- summary(LM_ca_nitrogen_100_200_lm_real) #extract the summary 
 LM_ca_nitrogen_100_200_lm_real_slope <- LM_ca_nitrogen_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3226,7 +2713,6 @@ for (i in 1:length(LM_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_ca_nitrogen_100_200_p_value <- (total / length(LM_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
-
 
 
 # CS
@@ -3523,16 +3009,20 @@ LM_cs_ph_100_200_p_value <- (total / length(LM_cs_ph_100_200_slopes)) #the propo
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_cs_soc_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$SOC.0.5),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
   LM_cs_soc_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.0.5)
   LM_cs_soc_0_5_lm_sum <- summary(LM_cs_soc_0_5_lm) #extracting the linear regression information
   LM_cs_soc_0.5_slopes <- c(LM_cs_soc_0.5_slopes, LM_cs_soc_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_cs_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$SOC.0.5) #creating the linear regression
+LM_cs_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$SOC.0.5) #creating the linear regression
 LM_cs_soc_0_5_lm_real_sum <- summary(LM_cs_soc_0_5_lm_real) #extract the summary 
 LM_cs_soc_0_5_lm_real_slope <- LM_cs_soc_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3559,16 +3049,19 @@ LM_cs_soc_0.5_p_value <- (total / length(LM_cs_soc_0.5_slopes)) #the proportion 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_cs_soc_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$SOC.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
   LM_cs_soc_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.100.200)
   LM_cs_soc_100_200_lm_sum <- summary(LM_cs_soc_100_200_lm) #extracting the linear regression information
   LM_cs_soc_100_200_slopes <- c(LM_cs_soc_100_200_slopes, LM_cs_soc_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_cs_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$SOC.100.200) #creating the linear regression
+LM_cs_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$SOC.100.200) #creating the linear regression
 LM_cs_soc_100_200_lm_real_sum <- summary(LM_cs_soc_100_200_lm_real) #extract the summary 
 LM_cs_soc_100_200_lm_real_slope <- LM_cs_soc_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3663,6 +3156,81 @@ for (i in 1:length(LM_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_cs_vol_10_100_200_p_value <- (total / length(LM_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_vol_33_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LM_cs_vol_33_0_5_lm_sum <- summary(LM_cs_vol_33_0_5_lm) #extracting the linear regression information
+  LM_cs_vol_33_0.5_slopes <- c(LM_cs_vol_33_0.5_slopes, LM_cs_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_cs_vol_33_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LM_cs_vol_33_0_5_lm_real_sum <- summary(LM_cs_vol_33_0_5_lm_real) #extract the summary 
+LM_cs_vol_33_0_5_lm_real_slope <- LM_cs_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_cs_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_vol_33_0.5_slopes[i] > LM_cs_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_vol_33_0.5_p_value <- 1- (total / length(LM_cs_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_vol_33_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LM_cs_vol_33_100_200_lm_sum <- summary(LM_cs_vol_33_100_200_lm) #extracting the linear regression information
+  LM_cs_vol_33_100_200_slopes <- c(LM_cs_vol_33_100_200_slopes, LM_cs_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+
+#extracting the slope of our points
+LM_cs_vol_33_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LM_cs_vol_33_100_200_lm_real_sum <- summary(LM_cs_vol_33_100_200_lm_real) #extract the summary 
+LM_cs_vol_33_100_200_lm_real_slope <- LM_cs_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_cs_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_vol_33_100_200_slopes[i] < LM_cs_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_vol_33_100_200_p_value <- (total / length(LM_cs_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -3743,16 +3311,20 @@ LM_cs_vol_1500_100_200_p_value <- (total / length(LM_cs_vol_1500_100_200_slopes)
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_cs_nitrogen_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$nitrogen.0.5),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
   LM_cs_nitrogen_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.0.5)
   LM_cs_nitrogen_0_5_lm_sum <- summary(LM_cs_nitrogen_0_5_lm) #extracting the linear regression information
   LM_cs_nitrogen_0.5_slopes <- c(LM_cs_nitrogen_0.5_slopes, LM_cs_nitrogen_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_cs_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$nitrogen.0.5) #creating the linear regression
+LM_cs_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$nitrogen.0.5) #creating the linear regression
 LM_cs_nitrogen_0_5_lm_real_sum <- summary(LM_cs_nitrogen_0_5_lm_real) #extract the summary 
 LM_cs_nitrogen_0_5_lm_real_slope <- LM_cs_nitrogen_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -3779,16 +3351,20 @@ LM_cs_nitrogen_0.5_p_value <- (total / length(LM_cs_nitrogen_0.5_slopes)) #the p
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_cs_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$nitrogen.100.200),]
+
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
   LM_cs_nitrogen_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   LM_cs_nitrogen_100_200_lm_sum <- summary(LM_cs_nitrogen_100_200_lm) #extracting the linear regression information
   LM_cs_nitrogen_100_200_slopes <- c(LM_cs_nitrogen_100_200_slopes, LM_cs_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_cs_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$Crown_spread~LM_fixed_field_data_processed_soils$nitrogen.100.200) #creating the linear regression
+LM_cs_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$nitrogen.100.200) #creating the linear regression
 LM_cs_nitrogen_100_200_lm_real_sum <- summary(LM_cs_nitrogen_100_200_lm_real) #extract the summary 
 LM_cs_nitrogen_100_200_lm_real_slope <- LM_cs_nitrogen_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -4105,16 +3681,19 @@ LM_dbh_ph_100_200_p_value <- (total / length(LM_dbh_ph_100_200_slopes)) #the pro
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_dbh_soc_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$SOC.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_soc_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.0.5)
   LM_dbh_soc_0_5_lm_sum <- summary(LM_dbh_soc_0_5_lm) #extracting the linear regression information
   LM_dbh_soc_0.5_slopes <- c(LM_dbh_soc_0.5_slopes, LM_dbh_soc_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_dbh_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$SOC.0.5) #creating the linear regression
+LM_dbh_soc_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$SOC.0.5) #creating the linear regression
 LM_dbh_soc_0_5_lm_real_sum <- summary(LM_dbh_soc_0_5_lm_real) #extract the summary 
 LM_dbh_soc_0_5_lm_real_slope <- LM_dbh_soc_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -4141,16 +3720,19 @@ LM_dbh_soc_0.5_p_value <- (total / length(LM_dbh_soc_0.5_slopes)) #the proportio
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_dbh_soc_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$SOC.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_soc_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$SOC.100.200)
   LM_dbh_soc_100_200_lm_sum <- summary(LM_dbh_soc_100_200_lm) #extracting the linear regression information
   LM_dbh_soc_100_200_slopes <- c(LM_dbh_soc_100_200_slopes, LM_dbh_soc_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_dbh_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$SOC.100.200) #creating the linear regression
+LM_dbh_soc_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$SOC.100.200) #creating the linear regression
 LM_dbh_soc_100_200_lm_real_sum <- summary(LM_dbh_soc_100_200_lm_real) #extract the summary 
 LM_dbh_soc_100_200_lm_real_slope <- LM_dbh_soc_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -4244,6 +3826,78 @@ for (i in 1:length(LM_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_dbh_vol_10_100_200_p_value <- (total / length(LM_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -10 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_vol_33_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LM_dbh_vol_33_0_5_lm_sum <- summary(LM_dbh_vol_33_0_5_lm) #extracting the linear regression information
+  LM_dbh_vol_33_0.5_slopes <- c(LM_dbh_vol_33_0.5_slopes, LM_dbh_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_vol_33_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LM_dbh_vol_33_0_5_lm_real_sum <- summary(LM_dbh_vol_33_0_5_lm_real) #extract the summary 
+LM_dbh_vol_33_0_5_lm_real_slope <- LM_dbh_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_dbh_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_vol_33_0.5_slopes[i] > LM_dbh_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_vol_33_0.5_p_value <- 1- (total / length(LM_dbh_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_vol_33_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LM_dbh_vol_33_100_200_lm_sum <- summary(LM_dbh_vol_33_100_200_lm) #extracting the linear regression information
+  LM_dbh_vol_33_100_200_slopes <- c(LM_dbh_vol_33_100_200_slopes, LM_dbh_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_vol_33_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LM_dbh_vol_33_100_200_lm_real_sum <- summary(LM_dbh_vol_33_100_200_lm_real) #extract the summary 
+LM_dbh_vol_33_100_200_lm_real_slope <- LM_dbh_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_dbh_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_vol_33_100_200_slopes[i] < LM_dbh_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_vol_33_100_200_p_value <- 1- (total / length(LM_dbh_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -4317,7 +3971,7 @@ for (i in 1:length(LM_dbh_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_vol_1500_100_200_p_value <- (total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_vol_1500_100_200_p_value <- 1- (total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -4325,16 +3979,19 @@ LM_dbh_vol_1500_100_200_p_value <- (total / length(LM_dbh_vol_1500_100_200_slope
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_dbh_nitrogen_0.5_slopes <- c() #creating empty list to collect p values 
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$nitrogen.0.5),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_nitrogen_0_5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.0.5)
   LM_dbh_nitrogen_0_5_lm_sum <- summary(LM_dbh_nitrogen_0_5_lm) #extracting the linear regression information
   LM_dbh_nitrogen_0.5_slopes <- c(LM_dbh_nitrogen_0.5_slopes, LM_dbh_nitrogen_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_dbh_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$nitrogen.0.5) #creating the linear regression
+LM_dbh_nitrogen_0_5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$nitrogen.0.5) #creating the linear regression
 LM_dbh_nitrogen_0_5_lm_real_sum <- summary(LM_dbh_nitrogen_0_5_lm_real) #extract the summary 
 LM_dbh_nitrogen_0_5_lm_real_slope <- LM_dbh_nitrogen_0_5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -4353,7 +4010,7 @@ for (i in 1:length(LM_dbh_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_nitrogen_0.5_p_value <- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_0.5_p_value <- 1- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -4361,16 +4018,19 @@ LM_dbh_nitrogen_0.5_p_value <- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_dbh_nitrogen_100_200_slopes <- c() #creating empty list to collect p values
 
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$nitrogen.100.200),]
+
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_nitrogen_100_200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$nitrogen.100.200)
   LM_dbh_nitrogen_100_200_lm_sum <- summary(LM_dbh_nitrogen_100_200_lm) #extracting the linear regression information
   LM_dbh_nitrogen_100_200_slopes <- c(LM_dbh_nitrogen_100_200_slopes, LM_dbh_nitrogen_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LM_dbh_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils$DBH_ag~LM_fixed_field_data_processed_soils$nitrogen.100.200) #creating the linear regression
+LM_dbh_nitrogen_100_200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$nitrogen.100.200) #creating the linear regression
 LM_dbh_nitrogen_100_200_lm_real_sum <- summary(LM_dbh_nitrogen_100_200_lm_real) #extract the summary 
 LM_dbh_nitrogen_100_200_lm_real_slope <- LM_dbh_nitrogen_100_200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -4389,7 +4049,7 @@ for (i in 1:length(LM_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_nitrogen_100_200_p_value <- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_100_200_p_value <- 1- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -4833,6 +4493,82 @@ for (i in 1:length(LC_sca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 
 LC_sca_vol_10_100_200_p_value <- (total / length(LC_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_vol_33_0_5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LC_sca_vol_33_0_5_lm_sum <- summary(LC_sca_vol_33_0_5_lm) #extracting the linear regression information
+  LC_sca_vol_33_0.5_slopes <- c(LC_sca_vol_33_0.5_slopes, LC_sca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_vol_33_0_5_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_short~LC_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LC_sca_vol_33_0_5_lm_real_sum <- summary(LC_sca_vol_33_0_5_lm_real) #extract the summary 
+LC_sca_vol_33_0_5_lm_real_slope <- LC_sca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_sca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_vol_33_0.5_slopes[i] < LC_sca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+
+LC_sca_vol_33_0.5_p_value <- 1- (total / length(LC_sca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_vol_33_100_200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LC_sca_vol_33_100_200_lm_sum <- summary(LC_sca_vol_33_100_200_lm) #extracting the linear regression information
+  LC_sca_vol_33_100_200_slopes <- c(LC_sca_vol_33_100_200_slopes, LC_sca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_vol_33_100_200_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_short~LC_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LC_sca_vol_33_100_200_lm_real_sum <- summary(LC_sca_vol_33_100_200_lm_real) #extract the summary 
+LC_sca_vol_33_100_200_lm_real_slope <- LC_sca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_sca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_vol_33_100_200_slopes[i] < LC_sca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+
+LC_sca_vol_33_100_200_p_value <- 1 - (total / length(LC_sca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 
 #volume of water content at -1500 kpa 0-5
@@ -5422,6 +5158,79 @@ for (i in 1:length(LC_lca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LC_lca_vol_10_100_200_p_value <- (total / length(LC_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_vol_33_0_5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LC_lca_vol_33_0_5_lm_sum <- summary(LC_lca_vol_33_0_5_lm) #extracting the linear regression information
+  LC_lca_vol_33_0.5_slopes <- c(LC_lca_vol_33_0.5_slopes, LC_lca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_vol_33_0_5_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_long~LC_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LC_lca_vol_33_0_5_lm_real_sum <- summary(LC_lca_vol_33_0_5_lm_real) #extract the summary 
+LC_lca_vol_33_0_5_lm_real_slope <- LC_lca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_lca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_vol_33_0.5_slopes[i] < LC_lca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_vol_33_0.5_p_value <- (total / length(LC_lca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_vol_33_100_200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LC_lca_vol_33_100_200_lm_sum <- summary(LC_lca_vol_33_100_200_lm) #extracting the linear regression information
+  LC_lca_vol_33_100_200_slopes <- c(LC_lca_vol_33_100_200_slopes, LC_lca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_vol_33_100_200_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_long~LC_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LC_lca_vol_33_100_200_lm_real_sum <- summary(LC_lca_vol_33_100_200_lm_real) #extract the summary 
+LC_lca_vol_33_100_200_lm_real_slope <- LC_lca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_lca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_vol_33_100_200_slopes[i] < LC_lca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_vol_33_100_200_p_value <- (total / length(LC_lca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 
 #volume of water content at -1500 kpa 0-5

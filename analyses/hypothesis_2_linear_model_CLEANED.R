@@ -397,7 +397,7 @@ LM_field_data_focal_summarized_focal <- LM_fixed_field_data_all_focal_trees %>%
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(LM_field_data_focal_summarized_focal)
 
-#creating the generalized linear effects model
+#### creating the generalized linear effects model ####
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
 

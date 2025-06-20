@@ -813,8 +813,8 @@ View(field_data_summarized)
 plot(all_points_multiple_lm_SCA)
 all_points_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA)
 all_points_mlm_SCA_cooks <- cooks.distance(all_points_mlm_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (2 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+plot(all_points_mlm_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- all_points_mlm_SCA_cooks[(all_points_mlm_SCA_cooks > (2 * mean(all_points_mlm_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
 influential
 
 #had to remove points 174 and 175 because they had NAs in the slope data and there was a NA in elevation we needed to remove to continue the analysis
@@ -828,10 +828,11 @@ View(all_points_fixed_field_data_processed_terrain_no_NA)
 # SCA
 
 #removing outliers based on which points were deemed influential
-all_points_fixed_field_data_processed_terrain_no_NA_No_outliers <- all_points_fixed_field_data_processed_terrain_no_NA[-c(15, 24,26,27),]
+all_points_fixed_field_data_processed_terrain_no_NA_No_outliers <- all_points_fixed_field_data_processed_terrain_no_NA[-c(210, 303, 645),] #any with cooks above 0.015
 
 #multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
-all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain_no_NA_No_outliers)
+all_points_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
+                                 data = all_points_fixed_field_data_processed_terrain_no_NA)
 
 #checking to see which variables might be the most useful
 avPlots(all_points_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
