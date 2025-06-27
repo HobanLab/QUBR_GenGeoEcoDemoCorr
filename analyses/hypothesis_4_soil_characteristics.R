@@ -525,6 +525,14 @@ ggplot()+
   geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red")
 
 
+ggplot()+
+  geom_raster(data= as.data.frame(clay_05_SD, xy = T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  geom_sf(data = st_boundary(SD_tree_grid_cropped)) + 
+  labs(fill = "Clay Content (g/kg) (0-5 cm)") +
+  geom_sf(data= SD_fixed_field_data_processed_sf)+
+  geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red") 
+
+
 #combining the LM, LC, and SD tree randomly chosen tree point data into one dataframe
 
 fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
@@ -1379,11 +1387,7 @@ for (i in 1:length(LM_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_sca_nitrogen_100_200_p_value <- (total / length(LM_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
-
-
 # LCA
-
-
 
 # Clay Content 0-5 cm
 
@@ -3230,10 +3234,7 @@ for (i in 1:length(LM_cs_vol_33_100_200_slopes)){ #loop that adds 1 to the value
 LM_cs_vol_33_100_200_p_value <- (total / length(LM_cs_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-
-
 #volume of water content at -1500 kpa 0-5
-
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 LM_cs_vol_1500_0.5_slopes <- c() #creating empty list to collect p values 
@@ -3971,7 +3972,7 @@ for (i in 1:length(LM_dbh_vol_1500_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_vol_1500_100_200_p_value <- 1- (total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_vol_1500_100_200_p_value <- (total / length(LM_dbh_vol_1500_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 05
@@ -4010,7 +4011,7 @@ for (i in 1:length(LM_dbh_nitrogen_0.5_slopes)){ #loop that adds 1 to the value 
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_nitrogen_0.5_p_value <- 1- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_0.5_p_value <- (total / length(LM_dbh_nitrogen_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #nitrogen 100-200
@@ -4049,7 +4050,7 @@ for (i in 1:length(LM_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LM_dbh_nitrogen_100_200_p_value <- 1- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LM_dbh_nitrogen_100_200_p_value <- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -5814,6 +5815,79 @@ for (i in 1:length(LC_ca_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 LC_ca_vol_10_100_200_p_value <- (total / length(LC_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_vol_33_0_5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LC_ca_vol_33_0_5_lm_sum <- summary(LC_ca_vol_33_0_5_lm) #extracting the linear regression information
+  LC_ca_vol_33_0.5_slopes <- c(LC_ca_vol_33_0.5_slopes, LC_ca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_vol_33_0_5_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_area~LC_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LC_ca_vol_33_0_5_lm_real_sum <- summary(LC_ca_vol_33_0_5_lm_real) #extract the summary 
+LC_ca_vol_33_0_5_lm_real_slope <- LC_ca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_ca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_vol_33_0.5_slopes[i] < LC_ca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_vol_33_0.5_p_value <- 1- (total / length(LC_ca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_vol_33_100_200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LC_ca_vol_33_100_200_lm_sum <- summary(LC_ca_vol_33_100_200_lm) #extracting the linear regression information
+  LC_ca_vol_33_100_200_slopes <- c(LC_ca_vol_33_100_200_slopes, LC_ca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_vol_33_100_200_lm_real <- lm(LC_fixed_field_data_processed_soils$Canopy_area~LC_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LC_ca_vol_33_100_200_lm_real_sum <- summary(LC_ca_vol_33_100_200_lm_real) #extract the summary 
+LC_ca_vol_33_100_200_lm_real_slope <- LC_ca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_ca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_vol_33_100_200_slopes[i] < LC_ca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_vol_33_100_200_p_value <- (total / length(LC_ca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 #volume of water content at -1500 kpa 0-5
 
 
@@ -6397,6 +6471,79 @@ for (i in 1:length(LC_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 LC_cs_vol_10_100_200_p_value <- (total / length(LC_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_vol_33_0_5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LC_cs_vol_33_0_5_lm_sum <- summary(LC_cs_vol_33_0_5_lm) #extracting the linear regression information
+  LC_cs_vol_33_0.5_slopes <- c(LC_cs_vol_33_0.5_slopes, LC_cs_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_vol_33_0_5_lm_real <- lm(LC_fixed_field_data_processed_soils$Crown_spread~LC_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LC_cs_vol_33_0_5_lm_real_sum <- summary(LC_cs_vol_33_0_5_lm_real) #extract the summary 
+LC_cs_vol_33_0_5_lm_real_slope <- LC_cs_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_cs_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_vol_33_0.5_slopes[i] < LC_cs_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_vol_33_0.5_p_value <- (total / length(LC_cs_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_vol_33_100_200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LC_cs_vol_33_100_200_lm_sum <- summary(LC_cs_vol_33_100_200_lm) #extracting the linear regression information
+  LC_cs_vol_33_100_200_slopes <- c(LC_cs_vol_33_100_200_slopes, LC_cs_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_vol_33_100_200_lm_real <- lm(LC_fixed_field_data_processed_soils$Crown_spread~LC_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LC_cs_vol_33_100_200_lm_real_sum <- summary(LC_cs_vol_33_100_200_lm_real) #extract the summary 
+LC_cs_vol_33_100_200_lm_real_slope <- LC_cs_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_cs_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_vol_33_100_200_slopes[i] < LC_cs_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_vol_33_100_200_p_value <- (total / length(LC_cs_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 #volume of water content at -1500 kpa 0-5
 
 
@@ -6540,7 +6687,7 @@ for (i in 1:length(LC_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
-LC_cs_nitrogen_100_200_p_value <- (total / length(LC_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+LC_cs_nitrogen_100_200_p_value <- 1-(total / length(LC_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -6978,6 +7125,80 @@ for (i in 1:length(LC_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 LC_dbh_vol_10_100_200_p_value <- (total / length(LC_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_vol_33_0_5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  LC_dbh_vol_33_0_5_lm_sum <- summary(LC_dbh_vol_33_0_5_lm) #extracting the linear regression information
+  LC_dbh_vol_33_0.5_slopes <- c(LC_dbh_vol_33_0.5_slopes, LC_dbh_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_vol_33_0_5_lm_real <- lm(LC_fixed_field_data_processed_soils$DBH_ag~LC_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+LC_dbh_vol_33_0_5_lm_real_sum <- summary(LC_dbh_vol_33_0_5_lm_real) #extract the summary 
+LC_dbh_vol_33_0_5_lm_real_slope <- LC_dbh_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_dbh_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_vol_33_0.5_slopes[i] < LC_dbh_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_vol_33_0.5_p_value <- (total / length(LC_dbh_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -10 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_vol_33_100_200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  LC_dbh_vol_33_100_200_lm_sum <- summary(LC_dbh_vol_33_100_200_lm) #extracting the linear regression information
+  LC_dbh_vol_33_100_200_slopes <- c(LC_dbh_vol_33_100_200_slopes, LC_dbh_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_vol_33_100_200_lm_real <- lm(LC_fixed_field_data_processed_soils$DBH_ag~LC_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+LC_dbh_vol_33_100_200_lm_real_sum <- summary(LC_dbh_vol_33_100_200_lm_real) #extract the summary 
+LC_dbh_vol_33_100_200_lm_real_slope <- LC_dbh_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_dbh_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_vol_33_100_200_slopes[i] < LC_dbh_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_vol_33_100_200_p_value <- (total / length(LC_dbh_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
 #volume of water content at -1500 kpa 0-5
 
 
@@ -7272,7 +7493,7 @@ for (i in 1:length(SD_sca_silt_100_200_slopes)){ #loop that adds 1 to the value 
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_sca_silt_100_200_p_value <- (total / length(SD_sca_silt_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
-
+ 
 #sand 0-5
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
@@ -7560,6 +7781,79 @@ for (i in 1:length(SD_sca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_sca_vol_10_100_200_p_value <- (total / length(SD_sca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_vol_33_0_5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  SD_sca_vol_33_0_5_lm_sum <- summary(SD_sca_vol_33_0_5_lm) #extracting the linear regression information
+  SD_sca_vol_33_0.5_slopes <- c(SD_sca_vol_33_0.5_slopes, SD_sca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_vol_33_0_5_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_short~SD_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+SD_sca_vol_33_0_5_lm_real_sum <- summary(SD_sca_vol_33_0_5_lm_real) #extract the summary 
+SD_sca_vol_33_0_5_lm_real_slope <- SD_sca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_sca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_vol_33_0.5_slopes[i] < SD_sca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_vol_33_0.5_p_value <- (total / length(SD_sca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_vol_33_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  SD_sca_vol_33_100_200_lm_sum <- summary(SD_sca_vol_33_100_200_lm) #extracting the linear regression information
+  SD_sca_vol_33_100_200_slopes <- c(SD_sca_vol_33_100_200_slopes, SD_sca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized sca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_vol_33_100_200_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_short~SD_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+SD_sca_vol_33_100_200_lm_real_sum <- summary(SD_sca_vol_33_100_200_lm_real) #extract the summary 
+SD_sca_vol_33_100_200_lm_real_slope <- SD_sca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled sca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_sca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_vol_33_100_200_slopes[i] < SD_sca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_vol_33_100_200_p_value <- (total / length(SD_sca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 
 #volume of water content at -1500 kpa 0-5
 
@@ -7707,11 +8001,7 @@ for (i in 1:length(SD_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_sca_nitrogen_100_200_p_value <- (total / length(SD_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
-
-
 # LCA
-
-
 
 # Clay Content 0-5 cm
 
@@ -8142,6 +8432,79 @@ for (i in 1:length(SD_lca_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_lca_vol_10_100_200_p_value <- (total / length(SD_lca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_vol_33_0_5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  SD_lca_vol_33_0_5_lm_sum <- summary(SD_lca_vol_33_0_5_lm) #extracting the linear regression information
+  SD_lca_vol_33_0.5_slopes <- c(SD_lca_vol_33_0.5_slopes, SD_lca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_vol_33_0_5_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_long~SD_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+SD_lca_vol_33_0_5_lm_real_sum <- summary(SD_lca_vol_33_0_5_lm_real) #extract the summary 
+SD_lca_vol_33_0_5_lm_real_slope <- SD_lca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_lca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_vol_33_0.5_slopes[i] > SD_lca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_vol_33_0.5_p_value <- (total / length(SD_lca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#volume of water content at -33 kpa 100-200
+
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_vol_33_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  SD_lca_vol_33_100_200_lm_sum <- summary(SD_lca_vol_33_100_200_lm) #extracting the linear regression information
+  SD_lca_vol_33_100_200_slopes <- c(SD_lca_vol_33_100_200_slopes, SD_lca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_vol_33_100_200_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_long~SD_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+SD_lca_vol_33_100_200_lm_real_sum <- summary(SD_lca_vol_33_100_200_lm_real) #extract the summary 
+SD_lca_vol_33_100_200_lm_real_slope <- SD_lca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled lca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_lca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_vol_33_100_200_slopes[i] < SD_lca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_vol_33_100_200_p_value <- (total / length(SD_lca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 
 #volume of water content at -1500 kpa 0-5
@@ -8728,8 +9091,77 @@ for (i in 1:length(SD_ca_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 SD_ca_vol_10_100_200_p_value <- (total / length(SD_ca_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-#volume of water content at -1500 kpa 0-5
+#volume of water content at -33 kpa 0-5
 
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_vol_33_0_5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  SD_ca_vol_33_0_5_lm_sum <- summary(SD_ca_vol_33_0_5_lm) #extracting the linear regression information
+  SD_ca_vol_33_0.5_slopes <- c(SD_ca_vol_33_0.5_slopes, SD_ca_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_vol_33_0_5_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_area~SD_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+SD_ca_vol_33_0_5_lm_real_sum <- summary(SD_ca_vol_33_0_5_lm_real) #extract the summary 
+SD_ca_vol_33_0_5_lm_real_slope <- SD_ca_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_ca_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_vol_33_0.5_slopes[i] > SD_ca_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_vol_33_0.5_p_value <- (total / length(SD_ca_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -33 kpa 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_vol_33_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  SD_ca_vol_33_100_200_lm_sum <- summary(SD_ca_vol_33_100_200_lm) #extracting the linear regression information
+  SD_ca_vol_33_100_200_slopes <- c(SD_ca_vol_33_100_200_slopes, SD_ca_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized ca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_vol_33_100_200_lm_real <- lm(SD_fixed_field_data_processed_soils$Canopy_area~SD_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+SD_ca_vol_33_100_200_lm_real_sum <- summary(SD_ca_vol_33_100_200_lm_real) #extract the summary 
+SD_ca_vol_33_100_200_lm_real_slope <- SD_ca_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled ca vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_ca_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_vol_33_100_200_slopes[i] < SD_ca_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_vol_33_100_200_p_value <- (total / length(SD_ca_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -1500 kpa 0-5
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 SD_ca_vol_1500_0.5_slopes <- c() #creating empty list to collect p values 
@@ -8874,10 +9306,7 @@ for (i in 1:length(SD_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
 SD_ca_nitrogen_100_200_p_value <- (total / length(SD_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-
 # CS
-
-
 
 # Clay Content 0-5 cm
 
@@ -9309,8 +9738,77 @@ for (i in 1:length(SD_cs_vol_10_100_200_slopes)){ #loop that adds 1 to the value
 SD_cs_vol_10_100_200_p_value <- (total / length(SD_cs_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-#volume of water content at -1500 kpa 0-5
+#volume of water content at -33 kpa 0-5
 
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_vol_33_0_5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  SD_cs_vol_33_0_5_lm_sum <- summary(SD_cs_vol_33_0_5_lm) #extracting the linear regression information
+  SD_cs_vol_33_0.5_slopes <- c(SD_cs_vol_33_0.5_slopes, SD_cs_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_vol_33_0_5_lm_real <- lm(SD_fixed_field_data_processed_soils$Crown_spread~SD_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+SD_cs_vol_33_0_5_lm_real_sum <- summary(SD_cs_vol_33_0_5_lm_real) #extract the summary 
+SD_cs_vol_33_0_5_lm_real_slope <- SD_cs_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_cs_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_vol_33_0.5_slopes[i] > SD_cs_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_vol_33_0.5_p_value <- (total / length(SD_cs_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -33 kpa 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_vol_33_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  SD_cs_vol_33_100_200_lm_sum <- summary(SD_cs_vol_33_100_200_lm) #extracting the linear regression information
+  SD_cs_vol_33_100_200_slopes <- c(SD_cs_vol_33_100_200_slopes, SD_cs_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized cs values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_vol_33_100_200_lm_real <- lm(SD_fixed_field_data_processed_soils$Crown_spread~SD_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+SD_cs_vol_33_100_200_lm_real_sum <- summary(SD_cs_vol_33_100_200_lm_real) #extract the summary 
+SD_cs_vol_33_100_200_lm_real_slope <- SD_cs_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled cs vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_cs_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_vol_33_100_200_slopes[i] < SD_cs_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_vol_33_100_200_p_value <- (total / length(SD_cs_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -1500 kpa 0-5
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 SD_cs_vol_1500_0.5_slopes <- c() #creating empty list to collect p values 
@@ -9345,9 +9843,7 @@ for (i in 1:length(SD_cs_vol_1500_0.5_slopes)){ #loop that adds 1 to the value t
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_cs_vol_1500_0.5_p_value <- (total / length(SD_cs_vol_1500_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
 
-
 #volume of water content at -1500 kpa 100-200
-
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
 SD_cs_vol_1500_100_200_slopes <- c() #creating empty list to collect p values
@@ -9816,7 +10312,6 @@ for (i in 1:length(SD_dbh_soc_100_200_slopes)){ #loop that adds 1 to the value t
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_dbh_soc_100_200_p_value <- (total / length(SD_dbh_soc_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
-
 #volume of water content at -10 kpa 0-5
 
 #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
@@ -9889,6 +10384,76 @@ for (i in 1:length(SD_dbh_vol_10_100_200_slopes)){ #loop that adds 1 to the valu
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_dbh_vol_10_100_200_p_value <- (total / length(SD_dbh_vol_10_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+
+#volume of water content at -33 kpa 0-5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_vol_33_0.5_slopes <- c() #creating empty list to collect p values 
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_vol_33_0_5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_0.5)
+  SD_dbh_vol_33_0_5_lm_sum <- summary(SD_dbh_vol_33_0_5_lm) #extracting the linear regression information
+  SD_dbh_vol_33_0.5_slopes <- c(SD_dbh_vol_33_0.5_slopes, SD_dbh_vol_33_0_5_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_vol_33_0_5_lm_real <- lm(SD_fixed_field_data_processed_soils$DBH_ag~SD_fixed_field_data_processed_soils$vol_water_0.5) #creating the linear regression
+SD_dbh_vol_33_0_5_lm_real_sum <- summary(SD_dbh_vol_33_0_5_lm_real) #extract the summary 
+SD_dbh_vol_33_0_5_lm_real_slope <- SD_dbh_vol_33_0_5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_vol_33_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_vol_33_0_5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 0-5 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_dbh_vol_33_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_vol_33_0.5_slopes[i] > SD_dbh_vol_33_0_5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_vol_33_0.5_p_value <- (total / length(SD_dbh_vol_33_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#volume of water content at -33 kpa 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_vol_33_100_200_slopes <- c() #creating empty list to collect p values
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils,DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_vol_33_100_200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$vol_water_100.200)
+  SD_dbh_vol_33_100_200_lm_sum <- summary(SD_dbh_vol_33_100_200_lm) #extracting the linear regression information
+  SD_dbh_vol_33_100_200_slopes <- c(SD_dbh_vol_33_100_200_slopes, SD_dbh_vol_33_100_200_lm_sum$coefficients[2]) #add the current p-value from the randomized dbh values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_vol_33_100_200_lm_real <- lm(SD_fixed_field_data_processed_soils$DBH_ag~SD_fixed_field_data_processed_soils$vol_water_100.200) #creating the linear regression
+SD_dbh_vol_33_100_200_lm_real_sum <- summary(SD_dbh_vol_33_100_200_lm_real) #extract the summary 
+SD_dbh_vol_33_100_200_lm_real_slope <- SD_dbh_vol_33_100_200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_vol_33_100_200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_vol_33_100_200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled dbh vs. Volume of Water at -33 kPa 100-200 cm")+
+  theme_classic()
+
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_dbh_vol_33_100_200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_vol_33_100_200_slopes[i] < SD_dbh_vol_33_100_200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_vol_33_100_200_p_value <- (total / length(SD_dbh_vol_33_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 #volume of water content at -1500 kpa 0-5
 
@@ -10634,7 +11199,7 @@ ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, 
   coord_flip()
 
 
-### PART 3: Comparing average soil values from inside populations to outside populations ###
+#### PART 3: Comparing average soil values from inside populations to outside populations ####
 
 #downloading the locations of the 20 known populations
 all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPD coords for pops (12_2024).csv")
@@ -11665,3 +12230,4 @@ ggplot(aes(x = Shape.Size, y = Significance, fill = P_Value), data = random_pop.
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(P_Value < 0.15, round(P_Value, 4), NA))) +
   coord_flip()
+

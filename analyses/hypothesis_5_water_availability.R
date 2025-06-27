@@ -390,7 +390,9 @@ influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (2 * mean(LM_slr_SCA_cooks, 
 influential
 
 #removing outliers based on which points were deemed influential
-LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 46, 60, 87, 88,  100, 123, 119, 148, 149, 151, 152, 154, 160, 165, 173, 189, 190, 195, 204, 206, 208, 209, 214),]
+LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 46, 54, 61, 89, 90,  103, 122, 
+                                                                                                    119, 148, 149, 151, 152, 154, 160, 165, 173, 
+                                                                                                    189, 190, 195, 204, 206, 208, 209, 214),]
 
 
 #checking linearity 

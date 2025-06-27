@@ -229,6 +229,20 @@ dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river
 #dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
 plot(dist_near_river_buffer_SD) #not using inverse distance
 
+#Making a graph for presentation
+dist_near_river_buffer_SD_plot <- dist_near_river_buffer_SD %>% #creating a new stars object with new defined values for distance
+  st_as_sf() %>% #converting the stars to a shapefile
+  mutate(d = case_when(d <= 50 ~ 1, 
+                       d > 1 ~ d)) %>% #assigning cells less than 50 m away from rivers edge with value of 1 and taking 1/distance for all other cells
+  st_rasterize() #convert the shapefile into a raster
+plot(dist_near_river_buffer_SD_plot)
+
+dist_near_river_buffer_SD_plot$d
+ggplot()+
+  geom_raster(data= as.data.frame(dist_near_river_buffer_SD_plot, xy = T), aes(x=x, y=y, fill = d)) +
+  geom_sf(data = SD_fixed_field_data_processed_sf, col = "white")+
+  scale_fill_viridis_c()
+
 
 #making it so points within or overlapping with the river are assigned 1 
 
@@ -263,8 +277,6 @@ ggplot()+
   geom_sf(data=river_SD_trans)+
   geom_sf(data=SD_fixed_field_data_processed)+
   geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
-
-
 
 ###extract distance to river for each point 
 
@@ -404,6 +416,13 @@ ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = fixed_field_data_processed_sf_transformed)
 
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm_SD)) +
+  geom_sf(data = SD_fixed_field_data_processed, col = "white")+
+  scale_fill_viridis_c()
+  
+
+
 ## Extracting the slope 
 
 #all points 
@@ -448,7 +467,7 @@ SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors 
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = SD_fixed_field_data_processed)+
+  geom_sf(data = SD_fixed_field_data_processed, col = "white")+
   scale_fill_viridis_c()
 
 ## Extracting the aspect 
@@ -496,7 +515,7 @@ SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = SD_fixed_field_data_processed)+
+  geom_sf(data = SD_fixed_field_data_processed, col = "white")+
   scale_fill_viridis_c()
 
 
@@ -508,9 +527,6 @@ all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fix
 all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point value
 all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
 all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
-
-View(all_points_fixed_field_data_processed_terrain)
-
 
 #LM
 
@@ -529,9 +545,6 @@ LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_pr
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
-
-
-View(LC_fixed_field_data_processed_terrain)
 
 
 #SD
