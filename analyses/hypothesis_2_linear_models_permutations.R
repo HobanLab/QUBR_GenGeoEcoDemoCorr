@@ -276,7 +276,7 @@ slope_tests <- function(population, variable) {
   seed_input <- 1
   
   # for loop generating permutations of the slopes and p-values for different randomly generated p-values
-  for (i in 1:500){
+  for (i in 1:1000){
     
     
     
@@ -317,7 +317,7 @@ slope_tests <- function(population, variable) {
     #Cook's D
     lm_focal <- lm(focal_tree_dataframe[[size_metric]] ~ focal_tree_dataframe[[metric]], data = focal_tree_dataframe)
     lm_focal_cooks <- cooks.distance(lm_focal) #calculating the cook.s D for each point
-    plot(lm_focal_cooks, type = 'h') #checking to see which cook's D are unsually high
+   # plot(lm_focal_cooks, type = 'h') #checking to see which cook's D are unsually high
     influential <- lm_focal_cooks[(lm_focal_cooks > 0.5)] #remove points with cooks D that are bigger than 3 times the mean cook's D
     
     #removing outliers based on which points were deemed influential, meaning they change the slope of the linear model too much
@@ -378,7 +378,7 @@ slope_tests <- function(population, variable) {
 #SCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LM", "SCA") #focal_results <- focal_function("LM")
+slope_tests_LM_SCA <- slope_tests("LM", "SCA") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
 LM_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics

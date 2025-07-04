@@ -548,7 +548,7 @@ ggplot()+
 
 
 ggplot()+
-  geom_raster(data= as.data.frame(clay_05_SD, xy = T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  geom_raster(data = as.data.frame(clay_05_SD, xy = T), aes(x=x, y=y, fill = clay.content.0.5)) +
   geom_sf(data = st_boundary(SD_tree_grid_cropped)) + 
   labs(fill = "Clay Content (g/kg) (0-5 cm)") +
   geom_sf(data= SD_fixed_field_data_processed_sf)+
@@ -4695,7 +4695,7 @@ for (i in 1:1000){ #for 1000 permutations
   LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
   LM_dbh_sandy_avail_water_0.5_lm_sum <- summary(LM_dbh_sandy_avail_water_0.5_lm) #extracting the linear regression information
-  LM_dbh_sandy_avail_water_0.5_slopes <- c(LM_dbh_sandy_avail_water_0.5_slopes, LM_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LM_dbh_sandy_avail_water_0.5_slopes <- c(LM_dbh_sandy_avail_water_0.5_slopes, LM_dbh_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
@@ -4807,7 +4807,7 @@ for (i in 1:1000){ #for 1000 permutations
   LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LM_dbh_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
   LM_dbh_clay_loam_avail_water_100.200_lm_sum <- summary(LM_dbh_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
-  LM_dbh_clay_loam_avail_water_100.200_slopes <- c(LM_dbh_clay_loam_avail_water_100.200_slopes, LM_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LM_dbh_clay_loam_avail_water_100.200_slopes <- c(LM_dbh_clay_loam_avail_water_100.200_slopes, LM_dbh_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
@@ -8733,7 +8733,7 @@ for (i in 1:1000){ #for 1000 permutations
   LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LC_dbh_sandy_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
   LC_dbh_sandy_avail_water_0.5_lm_sum <- summary(LC_dbh_sandy_avail_water_0.5_lm) #extracting the linear regression information
-  LC_dbh_sandy_avail_water_0.5_slopes <- c(LC_dbh_sandy_avail_water_0.5_slopes, LC_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LC_dbh_sandy_avail_water_0.5_slopes <- c(LC_dbh_sandy_avail_water_0.5_slopes, LC_dbh_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
@@ -8845,7 +8845,7 @@ for (i in 1:1000){ #for 1000 permutations
   LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
   LC_dbh_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
   LC_dbh_clay_loam_avail_water_100.200_lm_sum <- summary(LC_dbh_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
-  LC_dbh_clay_loam_avail_water_100.200_slopes <- c(LC_dbh_clay_loam_avail_water_100.200_slopes, LC_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LC_dbh_clay_loam_avail_water_100.200_slopes <- c(LC_dbh_clay_loam_avail_water_100.200_slopes, LC_dbh_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
