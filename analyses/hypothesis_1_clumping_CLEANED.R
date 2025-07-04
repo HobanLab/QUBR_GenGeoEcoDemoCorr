@@ -867,11 +867,25 @@ ggplot()+
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value),  fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
+  xlab("Average Nearest Neighbor (ANN)") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15))
+
+
+as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Average Nearest Neighbor (ANN)") +
+  ylab("Frequency") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15))
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 

@@ -391,9 +391,8 @@ influential
 
 #removing outliers based on which points were deemed influential
 LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 46, 54, 61, 89, 90,  103, 122, 
-                                                                                                    119, 148, 149, 151, 152, 154, 160, 165, 173, 
-                                                                                                    189, 190, 195, 204, 206, 208, 209, 214),]
-
+                                                                                                    126, 151, 152, 154, 155, 157, 163, 164, 170, 178, 194,
+                                                                                                    195, 200, 209, 211, 213, 214, 220),]
 
 #checking linearity 
 
@@ -478,12 +477,11 @@ influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, 
 influential
 
 #removing outliers based on which points were deemed influential
-LM_fixed_field_data_processed_distance_lca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 50, 87,  103, 119, 124, 151, 152, 165, 173, 186, 190, 204, 206, 208, 212, 213, 214),]
+LM_fixed_field_data_processed_distance_lca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 50, 89,  106, 122, 127, 154, 155,
+                                                                                                    170, 178, 191, 195, 209, 211, 213, 218, 219, 220),]
 
 
 #checking linearity 
-
-LM_fixed_field_data_processed_distance$d
 
 #plotting the linear model in ggplot for SCA
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
@@ -544,7 +542,6 @@ ggplot(LM_slr_dist_lca, aes(sample = LM_slr_dist_lca$residuals))+
 shapiro.test(LM_slr_dist_lca$residuals) #significantly normal when square root transformation and outliers are removed
 
 
-
 #checking equal variance
 ggplot(data = LM_slr_dist_lca, aes(x = LM_slr_dist_lca$fitted.values, y = LM_slr_dist_lca$residuals))+
   geom_point()+
@@ -567,9 +564,10 @@ influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (1.5 * mean(LM_slr_CA_cooks, n
 influential
 
 #removing outliers based on which points were deemed influential
-LM_fixed_field_data_processed_distance_ca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 50, 60, 87, 88, 100, 119, 124, 151, 152, 
-                                                                                                   159, 165, 173, 175, 186, 189, 190, 195, 204, 206, 208, 212, 214),]
-
+LM_fixed_field_data_processed_distance_ca_no_outliers <- LM_fixed_field_data_processed_distance[-c(30, 43, 45, 50, 54, 61, 89, 90, 103,
+                                                                                                   122, 126, 127, 152, 154, 155, 157, 162, 
+                                                                                                   164, 170, 178, 180, 191, 194, 195, 200,
+                                                                                                   209, 211, 213, 214, 218, 220),]
 
 #checking linearity 
 
@@ -707,6 +705,19 @@ ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+
 #creating the linear regression
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag ~ LM_fixed_field_data_processed_distance$d)
 
+#Cook's D
+LM_slr_DBH <- lm(DBH_ag ~ d, data = LM_fixed_field_data_processed_distance)
+LM_slr_DBH_cooks <- cooks.distance(LM_slr_DBH) #calculating the cook.s D for each point
+plot(LM_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_slr_DBH_cooks[(LM_slr_DBH_cooks > (2 * mean(LM_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_distance_dbh_no_outliers <- LM_fixed_field_data_processed_distance[-c(16, 50, 54, 66, 74, 80, 89, 90,
+                                                                                                    95, 87, 122, 126, 127, 153, 155, 161, 162, 164,
+                                                                                                    166, 170, 178, 180, 209, 211, 213, 215, 220),]
+
 #linear regression with transformations
 
 #logged transformations
@@ -717,6 +728,18 @@ LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag_sqrt ~ LM_f
 
 #inverse transformations
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag_inv ~ LM_fixed_field_data_processed_distance$d)
+
+#without outliers
+
+#logged transformations
+LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
+
+#square root transformations
+LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
+
+#inverse transformations
+LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
+
 
 #checking normality
 
@@ -806,8 +829,6 @@ summary(LC_slr_dist_sca)
 #LCA
 
 #checking linearity 
-
-LC_fixed_field_data_processed_distance$d
 
 #plotting the linear model in ggplot for SCA
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
@@ -987,6 +1008,20 @@ ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag ~ LC_fixed_field_data_processed_distance$d)
 
 
+#Cook's D
+LC_slr_DBH <- lm(DBH_ag ~ d, data = LC_fixed_field_data_processed_distance)
+LC_slr_DBH_cooks <- cooks.distance(LC_slr_DBH) #calculating the cook.s D for each point
+plot(LC_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LC_slr_DBH_cooks[(LC_slr_DBH_cooks > (1.5 * mean(LC_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential
+
+
+#removing outliers based on which points were deemed influential
+LM_fixed_field_data_processed_distance_dbh_no_outliers <- LM_fixed_field_data_processed_distance[-c(3, 38, 48, 51, 54, 56, 60, 61, 64,
+                                                                                                    67, 68, 69, 72, 73, 75, 77, 83, 84, 85, 99, 
+                                                                                                    119, 126, 151, 159, 161, 181, 206),]
+
+
 #linear regression with transformations
 
 #logged transformations
@@ -996,7 +1031,18 @@ LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_lg ~ LC_fix
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
 #inverse transformations
-LC_slr_dist_dbh  <- lm(CM_fixed_field_data_processed_distance$DBH_ag_inv ~ LC_fixed_field_data_processed_distance$d)
+LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_inv ~ LC_fixed_field_data_processed_distance$d)
+
+#without outliers
+
+#logged transformations
+LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
+
+#square root transformations
+LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
+
+#inverse transformations
+LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
 
 #checking normality
@@ -1055,9 +1101,6 @@ ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short))
 
 #creating the linear regression
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short ~ SD_fixed_field_data_processed_distance$d)
-
-SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long_lg ~ SD_fixed_field_data_processed_distance$d)
-
 
 #linear regression with transformations
 
@@ -1340,7 +1383,7 @@ summary(SD_slr_dist_cs)
 SD_slr_dbh <- lm(DBH_ag ~ d, data = SD_fixed_field_data_processed_distance)
 SD_slr_dbh_cooks <- cooks.distance(SD_slr_dbh) #calculating the cook.s D for each point
 plot(SD_slr_dbh_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (1 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (2 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
 influential
 
 #removing outliers based on which points were deemed influential

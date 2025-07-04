@@ -123,7 +123,8 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
 #and the size of the focal trees for the data with no outliers
 
 
-focal_function <- function(population){
+focal_function <- function(population, seed_input){
+  
   
   #assigning the dataframes based on the population
   if (population == "LM") {
@@ -262,47 +263,52 @@ focal_function <- function(population){
               tree_grid_cropped, focal_tree_buffers, focal_tree_dataframe_with_competition))
 }
 
+
+
 slope_tests <- function(population, variable) {
+  
+  #setting up empty lists to story slopes and p-values
+  slope_permutations <- c()
+  pvalue_permutations <- c()
+  tau_perm <- c()
+  tau_p_value_perm <- c()
+  
+  seed_input <- 1
   
   # for loop generating permutations of the slopes and p-values for different randomly generated p-values
   for (i in 1:500){
     
-    #setting up empty lists to story slopes and p-values
-    slope_permutations <- c()
-    pvalue_permutations <- c()
-    tau_perm <- c()
-    tau_p_value_perm <- c()
     
     
     if (population == "LM") {
       #generating the focal tree and neighbor data
-      focal_results <- focal_function("LM")
+      focal_results <- focal_function("LM", seed_input)
       
       #storing the focal tree dataframes
       focal_tree_dataframe_sf <- focal_results[[6]] #focal tree dataframe as a spatial object
-      focal_tree_dataframe <- as.data.frame(LM_focal_tree_dataframe_sf)  #focal tree dataframe as a spatial object
+      focal_tree_dataframe <- as.data.frame(focal_tree_dataframe_sf)  #focal tree dataframe as a spatial object
       
     }
     
     if (variable == "SCA"){
       metric = "SCA_over_distance"
-      size_metric = "SCA"
+      size_metric = "Canopy_short"
     } else if (variable == "LCA"){
       metric = "LCA_over_distance"
-      size_metric = "LCA"
+      size_metric = "Canopy_long"
     } else if (variable == "CA"){
       metric = "CA_over_distance"
-      size_metric = "CA"
+      size_metric = "Canopy_area"
     } else if (variable == "CS"){
       metric = "CS_over_distance"
-      size_metric = "CS"
+      size_metric = "Crown_spread"
     } else if (variable == "DBH"){
       metric = "DBH_over_distance"
-      size_metric = "DBH"
+      size_metric = "DBH_ag"
     } 
     
     #setting the seed for random focal tree generation 
-    seed_input <- i
+    seed_input <- seed_input + 1
     
     #creating x and y columns of the UTM 12N 
     focal_tree_dataframe$X.1 <- st_coordinates(focal_tree_dataframe_sf)[,1]
@@ -318,7 +324,7 @@ slope_tests <- function(population, variable) {
     if(length(influential) != 0){
       focal_tree_dataframe_no_outliers <- focal_tree_dataframe[-c(as.numeric(names(influential))),]
     } else {
-      focal_tree_dataframe_no_outliers <- Local_tree_dataframe
+      focal_tree_dataframe_no_outliers <- focal_tree_dataframe
     }
     
     
@@ -346,11 +352,11 @@ slope_tests <- function(population, variable) {
     AIC_test <- model.sel(valid_models) 
     
     #extracting the model that had the lowest AIC value
-    summary_gls_focal_SCA <- summary(get(rownames(AIC_test[AIC_test$AICc == min(AIC_test$AICc)])))
+    summary_gls_focal <- summary(get(rownames(AIC_test[AIC_test$AICc == min(AIC_test$AICc)])))
     
     #storing slope test slope and p-value
-    slope_permutations <- c(slope_permutations, summary_gls_focal$coefficients[2])
-    pvalue_permutations <- c(pvalue_permutations, summary_gls_focal$tTable[8])
+    slope_permutations <- c(slope_permutations, summary_gls_focal$coefficients[[2]])
+    pvalue_permutations <- c(pvalue_permutations, summary_gls_focal$tTable[[8]])
     
     #non parametric Kendall's Tau Test for if the the residuals are not normal or if scatterplot seems non-linear 
     tau_result <- cor.test(focal_tree_dataframe_no_outliers[[metric]], 
@@ -360,1599 +366,855 @@ slope_tests <- function(population, variable) {
     tau_perm <- c(tau_perm, tau_result$statistic)
     tau_p_value_perm <- c(tau_p_value_perm, tau_result$p.value)
     
-    gls_focal_SCA <- NA
-    gls_focal_SCA_exp <- NA
-    gls_focal_SCA_gaus <- NA
-    gls_focal_SCA_spher <- NA
-    gls_focal_SCA_lin <- NA
-    gls_focal_SCA_ratio <- NA
-    
+
   }
+  
+  return(list(slope_permutations, pvalue_permutations, tau_perm, tau_p_value_perm))
 }
 
 
 ####LM ####
 
-#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-focal_results <- focal_function("LM")
-
-slope_tests <- slope_tests("LM", "SCA")
-
-
-#Looking at the distribution of the slope test statistic
-ggplot()+
-  geom_histogram(aes(x = slope_permutations)) +
-  labs(x = "Slope")
-
-mean(slope_permutations) #mean
-median(slope_permutations) #median 
-sd(slope_permutations) #standard deviation
-range(slope_permutations) #range
-
-#Looking at the distribution of the slope test statistic
-ggplot()+
-  geom_histogram(aes(x = pvalue_permutations)) +
-  labs(x = "Slope Test P-Values")
-
-mean(pvalue_permutations) #mean
-median(pvalue_permutations) #median 
-sd(pvalue_permutations) #standard deviation
-range(pvalue_permutations) #range
-
-#Looking at the distribution of the tau/slope statistic
-ggplot()+
-  geom_histogram(aes(x = tau_perm)) +
-  labs(x = "tau")
-
-mean(tau_perm) #mean
-median(tau_perm) #median 
-sd(tau_perm) #standard deviation
-range(tau_perm) #range
-
-#Looking at the distribution of the p-value statistic
-ggplot()+
-  geom_histogram(aes(x = tau_p_value_perm)) +
-  labs(x = "tau p-value")
-
-mean(tau_p_value_perm) #mean
-median(tau_p_value_perm) #median 
-sd(tau_p_value_perm) #standard deviation
-range(tau_p_value_perm) #range
-
-
-
-
-
-
-
-#descriptive statistics for the focal tree sum of size/shape metrics over distance
-
-#histograms
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = SCA_over_distance))+
-  xlab("Sum of Short Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = LCA_over_distance))+
-  xlab("Sum of Long Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CS_over_distance))+
-  xlab("Sum of Canopy Spread over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CA_over_distance))+
-  xlab("Sum of Canopy Area over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = DBH_over_distance))+
-  xlab("Sum of Aggregated DBH over Distance")+
-  ylab("Frequency")
-
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-LM_field_data_focal_summarized_focal <- LM_focal_tree_dataframe %>%
-  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(LM_field_data_focal_summarized_focal)
-
-#### creating the generalized linear effects model ####
-
-#conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
-
-#creating x and y columns of the UTM 12N 
-LM_focal_tree_dataframe$X.1 <- st_coordinates(LM_focal_tree_dataframe_sf)[,1]
-LM_focal_tree_dataframe$Y <- st_coordinates(LM_focal_tree_dataframe_sf)[,2]
-
 #SCA
 
-#Cook's D
-LM_lm_focal_SCA <- lm(Canopy_short ~ SCA_over_distance, data = LM_focal_tree_dataframe)
-LM_lm_focal_SCA_cooks <- cooks.distance(LM_lm_focal_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > 0.5)] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LM", "SCA") #focal_results <- focal_function("LM")
 
-#removing outliers based on which points were deemed influential, meaning they change the slope of the linear model too much
-LM_focal_tree_dataframe_no_SCA_outliers <- LM_focal_tree_dataframe[-c(9, 13),]
-plot(LM_focal_tree_dataframe_no_SCA_outliers$SCA_over_distance)
+#save the results from the permutations
+LM_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LM_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LM_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LM_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LM_focal_tree_dataframe_no_SCA_outliers, (aes(x=SCA_over_distance, y=Canopy_short)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("SCA over Distance")+
-  ylab("Short Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+LM_SCA_pvalue_permutations_results_bonf <- p.adjust(LM_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LM_SCA_tau_p_value_perm_results_bonf <- p.adjust(LM_SCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_SCA <- gls(Canopy_short ~ SCA_over_distance, data = LM_focal_tree_dataframe_no_SCA_outliers)
-LM_gls_focal_SCA_exp <- gls(Canopy_short ~ SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_SCA_outliers)
-LM_gls_focal_SCA_gaus <- gls(Canopy_short ~ SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_SCA_outliers)
-LM_gls_focal_SCA_spher <- gls(Canopy_short ~ SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_SCA_outliers)
-LM_gls_focal_SCA_lin <- gls(Canopy_short ~ SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_SCA_outliers)
-LM_gls_focal_SCA_ratio <- gls(Canopy_short ~ SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_SCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion, lowest AIC is the best predictive model
-LM_AIC_test <- model.sel(LM_gls_focal_SCA, LM_gls_focal_SCA_lin, LM_gls_focal_SCA_exp, LM_gls_focal_SCA_gaus, LM_gls_focal_SCA_spher, LM_gls_focal_SCA_ratio) #LM_gls_focal_SCA_lin
-LM_AIC_test
+mean(LM_SCA_slope_permutations_results) #mean
+median(LM_SCA_slope_permutations_results) #median 
+sd(LM_SCA_slope_permutations_results) #standard deviation
+range(LM_SCA_slope_permutations_results) #range
 
-# While LM_gls_focal_SCA has the lowest AIC, but we have had trouble with it, so we are using the second best option LM_gls_focal_SCA 
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe_no_SCA_outliers, aes(x= LM_gls_focal_SCA$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+mean(LM_SCA_pvalue_permutations_results_bonf) #mean
+median(LM_SCA_pvalue_permutations_results_bonf) #median 
+sd(LM_SCA_pvalue_permutations_results_bonf) #standard deviation
+range(LM_SCA_pvalue_permutations_results_bonf) #range
 
-#qq norm plot
-ggplot(LM_focal_tree_dataframe_no_SCA_outliers, aes(sample = LM_gls_focal_SCA$residuals))+
-  geom_qq()
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#Shapiro test
-shapiro.test(LM_gls_focal_SCA$residuals) #not significant, so distribution of residuals is normal 
+mean(LM_SCA_tau_perm_results) #mean
+median(LM_SCA_tau_perm_results) #median 
+sd(LM_SCA_tau_perm_results) #standard deviation
+range(LM_SCA_tau_perm_results) #range
 
-#checking equal variance
-ggplot(data = LM_focal_tree_dataframe_no_SCA_outliers, aes(x = LM_gls_focal_SCA$fitted, y = LM_gls_focal_SCA$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#checking we have appropriately removed the spatial autocorrelation
-semivario <- Variogram( LM_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
-
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LM_gls_focal_SCA)
-
-#non parametric Kendall's Tau Test for if the the residuals are not normal or if scatterplot seems non-linear 
-LM_tau_result_SCA <- cor.test(LM_focal_tree_dataframe$SCA_over_distance, 
-                              LM_focal_tree_dataframe$Canopy_short,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LM_tau_result_SCA)
-
-# Calculate the trend line
-LM_trend_line_SCA <- predict(loess(LM_focal_tree_dataframe$Canopy_short ~ LM_focal_tree_dataframe$SCA_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LM_focal_tree_dataframe$SCA_over_distance, y = (LM_focal_tree_dataframe$Canopy_short), color = "blue")) +
-  geom_line(aes(x = LM_focal_tree_dataframe$SCA_over_distance, y = LM_trend_line_SCA), color = "red") +
-  labs(x = "SCA over Distance", y = "Short Canopy Axis", title = "Trend Line Plot") +
-  theme_minimal()
-
+mean(LM_SCA_tau_p_value_perm_results_bonf) #mean
+median(LM_SCA_tau_p_value_perm_results_bonf) #median 
+sd(LM_SCA_tau_p_value_perm_results_bonf) #standard deviation
+range(LM_SCA_tau_p_value_perm_results_bonf) #range
 
 #LCA
 
-#Cook's D
-LM_lm_focal_LCA <- lm(Canopy_long ~ LCA_over_distance, data = LM_focal_tree_dataframe)
-LM_lm_focal_LCA_cooks <- cooks.distance(LM_lm_focal_LCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_LCA_cooks[(LM_lm_focal_LCA_cooks > 0.5)] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LM", "LCA") #focal_results <- focal_function("LM")
 
-#removing outliers based on which points were deemed influential
-LM_focal_tree_dataframe_no_LCA_outliers <- LM_focal_tree_dataframe[-c(9, 13),]
-plot(LM_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance)
+#save the results from the permutations
+LM_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LM_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LM_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LM_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LM_focal_tree_dataframe_no_LCA_outliers, (aes(x=LCA_over_distance, y=Canopy_long)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("SCA over Distance")+
-  ylab("Short Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+LM_LCA_pvalue_permutations_results_bonf <- p.adjust(LM_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LM_LCA_tau_p_value_perm_results_bonf <- p.adjust(LM_LCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_LCA <- gls(Canopy_long ~ LCA_over_distance, data = LM_focal_tree_dataframe_no_LCA_outliers)
-LM_gls_focal_LCA_exp <- gls(Canopy_long ~ LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_LCA_outliers)
-LM_gls_focal_LCA_gaus <- gls(Canopy_long ~ LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_LCA_outliers)
-LM_gls_focal_LCA_spher <- gls(Canopy_long ~ LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_LCA_outliers)
-LM_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_LCA_outliers)
-LM_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_LCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_LCA <- model.sel(LM_gls_focal_LCA, LM_gls_focal_LCA_exp, LM_gls_focal_LCA_gaus, LM_gls_focal_LCA_spher, LM_gls_focal_LCA_ratio) #LM_gls_focal_LCA_lin
-LM_AIC_test_LCA
+mean(LM_LCA_slope_permutations_results) #mean
+median(LM_LCA_slope_permutations_results) #median 
+sd(LM_LCA_slope_permutations_results) #standard deviation
+range(LM_LCA_slope_permutations_results) #range
 
-#LM_gls_focal_LCA has lowest AIC
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe_no_LCA_outliers, aes(x= LM_gls_focal_LCA$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+mean(LM_LCA_pvalue_permutations_results_bonf) #mean
+median(LM_LCA_pvalue_permutations_results_bonf) #median 
+sd(LM_LCA_pvalue_permutations_results_bonf) #standard deviation
+range(LM_LCA_pvalue_permutations_results_bonf) #range
 
-#qq norm plots
-ggplot(LM_focal_tree_dataframe_no_LCA_outliers, aes(sample = LM_gls_focal_LCA$residuals))+
-  geom_qq()
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#shaprio wilk test, not significant so our residuals are normally distributed
-shapiro.test(LM_gls_focal_LCA$residuals) 
+mean(LM_LCA_tau_perm_results) #mean
+median(LM_LCA_tau_perm_results) #median 
+sd(LM_LCA_tau_perm_results) #standard deviation
+range(LM_LCA_tau_perm_results) #range
 
-#checking equal variance
-ggplot(data = LM_focal_tree_dataframe_no_LCA_outliers , aes(x = LM_gls_focal_LCA$fitted, y = LM_gls_focal_LCA$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for LCA and LCA over Distance")
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_LCA, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
-
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LM_gls_focal_LCA)
-
-#non parametric Kendall's Tau Test for the version without outliers
-LM_tau_result_LCA <- cor.test(LM_focal_tree_dataframe$LCA_over_distance, 
-                              LM_focal_tree_dataframe$Canopy_long,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LM_tau_result_LCA)
-
-# Calculate the trend line
-LM_trend_line_LCA <- predict(loess(LM_focal_tree_dataframe$Canopy_long ~ LM_focal_tree_dataframe$SCA_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LM_focal_tree_dataframe$LCA_over_distance, y = (LM_focal_tree_dataframe$Canopy_long), color = "blue")) +
-  geom_line(aes(x = LM_focal_tree_dataframe$LCA_over_distance, y = LM_trend_line_LCA), color = "red") +
-  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
-  theme_minimal()
+mean(LM_LCA_tau_p_value_perm_results_bonf) #mean
+median(LM_LCA_tau_p_value_perm_results_bonf) #median 
+sd(LM_LCA_tau_p_value_perm_results_bonf) #standard deviation
+range(LM_LCA_tau_p_value_perm_results_bonf) #range
 
 
 #CA
 
-#Cook's D
-LM_lm_focal_CA <- lm(Canopy_area ~ CA_over_distance, data = LM_focal_tree_dataframe)
-LM_lm_focal_CA_cooks <- cooks.distance(LM_lm_focal_CA) #calculating the cook.s D for each point
-plot(LM_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_CA_cooks[LM_lm_focal_CA_cooks > 0.5] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LM", "CA") #focal_results <- focal_function("LM")
 
-#removing outliers based on which points were deemed influential
-LM_focal_tree_dataframe_no_CA_outliers <- LM_focal_tree_dataframe[-c(9, 13),]
-plot(LM_focal_tree_dataframe_no_CA_outliers$CA_over_distance)
+#save the results from the permutations
+LM_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LM_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LM_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LM_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LM_focal_tree_dataframe_no_CA_outliers, (aes(x=CA_over_distance, y=Canopy_area)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("CA over Distance")+
-  ylab("Canopy Area")
+#use a Bonferroni Correction to control for multiple testing error
+LM_CA_pvalue_permutations_results_bonf <- p.adjust(LM_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LM_CA_tau_p_value_perm_results_bonf <- p.adjust(LM_CA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_CA <- gls(Canopy_long ~ CA_over_distance, data = LM_focal_tree_dataframe_no_CA_outliers)
-LM_gls_focal_CA_exp <- gls(Canopy_short ~ CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CA_outliers)
-LM_gls_focal_CA_gaus <- gls(Canopy_short ~ CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CA_outliers)
-LM_gls_focal_CA_spher <- gls(Canopy_short ~ CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CA_outliers)
-LM_gls_focal_CA_lin <- gls(Canopy_short ~ CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CA_outliers)
-LM_gls_focal_CA_ratio <- gls(Canopy_short ~ CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LM_CA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_CA <- model.sel(LM_gls_focal_CA, LM_gls_focal_CA_exp, LM_gls_focal_CA_gaus, LM_gls_focal_CA_spher, LM_gls_focal_CA_ratio) #LM_gls_focal_CA_lin
-LM_AIC_test_CA
+mean(LM_CA_slope_permutations_results) #mean
+median(LM_CA_slope_permutations_results) #median 
+sd(LM_CA_slope_permutations_results) #standard deviation
+range(LM_CA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe_no_CA_outliers, aes(x= LM_gls_focal_CA$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_CA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LM_focal_tree_dataframe_no_CA_outliers, aes(sample = LM_gls_focal_CA$residuals))+
-  geom_qq()
+mean(LM_CA_pvalue_permutations_results_bonf) #mean
+median(LM_CA_pvalue_permutations_results_bonf) #median 
+sd(LM_CA_pvalue_permutations_results_bonf) #standard deviation
+range(LM_CA_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not sign so the residuals are normally distributed
-shapiro.test(LM_gls_focal_CA$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LM_CA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LM_focal_tree_dataframe_no_CA_outliers , aes(x = LM_gls_focal_CA$fitted, y = LM_gls_focal_CA$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
+mean(LM_CA_tau_perm_results) #mean
+median(LM_CA_tau_perm_results) #median 
+sd(LM_CA_tau_perm_results) #standard deviation
+range(LM_CA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_CA, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_CA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LM_gls_focal_CA)
+mean(LM_CA_tau_p_value_perm_results_bonf) #mean
+median(LM_CA_tau_p_value_perm_results_bonf) #median 
+sd(LM_CA_tau_p_value_perm_results_bonf) #standard deviation
+range(LM_CA_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test for the version without outliers
-LM_tau_result_CA <- cor.test(LM_focal_tree_dataframe$CA_over_distance, LM_focal_tree_dataframe$Canopy_area,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LM_tau_result_CA)
-
-# Calculate the trend line
-LM_trend_line_CA <- predict(loess(LM_focal_tree_dataframe$Canopy_area ~ LM_focal_tree_dataframe$CA_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LM_focal_tree_dataframe$CA_over_distance, y = (LM_focal_tree_dataframe$Canopy_area), color = "blue")) +
-  geom_line(aes(x = LM_focal_tree_dataframe$CA_over_distance, y = LM_trend_line_CA), color = "red") +
-  labs(x = "CA over Distance", y = "Canopy Area", title = "Trend Line Plot") +
-  theme_minimal()
 
 #CS
 
-#Cook's D
-LM_lm_focal_CS <- lm(Crown_spread ~ CS_over_distance, data = LM_focal_tree_dataframe)
-LM_lm_focal_CS_cooks <- cooks.distance(LM_lm_focal_CS) #calculating the cook.s D for each point
-plot(LM_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_CS_cooks[LM_lm_focal_CS_cooks > 0.5] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LM", "CS") #focal_results <- focal_function("LM")
 
-#removing outliers based on which points were deemed influential
-LM_focal_tree_dataframe_no_CS_outliers <- LM_focal_tree_dataframe[-c(9, 13),]
-plot(LM_focal_tree_dataframe_no_CS_outliers$CS_over_distance)
+#save the results from the permutations
+LM_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LM_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LM_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LM_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LM_focal_tree_dataframe_no_CS_outliers, (aes(x=CS_over_distance, y=Crown_spread)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("CS over Distance")+
-  ylab("Crown Spread")
+#use a Bonferroni Correction to control for multiple testing error
+LM_CS_pvalue_permutations_results_bonf <- p.adjust(LM_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LM_CS_tau_p_value_perm_results_bonf <- p.adjust(LM_CS_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_CS <- gls(Canopy_long ~ CS_over_distance, data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_CS_exp <- gls(Canopy_short ~ CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_CS_gaus <- gls(Canopy_short ~ CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_CS_spher <- gls(Canopy_short ~ CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_CS_lin <- gls(Canopy_short ~ CS_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_CS_ratio <- gls(Canopy_short ~ CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LM_CS_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_CS <- model.sel(LM_gls_focal_CS, LM_gls_focal_CS_exp, LM_gls_focal_CS_gaus, LM_gls_focal_CS_spher, LM_gls_focal_CS_ratio) #without linear correlation LM_gls_focal_CS_lin
-LM_AIC_test_CS
+mean(LM_CS_slope_permutations_results) #mean
+median(LM_CS_slope_permutations_results) #median 
+sd(LM_CS_slope_permutations_results) #standard deviation
+range(LM_CS_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe_no_CS_outliers, aes(x= LM_gls_focal_CS$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_CS_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LM_focal_tree_dataframe_no_CS_outliers, aes(sample = LM_gls_focal_CS$residuals))+
-  geom_qq()
+mean(LM_CS_pvalue_permutations_results_bonf) #mean
+median(LM_CS_pvalue_permutations_results_bonf) #median 
+sd(LM_CS_pvalue_permutations_results_bonf) #standard deviation
+range(LM_CS_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not sign so residuals are normally distributed
-shapiro.test(LM_gls_focal_CA$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LM_CS_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LM_focal_tree_dataframe_no_CS_outliers , aes(x = LM_gls_focal_CS$fitted, y = LM_gls_focal_CS$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
+mean(LM_CS_tau_perm_results) #mean
+median(LM_CS_tau_perm_results) #median 
+sd(LM_CS_tau_perm_results) #standard deviation
+range(LM_CS_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_CS_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LM_gls_focal_CS)
+mean(LM_CS_tau_p_value_perm_results_bonf) #mean
+median(LM_CS_tau_p_value_perm_results_bonf) #median 
+sd(LM_CS_tau_p_value_perm_results_bonf) #standard deviation
+range(LM_CS_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test for the version without outliers
-LM_tau_result_CS <- cor.test(LM_focal_tree_dataframe$Cs_over_distance, LM_focal_tree_dataframe$Crown_spread,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LM_tau_result_CS)
-
-# Calculate the trend line
-LM_trend_line_CS <- predict(loess(LM_focal_tree_dataframe$Crown_spread ~ LM_focal_tree_dataframe$CS_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LM_focal_tree_dataframe$CS_over_distance, y = (LM_focal_tree_dataframe$Crown_spread), color = "blue")) +
-  geom_line(aes(x = LM_focal_tree_dataframe$CS_over_distance, y = LM_trend_line_CS), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread", title = "Trend Line Plot") +
-  theme_minimal()
 
 #DBH
 
-#Cook's D
-LM_lm_focal_DBH <- lm(DBH_ag ~ DBH_over_distance, data = LM_focal_tree_dataframe)
-LM_lm_focal_DBH_cooks <- cooks.distance(LM_lm_focal_DBH) #calculating the cook.s D for each point
-plot(LM_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_DBH_cooks[LM_lm_focal_DBH_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LM", "DBH") #focal_results <- focal_function("LM")
 
-#removing outliers based on which points were deemed influential
-LM_focal_tree_dataframe_no_CS_outliers <- LM_focal_tree_dataframe[-c(9, 13),]
-plot(LM_focal_tree_dataframe_no_CS_outliers$DBH_over_distance)
+#save the results from the permutations
+LM_DBH_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LM_DBH_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LM_DBH_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LM_DBH_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot
-ggplot(data = LM_focal_tree_dataframe_no_CS_outliers, (aes(x=DBH_over_distance, y=DBH_ag)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("DBH over Distance")+
-  ylab("DBH")
+#use a Bonferroni Correction to control for multiple testing error
+LM_DBH_pvalue_permutations_results_bonf <- p.adjust(LM_DBH_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LM_DBH_tau_p_value_perm_results_bonf <- p.adjust(LM_DBH_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LM_gls_focal_DBH <- gls(Canopy_short ~ DBH_over_distance, data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_DBH_exp <- gls(Canopy_short ~ DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_DBH_gaus <- gls(Canopy_short ~ DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_DBH_spher <- gls(Canopy_short ~ DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_DBH_lin <- gls(Canopy_short ~ DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
-LM_gls_focal_DBH_ratio <- gls(Canopy_short ~ DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe_no_CS_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_DHB <- model.sel(LM_gls_focal_DBH, LM_gls_focal_DBH_exp, LM_gls_focal_DBH_gaus, LM_gls_focal_DBH_spher, LM_gls_focal_DBH_ratio) #without linear control LM_gls_focal_DBH_lin
-LM_AIC_test_DHB
+mean(LM_DBH_slope_permutations_results) #mean
+median(LM_DBH_slope_permutations_results) #median 
+sd(LM_DBH_slope_permutations_results) #standard deviation
+range(LM_DBH_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe_no_CS_outliers, aes(x= LM_gls_focal_DBH$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LM_focal_tree_dataframe_no_CS_outliers, aes(sample = LM_gls_focal_DBH$residuals))+
-  geom_qq()
+mean(LM_DBH_pvalue_permutations_results_bonf) #mean
+median(LM_DBH_pvalue_permutations_results_bonf) #median 
+sd(LM_DBH_pvalue_permutations_results_bonf) #standard deviation
+range(LM_DBH_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not sign so the residuals are normally distributed
-shapiro.test(LM_gls_focal_DBH$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LM_focal_tree_dataframe_no_CS_outliers , aes(x = LM_gls_focal_DBH$fitted, y = LM_gls_focal_DBH$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for DBH and DBH over Distance")
+mean(LM_DBH_tau_perm_results) #mean
+median(LM_DBH_tau_perm_results) #median 
+sd(LM_DBH_tau_perm_results) #standard deviation
+range(LM_DBH_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_DBH, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LM_gls_focal_DBH)
+mean(LM_DBH_tau_p_value_perm_results_bonf) #mean
+median(LM_DBH_tau_p_value_perm_results_bonf) #median 
+sd(LM_DBH_tau_p_value_perm_results_bonf) #standard deviation
+range(LM_DBH_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test for the version without outliers
-LM_tau_result_DBH <- cor.test(LM_focal_tree_dataframe$DBH_over_distance, LM_focal_tree_dataframe$DBH_ag,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LM_tau_result_DBH)
-
-# Calculate the trend line
-LM_trend_line_DBH <- predict(loess(LM_focal_tree_dataframe$DBH_ag ~ LM_focal_tree_dataframe$DBH_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LM_focal_tree_dataframe$DBH_over_distance, y = (LM_focal_tree_dataframe$DBH_ag), color = "blue")) +
-  geom_line(aes(x = LM_focal_tree_dataframe$DBH_over_distance, y = LM_trend_line_DBH), color = "red") +
-  labs(x = "DBH over Distance", y = "DBH", title = "Trend Line Plot") +
-  theme_minimal()
 
 
 #### LC ####
 
-#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-LC_focal_results <- focal_function("LC")
-
-#assigning necessary dataframes and objects 
-LC_box_sf <- LC_focal_results[[1]] #bounding box
-LC_box_sf_cropped <- LC_focal_results[[2]] #bounding box cropped by 20m
-LC_fixed_field_data_processed_sf_cropped <- LC_focal_results[[3]] # cropped tree data
-LC_tree_grid_cropped <- LC_focal_results[[4]] #grid with 40*mean population DBH as grid size
-LC_focal_tree_buffers <- LC_focal_results[[5]] #focal tree buffers
-LC_focal_tree_dataframe_sf <- LC_focal_results[[6]] #focal tree data
-LC_focal_tree_dataframe <- as.data.frame(LC_focal_tree_dataframe_sf) #focal tree data
-
-#plotting the original bounding box box, cropped box, original tree points, and cropped tree points
-ggplot()+
-  geom_sf(data=LC_box_sf)+ #old box
-  geom_sf(data=LC_box_sf_cropped)+ #cropped box
-  geom_sf(data=LC_fixed_field_data_processed_sf)+ #original points
-  geom_sf(data=LC_fixed_field_data_processed_sf_cropped, color = "red") #old points
-
-#graphing the selected focal trees, the buffers, the grid, colored by sequential ID number
-ggplot()+
-  geom_sf(data = LC_tree_grid_cropped)+
-  geom_sf(data=LC_focal_tree_buffers, color = "blue") +
-  geom_sf(data= LC_focal_tree_dataframe_sf, aes(color = X))
-
-#plotting the grid, the buffers with and without neighbors, and the focal trees, to see if the row numbers for the buffers match the row numbers for the focal tree points
-ggplot()+
-  geom_sf(data = LC_tree_grid_cropped) +
-  geom_sf(data=LC_focal_tree_buffers, aes(color = focal_tree_row))+
-  geom_sf(data=LC_focal_tree_dataframe_sf, aes(color = focal_tree_row))
-
-#plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
-ggplot()+
-  geom_sf(data = LC_focal_tree_buffers)+
-  geom_sf(data = LC_fixed_field_data_processed_sf)+
-  geom_sf(data = LC_focal_tree_dataframe_sf, color = 'blue')
-
-#plotting the tree points and their competition metrics
-ggplot()+
-  geom_sf(data=LC_focal_tree_dataframe_sf, aes(color = SCA_over_distance))
-
-#descriptive statistics
-
-#histograms
-ggplot(LC_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = SCA_over_distance))+
-  xlab("Sum of Short Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LC_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = LCA_over_distance))+
-  xlab("Sum of Long Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LC_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CS_over_distance))+
-  xlab("Sum of Canopy Spread over Distance")+
-  ylab("Frequency")
-
-ggplot(LC_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CA_over_distance))+
-  xlab("Sum of Canopy Area over Distance")+
-  ylab("Frequency")
-
-ggplot(LC_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = DBH_over_distance))+
-  xlab("Sum of Aggregated DBH over Distance")+
-  ylab("Frequency")
-
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-LC_field_data_focal_summarized_focal <- LC_focal_tree_dataframe %>%
-  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(LC_field_data_focal_summarized_focal)
-
-
-#creating the generalized linear effects model
-
-#creating x and y columns of the UTM 12N 
-LC_focal_tree_dataframe$X.1 <- st_coordinates(LC_focal_tree_dataframe_sf)[,1]
-LC_focal_tree_dataframe$Y <- st_coordinates(LC_focal_tree_dataframe_sf)[,2]
-
 #SCA
 
-#Cook's D
-LC_lm_focal_SCA <- lm(Canopy_short ~ LCA_over_distance, data = LC_focal_tree_dataframe)
-LC_lm_focal_SCA_cooks <- cooks.distance(LC_lm_focal_SCA) #calculating the cook.s D for each point
-plot(LC_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_SCA_cooks[LC_lm_focal_SCA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LC", "SCA") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-LC_focal_tree_dataframe_no_SCA_outliers <- LC_focal_tree_dataframe[-c(19),]
-plot(LC_focal_tree_dataframe_no_SCA_outliers$SCA_over_distance)
+#save the results from the permutations
+LC_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LC_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LC_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LC_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LC_focal_tree_dataframe_no_SCA_outliers, (aes(x=SCA_over_distance, y=Canopy_short)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("SCA over Distance")+
-  ylab("Short Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+LC_SCA_pvalue_permutations_results_bonf <- p.adjust(LC_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LC_SCA_tau_p_value_perm_results_bonf <- p.adjust(LC_SCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_SCA <- gls(Canopy_short ~ SCA_over_distance, data = LC_focal_tree_dataframe_no_SCA_outliers)
-LC_gls_focal_SCA_exp <- gls(Canopy_short ~ SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_SCA_outliers)
-LC_gls_focal_SCA_gaus <- gls(Canopy_short ~ SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_SCA_outliers)
-LC_gls_focal_SCA_spher <- gls(Canopy_short ~ SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_SCA_outliers)
-LC_gls_focal_SCA_lin <- gls(Canopy_short ~ SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_SCA_outliers)
-LC_gls_focal_SCA_ratio <- gls(Canopy_short ~ SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_SCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test <- model.sel(LC_gls_focal_SCA, LC_gls_focal_SCA_exp, LC_gls_focal_SCA_gaus, LC_gls_focal_SCA_spher, LC_gls_focal_SCA_lin, LC_gls_focal_SCA_ratio)
-LC_AIC_test
+mean(LC_SCA_slope_permutations_results) #mean
+median(LC_SCA_slope_permutations_results) #median 
+sd(LC_SCA_slope_permutations_results) #standard deviation
+range(LC_SCA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe_no_SCA_outliers, aes(x= LC_gls_focal_SCA_lin$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LC_focal_tree_dataframe_no_SCA_outliers, aes(sample = LC_gls_focal_SCA_lin$residuals))+
-  geom_qq()
+mean(LC_SCA_pvalue_permutations_results_bonf) #mean
+median(LC_SCA_pvalue_permutations_results_bonf) #median 
+sd(LC_SCA_pvalue_permutations_results_bonf) #standard deviation
+range(LC_SCA_pvalue_permutations_results_bonf) #range
 
-#shapiro-wilk test, not sign so normal residuals
-shapiro.test(LC_gls_focal_SCA_lin$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LC_focal_tree_dataframe_no_SCA_outliers , aes(x = LC_gls_focal_SCA_lin$fitted, y = LC_gls_focal_SCA_lin$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
+mean(LC_SCA_tau_perm_results) #mean
+median(LC_SCA_tau_perm_results) #median 
+sd(LC_SCA_tau_perm_results) #standard deviation
+range(LC_SCA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram( LC_gls_focal_SCA_lin, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LC_gls_focal_SCA_lin)
-
-#non parametric Kendall's Tau Test for the version without outliers
-LC_tau_result_SCA <- cor.test(LC_focal_tree_dataframe$SCA_over_distance, 
-                              LC_focal_tree_dataframe$Canopy_short,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LC_tau_result_SCA)
-
-# Calculate the trend line
-LC_trend_line_SCA <- predict(loess(LC_focal_tree_dataframe$Canopy_short ~ LC_focal_tree_dataframe$SCA_over_distance))
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LC_focal_tree_dataframe$SCA_over_distance, y = (LC_focal_tree_dataframe$Canopy_short), color = "blue")) +
-  geom_line(aes(x = LC_focal_tree_dataframe$SCA_over_distance, y = LC_trend_line_SCA), color = "red") +
-  labs(x = "SCA over Distance", y = "Short Canopy Axis", title = "Trend Line Plot") +
-  theme_minimal()
+mean(LC_SCA_tau_p_value_perm_results_bonf) #mean
+median(LC_SCA_tau_p_value_perm_results_bonf) #median 
+sd(LC_SCA_tau_p_value_perm_results_bonf) #standard deviation
+range(LC_SCA_tau_p_value_perm_results_bonf) #range
 
 #LCA
 
-#Cook's D
-LC_lm_focal_LCA <- lm(Canopy_long ~ LCA_over_distance, data = LC_focal_tree_dataframe)
-LC_lm_focal_LCA_cooks <- cooks.distance(LC_lm_focal_LCA) #calculating the cook.s D for each point
-plot(LC_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_LCA_cooks[LC_lm_focal_LCA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LC", "LCA") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-LC_focal_tree_dataframe_no_LCA_outliers <- LC_focal_tree_dataframe[-c(19),]
-plot(LC_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance)
+#save the results from the permutations
+LC_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LC_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LC_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LC_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LC_focal_tree_dataframe_no_LCA_outliers, (aes(x=LCA_over_distance, y=Canopy_long)))+ 
-  geom_smooth(method='lm')+
-  geom_point()+
-  xlab("LCA over Distance")+
-  ylab("Long Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+LC_LCA_pvalue_permutations_results_bonf <- p.adjust(LC_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LC_LCA_tau_p_value_perm_results_bonf <- p.adjust(LC_LCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#unlogged version of generalized linear model
-LC_gls_focal_LCA <- gls(Canopy_long ~ LCA_over_distance, data = LC_focal_tree_dataframe_no_LCA_outliers)
-LC_gls_focal_LCA_exp <- gls(Canopy_long ~ LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_LCA_outliers)
-LC_gls_focal_LCA_gaus <- gls(Canopy_long ~ LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_LCA_outliers)
-LC_gls_focal_LCA_spher <- gls(Canopy_long ~ LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_LCA_outliers)
-LC_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_LCA_outliers)
-LC_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_LCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_LCA <- model.sel(LC_gls_focal_LCA, LC_gls_focal_LCA_exp, LC_gls_focal_LCA_gaus, LC_gls_focal_LCA_spher) #LC_gls_focal_LCA_ratio
-LC_AIC_test_LCA
+mean(LC_LCA_slope_permutations_results) #mean
+median(LC_LCA_slope_permutations_results) #median 
+sd(LC_LCA_slope_permutations_results) #standard deviation
+range(LC_LCA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe_no_LCA_outliers, aes(x= LC_gls_focal_LCA_gaus$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance",
-       subtitle = "Using Gaussian Control for Spatial Autocorrelation")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LC_focal_tree_dataframe_no_LCA_outliers, aes(sample = LC_gls_focal_LCA_gaus$residuals))+
-  geom_qq()
+mean(LC_LCA_pvalue_permutations_results_bonf) #mean
+median(LC_LCA_pvalue_permutations_results_bonf) #median 
+sd(LC_LCA_pvalue_permutations_results_bonf) #standard deviation
+range(LC_LCA_pvalue_permutations_results_bonf) #range
 
-#shapiro-wilk test, significant so non-normal residuals
-shapiro.test(LC_gls_focal_LCA_gaus$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LC_focal_tree_dataframe_no_LCA_outliers, aes(x = LC_gls_focal_LCA_gaus$fitted, y = LC_gls_focal_LCA_gaus$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for LCA and LCA over Distance")
+mean(LC_LCA_tau_perm_results) #mean
+median(LC_LCA_tau_perm_results) #median 
+sd(LC_LCA_tau_perm_results) #standard deviation
+range(LC_LCA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_LCA_gaus, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LC_gls_focal_LCA_gaus)
+mean(LC_LCA_tau_p_value_perm_results_bonf) #mean
+median(LC_LCA_tau_p_value_perm_results_bonf) #median 
+sd(LC_LCA_tau_p_value_perm_results_bonf) #standard deviation
+range(LC_LCA_tau_p_value_perm_results_bonf) #range
 
-#because the residuals are not normal, we will use the Kendall's Tau correlation non-parametric test to see if the relationship is significant
-
-#non parametric Kendall's Tau Test because the data is non-parametric and has ties 
-LC_tau_result_LCA <- cor.test(LC_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance, 
-                              LC_focal_tree_dataframe_no_LCA_outliers$Canopy_long,  
-                              method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LC_tau_result_LCA)
-
-# Calculate the trend line
-LC_trend_line_LCA <- predict(loess(LC_focal_tree_dataframe_no_LCA_outliers$Canopy_long ~ LC_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_canopy <- fitted(LC_gls_focal_LCA_gaus)
-
-# Create the data frame for plotting
-line_df <- data.frame(
-  LCA_over_distance = LC_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance,
-  fitted_canopy = fitted_canopy
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LC_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance, y = (LC_focal_tree_dataframe_no_LCA_outliers$Canopy_long), color = "blue")) +
-  geom_line(data = line_df, aes(x = LCA_over_distance, y = fitted_canopy), color = "red") +
-  labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
-  theme_minimal()
 
 #CA
 
-#Cook's D
-LC_lm_focal_CA <- lm(Canopy_area ~ CA_over_distance, data = LC_focal_tree_dataframe)
-LC_lm_focal_CA_cooks <- cooks.distance(LC_lm_focal_CA) #calculating the cook.s D for each point
-plot(LC_lm_focal_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_CA_cooks[LC_lm_focal_CA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LC", "CA") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-LC_focal_tree_dataframe_no_CA_outliers <- LC_focal_tree_dataframe[-c(19),]
-plot(LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance)
+#save the results from the permutations
+LC_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LC_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LC_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LC_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot
-ggplot(data = LC_focal_tree_dataframe_no_CA_outliers, (aes(x=CA_over_distance, y=Canopy_area)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("CA over Distance")+
-  ylab("Canopy Area")
+#use a Bonferroni Correction to control for multiple testing error
+LC_CA_pvalue_permutations_results_bonf <- p.adjust(LC_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LC_CA_tau_p_value_perm_results_bonf <- p.adjust(LC_CA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_CA <- gls(Canopy_area ~ CA_over_distance, data = LC_focal_tree_dataframe_no_CA_outliers)
-LC_gls_focal_CA_exp <- gls(Canopy_area ~ CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CA_outliers)
-LC_gls_focal_CA_gaus <- gls(Canopy_area ~ CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CA_outliers)
-LC_gls_focal_CA_spher <- gls(Canopy_area ~ CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CA_outliers)
-LC_gls_focal_CA_lin <- gls(Canopy_area ~ CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CA_outliers)
-LC_gls_focal_CA_ratio <- gls(Canopy_area ~ CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LC_CA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_CA <- model.sel(LC_gls_focal_CA, LC_gls_focal_CA_exp, LC_gls_focal_CA_gaus, LC_gls_focal_CA_spher, LC_gls_focal_CA_lin, LC_gls_focal_CA_ratio)
-LC_AIC_test_CA
+mean(LC_CA_slope_permutations_results) #mean
+median(LC_CA_slope_permutations_results) #median 
+sd(LC_CA_slope_permutations_results) #standard deviation
+range(LC_CA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe_no_CA_outliers, aes(x= LC_gls_focal_CA$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_CA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(LC_focal_tree_dataframe_no_CA_outliers, aes(sample = LC_gls_focal_CA$residuals))+
-  geom_qq()
+mean(LC_CA_pvalue_permutations_results_bonf) #mean
+median(LC_CA_pvalue_permutations_results_bonf) #median 
+sd(LC_CA_pvalue_permutations_results_bonf) #standard deviation
+range(LC_CA_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, sign for when residuals so we are using a Kendall's Tau Correlation Test non-parametric data
-shapiro.test(LC_gls_focal_CA$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LC_CA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LC_focal_tree_dataframe_no_CA_outliers , aes(x = LC_gls_focal_CA$fitted, y = LC_gls_focal_CA$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
+mean(LC_CA_tau_perm_results) #mean
+median(LC_CA_tau_perm_results) #median 
+sd(LC_CA_tau_perm_results) #standard deviation
+range(LC_CA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CA, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_CA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LC_gls_focal_CA)
+mean(LC_CA_tau_p_value_perm_results_bonf) #mean
+median(LC_CA_tau_p_value_perm_results_bonf) #median 
+sd(LC_CA_tau_p_value_perm_results_bonf) #standard deviation
+range(LC_CA_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test Test for the version without outliers
-LC_tau_result_CA <- cor.test(LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance, 
-                             LC_focal_tree_dataframe_no_CA_outliers$Canopy_area,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LC_tau_result_CA)
-
-# Calculate the trend line
-LC_trend_line_CA <- predict(loess(LC_focal_tree_dataframe_no_CA_outliers$Canopy_area ~ LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance))
-
-# Create a trend line plot
-
-# Extract fitted values from the GLS model
-fitted_canopy <- fitted(LC_gls_focal_CA)
-
-# Create the data frame for plotting
-line_df <- data.frame(
-  CA_over_distance = LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance,
-  fitted_canopy = fitted_canopy
-)
-
-#plotting
-ggplot() +
-  geom_point(aes(x = LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance, y = (LC_focal_tree_dataframe_no_CA_outliers$Canopy_area), color = "red")) +
-  geom_line(aes(x = LC_focal_tree_dataframe_no_CA_outliers$CA_over_distance, y = fitted_canopy), color = "red") +
-  labs(x = "CA over Distance", y = "Canopy Area", title = "Trend Line Plot") +
-  theme_minimal()
 
 #CS
 
-#Cook's D
-LC_lm_focal_CS <- lm(Crown_spread ~ CS_over_distance, data = LC_focal_tree_dataframe)
-LC_lm_focal_CS_cooks <- cooks.distance(LC_lm_focal_CS) #calculating the cook.s D for each point
-plot(LC_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_CS_cooks[LC_lm_focal_CS_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LC", "CS") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-LC_focal_tree_dataframe_no_CS_outliers <- LC_focal_tree_dataframe[-c(19),]
-plot(LC_focal_tree_dataframe_no_CS_outliers$CS_over_distance)
+#save the results from the permutations
+LC_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LC_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LC_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LC_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for SCA
-ggplot(data = LC_focal_tree_dataframe_no_CS_outliers, (aes(x=CS_over_distance, y=Crown_spread)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("CS over Distance")+
-  ylab("Crown Spread")
+#use a Bonferroni Correction to control for multiple testing error
+LC_CS_pvalue_permutations_results_bonf <- p.adjust(LC_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LC_CS_tau_p_value_perm_results_bonf <- p.adjust(LC_CS_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_CS <- gls(Crown_spread ~ CS_over_distance, data = LC_focal_tree_dataframe_no_CS_outliers)
-LC_gls_focal_CS_exp <- gls(Crown_spread ~ CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CS_outliers)
-LC_gls_focal_CS_gaus <- gls(Crown_spread ~ CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CS_outliers)
-LC_gls_focal_CS_spher <- gls(Crown_spread ~ CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CS_outliers)
-LC_gls_focal_CS_lin <- gls(Crown_spread ~ CS_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CS_outliers)
-LC_gls_focal_CS_ratio <- gls(Crown_spread ~ CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_CS_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LC_CS_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_CS <- model.sel(LC_gls_focal_CS, LC_gls_focal_CS_exp, LC_gls_focal_CS_gaus, LC_gls_focal_CS_ratio) #without linear correlation and without spherical
-LC_AIC_test_CS
+mean(LC_CS_slope_permutations_results) #mean
+median(LC_CS_slope_permutations_results) #median 
+sd(LC_CS_slope_permutations_results) #standard deviation
+range(LC_CS_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe_no_CS_outliers, aes(x= LC_gls_focal_CS$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_CS_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-# qq norm
-ggplot(LC_focal_tree_dataframe_no_CS_outliers, aes(sample = LC_gls_focal_CS$residuals))+
-  geom_qq()
+mean(LC_CS_pvalue_permutations_results_bonf) #mean
+median(LC_CS_pvalue_permutations_results_bonf) #median 
+sd(LC_CS_pvalue_permutations_results_bonf) #standard deviation
+range(LC_CS_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau non-parametric test
-shapiro.test(LC_gls_focal_CA$residuals) # shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau Test non-parametric test
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LC_CS_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LC_focal_tree_dataframe_no_CS_outliers , aes(x = LC_gls_focal_CS$fitted, y = LC_gls_focal_CS$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
+mean(LC_CS_tau_perm_results) #mean
+median(LC_CS_tau_perm_results) #median 
+sd(LC_CS_tau_perm_results) #standard deviation
+range(LC_CS_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_CS_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LC_gls_focal_CS)
+mean(LC_CS_tau_p_value_perm_results_bonf) #mean
+median(LC_CS_tau_p_value_perm_results_bonf) #median 
+sd(LC_CS_tau_p_value_perm_results_bonf) #standard deviation
+range(LC_CS_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test Test for the version without outliers
-LC_tau_result_CS <- cor.test(LC_focal_tree_dataframe$CS_over_distance, 
-                             LC_focal_tree_dataframe$Crown_spread,  
-                             method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LC_tau_result_CS)
-
-# Calculate the trend line
-LC_trend_line_CS <- predict(loess(LC_focal_tree_dataframe$Crown_spread ~ LC_focal_tree_dataframe$CS_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_crown <- fitted(LC_gls_focal_CS_gaus)
-
-# Create the data frame for plotting
-line_df <- data.frame(
-  CA_over_distance = LC_focal_tree_dataframe$CS_over_distance,
-  fitted_crown = fitted_crown
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LC_focal_tree_dataframe$CS_over_distance, y = (LC_focal_tree_dataframe$Crown_spread), color = "red")) +
-  geom_line(data = line_df, aes(x = CS_over_distance, y = fitted_crown), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
-  theme_minimal()
 
 #DBH
 
-#Cook's D
-LC_lm_focal_DBH <- lm(DBH_ag ~ DBH_over_distance, data = LC_focal_tree_dataframe)
-LC_lm_focal_DBH_cooks <- cooks.distance(LC_lm_focal_DBH) #calculating the cook.s D for each point
-plot(LC_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_DBH_cooks[LC_lm_focal_DBH_cooks > 4/nrow(LC_focal_tree_dataframe)]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("LC", "DBH") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-LC_focal_tree_dataframe_no_DBH_outliers <- LC_focal_tree_dataframe[-c(16, 19),]
-plot(LC_focal_tree_dataframe_no_DBH_outliers$DBH_over_distance)
+#save the results from the permutations
+LC_DBH_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+LC_DBH_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+LC_DBH_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+LC_DBH_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot 
-ggplot(data = LC_focal_tree_dataframe_no_DBH_outliers, (aes(x=DBH_over_distance, y=DBH_ag)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("DBH over Distance")+
-  ylab("DBH")
+#use a Bonferroni Correction to control for multiple testing error
+LC_DBH_pvalue_permutations_results_bonf <- p.adjust(LC_DBH_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+LC_DBH_tau_p_value_perm_results_bonf <- p.adjust(LC_DBH_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-LC_gls_focal_DBH <- gls(DBH_ag ~ DBH_over_distance, data = LC_focal_tree_dataframe_no_DBH_outliers)
-LC_gls_focal_DBH_exp <- gls(DBH_ag ~ DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_DBH_outliers)
-LC_gls_focal_DBH_gaus <- gls(DBH_ag ~ DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_DBH_outliers)
-LC_gls_focal_DBH_spher <- gls(DBH_ag ~ DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_DBH_outliers)
-LC_gls_focal_DBH_lin <- gls(DBH_ag ~ DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_DBH_outliers)
-LC_gls_focal_DBH_ratio <- gls(DBH_ag ~ DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe_no_DBH_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_DHB <- model.sel(LC_gls_focal_DBH, LC_gls_focal_DBH_exp, LC_gls_focal_DBH_gaus, LC_gls_focal_DBH_spher, LC_gls_focal_DBH_ratio) #without linear correlation
-LC_AIC_test_DHB
+mean(LC_DBH_slope_permutations_results) #mean
+median(LC_DBH_slope_permutations_results) #median 
+sd(LC_DBH_slope_permutations_results) #standard deviation
+range(LC_DBH_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe_no_DBH_outliers, aes(x= LC_gls_focal_DBH_gaus$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm plot
-ggplot(LC_focal_tree_dataframe_no_DBH_outliers, aes(sample = LC_gls_focal_DBH_gaus$residuals))+
-  geom_qq()
+mean(LC_DBH_pvalue_permutations_results_bonf) #mean
+median(LC_DBH_pvalue_permutations_results_bonf) #median 
+sd(LC_DBH_pvalue_permutations_results_bonf) #standard deviation
+range(LC_DBH_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not significant so normal residuals
-shapiro.test(LC_gls_focal_DBH_gaus$residuals)
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = LC_focal_tree_dataframe_no_DBH_outliers, aes(x = LC_gls_focal_DBH$fitted, y = LC_gls_focal_DBH$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for DBH and DBH over Distance")
+mean(LC_DBH_tau_perm_results) #mean
+median(LC_DBH_tau_perm_results) #median 
+sd(LC_DBH_tau_perm_results) #standard deviation
+range(LC_DBH_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_DBH_gaus, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(LC_gls_focal_DBH_gaus)
-
-#non parametric Kendall's Tau Test Test for the version without outliers
-LC_tau_result_DBH <- cor.test(LC_focal_tree_dataframe$CS_over_distance, 
-                              LC_focal_tree_dataframe$DBH_ag,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(LC_tau_result_DBH)
-
-# Calculate the trend line
-LC_trend_line_DBH <- predict(loess(LC_focal_tree_dataframe$DBH_ag ~ LC_focal_tree_dataframe$DBH_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_DBH <- fitted(LC_gls_focal_DBH_gaus)
-
-# Create the data frame for plotting
-LC_line_df_DBH <- data.frame(
-  DBH_over_distance = LC_focal_tree_dataframe$DBH_over_distance,
-  fitted_DBH = fitted_DBH
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = LC_focal_tree_dataframe$CS_over_distance, y = (LC_focal_tree_dataframe$DBH_ag), color = "red")) +
-  geom_line(data = LC_line_df_DBH, aes(x = DBH_over_distance, y = fitted_DBH), color = "red") +
-  labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
-  theme_minimal()
+mean(LC_DBH_tau_p_value_perm_results_bonf) #mean
+median(LC_DBH_tau_p_value_perm_results_bonf) #median 
+sd(LC_DBH_tau_p_value_perm_results_bonf) #standard deviation
+range(LC_DBH_tau_p_value_perm_results_bonf) #range
 
 
 #### SD ####
 
-#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-SD_focal_results <- focal_function("SD")
-
-#assigning necessary dataframes and objects 
-SD_box_sf <- SD_focal_results[[1]] #bounding box
-SD_box_sf_cropped <- SD_focal_results[[2]] #bounding box cropped by 20m
-SD_fixed_field_data_processed_sf_cropped <- SD_focal_results[[3]] # cropped tree data
-SD_tree_grid_cropped <- SD_focal_results[[4]] #grid with 40*mean population DBH as grid size
-SD_focal_tree_buffers <- SD_focal_results[[5]] #focal tree buffers
-SD_focal_tree_dataframe_sf <- SD_focal_results[[6]] #focal tree data as a spatial object
-SD_focal_tree_dataframe <- as.data.frame(SD_focal_tree_dataframe_sf) #focal tree data
-
-#plotting the original bounding box box, cropped box, original tree points, and cropped tree points
-ggplot()+
-  geom_sf(data=SD_box_sf)+ #old box
-  geom_sf(data=SD_box_sf_cropped)+ #cropped box
-  geom_sf(data=SD_fixed_field_data_processed_sf)+ #original points
-  geom_sf(data=SD_fixed_field_data_processed_sf_cropped, color = "red") #old points
-
-#graphing the selected focal trees, the buffers, the grid, colored by sequential ID number
-ggplot()+
-  geom_sf(data = SD_tree_grid_cropped)+
-  geom_sf(data=SD_focal_tree_buffers, color = "blue") +
-  geom_sf(data= SD_focal_tree_dataframe_sf, aes(color = X))
-
-#plotting the grid, the buffers with and without neighbors, and the focal trees, to see if the row numbers for the buffers match the row numbers for the focal tree points
-ggplot()+
-  geom_sf(data = SD_tree_grid_cropped) +
-  geom_sf(data=SD_focal_tree_buffers, aes(color = focal_tree_row))+
-  geom_sf(data=SD_focal_tree_dataframe_sf, aes(color = focal_tree_row))
-
-#plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
-ggplot()+
-  geom_sf(data = SD_focal_tree_buffers)+
-  geom_sf(data = SD_fixed_field_data_processed_sf)+
-  geom_sf(data = SD_focal_tree_dataframe_sf, color = 'blue')
-
-#plotting the tree points and their competition metrics
-ggplot()+
-  geom_sf(data=SD_focal_tree_dataframe_sf, aes(color = SCA_over_distance))
-
-
-#descriptive statistics
-
-#histograms
-ggplot(SD_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = SCA_over_distance))+
-  xlab("Sum of Short Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(SD_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = LCA_over_distance))+
-  xlab("Sum of Long Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(SD_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CS_over_distance))+
-  xlab("Sum of Canopy Spread over Distance")+
-  ylab("Frequency")
-
-ggplot(SD_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CA_over_distance))+
-  xlab("Sum of Canopy Area over Distance")+
-  ylab("Frequency")
-
-ggplot(SD_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = DBH_over_distance))+
-  xlab("Sum of Aggregated DBH over Distance")+
-  ylab("Frequency")
-
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-SD_field_data_focal_summarized_focal <- SD_focal_tree_dataframe %>%
-  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(SD_field_data_focal_summarized_focal)
-
-
-#creating x and y columns of the UTM 12N 
-SD_focal_tree_dataframe$X.1 <- st_coordinates(SD_focal_tree_dataframe_sf)[,1]
-SD_focal_tree_dataframe$Y <- st_coordinates(SD_focal_tree_dataframe_sf)[,2]
-
 #SCA
 
-#Cook's D
-SD_lm_focal_SCA <- lm(Canopy_short ~ SCA_over_distance, data = SD_focal_tree_dataframe)
-SD_lm_focal_SCA_cooks <- cooks.distance(SD_lm_focal_SCA) #calculating the cook.s D for each point
-plot(SD_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_SCA_cooks[SD_lm_focal_SCA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("SD", "SCA") #focal_results <- focal_function("SD")
 
-#removing outliers based on which points were deemed influential
-SD_focal_tree_dataframe_no_SCA_outliers <- SD_focal_tree_dataframe[-c(23),]
-plot(SD_focal_tree_dataframe_no_SCA_outliers$SCA_over_distance)
+#save the results from the permutations
+SD_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+SD_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+SD_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+SD_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot 
-ggplot(data = SD_focal_tree_dataframe_no_SCA_outliers, (aes(x=SCA_over_distance, y=Canopy_short)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("SCA over Distance")+
-  ylab("Short Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+LC_SCA_pvalue_permutations_results_bonf <- p.adjust(SD_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_SCA_tau_p_value_perm_results_bonf <- p.adjust(SD_SCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_SCA <- gls(Canopy_short ~ SCA_over_distance, data = SD_focal_tree_dataframe_no_SCA_outliers)
-SD_gls_focal_SCA_exp <- gls(Canopy_short ~ SCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_SCA_outliers)
-SD_gls_focal_SCA_gaus <- gls(Canopy_short ~ SCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_SCA_outliers)
-SD_gls_focal_SCA_spher <- gls(Canopy_short ~ SCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_SCA_outliers)
-SD_gls_focal_SCA_lin <- gls(Canopy_short ~ SCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_SCA_outliers)
-SD_gls_focal_SCA_ratio <- gls(Canopy_short ~ SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_SCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_SCA <- model.sel(SD_gls_focal_SCA, SD_gls_focal_SCA_lin, SD_gls_focal_SCA_exp, SD_gls_focal_SCA_gaus, SD_gls_focal_SCA_spher, SD_gls_focal_SCA_ratio) #SD_gls_focal_SCA_lin
-SD_AIC_test_SCA
+mean(SD_SCA_slope_permutations_results) #mean
+median(SD_SCA_slope_permutations_results) #median 
+sd(SD_SCA_slope_permutations_results) #standard deviation
+range(SD_SCA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe_no_SCA_outliers, aes(x= SD_gls_focal_SCA_exp$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-# qq nrom
-ggplot(SD_focal_tree_dataframe_no_SCA_outliers, aes(sample = SD_gls_focal_SCA_exp$residuals))+
-  geom_qq()
+mean(SD_SCA_pvalue_permutations_results_bonf) #mean
+median(SD_SCA_pvalue_permutations_results_bonf) #median 
+sd(SD_SCA_pvalue_permutations_results_bonf) #standard deviation
+range(SD_SCA_pvalue_permutations_results_bonf) #range
 
-#shapiro-welk test, not significant so normal residuals
-shapiro.test(SD_gls_focal_SCA_exp$residuals)
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = SD_focal_tree_dataframe_no_SCA_outliers , aes(x = SD_gls_focal_SCA_exp$fitted, y = SD_gls_focal_SCA_exp$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for SCA and SCA over Distance")
+mean(SD_SCA_tau_perm_results) #mean
+median(SD_SCA_tau_perm_results) #median 
+sd(SD_SCA_tau_perm_results) #standard deviation
+range(SD_SCA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_SCA_exp, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(SD_gls_focal_SCA_exp)
-
-#non parametric Kendall's Tau Test
-SD_tau_result_SCA <- cor.test(SD_focal_tree_dataframe$SCA_over_distance, 
-                              SD_focal_tree_dataframe_no_SCA_outliers$Canopy_short,  
-                              method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(SD_tau_result_SCA)
-
-# Calculate the trend line
-SD_trend_line_SCA <- predict(loess(SD_focal_tree_dataframe$Canopy_short ~ SD_focal_tree_dataframe$SCA_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_SCA <- fitted(SD_gls_focal_SCA)
-
-# Create the data frame for plotting
-SD_line_df_SCA <- data.frame(
-  SCA_over_distance = SD_focal_tree_dataframe$SCA_over_distance,
-  fitted_SCA = fitted_SCA
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = SD_focal_tree_dataframe$SCA_over_distance, y = (SD_focal_tree_dataframe$Canopy_short), color = "blue")) +
-  geom_line(data = SD_line_df_SCA, aes(x = SCA_over_distance, y = fitted_SCA), color = "red") +
-  labs(x = "Sum of SCA over Distance", y = "Short Canopy Axis ", title = "Trend Line Plot") +
-  theme_minimal()
-
+mean(SD_SCA_tau_p_value_perm_results_bonf) #mean
+median(SD_SCA_tau_p_value_perm_results_bonf) #median 
+sd(SD_SCA_tau_p_value_perm_results_bonf) #standard deviation
+range(SD_SCA_tau_p_value_perm_results_bonf) #range
 
 #LCA
 
-#Cook's D
-SD_lm_focal_LCA <- lm(Canopy_long ~ LCA_over_distance, data = SD_focal_tree_dataframe)
-SD_lm_focal_LCA_cooks <- cooks.distance(SD_lm_focal_LCA) #calculating the cook.s D for each point
-plot(SD_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_LCA_cooks[SD_lm_focal_LCA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("SD", "LCA") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-SD_focal_tree_dataframe_no_LCA_outliers <- SD_focal_tree_dataframe[-c(23),]
-plot(SD_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance)
+#save the results from the permutations
+SD_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+SD_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+SD_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+SD_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot for LCA
-ggplot(data = SD_focal_tree_dataframe_no_LCA_outliers, (aes(x=LCA_over_distance, y=Canopy_long)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("SCA over Distance")+
-  ylab("Long Canopy Axis")
+#use a Bonferroni Correction to control for multiple testing error
+SD_LCA_pvalue_permutations_results_bonf <- p.adjust(SD_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_LCA_tau_p_value_perm_results_bonf <- p.adjust(SD_LCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_LCA <- gls(Canopy_long ~ LCA_over_distance, data = SD_focal_tree_dataframe_no_LCA_outliers)
-SD_gls_focal_LCA_exp <- gls(Canopy_long ~ LCA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_LCA_outliers)
-SD_gls_focal_LCA_gaus <- gls(Canopy_long ~ LCA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_LCA_outliers)
-SD_gls_focal_LCA_spher <- gls(Canopy_long ~ LCA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_LCA_outliers)
-SD_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_LCA_outliers)
-SD_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_LCA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_LCA <- model.sel(SD_gls_focal_LCA, SD_gls_focal_LCA_exp, SD_gls_focal_LCA_gaus, SD_gls_focal_LCA_spher, SD_gls_focal_LCA_ratio) #without the linear correction model
-SD_AIC_test_LCA
+mean(SD_LCA_slope_permutations_results) #mean
+median(SD_LCA_slope_permutations_results) #median 
+sd(SD_LCA_slope_permutations_results) #standard deviation
+range(SD_LCA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe_no_LCA_outliers, aes(x= SD_gls_focal_LCA_spher$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(SD_focal_tree_dataframe_no_LCA_outliers, aes(sample = SD_gls_focal_LCA_spher$residuals))+
-  geom_qq()
+mean(SD_LCA_pvalue_permutations_results_bonf) #mean
+median(SD_LCA_pvalue_permutations_results_bonf) #median 
+sd(SD_LCA_pvalue_permutations_results_bonf) #standard deviation
+range(SD_LCA_pvalue_permutations_results_bonf) #range
 
-#shapiro-wilk test, not sign so normal residuals
-shapiro.test(SD_gls_focal_LCA_spher$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_LCA_spher$fitted, y = SD_gls_focal_LCA_spher$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for LCA and LCA over Distance")
+mean(SD_LCA_tau_perm_results) #mean
+median(SD_LCA_tau_perm_results) #median 
+sd(SD_LCA_tau_perm_results) #standard deviation
+range(SD_LCA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_LCA_spher, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(SD_gls_focal_LCA_spher)
+mean(SD_LCA_tau_p_value_perm_results_bonf) #mean
+median(SD_LCA_tau_p_value_perm_results_bonf) #median 
+sd(SD_LCA_tau_p_value_perm_results_bonf) #standard deviation
+range(SD_LCA_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test
-SD_tau_result_LCA <- cor.test(SD_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance, SD_focal_tree_dataframe_no_LCA_outliers$Canopy_long,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(SD_tau_result_LCA)
-
-# Calculate the trend line
-SD_trend_line_LCA <- predict(loess(SD_focal_tree_dataframe$Canopy_long ~ SD_focal_tree_dataframe$LCA_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_LCA <- fitted(SD_gls_focal_LCA)
-
-# Create the data frame for plotting
-SD_line_df_LCA <- data.frame(
-  LCA_over_distance = SD_focal_tree_dataframe$LCA_over_distance,
-  fitted_LCA = fitted_LCA
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = SD_focal_tree_dataframe$LCA_over_distance, y = (SD_focal_tree_dataframe$Canopy_long), color = "blue")) +
-  geom_line(data = SD_line_df_LCA, aes(x = LCA_over_distance, y = fitted_LCA), color = "red") +
-  labs(x = "Sum of LCA over Distance", y = "Long Canopy Axis ", title = "Trend Line Plot") +
-  theme_minimal()
 
 #CA
 
-#Cook's D
-SD_lm_focal_CA <- lm(Canopy_area ~ CA_over_distance, data = SD_focal_tree_dataframe)
-SD_lm_focal_CA_cooks <- cooks.distance(SD_lm_focal_CA) #calculating the cook.s D for each point
-plot(SD_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_CA_cooks[SD_lm_focal_CA_cooks > 0.5]
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("SD", "CA") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-SD_focal_tree_dataframe_no_CA_outliers <- SD_focal_tree_dataframe[-c(23),]
-plot(SD_focal_tree_dataframe_no_CA_outliers$CA_over_distance)
+#save the results from the permutations
+SD_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+SD_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+SD_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+SD_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot 
-ggplot(data = SD_focal_tree_dataframe_no_CA_outliers, (aes(x=CA_over_distance, y=Canopy_area)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("CA over Distance")+
-  ylab("Canopy Area")
+#use a Bonferroni Correction to control for multiple testing error
+SD_CA_pvalue_permutations_results_bonf <- p.adjust(SD_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_CA_tau_p_value_perm_results_bonf <- p.adjust(SD_CA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_CA <- gls(Canopy_area ~ CA_over_distance, data = SD_focal_tree_dataframe_no_CA_outliers)
-SD_gls_focal_CA_exp <- gls(Canopy_area ~ CA_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CA_outliers)
-SD_gls_focal_CA_gaus <- gls(Canopy_area ~ CA_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CA_outliers)
-SD_gls_focal_CA_spher <- gls(Canopy_area ~ CA_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CA_outliers)
-SD_gls_focal_CA_lin <- gls(Canopy_area ~ CA_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CA_outliers)
-SD_gls_focal_CA_ratio <- gls(Canopy_area ~ CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CA_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = SD_CA_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_CA <- model.sel(SD_gls_focal_CA, SD_gls_focal_CA_exp, SD_gls_focal_CA_gaus, SD_gls_focal_CA_lin, SD_gls_focal_CA_ratio) #SD_gls_focal_CA_spher
-SD_AIC_test_CA
+mean(SD_CA_slope_permutations_results) #mean
+median(SD_CA_slope_permutations_results) #median 
+sd(SD_CA_slope_permutations_results) #standard deviation
+range(SD_CA_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe_no_CA_outliers, aes(x= SD_gls_focal_CA_lin$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_CA_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(SD_focal_tree_dataframe_no_CA_outliers, aes(sample = SD_gls_focal_CA_lin$residuals))+
-  geom_qq()
+mean(SD_CA_pvalue_permutations_results_bonf) #mean
+median(SD_CA_pvalue_permutations_results_bonf) #median 
+sd(SD_CA_pvalue_permutations_results_bonf) #standard deviation
+range(SD_CA_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, significant so residuals non-normal
-shapiro.test(SD_gls_focal_CA_lin$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = SD_CA_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = SD_focal_tree_dataframe_no_CA_outliers, aes(x = SD_gls_focal_CA_lin$fitted, y = SD_gls_focal_CA_lin$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CA and CA over Distance")
+mean(SD_CA_tau_perm_results) #mean
+median(SD_CA_tau_perm_results) #median 
+sd(SD_CA_tau_perm_results) #standard deviation
+range(SD_CA_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_CA_lin, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_CA_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(SD_gls_focal_CA_lin)
+mean(SD_CA_tau_p_value_perm_results_bonf) #mean
+median(SD_CA_tau_p_value_perm_results_bonf) #median 
+sd(SD_CA_tau_p_value_perm_results_bonf) #standard deviation
+range(SD_CA_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test
-SD_tau_result_CA <- cor.test(SD_focal_tree_dataframe_no_CA_outliers$CA_over_distance, 
-                             SD_focal_tree_dataframe_no_CA_outliers$Canopy_area,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(SD_tau_result_CA)
-
-# Calculate the trend line
-SD_trend_line_CA <- predict(loess(SD_focal_tree_dataframe_no_CA_outliers$Canopy_area ~ SD_focal_tree_dataframe_no_CA_outliers$CA_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_CA <- fitted(SD_gls_focal_CA)
-
-# Create the data frame for plotting
-SD_line_df_CA <- data.frame(
-  CA_over_distance = SD_focal_tree_dataframe_no_CA_outliers$CA_over_distance,
-  fitted_CA = fitted_CA
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = SD_focal_tree_dataframe_no_CA_outliers$CA_over_distance, y = (SD_focal_tree_dataframe_no_CA_outliers$Canopy_area), color = "red")) +
-  geom_line(data = SD_line_df_CA, aes(x = CA_over_distance, y = fitted_CA), color = "red") +
-  labs(x = "Sum of CA over Distance", y = "Canopy Area", title = "Trend Line Plot") +
-  theme_minimal()
 
 #CS
 
-#Cook's D
-SD_lm_focal_CS <- lm(Crown_spread ~ CS_over_distance, data = SD_focal_tree_dataframe)
-SD_lm_focal_CS_cooks <- cooks.distance(SD_lm_focal_CS) #calculating the cook.s D for each point
-plot(SD_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_CS_cooks[(SD_lm_focal_CS_cooks > 0.5)] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("SD", "CS") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-SD_focal_tree_dataframe_no_CS_outliers <- SD_focal_tree_dataframe[-c(23),]
-plot(SD_focal_tree_dataframe_no_CS_outliers$CS_over_distance)
+#save the results from the permutations
+SD_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+SD_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+SD_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+SD_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot 
-ggplot(data = SD_focal_tree_dataframe_no_CS_outliers, (aes(x=CS_over_distance, y=Crown_spread)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("Crown Spread Competition Metric")+ #CS over Distance
-  ylab("Crown Spread (m)")+
-  theme_classic()+
-  theme(
-    axis.title.x = element_text(size = 16),
-    axis.text.x = element_text(size = 14),
-    axis.title.y = element_text(size = 16),
-    axis.text.y = element_text(size = 14))
+#use a Bonferroni Correction to control for multiple testing error
+SD_CS_pvalue_permutations_results_bonf <- p.adjust(SD_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_CS_tau_p_value_perm_results_bonf <- p.adjust(SD_CS_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_CS <- gls(Crown_spread ~ CS_over_distance, data = SD_focal_tree_dataframe_no_CS_outliers)
-SD_gls_focal_CS_exp <- gls(Crown_spread ~ CS_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CS_outliers)
-SD_gls_focal_CS_gaus <- gls(Crown_spread ~ CS_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CS_outliers)
-SD_gls_focal_CS_spher <- gls(Crown_spread ~ CS_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CS_outliers)
-SD_gls_focal_CS_lin <- gls(Crown_spread ~ CS_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CS_outliers)
-SD_gls_focal_CS_ratio <- gls(Crown_spread ~ CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_CS_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = SD_CS_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_CS <- model.sel(SD_gls_focal_CS, SD_gls_focal_CS_exp, SD_gls_focal_CS_gaus, SD_gls_focal_CS_spher, SD_gls_focal_CS_ratio) #without linear correlation
-SD_AIC_test_CS
+mean(SD_CS_slope_permutations_results) #mean
+median(SD_CS_slope_permutations_results) #median 
+sd(SD_CS_slope_permutations_results) #standard deviation
+range(SD_CS_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe_no_CS_outliers, aes(x= SD_gls_focal_CS_exp$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_CS_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(SD_focal_tree_dataframe_no_CS_outliers, aes(sample = SD_gls_focal_CS_exp$residuals))+
-  geom_qq()
+mean(SD_CS_pvalue_permutations_results_bonf) #mean
+median(SD_CS_pvalue_permutations_results_bonf) #median 
+sd(SD_CS_pvalue_permutations_results_bonf) #standard deviation
+range(SD_CS_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not signficant, meaning not significantly different from normal
-shapiro.test(SD_gls_focal_CS_exp$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = SD_CS_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = SD_focal_tree_dataframe_no_CS_outliers , aes(x = SD_gls_focal_CS_exp$fitted, y = SD_gls_focal_CS_exp$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for CS and CS over Distance")
+mean(SD_CS_tau_perm_results) #mean
+median(SD_CS_tau_perm_results) #median 
+sd(SD_CS_tau_perm_results) #standard deviation
+range(SD_CS_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_CS_exp, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_CS_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(SD_gls_focal_CS_exp)
-
-#non parametric Kendall's Tau Test
-SD_tau_result_CS <- cor.test(SD_focal_tree_dataframe_no_CS_outliers$CS_over_distance, SD_focal_tree_dataframe_no_CS_outliers$Crown_spread,  method = "kendall")
-
-# Print Kendall's tau and its associated p-value
-print(SD_tau_result_CS)
-
-# Calculate the trend line
-SD_trend_line_CS <- predict(loess(SD_focal_tree_dataframe_no_CS_outliers$Crown_spread ~ SD_focal_tree_dataframe_no_CS_outliers$CS_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_CS <- fitted(SD_gls_focal_CS)
-
-# Create the data frame for plotting
-SD_line_df_CS <- data.frame(
-  CS_over_distance = SD_focal_tree_dataframe_no_CS_outliers$CS_over_distance,
-  fitted_CS = fitted_CS
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = SD_focal_tree_dataframe_no_CS_outliers$CS_over_distance, y = (SD_focal_tree_dataframe_no_CS_outliers$Crown_spread), color = "red")) +
-  geom_line(data = SD_line_df_CS, aes(x = CS_over_distance, y = fitted_CS), color = "red") +
-  labs(x = "Sum of CS over Distance", y = "Crown Spread", title = "Trend Line Plot") +
-  theme_minimal()
+mean(SD_CS_tau_p_value_perm_results_bonf) #mean
+median(SD_CS_tau_p_value_perm_results_bonf) #median 
+sd(SD_CS_tau_p_value_perm_results_bonf) #standard deviation
+range(SD_CS_tau_p_value_perm_results_bonf) #range
 
 
 #DBH
 
-#Cook's D
-SD_lm_focal_DBH <- lm(DBH_ag ~ DBH_over_distance, data = SD_focal_tree_dataframe)
-SD_lm_focal_DBH_cooks <- cooks.distance(SD_lm_focal_DBH) #calculating the cook.s D for each point
-plot(SD_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_DBH_cooks[(SD_lm_focal_DBH_cooks > 0.5)] #remove points with cooks D that are bigger than 3 times the mean cook's D
-influential
+#running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
+slope_tests <- slope_tests("SD", "DBH") #focal_results <- focal_function("LC")
 
-#removing outliers based on which points were deemed influential
-SD_focal_tree_dataframe_no_DBH_outliers <- SD_focal_tree_dataframe[-c(23),]
-plot(SD_focal_tree_dataframe_no_DBH_outliers$DBH_over_distance)
+#save the results from the permutations
+SD_DBH_slope_permutations_results <- slope_tests[[1]] #slope test statistics
+SD_DBH_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
+SD_DBH_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
+SD_DBH_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
 
-#plotting the linear model in ggplot 
-ggplot(data = SD_focal_tree_dataframe_no_DBH_outliers, (aes(x=DBH_over_distance, y=DBH_ag)))+ 
-  geom_smooth(method='glm')+
-  geom_point()+
-  xlab("DBH Competition Metric")+
-  ylab("DBH (cm)")+
-  ylim(c(0,1))+
-  theme(
-    axis.title.x = element_text(size = 16),
-    axis.text.x = element_text(size = 14),
-    axis.title.y = element_text(size = 16),
-    axis.text.y = element_text(size = 14))
+#use a Bonferroni Correction to control for multiple testing error
+SD_DBH_pvalue_permutations_results_bonf <- p.adjust(SD_DBH_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_DBH_tau_p_value_perm_results_bonf <- p.adjust(SD_DBH_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
-#creating generalized linear model with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratices)
-SD_gls_focal_DBH <- gls(DBH_ag ~ DBH_over_distance, data = SD_focal_tree_dataframe_no_DBH_outliers)
-SD_gls_focal_DBH_exp <- gls(DBH_ag ~ DBH_over_distance, correlation = corExp(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_DBH_outliers)
-SD_gls_focal_DBH_gaus <- gls(DBH_ag ~ DBH_over_distance, correlation = corGaus(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_DBH_outliers)
-SD_gls_focal_DBH_spher <- gls(DBH_ag ~ DBH_over_distance, correlation = corSpher(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_DBH_outliers)
-SD_gls_focal_DBH_lin <- gls(DBH_ag ~ DBH_over_distance, correlation = corLin(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_DBH_outliers)
-SD_gls_focal_DBH_ratio <- gls(DBH_ag ~ DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe_no_DBH_outliers)
+#Looking at the distribution and descriptive summary of the slope test statistics
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_slope_permutations_results)) +
+  labs(x = "Slope")
 
-#ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_DHB <- model.sel(SD_gls_focal_DBH, SD_gls_focal_DBH_exp, SD_gls_focal_DBH_gaus, SD_gls_focal_DBH_spher, SD_gls_focal_DBH_ratio) #SD_gls_focal_DBH_lin
-SD_AIC_test_DHB
+mean(SD_DBH_slope_permutations_results) #mean
+median(SD_DBH_slope_permutations_results) #median 
+sd(SD_DBH_slope_permutations_results) #standard deviation
+range(SD_DBH_slope_permutations_results) #range
 
-#checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe_no_DBH_outliers, aes(x= SD_gls_focal_DBH_gaus$residuals))+
-  geom_histogram()+
-  labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
-  xlab("Residuals")+
-  ylab("Frequency")
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_pvalue_permutations_results_bonf)) +
+  labs(x = "Slope Test P-Values")
 
-#qq norm
-ggplot(SD_focal_tree_dataframe_no_DBH_outliers, aes(sample = SD_gls_focal_DBH_gaus$residuals))+
-  geom_qq()
+mean(SD_DBH_pvalue_permutations_results_bonf) #mean
+median(SD_DBH_pvalue_permutations_results_bonf) #median 
+sd(SD_DBH_pvalue_permutations_results_bonf) #standard deviation
+range(SD_DBH_pvalue_permutations_results_bonf) #range
 
-# shapiro-wilk, not significant so normal
-shapiro.test(SD_gls_focal_DBH_gaus$residuals) 
+#Looking at the distribution and descriptive summary of the tau/slope statistic
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_tau_perm_results)) +
+  labs(x = "tau")
 
-#checking equal variance
-ggplot(data = SD_focal_tree_dataframe_no_DBH_outliers , aes(x = SD_gls_focal_DBH_gaus$fitted, y = SD_gls_focal_DBH_gaus$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values for DBH and DBH over Distance")
+mean(SD_DBH_tau_perm_results) #mean
+median(SD_DBH_tau_perm_results) #median 
+sd(SD_DBH_tau_perm_results) #standard deviation
+range(SD_DBH_tau_perm_results) #range
 
-#plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
-#(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_DBH_gaus, form = ~X.1 + Y, resType = "normalized")
-plot(semivario, smooth = TRUE)
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_tau_p_value_perm_results_bonf)) +
+  labs(x = "tau p-value")
 
-#Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
-#positive slope hints at facilitation
-#negative slope hints at competition
-summary(SD_gls_focal_DBH_gaus)
+mean(SD_DBH_tau_p_value_perm_results_bonf) #mean
+median(SD_DBH_tau_p_value_perm_results_bonf) #median 
+sd(SD_DBH_tau_p_value_perm_results_bonf) #standard deviation
+range(SD_DBH_tau_p_value_perm_results_bonf) #range
 
-#non parametric Kendall's Tau Test
-SD_tau_result_DBH <- cor.test(SD_focal_tree_dataframe$DBH_over_distance, SD_focal_tree_dataframe$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
-print(SD_tau_result_DBH)
-
-# Calculate the trend line
-SD_trend_line_DBH <- predict(loess(SD_focal_tree_dataframe$DBH_ag ~ SD_focal_tree_dataframe$DBH_over_distance))
-
-# Extract fitted values from the GLS model
-fitted_DBH <- fitted(SD_gls_focal_DBH)
-
-# Create the data frame for plotting
-SD_line_df_DBH <- data.frame(
-  DBH_over_distance = SD_focal_tree_dataframe$DBH_over_distance,
-  fitted_DBH = fitted_DBH
-)
-
-# Create a trend line plot
-ggplot() +
-  geom_point(aes(x = SD_focal_tree_dataframe$DBH_over_distance, y = (SD_focal_tree_dataframe$DBH_ag), color = "red")) +
-  geom_line(data = SD_line_df_DBH, aes(x = DBH_over_distance, y = fitted_DBH), color = "red") +
-  labs(x = "Sum of DBH over Distance", y = "DBH", title = "Trend Line Plot") +
-  theme_minimal()
 

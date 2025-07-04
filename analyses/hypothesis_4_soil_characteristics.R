@@ -182,11 +182,9 @@ Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
 clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100)) 
 clay_200_LM <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 silt_05_LM <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
 silt_200_LM <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_05_LM <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_200_LM <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
 ph_05_LM <- crop(ph_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 ph_200_LM <- crop(ph_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 ocd_05_LM <- crop(ocd_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
@@ -203,8 +201,6 @@ vol_wat_33kpa_05_LM <- crop(vol_wat_33kpa_05_utm, extent(LM_box[1]-100, LM_box[3
 vol_wat_33kpa_200_LM <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 vol_wat_1500kpa_05_LM <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 vol_wat_1500kpa_200_LM <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
-
 nitrogen_05_LM <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 nitrogen_200_LM <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 Soil_Organic_Carbon_05_LM <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
@@ -359,31 +355,58 @@ SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
 #Extracting the soil data to the tree points 
 
 #LM
-LM_soil_text_raster_250_data_pts <- extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
-LM_soil_other_raster_250_data_pts <- extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
-LM_soil_extra_raster_250_data_pts <- extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
+LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
+LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
 
 
 #LC
-LC_soil_text_raster_250_data_pts <- extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
-LC_soil_other_raster_250_data_pts <- extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
-LC_soil_extra_raster_250_data_pts <- extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
+LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
+LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 
 #SD
-SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
-SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
-SD_soil_extra_raster_250_data_pts <- extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
+SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
+SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
+SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
+
+#### Creating Sandy and Clay/Loamy Available Water Columns ####
+
+# LM
+
+LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
+  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  
+
+# LC
+
+LC_fixed_field_data_processed_soils <- LC_fixed_field_data_processed_soils %>%
+  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  
+# SD
+
+SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
+  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
 
 ### Comparing the soil metrics between populations ###
 
@@ -396,7 +419,6 @@ LM_tree_grid_cropped <- st_make_grid(soil_stack_LM_soil_text, cellsize = c(230, 
 ggplot()+
   geom_raster(data= as.data.frame(soil_stack_LM_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_sf(data = LM_tree_grid_cropped, fill = NA)
-
 
 #selecting a point from each grid cell with trees within them
 LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
@@ -550,7 +572,7 @@ fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_
 #TO OUR REAL SLOPE AND EXTRACT THE P-VALUE
 
 
-### LM
+#### LM ####
 
 ## sca
 
@@ -1387,6 +1409,159 @@ for (i in 1:length(LM_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_sca_nitrogen_100_200_p_value <- (total / length(LM_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LM_sca_sandy_avail_water_0.5_lm_sum <- summary(LM_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LM_sca_sandy_avail_water_0.5_slopes <- c(LM_lca_sandy_avail_water_0.5_slopes, LM_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LM_sca_sandy_avail_water_0.5_lm_real_sum <- summary(LM_sca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LM_sca_sandy_avail_water_0.5_lm_real_slope <- LM_sca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_sca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_sandy_avail_water_0.5_slopes[i] > LM_sca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_sandy_avail_water_0.5_p_value <- (total / length(LM_sca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LM_sca_sandy_avail_water_100.200_lm_sum <- summary(LM_sca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LM_sca_sandy_avail_water_100.200_slopes <- c(LM_sca_sandy_avail_water_100.200_slopes, LM_sca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LM_sca_sandy_avail_water_100.200_lm_real_sum <- summary(LM_sca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LM_sca_sandy_avail_water_100.200_lm_real_slope <- LM_sca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_sca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_sandy_avail_water_100.200_slopes[i] > LM_sca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_sandy_avail_water_100.200_p_value <- (total / length(LM_sca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_clay_loam_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LM_sca_clay_loam_avail_water_0.5_lm_sum <- summary(LM_sca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LM_sca_clay_loam_avail_water_0.5_slopes <- c(LM_sca_clay_loam_avail_water_0.5_slopes, LM_sca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_clay_loam_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LM_sca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LM_sca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LM_sca_clay_loam_avail_water_0.5_lm_real_slope <- LM_sca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_sca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_clay_loam_avail_water_0.5_slopes[i] > LM_sca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_clay_loam_avail_water_0.5_p_value <- (total / length(LM_sca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_sca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LM_sca_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LM_sca_clay_loam_avail_water_100.200_lm_sum <- summary(LM_sca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LM_sca_clay_loam_avail_water_100.200_slopes <- c(LM_sca_clay_loam_avail_water_100.200_slopes, LM_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_sca_clay_loam_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LM_sca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LM_sca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LM_sca_clay_loam_avail_water_100.200_lm_real_slope <- LM_sca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_sca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_sca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LM_sca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_sca_clay_loam_avail_water_100.200_slopes[i] > LM_sca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_sca_clay_loam_avail_water_100.200_p_value <- (total / length(LM_sca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
+
 # LCA
 
 # Clay Content 0-5 cm
@@ -2050,6 +2225,157 @@ for (i in 1:length(LM_lca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_lca_nitrogen_100_200_p_value <- (total / length(LM_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LM_lca_sandy_avail_water_0.5_lm_sum <- summary(LM_lca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LM_lca_sandy_avail_water_0.5_slopes <- c(LM_lca_sandy_avail_water_0.5_slopes, LM_lca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LM_lca_sandy_avail_water_0.5_lm_real_sum <- summary(LM_lca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LM_lca_sandy_avail_water_0.5_lm_real_slope <- LM_lca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_lca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_sandy_avail_water_0.5_slopes[i] > LM_lca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_sandy_avail_water_0.5_p_value <- (total / length(LM_lca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LM_lca_sandy_avail_water_100.200_lm_sum <- summary(LM_lca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LM_lca_sandy_avail_water_100.200_slopes <- c(LM_lca_sandy_avail_water_100.200_slopes, LM_lca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LM_lca_sandy_avail_water_100.200_lm_real_sum <- summary(LM_lca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LM_lca_sandy_avail_water_100.200_lm_real_slope <- LM_lca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_lca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_sandy_avail_water_100.200_slopes[i] > LM_lca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_sandy_avail_water_100.200_p_value <- (total / length(LM_lca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_clay_loam_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LM_lca_clay_loam_avail_water_0.5_lm_sum <- summary(LM_lca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LM_lca_clay_loam_avail_water_0.5_slopes <- c(LM_lca_clay_loam_avail_water_0.5_slopes, LM_lca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_clay_loam_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LM_lca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LM_lca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LM_lca_clay_loam_avail_water_0.5_lm_real_slope <- LM_lca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_lca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_clay_loam_avail_water_0.5_slopes[i] > LM_lca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_clay_loam_avail_water_0.5_p_value <- (total / length(LM_lca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_lca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_long, LM_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LM_lca_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LM_lca_clay_loam_avail_water_100.200_lm_sum <- summary(LM_lca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LM_lca_clay_loam_avail_water_100.200_slopes <- c(LM_lca_clay_loam_avail_water_100.200_slopes, LM_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_lca_clay_loam_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_long~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LM_lca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LM_lca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LM_lca_clay_loam_avail_water_100.200_lm_real_slope <- LM_lca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_lca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_lca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LM_lca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_lca_clay_loam_avail_water_100.200_slopes[i] > LM_lca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_lca_clay_loam_avail_water_100.200_p_value <- (total / length(LM_lca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 
 
@@ -2717,6 +3043,157 @@ for (i in 1:length(LM_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LM_ca_nitrogen_100_200_p_value <- (total / length(LM_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LM_ca_sandy_avail_water_0.5_lm_sum <- summary(LM_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LM_ca_sandy_avail_water_0.5_slopes <- c(LM_lca_sandy_avail_water_0.5_slopes, LM_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LM_ca_sandy_avail_water_0.5_lm_real_sum <- summary(LM_ca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LM_ca_sandy_avail_water_0.5_lm_real_slope <- LM_ca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_ca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_sandy_avail_water_0.5_slopes[i] > LM_ca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_sandy_avail_water_0.5_p_value <- (total / length(LM_ca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LM_ca_sandy_avail_water_100.200_lm_sum <- summary(LM_ca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LM_ca_sandy_avail_water_100.200_slopes <- c(LM_ca_sandy_avail_water_100.200_slopes, LM_ca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LM_ca_sandy_avail_water_100.200_lm_real_sum <- summary(LM_ca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LM_ca_sandy_avail_water_100.200_lm_real_slope <- LM_ca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_ca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_sandy_avail_water_100.200_slopes[i] > LM_ca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_sandy_avail_water_100.200_p_value <- (total / length(LM_ca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_clay_loam_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LM_ca_clay_loam_avail_water_0.5_lm_sum <- summary(LM_ca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LM_ca_clay_loam_avail_water_0.5_slopes <- c(LM_ca_clay_loam_avail_water_0.5_slopes, LM_sca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_clay_loam_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LM_ca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LM_ca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LM_ca_clay_loam_avail_water_0.5_lm_real_slope <- LM_ca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_ca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_clay_loam_avail_water_0.5_slopes[i] > LM_ca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_clay_loam_avail_water_0.5_p_value <- (total / length(LM_ca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_ca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_area, LM_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LM_ca_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LM_ca_clay_loam_avail_water_100.200_lm_sum <- summary(LM_ca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LM_ca_clay_loam_avail_water_100.200_slopes <- c(LM_ca_clay_loam_avail_water_100.200_slopes, LM_ca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_ca_clay_loam_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_area~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LM_ca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LM_ca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LM_ca_clay_loam_avail_water_100.200_lm_real_slope <- LM_ca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_ca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_ca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LM_ca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_ca_clay_loam_avail_water_100.200_slopes[i] > LM_ca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_ca_clay_loam_avail_water_100.200_p_value <- (total / length(LM_ca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 
 
 # CS
@@ -3387,6 +3864,158 @@ for (i in 1:length(LM_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
 LM_cs_nitrogen_100_200_p_value <- (total / length(LM_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LM_cs_sandy_avail_water_0.5_lm_sum <- summary(LM_cs_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LM_cs_sandy_avail_water_0.5_slopes <- c(LM_cs_sandy_avail_water_0.5_slopes, LM_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_cs_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LM_cs_sandy_avail_water_0.5_lm_real_sum <- summary(LM_cs_sandy_avail_water_0.5_lm_real) #extract the summary 
+LM_cs_sandy_avail_water_0.5_lm_real_slope <- LM_cs_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_cs_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_sandy_avail_water_0.5_slopes[i] > LM_cs_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_sandy_avail_water_0.5_p_value <- (total / length(LM_cs_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LM_cs_sandy_avail_water_100.200_lm_sum <- summary(LM_cs_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LM_cs_sandy_avail_water_100.200_slopes <- c(LM_cs_sandy_avail_water_100.200_slopes, LM_cs_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_cs_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LM_cs_sandy_avail_water_100.200_lm_real_sum <- summary(LM_cs_sandy_avail_water_100.200_lm_real) #extract the summary 
+LM_cs_sandy_avail_water_100.200_lm_real_slope <- LM_cs_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_cs_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_sandy_avail_water_100.200_slopes[i] > LM_cs_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_sandy_avail_water_100.200_p_value <- (total / length(LM_cs_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_clay_loam_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LM_cs_clay_loam_avail_water_0.5_lm_sum <- summary(LM_cs_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LM_cs_clay_loam_avail_water_0.5_slopes <- c(LM_cs_clay_loam_avail_water_0.5_slopes, LM_cs_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_cs_clay_loam_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LM_cs_clay_loam_avail_water_0.5_lm_real_sum <- summary(LM_cs_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LM_cs_clay_loam_avail_water_0.5_lm_real_slope <- LM_cs_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_cs_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_clay_loam_avail_water_0.5_slopes[i] > LM_cs_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_clay_loam_avail_water_0.5_p_value <- (total / length(LM_cs_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_cs_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Crown_spread, LM_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LM_cs_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LM_cs_clay_loam_avail_water_100.200_lm_sum <- summary(LM_cs_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LM_cs_clay_loam_avail_water_100.200_slopes <- c(LM_cs_clay_loam_avail_water_100.200_slopes, LM_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_cs_clay_loam_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Crown_spread~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LM_cs_clay_loam_avail_water_100.200_lm_real_sum <- summary(LM_cs_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LM_cs_clay_loam_avail_water_100.200_lm_real_slope <- LM_cs_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_cs_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_cs_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LM_cs_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_cs_clay_loam_avail_water_100.200_slopes[i] > LM_cs_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_cs_clay_loam_avail_water_100.200_p_value <- (total / length(LM_cs_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
+
 
 #DBH_ag
 
@@ -4053,10 +4682,158 @@ for (i in 1:length(LM_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 LM_dbh_nitrogen_100_200_p_value <- (total / length(LM_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LM_dbh_sandy_avail_water_0.5_lm_sum <- summary(LM_dbh_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LM_dbh_sandy_avail_water_0.5_slopes <- c(LM_dbh_sandy_avail_water_0.5_slopes, LM_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LM_dbh_sandy_avail_water_0.5_lm_real_sum <- summary(LM_dbh_sandy_avail_water_0.5_lm_real) #extract the summary 
+LM_dbh_sandy_avail_water_0.5_lm_real_slope <- LM_dbh_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_dbh_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_sandy_avail_water_0.5_slopes[i] > LM_dbh_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_sandy_avail_water_0.5_p_value <- (total / length(LM_dbh_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LM_dbh_sandy_avail_water_100.200_lm_sum <- summary(LM_dbh_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LM_dbh_sandy_avail_water_100.200_slopes <- c(LM_dbh_sandy_avail_water_100.200_slopes, LM_dbh_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LM_dbh_sandy_avail_water_100.200_lm_real_sum <- summary(LM_dbh_sandy_avail_water_100.200_lm_real) #extract the summary 
+LM_dbh_sandy_avail_water_100.200_lm_real_slope <- LM_dbh_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_dbh_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_sandy_avail_water_100.200_slopes[i] > LM_dbh_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_sandy_avail_water_100.200_p_value <- (total / length(LM_dbh_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_clay_loam_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LM_dbh_clay_loam_avail_water_0.5_lm_sum <- summary(LM_dbh_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LM_dbh_clay_loam_avail_water_0.5_slopes <- c(LM_dbh_clay_loam_avail_water_0.5_slopes, LM_dbh_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_clay_loam_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LM_dbh_clay_loam_avail_water_0.5_lm_real_sum <- summary(LM_dbh_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LM_dbh_clay_loam_avail_water_0.5_lm_real_slope <- LM_dbh_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LM_dbh_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_clay_loam_avail_water_0.5_slopes[i] > LM_dbh_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_clay_loam_avail_water_0.5_p_value <- (total / length(LM_dbh_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LM_dbh_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$DBH_ag, LM_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LM_dbh_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LM_dbh_clay_loam_avail_water_100.200_lm_sum <- summary(LM_dbh_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LM_dbh_clay_loam_avail_water_100.200_slopes <- c(LM_dbh_clay_loam_avail_water_100.200_slopes, LM_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LM_dbh_clay_loam_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$DBH_ag~LM_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LM_dbh_clay_loam_avail_water_100.200_lm_real_sum <- summary(LM_dbh_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LM_dbh_clay_loam_avail_water_100.200_lm_real_slope <- LM_dbh_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LM_dbh_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LM_dbh_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LM_dbh_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LM_dbh_clay_loam_avail_water_100.200_slopes[i] > LM_dbh_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LM_dbh_clay_loam_avail_water_100.200_p_value <- (total / length(LM_dbh_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
-### LC ###
+#### LC ####
 
 ## sca
 
@@ -4722,6 +5499,157 @@ for (i in 1:length(LC_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 LC_sca_nitrogen_100_200_p_value <- (total / length(LC_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_sca_sandy_avail_water_0.5_lm_sum <- summary(LC_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LC_sca_sandy_avail_water_0.5_slopes <- c(LM_sca_sandy_avail_water_0.5_slopes, LC_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_sca_sandy_avail_water_0.5_lm_real_sum <- summary(LC_sca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LC_sca_sandy_avail_water_0.5_lm_real_slope <- LC_sca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_sca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_sandy_avail_water_0.5_slopes[i] > LC_sca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_sca_sandy_avail_water_0.5_p_value <- (total / length(LC_sca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_sca_sandy_avail_water_100.200_lm_sum <- summary(LC_sca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LC_sca_sandy_avail_water_100.200_slopes <- c(LC_sca_sandy_avail_water_100.200_slopes, LC_sca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_sca_sandy_avail_water_100.200_lm_real_sum <- summary(LC_sca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LC_sca_sandy_avail_water_100.200_lm_real_slope <- LC_sca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_sca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_sandy_avail_water_100.200_slopes[i] > LC_sca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_sca_sandy_avail_water_100.200_p_value <- (total / length(LC_sca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_short, LC_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_clay_loam_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LC_sca_clay_loam_avail_water_0.5_lm_sum <- summary(LC_sca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LC_sca_clay_loam_avail_water_0.5_slopes <- c(LC_sca_clay_loam_avail_water_0.5_slopes, LC_sca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_clay_loam_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_short~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LC_sca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LC_sca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LC_sca_clay_loam_avail_water_0.5_lm_real_slope <- LC_sca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_sca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_clay_loam_avail_water_0.5_slopes[i] > LC_sca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_sca_clay_loam_avail_water_0.5_p_value <- (total / length(LC_sca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_sca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_short, LC_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LC_sca_clay_loam_avail_water_100.200_lm_sum <- summary(LC_sca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LC_sca_clay_loam_avail_water_100.200_slopes <- c(LC_sca_clay_loam_avail_water_100.200_slopes, LM_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_sca_clay_loam_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_short~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LC_sca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LC_sca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LC_sca_clay_loam_avail_water_100.200_lm_real_slope <- LC_sca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_sca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_sca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_sca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_sca_clay_loam_avail_water_100.200_slopes[i] > LC_sca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_sca_clay_loam_avail_water_100.200_p_value <- (total / length(LC_sca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
 
 # LCA
 
@@ -5380,6 +6308,156 @@ for (i in 1:length(LC_lca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 LC_lca_nitrogen_100_200_p_value <- (total / length(LC_lca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_long, LC_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_sandy_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_lca_sandy_avail_water_0.5_lm_sum <- summary(LC_lca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LC_lca_sandy_avail_water_0.5_slopes <- c(LC_lca_sandy_avail_water_0.5_slopes, LC_lca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_sandy_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_long~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_lca_sandy_avail_water_0.5_lm_real_sum <- summary(LC_lca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LC_lca_sandy_avail_water_0.5_lm_real_slope <- LC_lca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_lca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_sandy_avail_water_0.5_slopes[i] > LC_lca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_sandy_avail_water_0.5_p_value <- (total / length(LC_lca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_long, LC_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_sandy_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_lca_sandy_avail_water_100.200_lm_sum <- summary(LC_lca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LC_lca_sandy_avail_water_100.200_slopes <- c(LC_lca_sandy_avail_water_100.200_slopes, LC_lca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_sandy_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_long~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_lca_sandy_avail_water_100.200_lm_real_sum <- summary(LC_lca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LC_lca_sandy_avail_water_100.200_lm_real_slope <- LC_lca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_lca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_sandy_avail_water_100.200_slopes[i] > LC_lca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_sandy_avail_water_100.200_p_value <- (total / length(LC_lca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_long, LC_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_clay_loam_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LC_lca_clay_loam_avail_water_0.5_lm_sum <- summary(LC_lca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LC_lca_clay_loam_avail_water_0.5_slopes <- c(LC_lca_clay_loam_avail_water_0.5_slopes, LC_lca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_clay_loam_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_long~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LC_lca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LC_lca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LC_lca_clay_loam_avail_water_0.5_lm_real_slope <- LC_lca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_lca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_clay_loam_avail_water_0.5_slopes[i] > LC_lca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_clay_loam_avail_water_0.5_p_value <- (total / length(LC_lca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_lca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_long, LC_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  LC_lca_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LC_lca_clay_loam_avail_water_100.200_lm_sum <- summary(LC_lca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LC_lca_clay_loam_avail_water_100.200_slopes <- c(LC_lca_clay_loam_avail_water_100.200_slopes, LC_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_lca_clay_loam_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_long~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LC_lca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LC_lca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LC_lca_clay_loam_avail_water_100.200_lm_real_slope <- LC_lca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_lca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_lca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_lca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_lca_clay_loam_avail_water_100.200_slopes[i] > LC_lca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_lca_clay_loam_avail_water_100.200_p_value <- (total / length(LC_lca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 
 # CA
 
@@ -6033,6 +7111,155 @@ for (i in 1:length(LC_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LC_ca_nitrogen_100_200_p_value <- (total / length(LC_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_area, LC_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_sandy_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_ca_sandy_avail_water_0.5_lm_sum <- summary(LC_ca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LC_ca_sandy_avail_water_0.5_slopes <- c(LC_ca_sandy_avail_water_0.5_slopes, LC_ca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_sandy_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_area~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_ca_sandy_avail_water_0.5_lm_real_sum <- summary(LC_ca_sandy_avail_water_0.5_lm_real) #extract the summary 
+LC_ca_sandy_avail_water_0.5_lm_real_slope <- LC_ca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_ca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_sandy_avail_water_0.5_slopes[i] > LC_ca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_sandy_avail_water_0.5_p_value <- (total / length(LC_ca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_area, LC_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_sandy_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_ca_sandy_avail_water_100.200_lm_sum <- summary(LC_ca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LC_ca_sandy_avail_water_100.200_slopes <- c(LC_ca_sandy_avail_water_100.200_slopes, LC_ca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_sandy_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_area~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_ca_sandy_avail_water_100.200_lm_real_sum <- summary(LC_ca_sandy_avail_water_100.200_lm_real) #extract the summary 
+LC_ca_sandy_avail_water_100.200_lm_real_slope <- LC_ca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_ca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_sandy_avail_water_100.200_slopes[i] > LC_ca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_sandy_avail_water_100.200_p_value <- (total / length(LC_ca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_area, LC_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_clay_loam_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LC_ca_clay_loam_avail_water_0.5_lm_sum <- summary(LC_ca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LC_ca_clay_loam_avail_water_0.5_slopes <- c(LC_ca_clay_loam_avail_water_0.5_slopes, LC_ca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_clay_loam_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_area~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LC_ca_clay_loam_avail_water_0.5_lm_real_sum <- summary(LC_ca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LC_ca_clay_loam_avail_water_0.5_lm_real_slope <- LC_ca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_ca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_clay_loam_avail_water_0.5_slopes[i] > LC_ca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_clay_loam_avail_water_0.5_p_value <- (total / length(LC_ca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_ca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Canopy_area, LC_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  LC_ca_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LC_ca_clay_loam_avail_water_100.200_lm_sum <- summary(LC_ca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LC_ca_clay_loam_avail_water_100.200_slopes <- c(LC_ca_clay_loam_avail_water_100.200_slopes, LC_ca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_ca_clay_loam_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_area~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LC_ca_clay_loam_avail_water_100.200_lm_real_sum <- summary(LC_ca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LC_ca_clay_loam_avail_water_100.200_lm_real_slope <- LC_ca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_ca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_ca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_ca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_ca_clay_loam_avail_water_100.200_slopes[i] > LC_ca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_ca_clay_loam_avail_water_100.200_p_value <- (total / length(LC_ca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 # CS
@@ -6689,6 +7916,154 @@ for (i in 1:length(LC_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 LC_cs_nitrogen_100_200_p_value <- 1-(total / length(LC_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Crown_spread, LC_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_sandy_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_cs_sandy_avail_water_0.5_lm_sum <- summary(LC_cs_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LC_cs_sandy_avail_water_0.5_slopes <- c(LC_cs_sandy_avail_water_0.5_slopes, LC_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_sandy_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Crown_spread~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_cs_sandy_avail_water_0.5_lm_real_sum <- summary(LC_cs_sandy_avail_water_0.5_lm_real) #extract the summary 
+LC_cs_sandy_avail_water_0.5_lm_real_slope <- LC_cs_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_cs_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_sandy_avail_water_0.5_slopes[i] > LC_cs_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_sandy_avail_water_0.5_p_value <- (total / length(LC_cs_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Crown_spread, LC_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_sandy_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_cs_sandy_avail_water_100.200_lm_sum <- summary(LC_cs_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LC_cs_sandy_avail_water_100.200_slopes <- c(LC_cs_sandy_avail_water_100.200_slopes, LC_cs_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_sandy_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Crown_spread~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_cs_sandy_avail_water_100.200_lm_real_sum <- summary(LC_cs_sandy_avail_water_100.200_lm_real) #extract the summary 
+LC_cs_sandy_avail_water_100.200_lm_real_slope <- LC_cs_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_cs_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_sandy_avail_water_100.200_slopes[i] > LC_cs_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_sandy_avail_water_100.200_p_value <- (total / length(LC_cs_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Crown_spread, LC_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_clay_loam_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LC_cs_clay_loam_avail_water_0.5_lm_sum <- summary(LC_cs_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LC_cs_clay_loam_avail_water_0.5_slopes <- c(LC_cs_clay_loam_avail_water_0.5_slopes, LC_cs_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_clay_loam_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Crown_spread~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LC_cs_clay_loam_avail_water_0.5_lm_real_sum <- summary(LC_cs_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LC_cs_clay_loam_avail_water_0.5_lm_real_slope <- LC_cs_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_cs_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_clay_loam_avail_water_0.5_slopes[i] > LC_cs_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_clay_loam_avail_water_0.5_p_value <- (total / length(LC_cs_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_cs_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$Crown_spread, LC_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  LC_cs_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LC_cs_clay_loam_avail_water_100.200_lm_sum <- summary(LC_cs_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LC_cs_clay_loam_avail_water_100.200_slopes <- c(LC_cs_clay_loam_avail_water_100.200_slopes, LC_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_cs_clay_loam_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Crown_spread~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LC_cs_clay_loam_avail_water_100.200_lm_real_sum <- summary(LC_cs_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LC_cs_clay_loam_avail_water_100.200_lm_real_slope <- LC_cs_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_cs_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_cs_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_cs_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_cs_clay_loam_avail_water_100.200_slopes[i] > LC_cs_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_cs_clay_loam_avail_water_100.200_p_value <- (total / length(LC_cs_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 #DBH_ag
@@ -7345,9 +8720,159 @@ for (i in 1:length(LC_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
 LC_dbh_nitrogen_100_200_p_value <- (total / length(LC_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$DBH_ag, LC_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_sandy_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_dbh_sandy_avail_water_0.5_lm_sum <- summary(LC_dbh_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  LC_dbh_sandy_avail_water_0.5_slopes <- c(LC_dbh_sandy_avail_water_0.5_slopes, LC_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_sandy_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$DBH_ag~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_dbh_sandy_avail_water_0.5_lm_real_sum <- summary(LC_dbh_sandy_avail_water_0.5_lm_real) #extract the summary 
+LC_dbh_sandy_avail_water_0.5_lm_real_slope <- LC_dbh_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_dbh_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_sandy_avail_water_0.5_slopes[i] > LC_dbh_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_sandy_avail_water_0.5_p_value <- (total / length(LC_dbh_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$DBH_ag, LC_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_sandy_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_dbh_sandy_avail_water_100.200_lm_sum <- summary(LC_dbh_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  LC_dbh_sandy_avail_water_100.200_slopes <- c(LC_dbh_sandy_avail_water_100.200_slopes, LC_dbh_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_sandy_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$DBH_ag~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_dbh_sandy_avail_water_100.200_lm_real_sum <- summary(LC_dbh_sandy_avail_water_100.200_lm_real) #extract the summary 
+LC_dbh_sandy_avail_water_100.200_lm_real_slope <- LC_dbh_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_dbh_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_sandy_avail_water_100.200_slopes[i] > LC_dbh_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_sandy_avail_water_100.200_p_value <- (total / length(LC_dbh_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-### SD ###
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$DBH_ag, LC_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_clay_loam_avail_water_0.5_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  LC_dbh_clay_loam_avail_water_0.5_lm_sum <- summary(LC_dbh_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  LC_dbh_clay_loam_avail_water_0.5_slopes <- c(LC_dbh_clay_loam_avail_water_0.5_slopes, LC_dbh_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_clay_loam_avail_water_0.5_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$DBH_ag~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+LC_dbh_clay_loam_avail_water_0.5_lm_real_sum <- summary(LC_dbh_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+LC_dbh_clay_loam_avail_water_0.5_lm_real_slope <- LC_dbh_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(LC_dbh_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_clay_loam_avail_water_0.5_slopes[i] > LC_dbh_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_clay_loam_avail_water_0.5_p_value <- (total / length(LC_dbh_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+LC_dbh_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LC_fixed_field_data_processed_soils$DBH_ag, LC_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  LC_dbh_clay_loam_avail_water_100.200_lm <- lm(LC_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~LC_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  LC_dbh_clay_loam_avail_water_100.200_lm_sum <- summary(LC_dbh_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  LC_dbh_clay_loam_avail_water_100.200_slopes <- c(LC_dbh_clay_loam_avail_water_100.200_slopes, LC_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+LC_dbh_clay_loam_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$DBH_ag~LC_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+LC_dbh_clay_loam_avail_water_100.200_lm_real_sum <- summary(LC_dbh_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+LC_dbh_clay_loam_avail_water_100.200_lm_real_slope <- LC_dbh_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=LC_dbh_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=LC_dbh_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(LC_dbh_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (LC_dbh_clay_loam_avail_water_100.200_slopes[i] > LC_dbh_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+LC_dbh_clay_loam_avail_water_100.200_p_value <- (total / length(LC_dbh_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
+
+#### SD ####
 
 ## sca
 
@@ -8000,6 +9525,159 @@ for (i in 1:length(SD_sca_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_sca_nitrogen_100_200_p_value <- (total / length(SD_sca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_short, SD_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_sandy_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  SD_sca_sandy_avail_water_0.5_lm_sum <- summary(SD_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  SD_sca_sandy_avail_water_0.5_slopes <- c(SD_sca_sandy_avail_water_0.5_slopes, SD_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_sandy_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_short~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+SD_sca_sandy_avail_water_0.5_lm_real_sum <- summary(SD_sca_sandy_avail_water_0.5_lm_real) #extract the summary 
+SD_sca_sandy_avail_water_0.5_lm_real_slope <- SD_sca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_sca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_sandy_avail_water_0.5_slopes[i] > SD_sca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_sandy_avail_water_0.5_p_value <- (total / length(SD_sca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_short, SD_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_sandy_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  SD_sca_sandy_avail_water_100.200_lm_sum <- summary(SD_sca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  SD_sca_sandy_avail_water_100.200_slopes <- c(SD_sca_sandy_avail_water_100.200_slopes, SD_sca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_sandy_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_short~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+SD_sca_sandy_avail_water_100.200_lm_real_sum <- summary(SD_sca_sandy_avail_water_100.200_lm_real) #extract the summary 
+SD_sca_sandy_avail_water_100.200_lm_real_slope <- SD_sca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_sca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_sandy_avail_water_100.200_slopes[i] > SD_sca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_sandy_avail_water_100.200_p_value <- (total / length(SD_sca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_short, SD_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_clay_loam_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  SD_sca_clay_loam_avail_water_0.5_lm_sum <- summary(SD_sca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  SD_sca_clay_loam_avail_water_0.5_slopes <- c(SD_sca_clay_loam_avail_water_0.5_slopes, SD_sca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_clay_loam_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_short~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+SD_sca_clay_loam_avail_water_0.5_lm_real_sum <- summary(SD_sca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+SD_sca_clay_loam_avail_water_0.5_lm_real_slope <- SD_sca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_sca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_clay_loam_avail_water_0.5_slopes[i] > SD_sca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_clay_loam_avail_water_0.5_p_value <- (total / length(SD_sca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_sca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_short, SD_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  SD_sca_clay_loam_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  SD_sca_clay_loam_avail_water_100.200_lm_sum <- summary(SD_sca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  SD_sca_clay_loam_avail_water_100.200_slopes <- c(SD_sca_clay_loam_avail_water_100.200_slopes, SD_sca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_sca_clay_loam_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_short~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+SD_sca_clay_loam_avail_water_100.200_lm_real_sum <- summary(SD_sca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+SD_sca_clay_loam_avail_water_100.200_lm_real_slope <- SD_sca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_sca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_sca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled SCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(SD_sca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_sca_clay_loam_avail_water_100.200_slopes[i] > SD_sca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_sca_clay_loam_avail_water_100.200_p_value <- (total / length(SD_sca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
 
 # LCA
 
@@ -8655,6 +10333,158 @@ SD_lca_nitrogen_100_200_p_value <- (total / length(SD_lca_nitrogen_100_200_slope
 
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_long, SD_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_sandy_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  SD_lca_sandy_avail_water_0.5_lm_sum <- summary(SD_lca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  SD_lca_sandy_avail_water_0.5_slopes <- c(SD_lca_sandy_avail_water_0.5_slopes, SD_lca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_sandy_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_long~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+SD_lca_sandy_avail_water_0.5_lm_real_sum <- summary(SD_lca_sandy_avail_water_0.5_lm_real) #extract the summary 
+SD_lca_sandy_avail_water_0.5_lm_real_slope <- SD_lca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_lca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_sandy_avail_water_0.5_slopes[i] > SD_lca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_sandy_avail_water_0.5_p_value <- (total / length(SD_lca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_long, SD_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_sandy_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  SD_lca_sandy_avail_water_100.200_lm_sum <- summary(SD_lca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  SD_lca_sandy_avail_water_100.200_slopes <- c(SD_lca_sandy_avail_water_100.200_slopes, SD_lca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_sandy_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_long~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+SD_lca_sandy_avail_water_100.200_lm_real_sum <- summary(SD_lca_sandy_avail_water_100.200_lm_real) #extract the summary 
+SD_lca_sandy_avail_water_100.200_lm_real_slope <- SD_lca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_lca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_sandy_avail_water_100.200_slopes[i] > SD_lca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_sandy_avail_water_100.200_p_value <- (total / length(SD_lca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_long, SD_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_clay_loam_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  SD_lca_clay_loam_avail_water_0.5_lm_sum <- summary(SD_lca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  SD_lca_clay_loam_avail_water_0.5_slopes <- c(SD_lca_clay_loam_avail_water_0.5_slopes, SD_lca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_clay_loam_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_long~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+SD_lca_clay_loam_avail_water_0.5_lm_real_sum <- summary(SD_lca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+SD_lca_clay_loam_avail_water_0.5_lm_real_slope <- SD_lca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_lca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_clay_loam_avail_water_0.5_slopes[i] > SD_lca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_clay_loam_avail_water_0.5_p_value <- (total / length(SD_lca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_lca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_long, SD_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_long.shuffled = sample(Canopy_long)) #create a data frame with a shuffled 
+  SD_lca_clay_loam_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_long.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  SD_lca_clay_loam_avail_water_100.200_lm_sum <- summary(SD_lca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  SD_lca_clay_loam_avail_water_100.200_slopes <- c(SD_lca_clay_loam_avail_water_100.200_slopes, SD_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_lca_clay_loam_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_long~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+SD_lca_clay_loam_avail_water_100.200_lm_real_sum <- summary(SD_lca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+SD_lca_clay_loam_avail_water_100.200_lm_real_slope <- SD_lca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_lca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_lca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled LCA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(SD_lca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_lca_clay_loam_avail_water_100.200_slopes[i] > SD_lca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_lca_clay_loam_avail_water_100.200_p_value <- (total / length(SD_lca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
+
 # CA
 
 
@@ -9306,6 +11136,156 @@ for (i in 1:length(SD_ca_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
 SD_ca_nitrogen_100_200_p_value <- (total / length(SD_ca_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_area, SD_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_sandy_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  SD_ca_sandy_avail_water_0.5_lm_sum <- summary(SD_ca_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  SD_ca_sandy_avail_water_0.5_slopes <- c(SD_ca_sandy_avail_water_0.5_slopes, SD_ca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_sandy_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_area~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+SD_ca_sandy_avail_water_0.5_lm_real_sum <- summary(SD_ca_sandy_avail_water_0.5_lm_real) #extract the summary 
+SD_ca_sandy_avail_water_0.5_lm_real_slope <- SD_ca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_ca_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_sandy_avail_water_0.5_slopes[i] > SD_ca_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_sandy_avail_water_0.5_p_value <- (total / length(SD_ca_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_area, SD_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_sandy_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  SD_ca_sandy_avail_water_100.200_lm_sum <- summary(SD_ca_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  SD_ca_sandy_avail_water_100.200_slopes <- c(SD_ca_sandy_avail_water_100.200_slopes, SD_ca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_sandy_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_area~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+SD_ca_sandy_avail_water_100.200_lm_real_sum <- summary(SD_ca_sandy_avail_water_100.200_lm_real) #extract the summary 
+SD_ca_sandy_avail_water_100.200_lm_real_slope <- SD_ca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_ca_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_sandy_avail_water_100.200_slopes[i] > SD_ca_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_sandy_avail_water_100.200_p_value <- (total / length(SD_ca_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_area, SD_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_clay_loam_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  SD_ca_clay_loam_avail_water_0.5_lm_sum <- summary(SD_ca_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  SD_ca_clay_loam_avail_water_0.5_slopes <- c(SD_ca_clay_loam_avail_water_0.5_slopes, SD_ca_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_clay_loam_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_area~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+SD_ca_clay_loam_avail_water_0.5_lm_real_sum <- summary(SD_ca_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+SD_ca_clay_loam_avail_water_0.5_lm_real_slope <- SD_ca_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_ca_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_clay_loam_avail_water_0.5_slopes[i] > SD_ca_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_clay_loam_avail_water_0.5_p_value <- (total / length(SD_ca_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_ca_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Canopy_area, SD_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Canopy_area.shuffled = sample(Canopy_area)) #create a data frame with a shuffled 
+  SD_ca_clay_loam_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Canopy_area.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  SD_ca_clay_loam_avail_water_100.200_lm_sum <- summary(SD_ca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  SD_ca_clay_loam_avail_water_100.200_slopes <- c(SD_ca_clay_loam_avail_water_100.200_slopes, SD_ca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_ca_clay_loam_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Canopy_area~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+SD_ca_clay_loam_avail_water_100.200_lm_real_sum <- summary(SD_ca_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+SD_ca_clay_loam_avail_water_100.200_lm_real_slope <- SD_ca_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_ca_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_ca_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CA vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(SD_ca_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_ca_clay_loam_avail_water_100.200_slopes[i] > SD_ca_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_ca_clay_loam_avail_water_100.200_p_value <- (total / length(SD_ca_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
 # CS
 
 # Clay Content 0-5 cm
@@ -9949,6 +11929,156 @@ for (i in 1:length(SD_cs_nitrogen_100_200_slopes)){ #loop that adds 1 to the val
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_cs_nitrogen_100_200_p_value <- (total / length(SD_cs_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Crown_spread, SD_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_sandy_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  SD_cs_sandy_avail_water_0.5_lm_sum <- summary(SD_cs_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  SD_cs_sandy_avail_water_0.5_slopes <- c(SD_cs_sandy_avail_water_0.5_slopes, SD_cs_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_sandy_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Crown_spread~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+SD_cs_sandy_avail_water_0.5_lm_real_sum <- summary(SD_cs_sandy_avail_water_0.5_lm_real) #extract the summary 
+SD_cs_sandy_avail_water_0.5_lm_real_slope <- SD_cs_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_cs_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_sandy_avail_water_0.5_slopes[i] > SD_cs_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_sandy_avail_water_0.5_p_value <- (total / length(SD_cs_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Crown_spread, SD_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_sandy_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  SD_cs_sandy_avail_water_100.200_lm_sum <- summary(SD_cs_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  SD_cs_sandy_avail_water_100.200_slopes <- c(SD_cs_sandy_avail_water_100.200_slopes, SD_cs_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_sandy_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Crown_spread~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+SD_cs_sandy_avail_water_100.200_lm_real_sum <- summary(SD_cs_sandy_avail_water_100.200_lm_real) #extract the summary 
+SD_cs_sandy_avail_water_100.200_lm_real_slope <- SD_cs_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_cs_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_sandy_avail_water_100.200_slopes[i] > SD_cs_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_sandy_avail_water_100.200_p_value <- (total / length(SD_cs_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Crown_spread, SD_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_clay_loam_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  SD_cs_clay_loam_avail_water_0.5_lm_sum <- summary(SD_cs_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  SD_cs_clay_loam_avail_water_0.5_slopes <- c(SD_cs_clay_loam_avail_water_0.5_slopes, SD_cs_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_clay_loam_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Crown_spread~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+SD_cs_clay_loam_avail_water_0.5_lm_real_sum <- summary(SD_cs_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+SD_cs_clay_loam_avail_water_0.5_lm_real_slope <- SD_cs_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_cs_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_clay_loam_avail_water_0.5_slopes[i] > SD_cs_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_clay_loam_avail_water_0.5_p_value <- (total / length(SD_cs_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_cs_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$Crown_spread, SD_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, Crown_spread.shuffled = sample(Crown_spread)) #create a data frame with a shuffled 
+  SD_cs_clay_loam_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$Crown_spread.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  SD_cs_clay_loam_avail_water_100.200_lm_sum <- summary(SD_cs_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  SD_cs_clay_loam_avail_water_100.200_slopes <- c(SD_cs_clay_loam_avail_water_100.200_slopes, SD_cs_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_cs_clay_loam_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$Crown_spread~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+SD_cs_clay_loam_avail_water_100.200_lm_real_sum <- summary(SD_cs_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+SD_cs_clay_loam_avail_water_100.200_lm_real_slope <- SD_cs_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_cs_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_cs_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled CS vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(SD_cs_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_cs_clay_loam_avail_water_100.200_slopes[i] > SD_cs_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_cs_clay_loam_avail_water_100.200_p_value <- (total / length(SD_cs_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
 
@@ -10599,6 +12729,158 @@ for (i in 1:length(SD_dbh_nitrogen_100_200_slopes)){ #loop that adds 1 to the va
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 SD_dbh_nitrogen_100_200_p_value <- (total / length(SD_dbh_nitrogen_100_200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+
+#sandy avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$DBH_ag, SD_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_sandy_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  SD_dbh_sandy_avail_water_0.5_lm_sum <- summary(SD_dbh_sandy_avail_water_0.5_lm) #extracting the linear regression information
+  SD_dbh_sandy_avail_water_0.5_slopes <- c(SD_dbh_sandy_avail_water_0.5_slopes, SD_dbh_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_sandy_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$DBH_ag~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+SD_dbh_sandy_avail_water_0.5_lm_real_sum <- summary(SD_dbh_sandy_avail_water_0.5_lm_real) #extract the summary 
+SD_dbh_sandy_avail_water_0.5_lm_real_slope <- SD_dbh_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_sandy_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_sandy_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_dbh_sandy_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_sandy_avail_water_0.5_slopes[i] > SD_dbh_sandy_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_sandy_avail_water_0.5_p_value <- (total / length(SD_dbh_sandy_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#sandy avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$DBH_ag, SD_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_sandy_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  SD_dbh_sandy_avail_water_100.200_lm_sum <- summary(SD_dbh_sandy_avail_water_100.200_lm) #extracting the linear regression information
+  SD_dbh_sandy_avail_water_100.200_slopes <- c(SD_dbh_sandy_avail_water_100.200_slopes, SD_dbh_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_sandy_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$DBH_ag~SD_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+SD_dbh_sandy_avail_water_100.200_lm_real_sum <- summary(SD_dbh_sandy_avail_water_100.200_lm_real) #extract the summary 
+SD_dbh_sandy_avail_water_100.200_lm_real_slope <- SD_dbh_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_sandy_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_sandy_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_dbh_sandy_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_sandy_avail_water_100.200_slopes[i] > SD_dbh_sandy_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_sandy_avail_water_100.200_p_value <- (total / length(SD_dbh_sandy_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
+
+#clay loam avail water 0.5
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_clay_loam_avail_water_0.5_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$DBH_ag, SD_fixed_field_data_processed_soils$clay_loam_avail_water_0.5),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_clay_loam_avail_water_0.5_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_0.5)
+  SD_dbh_clay_loam_avail_water_0.5_lm_sum <- summary(SD_dbh_clay_loam_avail_water_0.5_lm) #extracting the linear regression information
+  SD_dbh_clay_loam_avail_water_0.5_slopes <- c(SD_dbh_clay_loam_avail_water_0.5_slopes, SD_dbh_clay_loam_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_clay_loam_avail_water_0.5_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$DBH_ag~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_0.5) #creating the linear regression
+SD_dbh_clay_loam_avail_water_0.5_lm_real_sum <- summary(SD_dbh_clay_loam_avail_water_0.5_lm_real) #extract the summary 
+SD_dbh_clay_loam_avail_water_0.5_lm_real_slope <- SD_dbh_clay_loam_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_clay_loam_avail_water_0.5_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_clay_loam_avail_water_0.5_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Sand 0-5 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty vaue
+for (i in 1:length(SD_dbh_clay_loam_avail_water_0.5_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_clay_loam_avail_water_0.5_slopes[i] > SD_dbh_clay_loam_avail_water_0.5_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_clay_loam_avail_water_0.5_p_value <- (total / length(SD_dbh_clay_loam_avail_water_0.5_slopes)) #the proportion of random ANNs that are less than our ANN
+
+#clay_loam avail water 100-200
+
+#extracting slopes from comparing soil values with randomized shape/size values with linear regressions
+SD_dbh_clay_loam_avail_water_100.200_slopes <- c() #creating empty list to collect p values
+
+#use only complete cases
+SD_fixed_field_data_processed_soils.complete <- SD_fixed_field_data_processed_soils[complete.cases(SD_fixed_field_data_processed_soils$DBH_ag, SD_fixed_field_data_processed_soils$clay_loam_avail_water_100.200),]
+
+set.seed(21)
+for (i in 1:1000){ #for 1000 permutations
+  SD_fixed_field_data_processed_soils_shuffled <- transform(SD_fixed_field_data_processed_soils.complete, DBH_ag.shuffled = sample(DBH_ag)) #create a data frame with a shuffled 
+  SD_dbh_clay_loam_avail_water_100.200_lm <- lm(SD_fixed_field_data_processed_soils_shuffled$DBH_ag.shuffled~SD_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
+  SD_dbh_clay_loam_avail_water_100.200_lm_sum <- summary(SD_dbh_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
+  SD_dbh_clay_loam_avail_water_100.200_slopes <- c(SD_dbh_clay_loam_avail_water_100.200_slopes, SD_dbh_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+}
+
+#extracting the slope of our points
+SD_dbh_clay_loam_avail_water_100.200_lm_real <- lm(SD_fixed_field_data_processed_soils.complete$DBH_ag~SD_fixed_field_data_processed_soils.complete$clay_loam_avail_water_100.200) #creating the linear regression
+SD_dbh_clay_loam_avail_water_100.200_lm_real_sum <- summary(SD_dbh_clay_loam_avail_water_100.200_lm_real) #extract the summary 
+SD_dbh_clay_loam_avail_water_100.200_lm_real_slope <- SD_dbh_clay_loam_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=SD_dbh_clay_loam_avail_water_100.200_slopes),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=SD_dbh_clay_loam_avail_water_100.200_lm_real_slope, col = "red")+ #line of our real slope
+  xlab("Slopes of Shuffled DBH vs. Available Water Content for Clay and loamy Soil 100-200 cm")+
+  theme_classic()
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(SD_dbh_clay_loam_avail_water_100.200_slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (SD_dbh_clay_loam_avail_water_100.200_slopes[i] > SD_dbh_clay_loam_avail_water_100.200_lm_real_slope){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+SD_dbh_clay_loam_avail_water_100.200_p_value <- (total / length(SD_dbh_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
+
 
 
 
@@ -11987,6 +14269,19 @@ ggplot()+
 
 random_vol_wat_33kpa_0.5_means <- na.omit(random_vol_wat_33kpa_0.5_means) #remove NAs
 
+#for presentation
+as_tibble(random_vol_wat_33kpa_0.5_means) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(random_vol_wat_33kpa_0.5_means, all_known_vol_wat_33kpa_0.5_mean)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=all_known_vol_wat_33kpa_0.5_mean, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Mean Vol. Water at -33kpa 0-5 cm of Random Populations vs.Known Populations (n=20)") +
+  ylab("Frequency") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 13),
+        axis.title.y =element_text(size= 13))
+
+
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
 for (i in 1:length(random_vol_wat_33kpa_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
@@ -12006,6 +14301,18 @@ ggplot()+
   theme_classic()
 
 random_vol_wat_33kpa_100.200_means <- na.omit(random_vol_wat_33kpa_100.200_means) #remove NAs
+
+#for presentation
+as_tibble(random_vol_wat_33kpa_100.200_means) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(random_vol_wat_33kpa_100.200_means, all_known_vol_wat_33kpa_100.200_mean)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=all_known_vol_wat_33kpa_100.200_mean, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Mean Vol. Water at -33kpa 100-200 cm of Random Populations vs.Known Populations (n=20)") +
+  ylab("Frequency") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 13),
+        axis.title.y =element_text(size= 13))
 
 #calculating pseudo p-value for 
 total = 0  #set empty vaue
@@ -12171,7 +14478,7 @@ ggplot()+
 random_nitrogen_100.200_means <- na.omit(random_nitrogen_100.200_means) #remove NAs
 
 #calculating pseudo p-value for 
-total = 0  #set empty vaue
+total = 0  #set empty value
 for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
   if (random_nitrogen_100.200_means[i] < all_known_nitrogen_100.200_mean){
     total = total + 1
@@ -12179,11 +14486,95 @@ for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the val
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 nitrogen_100.200_random_p.value <- (total / length(random_nitrogen_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
+#for sandy avail water 0.5 cm
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_sandy_avail_water_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_sandy_avail_water_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean sandy available water 0-5 cm of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_sandy_avail_water_0.5_means <- na.omit(random_sandy_avail_water_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(random_sandy_avail_water_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_sandy_avail_water_0.5_means[i] < random_sandy_avail_water_0.5_means){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+sandy_avail_water_0.5_random_p.value <- (total / length(random_sandy_avail_water_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+
+#for sandy available water 100-200 cm
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_sandy_avail_water_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_sandy_avail_water_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean sandy available water 100-200 cm of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_sandy_avail_water_100.200_means <- na.omit(random_sandy_avail_water_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(random_sandy_avail_water_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_sandy_avail_water_100.200_means[i] < random_sandy_avail_water_100.200_means){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+sandy_avail_water_100.200_random_p.value <- (total / length(random_sandy_avail_water_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+#for clay loam available water 0-5 cm
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_clay_loam_avail_water_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_clay_loam_avail_water_0.5_mean, col = "red")+ #line of our real slope
+  xlab("Mean clay and loam available water 0-5 cm of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_clay_loam_avail_water_0.5_means <- na.omit(random_clay_loam_avail_water_0.5_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(random_clay_loam_avail_water_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_clay_loam_avail_water_0.5_means[i] < random_clay_loam_avail_water_0.5_means){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+clay_loam_avail_water_0.5_random_p.value <- (total / length(random_clay_loam_avail_water_0.5_means)) #the proportion of random ANNs that are less than our ANN
+
+
+#for clay loam available water 100-200 cm
+
+#plotting the histogram of the randomly distributed p-values and our real slope
+ggplot()+
+  geom_histogram(aes(x=random_clay_loam_avail_water_100.200_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
+  geom_vline(xintercept=all_known_clay_loam_avail_water_100.200_mean, col = "red")+ #line of our real slope
+  xlab("Mean clay and loam available water 100-200 cm of Random Populations vs.Known Populations (n=20)")+
+  theme_classic()
+
+random_clay_loam_avail_water_100.200_means <- na.omit(random_clay_loam_avail_water_100.200_means) #remove NAs
+
+#calculating pseudo p-value for 
+total = 0  #set empty value
+for (i in 1:length(random_clay_loam_avail_water_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+  if (random_clay_loam_avail_water_100.200_means[i] < random_clay_loam_avail_water_100.200_means){
+    total = total + 1
+  }
+} #add number of values of in the random set of ANN values that are less than our mean ANN
+clay_loam_avail_water_100.200_random_p.value <- (total / length(random_clay_loam_avail_water_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+
 
 #Heat Map 
 
 
-p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0.5_random_p.value,
+p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, 
+                    silt_0.5_random_p.value,
                     silt_100.200_random_p.value,
                     sand_0.5_random_p.value,
                     sand_100.200_random_p.value,
@@ -12198,7 +14589,11 @@ p_value_random <- c(clay_0.5_random_p.value, clay_100.200_random_p.value, silt_0
                     vol_wat_1500kpa_0.5_random_p.value,
                     vol_wat_1500kpa_100.200_random_p.value,
                     nitrogen_0.5_random_p.value,
-                    nitrogen_100.200_random_p.value
+                    nitrogen_100.200_random_p.value,
+                    sandy_avail_water_0.5_random_p.value,
+                    sandy_avail_water_100.200_random_p.value,
+                    clay_loam_avail_water_0.5_random_p.value,
+                    clay_loam_avail_water_100.200_random_p.value
 )
 
 # Bonferroni correcting for multiple testing
@@ -12206,12 +14601,13 @@ p_bonf_corrected <- p.adjust(p_value_random, method = "bonferroni")
 p_bonf_corrected
 
 #creating empty dataframe for inputting the function into
-random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
-                                                      "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", 
-                                                 "Volume of water content -10 kpa 0-5", "Volume of water content -10 kpa 100-200",
-                                                 "Volume of water content -33 kpa 0-5", "Volume of water content -33 kpa 100-200",
-                                                       "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
-                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm", "Silt 0-5 cm", "Silt 100-200 cm", "Sand 0-5 cm", "Sand 100-200 cm",
+                                                      "pH 0-5 cm", "pH 100-200 cm", "Soil Organic Carbon 0-5 cm", "Soil Organic Carbon 100-200 cm", 
+                                                 "Volume of water content -10 kPa 0-5 cm", "Volume of water content -10 kPa 100-200 cm",
+                                                 "Volume of water content -33 kPa 0-5 cm", "Volume of water content -33 kPa 100-200 cm",
+                                                       "Volume of water content -1500 kPa 0-5 cm", "Volume of water content -1500 kPa 100-200 cm", 
+                                                      "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sandy Available Water 0-5 cm", "Sandy Available Water 100-200 cm",
+                                                 "Clay/Loam Available Water 0-5 cm", "Clay/Loam Available Water 100-200 cm")),
                                  "P_Value" = p_bonf_corrected,
                                  "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")
 
@@ -12221,13 +14617,19 @@ random_pop.df <- random_pop.df %>%
                                   p_bonf_corrected >= 0.05 ~ "N"))
 
 #labeled p-values
-ggplot(aes(x = Shape.Size, y = Significance, fill = P_Value), data = random_pop.df) +
+ggplot(aes(x = fct_reorder(Shape.Size, P_Value), y = Significance, fill = P_Value), data = random_pop.df) +
   geom_tile() + 
   labs(y = "Significant P-Value", x  = "Soil Characteristic", 
-       fill = "P Value",  
+       fill = "P-Value",  
        title = "Association Between Soil Metrics and Population Locations",
-       subtitle = "Significant P-Values Labeled") + 
+       subtitle = "P-Values Below 0.5 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_Value < 0.15, round(P_Value, 4), NA))) +
-  coord_flip()
+  geom_text(aes(label = ifelse(P_Value < 0.5, round(P_Value, 4), NA)), col = "white") +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 13),
+        axis.title = element_text(size=13),
+        title = element_text(size = 13),
+        legend.title = element_text(size = 13),
+        plot.subtitle = element_text(size = 12))
 
