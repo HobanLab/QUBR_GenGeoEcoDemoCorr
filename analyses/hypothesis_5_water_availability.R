@@ -160,7 +160,6 @@ dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river
 #dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
 plot(dist_near_river_buffer_LM) #not using inverse distance
 
-
 #LC
 
 #turning river polygon into multipoints and then into a raster for using them to calculate the distances
@@ -355,21 +354,6 @@ SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance
   mutate(Canopy_area_inv = (1/Canopy_area)) %>%
   mutate(Crown_spread_inv = (1/Crown_spread))%>%
   mutate(DBH_ag_inv = (1/DBH_ag))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #Simple Linear Regressions

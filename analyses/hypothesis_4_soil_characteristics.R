@@ -151,7 +151,6 @@ silt_05_utm <- projectRaster(silt_05, crs=26912)
 silt_200_utm <- projectRaster(silt_200, crs=26912)
 sand_05_utm <- projectRaster(sand_05, crs=26912)
 sand_200_utm <- projectRaster(sand_200, crs=26912)
-
 ph_05_utm <- projectRaster(ph_05, crs=26912) 
 ph_200_utm <- projectRaster(ph_200, crs=26912) 
 ocd_05_utm <- projectRaster(ocd_05, crs=26912)
@@ -172,7 +171,10 @@ nitrogen_05_utm <- projectRaster(nitrogen_05, crs=26912)
 nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
 Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
 Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
-
+sandy_avail_water_0.5_utm <- vol_wat_33kpa_05_utm - vol_wat_1500kpa_05_utm
+sandy_avail_water_100.200_utm <- vol_wat_33kpa_200_utm - vol_wat_1500kpa_200_utm
+clay_loam_avail_water_0.5_utm <- vol_wat_10kpa_05_utm - vol_wat_1500kpa_05_utm
+clay_loam_avail_water_100.200_utm <- vol_wat_10kpa_200_utm - vol_wat_1500kpa_200_utm
 
 
 #LM
@@ -337,6 +339,27 @@ plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the s
 plot(soil_stack_SD_extra)
 plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the same scale
 
+library(gridExtra)
+nitrogen0.5 <- ggplot() +
+  geom_raster(data= as.data.frame(soil_stack_SD_extra, xy = T), aes(x=x, y=y, fill = nitrogen.0.5))+
+  geom_sf(data = SD_fixed_field_data_processed, fill = NA, col = "white") +
+  labs(title = "Nitrogen at 0-5 cm",
+       fill = "Nitrogen (cg/kg)",
+       x = "",
+       y = "") +
+  scale_fill_viridis_c(limits = c(50, 330))
+
+nitrogen100.200 <- ggplot() +
+  geom_raster(data= as.data.frame(soil_stack_SD_extra, xy = T), aes(x=x, y=y, fill = nitrogen.100.200))+
+  geom_sf(data = SD_fixed_field_data_processed, fill = NA, col = "black") +
+  labs(title = "Nitrogen at 100-200 cm", 
+       fill = "Nitrogen (cg/kg)",
+       x = "",
+       y = "") +
+  scale_fill_viridis_c(limits = c(50, 330))
+
+grid.arrange(nitrogen0.5, nitrogen100.200, nrow = 2)
+
 
 #creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
 
@@ -386,27 +409,27 @@ SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils
 # LM
 
 LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
-  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
-  
+  mutate(sandy_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) 
+
 
 # LC
 
 LC_fixed_field_data_processed_soils <- LC_fixed_field_data_processed_soils %>%
-  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  mutate(sandy_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200)
   
 # SD
 
 SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
-  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  mutate(sandy_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(sandy_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) %>%
+  mutate(clay_loam_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
+  mutate(clay_loam_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200)
 
 ### Comparing the soil metrics between populations ###
 
@@ -549,10 +572,11 @@ ggplot()+
 
 ggplot()+
   geom_raster(data = as.data.frame(clay_05_SD, xy = T), aes(x=x, y=y, fill = clay.content.0.5)) +
-  geom_sf(data = st_boundary(SD_tree_grid_cropped)) + 
+ # geom_sf(data = st_boundary(SD_tree_grid_cropped)) + 
   labs(fill = "Clay Content (g/kg) (0-5 cm)") +
   geom_sf(data= SD_fixed_field_data_processed_sf)+
-  geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red") 
+ # geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red") +
+  scale_fill_viridis_c()
 
 
 #combining the LM, LC, and SD tree randomly chosen tree point data into one dataframe
@@ -1423,7 +1447,7 @@ for (i in 1:1000){ #for 1000 permutations
   LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
   LM_sca_sandy_avail_water_0.5_lm_sum <- summary(LM_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
-  LM_sca_sandy_avail_water_0.5_slopes <- c(LM_lca_sandy_avail_water_0.5_slopes, LM_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LM_sca_sandy_avail_water_0.5_slopes <- c(LM_sca_sandy_avail_water_0.5_slopes, LM_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
@@ -1535,7 +1559,7 @@ for (i in 1:1000){ #for 1000 permutations
   LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
   LM_sca_clay_loam_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$clay_loam_avail_water_100.200)
   LM_sca_clay_loam_avail_water_100.200_lm_sum <- summary(LM_sca_clay_loam_avail_water_100.200_lm) #extracting the linear regression information
-  LM_sca_clay_loam_avail_water_100.200_slopes <- c(LM_sca_clay_loam_avail_water_100.200_slopes, LM_lca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
+  LM_sca_clay_loam_avail_water_100.200_slopes <- c(LM_sca_clay_loam_avail_water_100.200_slopes, LM_sca_clay_loam_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
@@ -4015,8 +4039,6 @@ LM_cs_clay_loam_avail_water_100.200_p_value <- (total / length(LM_cs_clay_loam_a
 
 
 
-
-
 #DBH_ag
 
 
@@ -5505,18 +5527,18 @@ LC_sca_nitrogen_100_200_p_value <- (total / length(LC_sca_nitrogen_100_200_slope
 LC_sca_sandy_avail_water_0.5_slopes <- c() #creating empty list to collect p values
 
 #use only complete cases
-LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_0.5),]
 
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
-  LC_sca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_sandy_avail_water_0.5_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_0.5)
   LC_sca_sandy_avail_water_0.5_lm_sum <- summary(LC_sca_sandy_avail_water_0.5_lm) #extracting the linear regression information
   LC_sca_sandy_avail_water_0.5_slopes <- c(LM_sca_sandy_avail_water_0.5_slopes, LC_sca_sandy_avail_water_0.5_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LC_sca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
+LC_sca_sandy_avail_water_0.5_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_0.5) #creating the linear regression
 LC_sca_sandy_avail_water_0.5_lm_real_sum <- summary(LC_sca_sandy_avail_water_0.5_lm_real) #extract the summary 
 LC_sca_sandy_avail_water_0.5_lm_real_slope <- LC_sca_sandy_avail_water_0.5_lm_real_sum$coefficients[2] #storing the slope
 
@@ -5542,18 +5564,18 @@ LC_sca_sandy_avail_water_0.5_p_value <- (total / length(LC_sca_sandy_avail_water
 LC_sca_sandy_avail_water_100.200_slopes <- c() #creating empty list to collect p values
 
 #use only complete cases
-LM_fixed_field_data_processed_soils.complete <- LM_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
+LC_fixed_field_data_processed_soils.complete <- LC_fixed_field_data_processed_soils[complete.cases(LM_fixed_field_data_processed_soils$Canopy_short, LM_fixed_field_data_processed_soils$sandy_avail_water_100.200),]
 
 set.seed(21)
 for (i in 1:1000){ #for 1000 permutations
-  LM_fixed_field_data_processed_soils_shuffled <- transform(LM_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
-  LC_sca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LM_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
+  LC_fixed_field_data_processed_soils_shuffled <- transform(LC_fixed_field_data_processed_soils.complete, Canopy_short.shuffled = sample(Canopy_short)) #create a data frame with a shuffled 
+  LC_sca_sandy_avail_water_100.200_lm <- lm(LM_fixed_field_data_processed_soils_shuffled$Canopy_short.shuffled~LC_fixed_field_data_processed_soils_shuffled$sandy_avail_water_100.200)
   LC_sca_sandy_avail_water_100.200_lm_sum <- summary(LC_sca_sandy_avail_water_100.200_lm) #extracting the linear regression information
   LC_sca_sandy_avail_water_100.200_slopes <- c(LC_sca_sandy_avail_water_100.200_slopes, LC_sca_sandy_avail_water_100.200_lm_sum$coefficients[2]) #add the current p-value from the randomized lca values to the list of stored slopes
 }
 
 #extracting the slope of our points
-LC_sca_sandy_avail_water_100.200_lm_real <- lm(LM_fixed_field_data_processed_soils.complete$Canopy_short~LM_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
+LC_sca_sandy_avail_water_100.200_lm_real <- lm(LC_fixed_field_data_processed_soils.complete$Canopy_short~LC_fixed_field_data_processed_soils.complete$sandy_avail_water_100.200) #creating the linear regression
 LC_sca_sandy_avail_water_100.200_lm_real_sum <- summary(LC_sca_sandy_avail_water_100.200_lm_real) #extract the summary 
 LC_sca_sandy_avail_water_100.200_lm_real_slope <- LC_sca_sandy_avail_water_100.200_lm_real_sum$coefficients[2] #storing the slope
 
@@ -12882,8 +12904,6 @@ for (i in 1:length(SD_dbh_clay_loam_avail_water_100.200_slopes)){ #loop that add
 SD_dbh_clay_loam_avail_water_100.200_p_value <- (total / length(SD_dbh_clay_loam_avail_water_100.200_slopes)) #the proportion of random ANNs that are less than our ANN
 
 
-
-
 #creating empty dataframe for inputting the function into
 size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), rep('SD', 80)),
                                  "Variable" = rep(c(rep("SCA", 16), rep("LCA", 16), rep("CA", 16), rep("CS", 16),
@@ -12891,7 +12911,9 @@ size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), 
                                  "Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
                                                       "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
                                                       "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
-                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+                                                      "Nitrogen 0-5", "Nitrogen 100-200", 
+                                                      "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                                                      "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200")),
                                  "Slope" = c(rep(NA, 240)), 
                                  "P_Value" = c(rep(NA, 240)),
                                  "Significance" = c(rep(NA, 240)))   #ifelse(p_values < 0.05, "Y", "N")
@@ -12909,8 +12931,10 @@ slopes_simulations <- function () {
                              "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
                              "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
                              "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
-                             "nitrogen.0.5", "nitrogen.100.200")
-    
+                             "nitrogen.0.5", "nitrogen.100.200", 
+                             "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                             "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200")
+
     #empty matrix for the p-values 
     LM_p_values <- matrix(ncol = 16, nrow = 5) #columns are soil characteristics and rows are size/shape characteristics
     rownames(LM_p_values) <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
@@ -12918,7 +12942,9 @@ slopes_simulations <- function () {
                                "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
                                "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
                                "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
-                               "nitrogen.0.5", "nitrogen.100.200")
+                               "nitrogen.0.5", "nitrogen.100.200", 
+                               "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                               "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200")
     
     #creating lists of the variables
     size_variables_list <- c("Canopy_short", "Canopy_long", "Canopy_area", "Crown_spread", "DBH_ag")
@@ -12926,7 +12952,9 @@ slopes_simulations <- function () {
                                    "silt.100.200", "sand.0.5", "sand.100.200", "ph_0.5", 
                                    "ph_100.200", "SOC.0.5", "SOC.100.200", "vol_water_.10_0.5", 
                                    "vol_water_.10_100.200", "vol_water_.1500kPa_0.5", "vol_water_.1500_100.200", 
-                                   "nitrogen.0.5", "nitrogen.100.200")
+                                   "nitrogen.0.5", "nitrogen.100.200", 
+                                   "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                                   "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200")
     
     
     #creating a dataframe of just the soil characteristics
@@ -13227,89 +13255,148 @@ ggplot(aes(x = Shape.Size, y = Variable, fill = ifelse(P_Value < 0.05, P_Value, 
 p_values <- c(LM_sca_clay_0.5_p_value, LM_sca_clay_100_200_p_value, LM_sca_silt_0.5_p_value, LM_sca_silt_100_200_p_value, LM_sca_sand_0.5_p_value, LM_sca_sand_100_200_p_value,
               LM_sca_ph_0.5_p_value, LM_sca_ph_100_200_p_value, LM_sca_soc_0.5_p_value, LM_sca_soc_100_200_p_value, LM_sca_vol_10_0.5_p_value, LM_sca_vol_10_100_200_p_value, 
               LM_sca_vol_1500_0.5_p_value, LM_sca_vol_1500_100_200_p_value, LM_sca_nitrogen_0.5_p_value, LM_sca_nitrogen_100_200_p_value, LM_lca_clay_0.5_p_value, LM_lca_clay_100_200_p_value,
+              LM_sca_clay_loam_avail_water_0.5_p_value, LM_sca_clay_loam_avail_water_100.200_p_value,
+              LM_sca_sandy_avail_water_0.5_p_value, LM_sca_sandy_avail_water_100.200_p_value,
               LM_lca_silt_0.5_p_value, LM_lca_silt_100_200_p_value, LM_lca_sand_0.5_p_value, LM_lca_sand_100_200_p_value, LM_lca_ph_0.5_p_value, LM_lca_ph_100_200_p_value, 
               LM_lca_soc_0.5_p_value, LM_lca_soc_100_200_p_value, LM_lca_vol_10_0.5_p_value, LM_lca_vol_10_100_200_p_value, LM_lca_vol_1500_0.5_p_value, LM_lca_vol_1500_100_200_p_value,
-              LM_lca_nitrogen_0.5_p_value, LM_lca_nitrogen_100_200_p_value, LM_ca_clay_0.5_p_value, LM_ca_clay_100_200_p_value, LM_ca_silt_0.5_p_value, LM_ca_silt_100_200_p_value,
+              LM_lca_nitrogen_0.5_p_value, LM_lca_nitrogen_100_200_p_value, 
+              LM_lca_clay_loam_avail_water_0.5_p_value, LM_lca_clay_loam_avail_water_100.200_p_value,
+              LM_lca_sandy_avail_water_0.5_p_value, LM_lca_sandy_avail_water_100.200_p_value,
+              LM_ca_clay_0.5_p_value, LM_ca_clay_100_200_p_value, LM_ca_silt_0.5_p_value, LM_ca_silt_100_200_p_value,
               LM_ca_sand_0.5_p_value, LM_ca_sand_100_200_p_value, LM_ca_ph_0.5_p_value, LM_ca_ph_100_200_p_value, LM_ca_soc_0.5_p_value, LM_ca_soc_100_200_p_value, LM_ca_vol_10_0.5_p_value,
               LM_ca_vol_10_100_200_p_value, LM_ca_vol_1500_0.5_p_value, LM_ca_vol_1500_100_200_p_value, LM_ca_nitrogen_0.5_p_value, LM_ca_nitrogen_100_200_p_value,
               LM_cs_clay_0.5_p_value, LM_cs_clay_100_200_p_value, LM_cs_silt_0.5_p_value, LM_cs_silt_100_200_p_value, LM_cs_sand_0.5_p_value, LM_cs_sand_100_200_p_value, 
               LM_cs_ph_0.5_p_value, LM_cs_ph_100_200_p_value, LM_cs_soc_0.5_p_value, LM_cs_soc_100_200_p_value, LM_cs_vol_10_0.5_p_value, LM_cs_vol_10_100_200_p_value,
               LM_cs_vol_1500_0.5_p_value, LM_cs_vol_1500_100_200_p_value, LM_cs_nitrogen_0.5_p_value, LM_cs_nitrogen_100_200_p_value, LM_dbh_clay_0.5_p_value, 
+              LM_cs_clay_loam_avail_water_0.5_p_value, LM_cs_clay_loam_avail_water_100.200_p_value,
+              LM_cs_sandy_avail_water_0.5_p_value, LM_cs_sandy_avail_water_100.200_p_value,
               LM_dbh_clay_100_200_p_value, LM_dbh_silt_0.5_p_value, LM_dbh_silt_100_200_p_value, LM_dbh_sand_0.5_p_value, LM_dbh_sand_100_200_p_value, LM_dbh_ph_0.5_p_value,
               LM_dbh_ph_100_200_p_value, LM_dbh_soc_0.5_p_value, LM_dbh_soc_100_200_p_value, LM_dbh_vol_10_0.5_p_value, LM_dbh_vol_10_100_200_p_value, LM_dbh_vol_1500_0.5_p_value, 
               LM_dbh_vol_1500_100_200_p_value, LM_dbh_nitrogen_0.5_p_value, LM_dbh_nitrogen_100_200_p_value,
+              LM_dbh_clay_loam_avail_water_0.5_p_value, LM_dbh_clay_loam_avail_water_100.200_p_value,
+              LM_dbh_sandy_avail_water_0.5_p_value, LM_dbh_sandy_avail_water_100.200_p_value,
               LC_sca_clay_0.5_p_value,LC_sca_clay_100_200_p_value, LC_sca_silt_0.5_p_value, LC_sca_silt_100_200_p_value, LC_sca_sand_0.5_p_value, LC_sca_sand_100_200_p_value,
               LC_sca_ph_0.5_p_value, LC_sca_ph_100_200_p_value, LC_sca_soc_0.5_p_value, LC_sca_soc_100_200_p_value, LC_sca_vol_10_0.5_p_value, LC_sca_vol_10_100_200_p_value, 
               LC_sca_vol_1500_0.5_p_value, LC_sca_vol_1500_100_200_p_value, LC_sca_nitrogen_0.5_p_value, LC_sca_nitrogen_100_200_p_value, LC_lca_clay_0.5_p_value, LC_lca_clay_100_200_p_value,
+              LC_sca_clay_loam_avail_water_0.5_p_value, LC_sca_clay_loam_avail_water_100.200_p_value,
+              LC_sca_sandy_avail_water_0.5_p_value, LC_sca_sandy_avail_water_100.200_p_value,
               LC_lca_silt_0.5_p_value, LC_lca_silt_100_200_p_value, LC_lca_sand_0.5_p_value, LC_lca_sand_100_200_p_value, LC_lca_ph_0.5_p_value, LC_lca_ph_100_200_p_value, 
               LC_lca_soc_0.5_p_value, LC_lca_soc_100_200_p_value, LC_lca_vol_10_0.5_p_value, LC_lca_vol_10_100_200_p_value, LC_lca_vol_1500_0.5_p_value, LC_lca_vol_1500_100_200_p_value,
               LC_lca_nitrogen_0.5_p_value, LC_lca_nitrogen_100_200_p_value, LC_ca_clay_0.5_p_value, LC_ca_clay_100_200_p_value, LC_ca_silt_0.5_p_value, LC_ca_silt_100_200_p_value,
+              LC_lca_clay_loam_avail_water_0.5_p_value, LC_lca_clay_loam_avail_water_100.200_p_value,
+              LC_lca_sandy_avail_water_0.5_p_value, LC_lca_sandy_avail_water_100.200_p_value,
               LC_ca_sand_0.5_p_value, LC_ca_sand_100_200_p_value, LC_ca_ph_0.5_p_value, LC_ca_ph_100_200_p_value, LC_ca_soc_0.5_p_value, LC_ca_soc_100_200_p_value, LC_ca_vol_10_0.5_p_value,
               LC_ca_vol_10_100_200_p_value, LC_ca_vol_1500_0.5_p_value, LC_ca_vol_1500_100_200_p_value, LC_ca_nitrogen_0.5_p_value, LC_ca_nitrogen_100_200_p_value,
-              LC_cs_clay_0.5_p_value, LC_cs_clay_100_200_p_value, LC_cs_silt_0.5_p_value, LC_cs_silt_100_200_p_value, LC_cs_sand_0.5_p_value, LC_cs_sand_100_200_p_value, 
+              LC_ca_clay_loam_avail_water_0.5_p_value, LC_ca_clay_loam_avail_water_100.200_p_value,
+              LC_ca_sandy_avail_water_0.5_p_value, LC_ca_sandy_avail_water_100.200_p_value,
+               LC_cs_clay_0.5_p_value, LC_cs_clay_100_200_p_value, LC_cs_silt_0.5_p_value, LC_cs_silt_100_200_p_value, LC_cs_sand_0.5_p_value, LC_cs_sand_100_200_p_value, 
               LC_cs_ph_0.5_p_value, LC_cs_ph_100_200_p_value, LC_cs_soc_0.5_p_value, LC_cs_soc_100_200_p_value, LC_cs_vol_10_0.5_p_value, LC_cs_vol_10_100_200_p_value,
               LC_cs_vol_1500_0.5_p_value, LC_cs_vol_1500_100_200_p_value, LC_cs_nitrogen_0.5_p_value, LC_cs_nitrogen_100_200_p_value, LC_dbh_clay_0.5_p_value, 
-              LC_dbh_clay_100_200_p_value, LC_dbh_silt_0.5_p_value, LC_dbh_silt_100_200_p_value, LC_dbh_sand_0.5_p_value, LC_dbh_sand_100_200_p_value, LC_dbh_ph_0.5_p_value,
+              LC_cs_clay_loam_avail_water_0.5_p_value, LC_cs_clay_loam_avail_water_100.200_p_value,
+              LC_cs_sandy_avail_water_0.5_p_value, LC_cs_sandy_avail_water_100.200_p_value,
+               LC_dbh_clay_100_200_p_value, LC_dbh_silt_0.5_p_value, LC_dbh_silt_100_200_p_value, LC_dbh_sand_0.5_p_value, LC_dbh_sand_100_200_p_value, LC_dbh_ph_0.5_p_value,
               LC_dbh_ph_100_200_p_value, LC_dbh_soc_0.5_p_value, LC_dbh_soc_100_200_p_value, LC_dbh_vol_10_0.5_p_value, LC_dbh_vol_10_100_200_p_value, LC_dbh_vol_1500_0.5_p_value, 
               LC_dbh_vol_1500_100_200_p_value, LC_dbh_nitrogen_0.5_p_value, LC_dbh_nitrogen_100_200_p_value,
-              SD_sca_clay_0.5_p_value,SD_sca_clay_100_200_p_value, SD_sca_silt_0.5_p_value, SD_sca_silt_100_200_p_value, SD_sca_sand_0.5_p_value, SD_sca_sand_100_200_p_value,
+              LC_dbh_clay_loam_avail_water_0.5_p_value, LC_dbh_clay_loam_avail_water_100.200_p_value,
+              LC_dbh_sandy_avail_water_0.5_p_value, LC_dbh_sandy_avail_water_100.200_p_value,
+               SD_sca_clay_0.5_p_value,SD_sca_clay_100_200_p_value, SD_sca_silt_0.5_p_value, SD_sca_silt_100_200_p_value, SD_sca_sand_0.5_p_value, SD_sca_sand_100_200_p_value,
               SD_sca_ph_0.5_p_value, SD_sca_ph_100_200_p_value, SD_sca_soc_0.5_p_value, SD_sca_soc_100_200_p_value, SD_sca_vol_10_0.5_p_value, SD_sca_vol_10_100_200_p_value, 
               SD_sca_vol_1500_0.5_p_value, SD_sca_vol_1500_100_200_p_value, SD_sca_nitrogen_0.5_p_value, SD_sca_nitrogen_100_200_p_value, SD_lca_clay_0.5_p_value, SD_lca_clay_100_200_p_value,
+              SD_sca_clay_loam_avail_water_0.5_p_value, SD_sca_clay_loam_avail_water_100.200_p_value,
+              SD_sca_sandy_avail_water_0.5_p_value, SD_sca_sandy_avail_water_100.200_p_value,
               SD_lca_silt_0.5_p_value, SD_lca_silt_100_200_p_value, SD_lca_sand_0.5_p_value, SD_lca_sand_100_200_p_value, SD_lca_ph_0.5_p_value, SD_lca_ph_100_200_p_value, 
               SD_lca_soc_0.5_p_value, SD_lca_soc_100_200_p_value, SD_lca_vol_10_0.5_p_value, SD_lca_vol_10_100_200_p_value, SD_lca_vol_1500_0.5_p_value, SD_lca_vol_1500_100_200_p_value,
               SD_lca_nitrogen_0.5_p_value, SD_lca_nitrogen_100_200_p_value, SD_ca_clay_0.5_p_value, SD_ca_clay_100_200_p_value, SD_ca_silt_0.5_p_value, SD_ca_silt_100_200_p_value,
+              SD_lca_clay_loam_avail_water_0.5_p_value, SD_lca_clay_loam_avail_water_100.200_p_value,
+              SD_lca_sandy_avail_water_0.5_p_value, SD_lca_sandy_avail_water_100.200_p_value,
               SD_ca_sand_0.5_p_value, SD_ca_sand_100_200_p_value, SD_ca_ph_0.5_p_value, SD_ca_ph_100_200_p_value, SD_ca_soc_0.5_p_value, SD_ca_soc_100_200_p_value, SD_ca_vol_10_0.5_p_value,
               SD_ca_vol_10_100_200_p_value, SD_ca_vol_1500_0.5_p_value, SD_ca_vol_1500_100_200_p_value, SD_ca_nitrogen_0.5_p_value, SD_ca_nitrogen_100_200_p_value,
+              SD_ca_clay_loam_avail_water_0.5_p_value, SD_ca_clay_loam_avail_water_100.200_p_value,
+              SD_ca_sandy_avail_water_0.5_p_value, SD_ca_sandy_avail_water_100.200_p_value,
               SD_cs_clay_0.5_p_value, SD_cs_clay_100_200_p_value, SD_cs_silt_0.5_p_value, SD_cs_silt_100_200_p_value, SD_cs_sand_0.5_p_value, SD_cs_sand_100_200_p_value, 
               SD_cs_ph_0.5_p_value, SD_cs_ph_100_200_p_value, SD_cs_soc_0.5_p_value, SD_cs_soc_100_200_p_value, SD_cs_vol_10_0.5_p_value, SD_cs_vol_10_100_200_p_value,
               SD_cs_vol_1500_0.5_p_value, SD_cs_vol_1500_100_200_p_value, SD_cs_nitrogen_0.5_p_value, SD_cs_nitrogen_100_200_p_value, SD_dbh_clay_0.5_p_value, 
+              SD_cs_clay_loam_avail_water_0.5_p_value, SD_cs_clay_loam_avail_water_100.200_p_value,
+              SD_cs_sandy_avail_water_0.5_p_value, SD_cs_sandy_avail_water_100.200_p_value,
               SD_dbh_clay_100_200_p_value, SD_dbh_silt_0.5_p_value, SD_dbh_silt_100_200_p_value, SD_dbh_sand_0.5_p_value, SD_dbh_sand_100_200_p_value, SD_dbh_ph_0.5_p_value,
               SD_dbh_ph_100_200_p_value, SD_dbh_soc_0.5_p_value, SD_dbh_soc_100_200_p_value, SD_dbh_vol_10_0.5_p_value, SD_dbh_vol_10_100_200_p_value, SD_dbh_vol_1500_0.5_p_value, 
-              SD_dbh_vol_1500_100_200_p_value, SD_dbh_nitrogen_0.5_p_value, SD_dbh_nitrogen_100_200_p_value)
+              SD_dbh_vol_1500_100_200_p_value, SD_dbh_nitrogen_0.5_p_value, SD_dbh_nitrogen_100_200_p_value,
+              SD_dbh_clay_loam_avail_water_0.5_p_value, SD_dbh_clay_loam_avail_water_100.200_p_value,
+              SD_dbh_sandy_avail_water_0.5_p_value, SD_dbh_sandy_avail_water_100.200_p_value)
               
 
 slopes <- c(LM_sca_clay_0_5_lm_real_slope, LM_sca_clay_100_200_lm_real_slope, LM_sca_silt_0_5_lm_real_slope, LM_sca_silt_100_200_lm_real_slope, LM_sca_sand_0_5_lm_real_slope, LM_sca_sand_100_200_lm_real_slope,
               LM_sca_ph_0_5_lm_real_slope, LM_sca_ph_100_200_lm_real_slope, LM_sca_soc_0_5_lm_real_slope, LM_sca_soc_100_200_lm_real_slope, LM_sca_vol_10_0_5_lm_real_slope, LM_sca_vol_10_100_200_lm_real_slope, 
               LM_sca_vol_1500_0_5_lm_real_slope, LM_sca_vol_1500_100_200_lm_real_slope, LM_sca_nitrogen_0_5_lm_real_slope, LM_sca_nitrogen_100_200_lm_real_slope, LM_lca_clay_0_5_lm_real_slope, LM_lca_clay_100_200_lm_real_slope,
-              LM_lca_silt_0_5_lm_real_slope, LM_lca_silt_100_200_lm_real_slope, LM_lca_sand_0_5_lm_real_slope, LM_lca_sand_100_200_lm_real_slope, LM_lca_ph_0_5_lm_real_slope, LM_lca_ph_100_200_lm_real_slope, 
+             LM_sca_clay_loam_avail_water_0.5_lm_real_slope, LM_sca_clay_loam_avail_water_100.200_lm_real_slope,
+             LM_sca_sandy_avail_water_0.5_lm_real_slope, LM_sca_sandy_avail_water_100.200_lm_real_slope,
+             LM_lca_silt_0_5_lm_real_slope, LM_lca_silt_100_200_lm_real_slope, LM_lca_sand_0_5_lm_real_slope, LM_lca_sand_100_200_lm_real_slope, LM_lca_ph_0_5_lm_real_slope, LM_lca_ph_100_200_lm_real_slope, 
               LM_lca_soc_0_5_lm_real_slope, LM_lca_soc_100_200_lm_real_slope, LM_lca_vol_10_0_5_lm_real_slope, LM_lca_vol_10_100_200_lm_real_slope, LM_lca_vol_1500_0_5_lm_real_slope, LM_lca_vol_1500_100_200_lm_real_slope,
               LM_lca_nitrogen_0_5_lm_real_slope, LM_lca_nitrogen_100_200_lm_real_slope, LM_ca_clay_0_5_lm_real_slope, LM_ca_clay_100_200_lm_real_slope, LM_ca_silt_0_5_lm_real_slope, LM_ca_silt_100_200_lm_real_slope,
-              LM_ca_sand_0_5_lm_real_slope, LM_ca_sand_100_200_lm_real_slope, LM_ca_ph_0_5_lm_real_slope, LM_ca_ph_100_200_lm_real_slope, LM_ca_soc_0_5_lm_real_slope, LM_ca_soc_100_200_lm_real_slope, LM_ca_vol_10_0_5_lm_real_slope,
+            LM_lca_clay_loam_avail_water_0.5_lm_real_slope, LM_lca_clay_loam_avail_water_100.200_lm_real_slope,
+            LM_lca_sandy_avail_water_0.5_lm_real_slope, LM_lca_sandy_avail_water_100.200_lm_real_slope, 
+             LM_ca_sand_0_5_lm_real_slope, LM_ca_sand_100_200_lm_real_slope, LM_ca_ph_0_5_lm_real_slope, LM_ca_ph_100_200_lm_real_slope, LM_ca_soc_0_5_lm_real_slope, LM_ca_soc_100_200_lm_real_slope, LM_ca_vol_10_0_5_lm_real_slope,
               LM_ca_vol_10_100_200_lm_real_slope, LM_ca_vol_1500_0_5_lm_real_slope, LM_ca_vol_1500_100_200_lm_real_slope, LM_ca_nitrogen_0_5_lm_real_slope, LM_ca_nitrogen_100_200_lm_real_slope,
-              LM_cs_clay_0_5_lm_real_slope, LM_cs_clay_100_200_lm_real_slope, LM_cs_silt_0_5_lm_real_slope, LM_cs_silt_100_200_lm_real_slope, LM_cs_sand_0_5_lm_real_slope, LM_cs_sand_100_200_lm_real_slope, 
+            LM_ca_clay_loam_avail_water_0.5_lm_real_slope, LM_ca_clay_loam_avail_water_100.200_lm_real_slope,
+            LM_ca_sandy_avail_water_0.5_lm_real_slope, LM_ca_sandy_avail_water_100.200_lm_real_slope,  
+             LM_cs_clay_0_5_lm_real_slope, LM_cs_clay_100_200_lm_real_slope, LM_cs_silt_0_5_lm_real_slope, LM_cs_silt_100_200_lm_real_slope, LM_cs_sand_0_5_lm_real_slope, LM_cs_sand_100_200_lm_real_slope, 
               LM_cs_ph_0_5_lm_real_slope, LM_cs_ph_100_200_lm_real_slope, LM_cs_soc_0_5_lm_real_slope, LM_cs_soc_100_200_lm_real_slope, LM_cs_vol_10_0_5_lm_real_slope, LM_cs_vol_10_100_200_lm_real_slope,
               LM_cs_vol_1500_0_5_lm_real_slope, LM_cs_vol_1500_100_200_lm_real_slope, LM_cs_nitrogen_0_5_lm_real_slope, LM_cs_nitrogen_100_200_lm_real_slope, LM_dbh_clay_0_5_lm_real_slope, 
-              LM_dbh_clay_100_200_lm_real_slope, LM_dbh_silt_0_5_lm_real_slope, LM_dbh_silt_100_200_lm_real_slope, LM_dbh_sand_0_5_lm_real_slope, LM_dbh_sand_100_200_lm_real_slope, LM_dbh_ph_0_5_lm_real_slope,
+            LM_cs_clay_loam_avail_water_0.5_lm_real_slope, LM_cs_clay_loam_avail_water_100.200_lm_real_slope,
+            LM_cs_sandy_avail_water_0.5_lm_real_slope, LM_cs_sandy_avail_water_100.200_lm_real_slope,    
+            LM_dbh_clay_100_200_lm_real_slope, LM_dbh_silt_0_5_lm_real_slope, LM_dbh_silt_100_200_lm_real_slope, LM_dbh_sand_0_5_lm_real_slope, LM_dbh_sand_100_200_lm_real_slope, LM_dbh_ph_0_5_lm_real_slope,
               LM_dbh_ph_100_200_lm_real_slope, LM_dbh_soc_0_5_lm_real_slope, LM_dbh_soc_100_200_lm_real_slope, LM_dbh_vol_10_0_5_lm_real_slope, LM_dbh_vol_10_100_200_lm_real_slope, LM_dbh_vol_1500_0_5_lm_real_slope, 
               LM_dbh_vol_1500_100_200_lm_real_slope, LM_dbh_nitrogen_0_5_lm_real_slope, LM_dbh_nitrogen_100_200_lm_real_slope,
-              LC_sca_clay_0_5_LC_real_slope,LC_sca_clay_100_200_LC_real_slope, LC_sca_silt_0_5_LC_real_slope, LC_sca_silt_100_200_LC_real_slope, LC_sca_sand_0_5_LC_real_slope, LC_sca_sand_100_200_LC_real_slope,
+            LM_dbh_clay_loam_avail_water_0.5_lm_real_slope, LM_dbh_clay_loam_avail_water_100.200_lm_real_slope,
+            LM_dbh_sandy_avail_water_0.5_lm_real_slope, LM_dbh_sandy_avail_water_100.200_lm_real_slope,   
+            LC_sca_clay_0_5_LC_real_slope,LC_sca_clay_100_200_LC_real_slope, LC_sca_silt_0_5_LC_real_slope, LC_sca_silt_100_200_LC_real_slope, LC_sca_sand_0_5_LC_real_slope, LC_sca_sand_100_200_LC_real_slope,
               LC_sca_ph_0_5_LC_real_slope, LC_sca_ph_100_200_LC_real_slope, LC_sca_soc_0_5_lm_real_slope, LC_sca_soc_100_200_lm_real_slope, LC_sca_vol_10_0_5_lm_real_slope, LC_sca_vol_10_100_200_lm_real_slope, 
               LC_sca_vol_1500_0_5_lm_real_slope, LC_sca_vol_1500_100_200_lm_real_slope, LC_sca_nitrogen_0_5_lm_real_slope, LC_sca_nitrogen_100_200_lm_real_slope, LC_lca_clay_0_5_lm_real_slope, LC_lca_clay_100_200_lm_real_slope,
-              LC_lca_silt_0_5_lm_real_slope, LC_lca_silt_100_200_lm_real_slope, LC_lca_sand_0_5_lm_real_slope, LC_lca_sand_100_200_lm_real_slope, LC_lca_ph_0_5_lm_real_slope, LC_lca_ph_100_200_lm_real_slope, 
+            LC_sca_clay_loam_avail_water_0.5_lm_real_slope, LC_sca_clay_loam_avail_water_100.200_lm_real_slope,
+            LC_sca_sandy_avail_water_0.5_lm_real_slope, LC_sca_sandy_avail_water_100.200_lm_real_slope,  
+            LC_lca_silt_0_5_lm_real_slope, LC_lca_silt_100_200_lm_real_slope, LC_lca_sand_0_5_lm_real_slope, LC_lca_sand_100_200_lm_real_slope, LC_lca_ph_0_5_lm_real_slope, LC_lca_ph_100_200_lm_real_slope, 
               LC_lca_soc_0_5_lm_real_slope, LC_lca_soc_100_200_lm_real_slope, LC_lca_vol_10_0_5_lm_real_slope, LC_lca_vol_10_100_200_lm_real_slope, LC_lca_vol_1500_0_5_lm_real_slope, LC_lca_vol_1500_100_200_lm_real_slope,
               LC_lca_nitrogen_0_5_lm_real_slope, LC_lca_nitrogen_100_200_lm_real_slope, LC_ca_clay_0_5_lm_real_slope, LC_ca_clay_100_200_lm_real_slope, LC_ca_silt_0_5_lm_real_slope, LC_ca_silt_100_200_lm_real_slope,
-              LC_ca_sand_0_5_lm_real_slope, LC_ca_sand_100_200_lm_real_slope, LC_ca_ph_0_5_lm_real_slope, LC_ca_ph_100_200_lm_real_slope, LC_ca_soc_0_5_lm_real_slope, LC_ca_soc_100_200_lm_real_slope, LC_ca_vol_10_0_5_lm_real_slope,
+            LC_lca_clay_loam_avail_water_0.5_lm_real_slope, LC_lca_clay_loam_avail_water_100.200_lm_real_slope,
+            LC_lca_sandy_avail_water_0.5_lm_real_slope, LC_lca_sandy_avail_water_100.200_lm_real_slope,    
+            LC_ca_sand_0_5_lm_real_slope, LC_ca_sand_100_200_lm_real_slope, LC_ca_ph_0_5_lm_real_slope, LC_ca_ph_100_200_lm_real_slope, LC_ca_soc_0_5_lm_real_slope, LC_ca_soc_100_200_lm_real_slope, LC_ca_vol_10_0_5_lm_real_slope,
               LC_ca_vol_10_100_200_lm_real_slope, LC_ca_vol_1500_0_5_lm_real_slope, LC_ca_vol_1500_100_200_lm_real_slope, LC_ca_nitrogen_0_5_lm_real_slope, LC_ca_nitrogen_100_200_lm_real_slope,
-              LC_cs_clay_0_5_lm_real_slope, LC_cs_clay_100_200_lm_real_slope, LC_cs_silt_0_5_lm_real_slope, LC_cs_silt_100_200_lm_real_slope, LC_cs_sand_0_5_lm_real_slope, LC_cs_sand_100_200_lm_real_slope, 
+            LC_ca_clay_loam_avail_water_0.5_lm_real_slope, LC_ca_clay_loam_avail_water_100.200_lm_real_slope,
+            LC_ca_sandy_avail_water_0.5_lm_real_slope, LC_ca_sandy_avail_water_100.200_lm_real_slope,      
+            LC_cs_clay_0_5_lm_real_slope, LC_cs_clay_100_200_lm_real_slope, LC_cs_silt_0_5_lm_real_slope, LC_cs_silt_100_200_lm_real_slope, LC_cs_sand_0_5_lm_real_slope, LC_cs_sand_100_200_lm_real_slope, 
               LC_cs_ph_0_5_lm_real_slope, LC_cs_ph_100_200_lm_real_slope, LC_cs_soc_0_5_lm_real_slope, LC_cs_soc_100_200_lm_real_slope, LC_cs_vol_10_0_5_lm_real_slope, LC_cs_vol_10_100_200_lm_real_slope,
               LC_cs_vol_1500_0_5_lm_real_slope, LC_cs_vol_1500_100_200_lm_real_slope, LC_cs_nitrogen_0_5_lm_real_slope, LC_cs_nitrogen_100_200_lm_real_slope, LC_dbh_clay_0_5_lm_real_slope, 
-              LC_dbh_clay_100_200_lm_real_slope, LC_dbh_silt_0_5_lm_real_slope, LC_dbh_silt_100_200_lm_real_slope, LC_dbh_sand_0_5_lm_real_slope, LC_dbh_sand_100_200_lm_real_slope, LC_dbh_ph_0_5_lm_real_slope,
+            LC_cs_clay_loam_avail_water_0.5_lm_real_slope, LC_cs_clay_loam_avail_water_100.200_lm_real_slope,
+            LC_cs_sandy_avail_water_0.5_lm_real_slope, LC_cs_sandy_avail_water_100.200_lm_real_slope,  
+             LC_dbh_clay_100_200_lm_real_slope, LC_dbh_silt_0_5_lm_real_slope, LC_dbh_silt_100_200_lm_real_slope, LC_dbh_sand_0_5_lm_real_slope, LC_dbh_sand_100_200_lm_real_slope, LC_dbh_ph_0_5_lm_real_slope,
               LC_dbh_ph_100_200_lm_real_slope, LC_dbh_soc_0_5_lm_real_slope, LC_dbh_soc_100_200_lm_real_slope, LC_dbh_vol_10_0_5_lm_real_slope, LC_dbh_vol_10_100_200_lm_real_slope, LC_dbh_vol_1500_0_5_lm_real_slope, 
               LC_dbh_vol_1500_100_200_lm_real_slope, LC_dbh_nitrogen_0_5_lm_real_slope, LC_dbh_nitrogen_100_200_lm_real_slope,
-              SD_sca_clay_0_5_SD_real_slope,SD_sca_clay_100_200_SD_real_slope, SD_sca_silt_0_5_SD_real_slope, SD_sca_silt_100_200_SD_real_slope, SD_sca_sand_0_5_SD_real_slope, SD_sca_sand_100_200_SD_real_slope,
+            LC_dbh_clay_loam_avail_water_0.5_lm_real_slope, LC_dbh_clay_loam_avail_water_100.200_lm_real_slope,
+            LC_dbh_sandy_avail_water_0.5_lm_real_slope, LC_dbh_sandy_avail_water_100.200_lm_real_slope,   
+            SD_sca_clay_0_5_SD_real_slope,SD_sca_clay_100_200_SD_real_slope, SD_sca_silt_0_5_SD_real_slope, SD_sca_silt_100_200_SD_real_slope, SD_sca_sand_0_5_SD_real_slope, SD_sca_sand_100_200_SD_real_slope,
               SD_sca_ph_0_5_SD_real_slope, SD_sca_ph_100_200_SD_real_slope, SD_sca_soc_0_5_lm_real_slope, SD_sca_soc_100_200_lm_real_slope, SD_sca_vol_10_0_5_lm_real_slope, SD_sca_vol_10_100_200_lm_real_slope, 
               SD_sca_vol_1500_0_5_lm_real_slope, SD_sca_vol_1500_100_200_lm_real_slope, SD_sca_nitrogen_0_5_lm_real_slope, SD_sca_nitrogen_100_200_lm_real_slope, SD_lca_clay_0_5_lm_real_slope, SD_lca_clay_100_200_lm_real_slope,
-              SD_lca_silt_0_5_lm_real_slope, SD_lca_silt_100_200_lm_real_slope, SD_lca_sand_0_5_lm_real_slope, SD_lca_sand_100_200_lm_real_slope, SD_lca_ph_0_5_lm_real_slope, SD_lca_ph_100_200_lm_real_slope, 
+            SD_sca_clay_loam_avail_water_0.5_lm_real_slope, SD_sca_clay_loam_avail_water_100.200_lm_real_slope,
+            SD_sca_sandy_avail_water_0.5_lm_real_slope, SD_sca_sandy_avail_water_100.200_lm_real_slope,    
+            SD_lca_silt_0_5_lm_real_slope, SD_lca_silt_100_200_lm_real_slope, SD_lca_sand_0_5_lm_real_slope, SD_lca_sand_100_200_lm_real_slope, SD_lca_ph_0_5_lm_real_slope, SD_lca_ph_100_200_lm_real_slope, 
               SD_lca_soc_0_5_lm_real_slope, SD_lca_soc_100_200_lm_real_slope, SD_lca_vol_10_0_5_lm_real_slope, SD_lca_vol_10_100_200_lm_real_slope, SD_lca_vol_1500_0_5_lm_real_slope, SD_lca_vol_1500_100_200_lm_real_slope,
               SD_lca_nitrogen_0_5_lm_real_slope, SD_lca_nitrogen_100_200_lm_real_slope, SD_ca_clay_0_5_lm_real_slope, SD_ca_clay_100_200_lm_real_slope, SD_ca_silt_0_5_lm_real_slope, SD_ca_silt_100_200_lm_real_slope,
-              SD_ca_sand_0_5_lm_real_slope, SD_ca_sand_100_200_lm_real_slope, SD_ca_ph_0_5_lm_real_slope, SD_ca_ph_100_200_lm_real_slope, SD_ca_soc_0_5_lm_real_slope, SD_ca_soc_100_200_lm_real_slope, SD_ca_vol_10_0_5_lm_real_slope,
+            SD_lca_clay_loam_avail_water_0.5_lm_real_slope, SD_lca_clay_loam_avail_water_100.200_lm_real_slope,
+            SD_lca_sandy_avail_water_0.5_lm_real_slope, SD_lca_sandy_avail_water_100.200_lm_real_slope,   
+            SD_ca_sand_0_5_lm_real_slope, SD_ca_sand_100_200_lm_real_slope, SD_ca_ph_0_5_lm_real_slope, SD_ca_ph_100_200_lm_real_slope, SD_ca_soc_0_5_lm_real_slope, SD_ca_soc_100_200_lm_real_slope, SD_ca_vol_10_0_5_lm_real_slope,
               SD_ca_vol_10_100_200_lm_real_slope, SD_ca_vol_1500_0_5_lm_real_slope, SD_ca_vol_1500_100_200_lm_real_slope, SD_ca_nitrogen_0_5_lm_real_slope, SD_ca_nitrogen_100_200_lm_real_slope,
-              SD_cs_clay_0_5_lm_real_slope, SD_cs_clay_100_200_lm_real_slope, SD_cs_silt_0_5_lm_real_slope, SD_cs_silt_100_200_lm_real_slope, SD_cs_sand_0_5_lm_real_slope, SD_cs_sand_100_200_lm_real_slope, 
+            SD_ca_clay_loam_avail_water_0.5_lm_real_slope, SD_ca_clay_loam_avail_water_100.200_lm_real_slope,
+            SD_ca_sandy_avail_water_0.5_lm_real_slope, SD_ca_sandy_avail_water_100.200_lm_real_slope,   
+            SD_cs_clay_0_5_lm_real_slope, SD_cs_clay_100_200_lm_real_slope, SD_cs_silt_0_5_lm_real_slope, SD_cs_silt_100_200_lm_real_slope, SD_cs_sand_0_5_lm_real_slope, SD_cs_sand_100_200_lm_real_slope, 
               SD_cs_ph_0_5_lm_real_slope, SD_cs_ph_100_200_lm_real_slope, SD_cs_soc_0_5_lm_real_slope, SD_cs_soc_100_200_lm_real_slope, SD_cs_vol_10_0_5_lm_real_slope, SD_cs_vol_10_100_200_lm_real_slope,
               SD_cs_vol_1500_0_5_lm_real_slope, SD_cs_vol_1500_100_200_lm_real_slope, SD_cs_nitrogen_0_5_lm_real_slope, SD_cs_nitrogen_100_200_lm_real_slope, SD_dbh_clay_0_5_lm_real_slope, 
-              SD_dbh_clay_100_200_lm_real_slope, SD_dbh_silt_0_5_lm_real_slope, SD_dbh_silt_100_200_lm_real_slope, SD_dbh_sand_0_5_lm_real_slope, SD_dbh_sand_100_200_lm_real_slope, SD_dbh_ph_0_5_lm_real_slope,
+            SD_cs_clay_loam_avail_water_0.5_lm_real_slope, SD_cs_clay_loam_avail_water_100.200_lm_real_slope,
+            SD_cs_sandy_avail_water_0.5_lm_real_slope, SD_cs_sandy_avail_water_100.200_lm_real_slope,     
+            SD_dbh_clay_100_200_lm_real_slope, SD_dbh_silt_0_5_lm_real_slope, SD_dbh_silt_100_200_lm_real_slope, SD_dbh_sand_0_5_lm_real_slope, SD_dbh_sand_100_200_lm_real_slope, SD_dbh_ph_0_5_lm_real_slope,
               SD_dbh_ph_100_200_lm_real_slope, SD_dbh_soc_0_5_lm_real_slope, SD_dbh_soc_100_200_lm_real_slope, SD_dbh_vol_10_0_5_lm_real_slope, SD_dbh_vol_10_100_200_lm_real_slope, SD_dbh_vol_1500_0_5_lm_real_slope, 
-              SD_dbh_vol_1500_100_200_lm_real_slope, SD_dbh_nitrogen_0_5_lm_real_slope, SD_dbh_nitrogen_100_200_lm_real_slope)
+              SD_dbh_vol_1500_100_200_lm_real_slope, SD_dbh_nitrogen_0_5_lm_real_slope, SD_dbh_nitrogen_100_200_lm_real_slope,
+            SD_dbh_clay_loam_avail_water_0.5_lm_real_slope, SD_dbh_clay_loam_avail_water_100.200_lm_real_slope,
+            SD_dbh_sandy_avail_water_0.5_lm_real_slope, SD_dbh_sandy_avail_water_100.200_lm_real_slope)
 
 
 size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), rep('SD', 80)),
@@ -13318,7 +13405,8 @@ size.pop.slopes.df <- data.frame("Population" = c(rep('LM', 80), rep('LC', 80), 
                                  "Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
                                                       "Ph 0-5", "Ph 100-200", "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200", "Volume of water content -10 kpa 0-5",
                                                       "Volume of water content -10 kpa 100-200", "Volume of water content -1500 kpa 0-5", "Volume of water content -1500 kpa 100-200", 
-                                                      "Nitrogen 0-5", "Nitrogen 100-200")),
+                                                      "Nitrogen 0-5", "Nitrogen 100-200", "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                                                      "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200")),
                                  "Slope" = slopes, 
                                  "P_Value" = p_values,
                                  "Significance" = ifelse(p_values < 0.05, "Y", "N"))
@@ -13659,6 +13747,24 @@ Soil_Organic_Carbon_05_all_pop <- mask(Soil_Organic_Carbon_05_clipped, Soil_Orga
 Soil_Organic_Carbon_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(Soil_Organic_Carbon_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
 Soil_Organic_Carbon_200_clipped <- crop(Soil_Organic_Carbon_200_utm, Soil_Organic_Carbon_200_bbox_poly_buffered) # Crop the raster to the polygon
 Soil_Organic_Carbon_200_all_pop <- mask(Soil_Organic_Carbon_200_clipped, Soil_Organic_Carbon_200_bbox_poly_buffered) # Mask the raster to the polygon
+#sandy_avail_water_0.5
+sandy_avail_water_0.5_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sandy_avail_water_0.5_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sandy_avail_water_0.5_clipped <- crop(sandy_avail_water_0.5_utm, sandy_avail_water_0.5_bbox_poly_buffered) # Crop the raster to the polygon
+sandy_avail_water_0.5_all_pop <- mask(sandy_avail_water_0.5_clipped, sandy_avail_water_0.5_bbox_poly_buffered) # Mask the raster to the polygon
+#sandy_avail_water_100.200
+sandy_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sandy_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sandy_avail_water_100.200_clipped <- crop(sandy_avail_water_100.200_utm, sandy_avail_water_100.200_bbox_poly_buffered) # Crop the raster to the polygon
+sandy_avail_water_100.200_all_pop <- mask(sandy_avail_water_100.200_clipped, sandy_avail_water_100.200_bbox_poly_buffered) # Mask the raster to the polygon
+#clay_loam_avail_water_0.5
+clay_loam_avail_water_0.5_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_0.5_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_loam_avail_water_0.5_clipped <- crop(clay_loam_avail_water_0.5_utm, clay_loam_avail_water_0.5_bbox_poly_buffered) # Crop the raster to the polygon
+clay_loam_avail_water_0.5_all_pop <- mask(clay_loam_avail_water_0.5_clipped, clay_loam_avail_water_0.5_bbox_poly_buffered) # Mask the raster to the polygon
+#clay_loam_avail_water_100.200
+clay_loam_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_loam_avail_water_100.200_clipped <- crop(clay_loam_avail_water_100.200_utm, clay_loam_avail_water_100.200_bbox_poly_buffered) # Crop the raster to the polygon
+clay_loam_avail_water_100.200_all_pop <- mask(clay_loam_avail_water_100.200_clipped, clay_loam_avail_water_100.200_bbox_poly_buffered) # Mask the raster to the polygon
+
+
 
 #confirming I properly cropped the rasters by plotting the clay rasters with the cropped polygon around it
 ggplot()+
@@ -13670,6 +13776,33 @@ ggplot()+
   scale_fill_gradientn(colours=c("lightblue","darkblue"), name = "clay_05_all_pop") +
   geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
+ggplot() +
+  #geom_sf(data=BCS_polygon_UTM)+
+ # geom_sf(data=bbox_poly_buffered)+
+  geom_raster(data= as.data.frame(clay_05_all_pop, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates) +
+  geom_sf(data=random_20, color ="red") + 
+  labs(title = "Clay at 0-5 cm",
+       fill = "Clay Content (g/kg)",
+       x = "",
+       y = "") +
+  scale_fill_viridis_c(limits = c(50, 330))
+vol_wat_33kpa_05_all_pop$vol_water_0.5
+ggplot() +
+  #geom_sf(data=BCS_polygon_UTM)+
+  #geom_sf(data=bbox_poly_buffered)+
+  geom_raster(data= as.data.frame(vol_wat_33kpa_05_all_pop, xy = T), aes(x=x, y=y, fill = vol_water_0.5))+
+  geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates) +
+  geom_sf(data=random_20, color ="red") + 
+  labs(title = "Volume of Water Content at 0-5 cm",
+       fill = "Water Content (10-2 cm3 cm-3 )*10",
+       x = "",
+       y = "") +
+  scale_fill_viridis_c(limits = c(50, 330)) +
+  theme(legend.title =  element_text(size = 10))
 
 
 #creating a stack of the raster layers for the original rasters
@@ -13687,7 +13820,8 @@ soil_stack_vol_wat_33kpa <- stack(vol_wat_33kpa_05_all_pop, vol_wat_33kpa_200_al
 soil_stack_vol_wat_1500kpa <- stack(vol_wat_1500kpa_05_all_pop, vol_wat_1500kpa_200_all_pop) #stacked volume water content at 1500 kpa
 soil_stack_nitrogen <- stack(nitrogen_05_all_pop, nitrogen_200_all_pop)  #stacked volume water content at 10 kpa
 soil_stack_soc <- stack(Soil_Organic_Carbon_05_all_pop, Soil_Organic_Carbon_200_all_pop)  #stacked volume water content at 10 kpa
-
+soil_stack_sandy_water <- stack(sandy_avail_water_0.5_all_pop, sandy_avail_water_100.200_all_pop) #stacked available water in sandy soils
+soil_stack_clay_loam_water <- stack(clay_loam_avail_water_0.5_all_pop, clay_loam_avail_water_100.200_all_pop) #stacked available water in clay and loam soils
 
 #plotting the stacked rasters, example with clay
 plot(soil_stack_clay) #version with soil textures
@@ -13695,19 +13829,21 @@ plot(soil_stack_clay, zlim = c(0, 350)) #version where the plots have the same s
 
 
 #extracting the soil data for each point of the known 20 points 
-all_known_pop_soil_clay <- extract(soil_stack_clay, all_pop_locations.df_sf_trans_coordinates) #extracting soil textures for each point value
-all_known_pop_soil_silt <- extract(soil_stack_silt, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_sand <- extract(soil_stack_sand, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_ph <- extract(soil_stack_ph, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_ocd <- extract(soil_stack_ocd, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_coarse_frag <- extract(soil_stack_coarse_frag, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_cat_ex <- extract(soil_stack_cat_ex, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_bulk_dens <- extract(soil_stack_bulk_dens, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_vol_wat_33kpa <- extract(soil_stack_vol_wat_33kpa, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_nitrogen <- extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates)
-all_known_pop_soil_soc <- extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_clay <- raster::extract(soil_stack_clay, all_pop_locations.df_sf_trans_coordinates) #extracting soil textures for each point value
+all_known_pop_soil_silt <- raster::extract(soil_stack_silt, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_sand <- raster::extract(soil_stack_sand, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_ph <- raster::extract(soil_stack_ph, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_ocd <- raster::extract(soil_stack_ocd, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_coarse_frag <- raster::extract(soil_stack_coarse_frag, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_cat_ex <- raster::extract(soil_stack_cat_ex, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_bulk_dens <- raster::extract(soil_stack_bulk_dens, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_vol_wat_10kpa <- raster::extract(soil_stack_vol_wat_10kpa, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_vol_wat_33kpa <- raster::extract(soil_stack_vol_wat_33kpa, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_vol_wat_1500kpa <- raster::extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_nitrogen <- raster::extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_soc <- raster::extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, all_pop_locations.df_sf_trans_coordinates)
+all_known_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, all_pop_locations.df_sf_trans_coordinates)
 
 #bind the soil textures data for each point to the all point dataframe so the soil values are available for each population point
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #bind the soil textures data for each point to the all point point dataframe
@@ -13722,6 +13858,15 @@ all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_33k
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_1500kpa)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_nitrogen)
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_soc)
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sandy_water)
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_clay_loam_water)
+
+#correcting column names for clarity
+all_known_pop_soils <- all_known_pop_soils %>%
+  mutate(sandy_avail_water_0.5 = layer.1) %>%
+  mutate(sandy_avail_water_100.200 = layer.2) %>% 
+  mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
+  mutate(clay_loam_avail_water_100.200 = layer.2.1) 
 
 View(all_known_pop_soils)
 
@@ -13738,7 +13883,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
   random_20 <- random_20 %>%
     st_as_sf()
-  random_20_pop_soil_clay <- extract(soil_stack_clay, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_clay <- raster::extract(soil_stack_clay, random_20) #extracting the soil metrics for the random points
   
   random_clay_0.5_mean <- mean(random_20_pop_soil_clay[,1]) #storing the mean of the 0-5 value
   random_clay_100.200_mean <- mean(random_20_pop_soil_clay[,2]) #storing the mean of the 100-200 value
@@ -13784,7 +13929,7 @@ for (i in 1:length(random_clay_0.5_means)){ #loop that adds 1 to the value total
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 clay_0.5_random_p.value <- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are less than our ANN, our p-value
-clay_0.5_random_p.value
+
 1- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are greater than our ANN
 
 
@@ -13824,7 +13969,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_silt <- extract(soil_stack_silt, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_silt <- raster::extract(soil_stack_silt, random_20) #extracting the soil metrics for the random points
   
   random_silt_0.5_mean <- mean(random_20_pop_soil_silt[,1]) #storing the mean of the 0-5 value
   random_silt_100.200_mean <- mean(random_20_pop_soil_silt[,2]) #storing the mean of the 100-200 value
@@ -13906,7 +14051,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_sand <- extract(soil_stack_sand, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_sand <- raster::extract(soil_stack_sand, random_20) #extracting the soil metrics for the random points
   
   random_sand_0.5_mean <- mean(random_20_pop_soil_sand[,1]) #storing the mean of the 0-5 value
   random_sand_100.200_mean <- mean(random_20_pop_soil_sand[,2]) #storing the mean of the 100-200 value
@@ -13987,7 +14132,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_ph <- extract(soil_stack_ph, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_ph <- raster::extract(soil_stack_ph, random_20) #extracting the soil metrics for the random points
 
   random_ph_0.5_mean <- mean(random_20_pop_soil_ph[,1]) #storing the mean of the 0-5 value
   random_ph_100.200_mean <- mean(random_20_pop_soil_ph[,2]) #storing the mean of the 100-200 value
@@ -14068,7 +14213,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>%
     st_as_sf()
-  random_20_pop_soil_soc <- extract(soil_stack_soc, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_soc <- raster::extract(soil_stack_soc, random_20) #extracting the soil metrics for the random points
   
   random_soc_0.5_mean <- mean(random_20_pop_soil_soc[,1]) #storing the mean of the 0-5 value
   random_soc_100.200_mean <- mean(random_20_pop_soil_soc[,2]) #storing the mean of the 100-200 value
@@ -14149,7 +14294,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_vol_wat_10kpa <- extract(soil_stack_vol_wat_10kpa, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_vol_wat_10kpa <- raster::extract(soil_stack_vol_wat_10kpa, random_20) #extracting the soil metrics for the random points
 
   random_vol_wat_10kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_10kpa[,1]) #storing the mean of the 0-5 value
   random_vol_wat_10kpa_100.200_mean <- mean(random_20_pop_soil_vol_wat_10kpa[,2]) #storing the mean of the 100-200 value
@@ -14230,7 +14375,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_vol_wat_33kpa <- extract(soil_stack_vol_wat_33kpa, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_vol_wat_33kpa <- raster::extract(soil_stack_vol_wat_33kpa, random_20) #extracting the soil metrics for the random points
   
   random_vol_wat_33kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_33kpa[,1]) #storing the mean of the 0-5 value
   random_vol_wat_33kpa_100.200_mean <- mean(random_20_pop_soil_vol_wat_33kpa[,2]) #storing the mean of the 100-200 value
@@ -14275,7 +14420,7 @@ as_tibble(random_vol_wat_33kpa_0.5_means) %>% #turning the ann.r vector as a tib
   geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(random_vol_wat_33kpa_0.5_means, all_known_vol_wat_33kpa_0.5_mean)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=all_known_vol_wat_33kpa_0.5_mean, col = "red", size = 1.2) + #plotting our tree's mean ANN
-  xlab("Mean Vol. Water at -33kpa 0-5 cm of Random Populations vs.Known Populations (n=20)") +
+  xlab("Mean Clay/Loam Field Capacity 0-5 cm of Random Populations vs. Known Populations (n=20)") +
   ylab("Frequency") +
   theme_classic()+
   theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 13),
@@ -14308,7 +14453,7 @@ as_tibble(random_vol_wat_33kpa_100.200_means) %>% #turning the ann.r vector as a
   geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(random_vol_wat_33kpa_100.200_means, all_known_vol_wat_33kpa_100.200_mean)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=all_known_vol_wat_33kpa_100.200_mean, col = "red", size = 1.2) + #plotting our tree's mean ANN
-  xlab("Mean Vol. Water at -33kpa 100-200 cm of Random Populations vs.Known Populations (n=20)") +
+  xlab("Mean Clay/Loam Field Capacity 100-200 cm of Random Populations vs.Known Populations (n=20)") +
   ylab("Frequency") +
   theme_classic()+
   theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 13),
@@ -14337,7 +14482,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select rando 16 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_vol_wat_1500kpa <- extract(soil_stack_vol_wat_1500kpa, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_vol_wat_1500kpa <- raster::extract(soil_stack_vol_wat_1500kpa, random_20) #extracting the soil metrics for the random points
 
   
   random_vol_wat_1500kpa_0.5_mean <- mean(random_20_pop_soil_vol_wat_1500kpa[,1]) #storing the mean of the 0-5 value
@@ -14418,7 +14563,7 @@ for (i in 1:1000){ #for 1000 permutations
   random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
   random_20 <- random_20 %>% #turning the points into an sf object
     st_as_sf()
-  random_20_pop_soil_nitrogen <- extract(soil_stack_nitrogen, random_20) #extracting the soil metrics for the random points
+  random_20_pop_soil_nitrogen <- raster::extract(soil_stack_nitrogen, random_20) #extracting the soil metrics for the random points
 
   
   random_nitrogen_0.5_mean <- mean(random_20_pop_soil_nitrogen[,1]) #storing the mean of the 0-5 value
@@ -14486,6 +14631,47 @@ for (i in 1:length(random_nitrogen_100.200_means)){ #loop that adds 1 to the val
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 nitrogen_100.200_random_p.value <- (total / length(random_nitrogen_100.200_means)) #the proportion of random ANNs that are less than our ANN
 
+#for sandy available water 
+
+#extracting means from randomly selected 20 points 
+
+random_sandy_avail_water_0.5_means <- c() #creating empty list to collect means
+random_sandy_avail_water_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
+    st_as_sf()
+  random_20_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, random_20) #extracting the soil metrics for the random points
+  
+  
+  random_sandy_avail_water_0.5_mean <- mean(random_20_pop_soil_sandy_water[,1]) #storing the mean of the 0-5 value
+  random_sandy_avail_water_100.200_mean <- mean(random_20_pop_soil_sandy_water[,2]) #storing the mean of the 100-200 value
+  
+  random_sandy_avail_water_0.5_means <- c(random_sandy_avail_water_0.5_means, random_sandy_avail_water_0.5_mean) #adding the 0-5 mean to the list of means
+  random_sandy_avail_water_100.200_means <- c(random_sandy_avail_water_100.200_means, random_sandy_avail_water_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points on the Baja polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+#storing the real means
+all_known_sandy_avail_water_0.5_mean <- mean(all_known_pop_soils$sandy_avail_water_0.5)
+all_known_sandy_avail_water_100.200_mean <- mean(all_known_pop_soils$sandy_avail_water_100.200)
+
 #for sandy avail water 0.5 cm
 
 #plotting the histogram of the randomly distributed p-values and our real slope
@@ -14495,12 +14681,24 @@ ggplot()+
   xlab("Mean sandy available water 0-5 cm of Random Populations vs.Known Populations (n=20)")+
   theme_classic()
 
+#for presentation
+as_tibble(random_sandy_avail_water_0.5_means) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(random_sandy_avail_water_0.5_means, all_known_sandy_avail_water_0.5_mean)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=all_known_sandy_avail_water_0.5_mean, col = "red", size = 1.2) + #plotting our tree's mean ANN
+  xlab("Mean Sand Available Water 0-5 cm of Random Populations vs.Known Populations (n=20)")+
+  ylab("Frequency") +
+  theme_classic()+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 13),
+        axis.title.y =element_text(size= 13))
+
 random_sandy_avail_water_0.5_means <- na.omit(random_sandy_avail_water_0.5_means) #remove NAs
 
 #calculating pseudo p-value for 
 total = 0  #set empty value
 for (i in 1:length(random_sandy_avail_water_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_sandy_avail_water_0.5_means[i] < random_sandy_avail_water_0.5_means){
+  if (random_sandy_avail_water_0.5_means[i] > all_known_sandy_avail_water_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -14521,11 +14719,53 @@ random_sandy_avail_water_100.200_means <- na.omit(random_sandy_avail_water_100.2
 #calculating pseudo p-value for 
 total = 0  #set empty value
 for (i in 1:length(random_sandy_avail_water_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_sandy_avail_water_100.200_means[i] < random_sandy_avail_water_100.200_means){
+  if (random_sandy_avail_water_100.200_means[i] > all_known_sandy_avail_water_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
 sandy_avail_water_100.200_random_p.value <- (total / length(random_sandy_avail_water_100.200_means)) #the proportion of random ANNs that are less than our ANN
+
+#clay loam available water 
+
+#extracting means from randomly selected 20 points 
+
+random_clay_loam_avail_water_0.5_means <- c() #creating empty list to collect means
+random_clay_loam_avail_water_100.200_means <- c() #creating empty list to collect means
+
+set.seed(20)
+for (i in 1:1000){ #for 1000 permutations
+  
+  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
+  random_20 <- random_20 %>% #turning the points into an sf object
+    st_as_sf()
+  random_20_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, random_20) #extracting the soil metrics for the random points
+  
+  
+  random_clay_loam_avail_water_0.5_mean <- mean(random_20_pop_soil_clay_loam_water[,1]) #storing the mean of the 0-5 value
+  random_clay_loam_avail_water_100.200_mean <- mean(random_20_pop_soil_clay_loam_water[,2]) #storing the mean of the 100-200 value
+  
+  random_clay_loam_avail_water_0.5_means <- c(random_clay_loam_avail_water_0.5_means, random_clay_loam_avail_water_0.5_mean) #adding the 0-5 mean to the list of means
+  random_clay_loam_avail_water_100.200_means <- c(random_clay_loam_avail_water_100.200_means, random_clay_loam_avail_water_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+#plotting the randomly selected points on the Baja polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the randomly selected points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="blue")
+
+#storing the real means
+all_known_clay_loam_avail_water_0.5_mean <- mean(all_known_pop_soils$clay_loam_avail_water_0.5)
+all_known_clay_loam_avail_water_100.200_mean <- mean(all_known_pop_soils$clay_loam_avail_water_100.200)
+
 
 #for clay loam available water 0-5 cm
 
@@ -14541,7 +14781,7 @@ random_clay_loam_avail_water_0.5_means <- na.omit(random_clay_loam_avail_water_0
 #calculating pseudo p-value for 
 total = 0  #set empty value
 for (i in 1:length(random_clay_loam_avail_water_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_clay_loam_avail_water_0.5_means[i] < random_clay_loam_avail_water_0.5_means){
+  if (random_clay_loam_avail_water_0.5_means[i] < all_known_clay_loam_avail_water_0.5_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -14562,7 +14802,7 @@ random_clay_loam_avail_water_100.200_means <- na.omit(random_clay_loam_avail_wat
 #calculating pseudo p-value for 
 total = 0  #set empty value
 for (i in 1:length(random_clay_loam_avail_water_100.200_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_clay_loam_avail_water_100.200_means[i] < random_clay_loam_avail_water_100.200_means){
+  if (random_clay_loam_avail_water_100.200_means[i] > all_known_clay_loam_avail_water_100.200_mean){
     total = total + 1
   }
 } #add number of values of in the random set of ANN values that are less than our mean ANN
@@ -14606,10 +14846,10 @@ random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm
                                                  "Volume of water content -10 kPa 0-5 cm", "Volume of water content -10 kPa 100-200 cm",
                                                  "Volume of water content -33 kPa 0-5 cm", "Volume of water content -33 kPa 100-200 cm",
                                                        "Volume of water content -1500 kPa 0-5 cm", "Volume of water content -1500 kPa 100-200 cm", 
-                                                      "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sandy Available Water 0-5 cm", "Sandy Available Water 100-200 cm",
+                                                      "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sand Available Water 0-5 cm", "Sand Available Water 100-200 cm",
                                                  "Clay/Loam Available Water 0-5 cm", "Clay/Loam Available Water 100-200 cm")),
                                  "P_Value" = p_bonf_corrected,
-                                 "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")
+                                 "Significance" = c(rep(NA, 22)))   #ifelse(p_values < 0.05, "Y", "N")
 
 #creating the significance column for the p-values
 random_pop.df <- random_pop.df %>%

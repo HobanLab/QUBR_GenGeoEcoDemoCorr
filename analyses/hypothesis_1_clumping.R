@@ -987,9 +987,10 @@ rand.p.crs <- rand.p %>%
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=dist_near_river_buffer_SD_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_fixed_field_data_processed_sf, col = "red")+ #plotting the tree points
   geom_sf(data=rand.p.crs, fill = NA)+ #plotting the random points
-  labs(color = "Trees", fill = "Inverse Distance (m)")
+  labs(color = "Trees", fill = "Inverse Distance (m)") +
+  scale_fill_viridis_c() 
   
   
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -1032,7 +1033,6 @@ ggplot()+
   geom_stars(data=st_rasterize(river_SD_trans))+ #plotting the river raster 
   geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=rand.p.crs, fill = NA) #plotting the random points
-
 
 as_tibble(ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+

@@ -276,13 +276,29 @@ slope_tests <- function(population, variable) {
   seed_input <- 1
   
   # for loop generating permutations of the slopes and p-values for different randomly generated p-values
-  for (i in 1:1000){
+  for (i in 1:500){
     
     
     
     if (population == "LM") {
       #generating the focal tree and neighbor data
       focal_results <- focal_function("LM", seed_input)
+      
+      #storing the focal tree dataframes
+      focal_tree_dataframe_sf <- focal_results[[6]] #focal tree dataframe as a spatial object
+      focal_tree_dataframe <- as.data.frame(focal_tree_dataframe_sf)  #focal tree dataframe as a spatial object
+      
+    } else if (population == "LC") {
+      #generating the focal tree and neighbor data
+      focal_results <- focal_function("LC", seed_input)
+      
+      #storing the focal tree dataframes
+      focal_tree_dataframe_sf <- focal_results[[6]] #focal tree dataframe as a spatial object
+      focal_tree_dataframe <- as.data.frame(focal_tree_dataframe_sf)  #focal tree dataframe as a spatial object
+      
+    } else if (population == "SD") {
+      #generating the focal tree and neighbor data
+      focal_results <- focal_function("SD", seed_input)
       
       #storing the focal tree dataframes
       focal_tree_dataframe_sf <- focal_results[[6]] #focal tree dataframe as a spatial object
@@ -381,10 +397,10 @@ slope_tests <- function(population, variable) {
 slope_tests_LM_SCA <- slope_tests("LM", "SCA") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
-LM_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LM_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LM_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LM_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LM_SCA_slope_permutations_results <- slope_tests_LM_SCA[[1]] #slope test statistics
+LM_SCA_pvalue_permutations_results <- slope_tests_LM_SCA[[2]] #p-values for the slope test
+LM_SCA_tau_perm_results <- slope_tests_LM_SCA[[3]] #tau/slope statistics
+LM_SCA_tau_p_value_perm_results <- slope_tests_LM_SCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LM_SCA_pvalue_permutations_results_bonf <- p.adjust(LM_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -410,6 +426,17 @@ median(LM_SCA_pvalue_permutations_results_bonf) #median
 sd(LM_SCA_pvalue_permutations_results_bonf) #standard deviation
 range(LM_SCA_pvalue_permutations_results_bonf) #range
 
+#without Bonf correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_pvalue_permutations_results) #mean
+median(LM_SCA_pvalue_permutations_results) #median 
+sd(LM_SCA_pvalue_permutations_results) #standard deviation
+range(LM_SCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LM_SCA_tau_perm_results)) +
@@ -430,16 +457,27 @@ median(LM_SCA_tau_p_value_perm_results_bonf) #median
 sd(LM_SCA_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_SCA_tau_p_value_perm_results_bonf) #range
 
+#without correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LM_SCA_tau_p_value_perm_results) #mean
+median(LM_SCA_tau_p_value_perm_results) #median 
+sd(LM_SCA_tau_p_value_perm_results) #standard deviation
+range(LM_SCA_tau_p_value_perm_results) #range
+
 #LCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LM", "LCA") #focal_results <- focal_function("LM")
+slope_tests_LM_LCA <- slope_tests("LM", "LCA") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
-LM_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LM_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LM_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LM_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LM_LCA_slope_permutations_results <- slope_tests_LM_LCA[[1]] #slope test statistics
+LM_LCA_pvalue_permutations_results <- slope_tests_LM_LCA[[2]] #p-values for the slope test
+LM_LCA_tau_perm_results <- slope_tests_LM_LCA[[3]] #tau/slope statistics
+LM_LCA_tau_p_value_perm_results <- slope_tests_LM_LCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LM_LCA_pvalue_permutations_results_bonf <- p.adjust(LM_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -465,6 +503,17 @@ median(LM_LCA_pvalue_permutations_results_bonf) #median
 sd(LM_LCA_pvalue_permutations_results_bonf) #standard deviation
 range(LM_LCA_pvalue_permutations_results_bonf) #range
 
+#without Bonf correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_LCA_pvalue_permutations_results) #mean
+median(LM_LCA_pvalue_permutations_results) #median 
+sd(LM_LCA_pvalue_permutations_results) #standard deviation
+range(LM_LCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LM_LCA_tau_perm_results)) +
@@ -485,17 +534,28 @@ median(LM_LCA_tau_p_value_perm_results_bonf) #median
 sd(LM_LCA_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_LCA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni Correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_LCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LM_LCA_tau_p_value_perm_results) #mean
+median(LM_LCA_tau_p_value_perm_results) #median 
+sd(LM_LCA_tau_p_value_perm_results) #standard deviation
+range(LM_LCA_tau_p_value_perm_results) #range
+
 
 #CA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LM", "CA") #focal_results <- focal_function("LM")
+slope_tests_LM_CA <- slope_tests("LM", "CA") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
-LM_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LM_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LM_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LM_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LM_CA_slope_permutations_results <- slope_tests_LM_CA[[1]] #slope test statistics
+LM_CA_pvalue_permutations_results <- slope_tests_LM_CA[[2]] #p-values for the slope test
+LM_CA_tau_perm_results <- slope_tests_LM_CA[[3]] #tau/slope statistics
+LM_CA_tau_p_value_perm_results <- slope_tests_LM_CA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LM_CA_pvalue_permutations_results_bonf <- p.adjust(LM_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -521,6 +581,17 @@ median(LM_CA_pvalue_permutations_results_bonf) #median
 sd(LM_CA_pvalue_permutations_results_bonf) #standard deviation
 range(LM_CA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_CA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_CA_pvalue_permutations_results) #mean
+median(LM_CA_pvalue_permutations_results) #median 
+sd(LM_CA_pvalue_permutations_results) #standard deviation
+range(LM_CA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LM_CA_tau_perm_results)) +
@@ -541,17 +612,28 @@ median(LM_CA_tau_p_value_perm_results_bonf) #median
 sd(LM_CA_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_CA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni Correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_CA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LM_CA_tau_p_value_perm_results) #mean
+median(LM_CA_tau_p_value_perm_results) #median 
+sd(LM_CA_tau_p_value_perm_results) #standard deviation
+range(LM_CA_tau_p_value_perm_results) #range
+
 
 #CS
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LM", "CS") #focal_results <- focal_function("LM")
+slope_tests_LM_CS <- slope_tests("LM", "CS") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
-LM_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LM_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LM_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LM_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LM_CS_slope_permutations_results <- slope_tests_LM_CS[[1]] #slope test statistics
+LM_CS_pvalue_permutations_results <- slope_tests_LM_CS[[2]] #p-values for the slope test
+LM_CS_tau_perm_results <- slope_tests_LM_CS[[3]] #tau/slope statistics
+LM_CS_tau_p_value_perm_results <- slope_tests_LM_CS[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LM_CS_pvalue_permutations_results_bonf <- p.adjust(LM_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -577,6 +659,17 @@ median(LM_CS_pvalue_permutations_results_bonf) #median
 sd(LM_CS_pvalue_permutations_results_bonf) #standard deviation
 range(LM_CS_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni Correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_CS_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_CS_pvalue_permutations_results) #mean
+median(LM_CS_pvalue_permutations_results) #median 
+sd(LM_CS_pvalue_permutations_results) #standard deviation
+range(LM_CS_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LM_CS_tau_perm_results)) +
@@ -597,17 +690,28 @@ median(LM_CS_tau_p_value_perm_results_bonf) #median
 sd(LM_CS_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_CS_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_CS_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LM_CS_tau_p_value_perm_results) #mean
+median(LM_CS_tau_p_value_perm_results) #median 
+sd(LM_CS_tau_p_value_perm_results) #standard deviation
+range(LM_CS_tau_p_value_perm_results) #range
+
 
 #DBH
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LM", "DBH") #focal_results <- focal_function("LM")
+slope_tests_LM_DBH <- slope_tests("LM", "DBH") #focal_results <- focal_function("LM")
 
 #save the results from the permutations
-LM_DBH_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LM_DBH_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LM_DBH_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LM_DBH_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LM_DBH_slope_permutations_results <- slope_tests_LM_DBH[[1]] #slope test statistics
+LM_DBH_pvalue_permutations_results <- slope_tests_LM_DBH[[2]] #p-values for the slope test
+LM_DBH_tau_perm_results <- slope_tests_LM_DBH[[3]] #tau/slope statistics
+LM_DBH_tau_p_value_perm_results <- slope_tests_LM_DBH[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LM_DBH_pvalue_permutations_results_bonf <- p.adjust(LM_DBH_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -633,6 +737,17 @@ median(LM_DBH_pvalue_permutations_results_bonf) #median
 sd(LM_DBH_pvalue_permutations_results_bonf) #standard deviation
 range(LM_DBH_pvalue_permutations_results_bonf) #range
 
+#without Bonferroni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_DBH_pvalue_permutations_results) #mean
+median(LM_DBH_pvalue_permutations_results) #median 
+sd(LM_DBH_pvalue_permutations_results) #standard deviation
+range(LM_DBH_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LM_DBH_tau_perm_results)) +
@@ -653,6 +768,16 @@ median(LM_DBH_tau_p_value_perm_results_bonf) #median
 sd(LM_DBH_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_DBH_tau_p_value_perm_results_bonf) #range
 
+#without Bonferroni corrections
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LM_DBH_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LM_DBH_tau_p_value_perm_results) #mean
+median(LM_DBH_tau_p_value_perm_results) #median 
+sd(LM_DBH_tau_p_value_perm_results) #standard deviation
+range(LM_DBH_tau_p_value_perm_results) #range
 
 
 #### LC ####
@@ -660,13 +785,13 @@ range(LM_DBH_tau_p_value_perm_results_bonf) #range
 #SCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LC", "SCA") #focal_results <- focal_function("LC")
+slope_tests_LC_LCA <- slope_tests("LC", "SCA") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-LC_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LC_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LC_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LC_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LC_SCA_slope_permutations_results <- slope_tests_LC_LCA[[1]] #slope test statistics
+LC_SCA_pvalue_permutations_results <- slope_tests_LC_LCA[[2]] #p-values for the slope test
+LC_SCA_tau_perm_results <- slope_tests_LC_LCA[[3]] #tau/slope statistics
+LC_SCA_tau_p_value_perm_results <- slope_tests_LC_LCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LC_SCA_pvalue_permutations_results_bonf <- p.adjust(LC_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -692,6 +817,17 @@ median(LC_SCA_pvalue_permutations_results_bonf) #median
 sd(LC_SCA_pvalue_permutations_results_bonf) #standard deviation
 range(LC_SCA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LC_SCA_pvalue_permutations_results) #mean
+median(LC_SCA_pvalue_permutations_results) #median 
+sd(LC_SCA_pvalue_permutations_results) #standard deviation
+range(LC_SCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LC_SCA_tau_perm_results)) +
@@ -712,16 +848,27 @@ median(LC_SCA_tau_p_value_perm_results_bonf) #median
 sd(LC_SCA_tau_p_value_perm_results_bonf) #standard deviation
 range(LC_SCA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_SCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LC_SCA_tau_p_value_perm_results) #mean
+median(LC_SCA_tau_p_value_perm_results) #median 
+sd(LC_SCA_tau_p_value_perm_results) #standard deviation
+range(LC_SCA_tau_p_value_perm_results) #range
+
 #LCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LC", "LCA") #focal_results <- focal_function("LC")
+slope_tests_LC_LCA <- slope_tests("LC", "LCA") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-LC_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LC_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LC_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LC_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LC_LCA_slope_permutations_results <- slope_tests_LC_LCA[[1]] #slope test statistics
+LC_LCA_pvalue_permutations_results <- slope_tests_LC_LCA[[2]] #p-values for the slope test
+LC_LCA_tau_perm_results <- slope_tests_LC_LCA[[3]] #tau/slope statistics
+LC_LCA_tau_p_value_perm_results <- slope_tests_LC_LCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LC_LCA_pvalue_permutations_results_bonf <- p.adjust(LC_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -747,6 +894,17 @@ median(LC_LCA_pvalue_permutations_results_bonf) #median
 sd(LC_LCA_pvalue_permutations_results_bonf) #standard deviation
 range(LC_LCA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LC_LCA_pvalue_permutations_results) #mean
+median(LC_LCA_pvalue_permutations_results) #median 
+sd(LC_LCA_pvalue_permutations_results) #standard deviation
+range(LC_LCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LC_LCA_tau_perm_results)) +
@@ -767,17 +925,28 @@ median(LC_LCA_tau_p_value_perm_results_bonf) #median
 sd(LC_LCA_tau_p_value_perm_results_bonf) #standard deviation
 range(LC_LCA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_LCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LC_LCA_tau_p_value_perm_results) #mean
+median(LC_LCA_tau_p_value_perm_results) #median 
+sd(LC_LCA_tau_p_value_perm_results) #standard deviation
+range(LC_LCA_tau_p_value_perm_results) #range
+
 
 #CA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LC", "CA") #focal_results <- focal_function("LC")
+slope_tests_LC_CA <- slope_tests("LC", "CA") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-LC_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LC_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LC_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LC_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LC_CA_slope_permutations_results <- slope_tests_LC_CA[[1]] #slope test statistics
+LC_CA_pvalue_permutations_results <- slope_tests_LC_CA[[2]] #p-values for the slope test
+LC_CA_tau_perm_results <- slope_tests_LC_CA[[3]] #tau/slope statistics
+LC_CA_tau_p_value_perm_results <- slope_tests_LC_CA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LC_CA_pvalue_permutations_results_bonf <- p.adjust(LC_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -803,6 +972,17 @@ median(LC_CA_pvalue_permutations_results_bonf) #median
 sd(LC_CA_pvalue_permutations_results_bonf) #standard deviation
 range(LC_CA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_CA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LC_CA_pvalue_permutations_results) #mean
+median(LC_CA_pvalue_permutations_results) #median 
+sd(LC_CA_pvalue_permutations_results) #standard deviation
+range(LC_CA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LC_CA_tau_perm_results)) +
@@ -823,17 +1003,28 @@ median(LC_CA_tau_p_value_perm_results_bonf) #median
 sd(LC_CA_tau_p_value_perm_results_bonf) #standard deviation
 range(LC_CA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_CA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LC_CA_tau_p_value_perm_results) #mean
+median(LC_CA_tau_p_value_perm_results) #median 
+sd(LC_CA_tau_p_value_perm_results) #standard deviation
+range(LC_CA_tau_p_value_perm_results) #range
+
 
 #CS
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LC", "CS") #focal_results <- focal_function("LC")
+slope_tests_LC_CS <- slope_tests("LC", "CS") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-LC_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LC_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LC_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LC_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LC_CS_slope_permutations_results <- slope_tests_LC_CS[[1]] #slope test statistics
+LC_CS_pvalue_permutations_results <- slope_tests_LC_CS[[2]] #p-values for the slope test
+LC_CS_tau_perm_results <- slope_tests_LC_CS[[3]] #tau/slope statistics
+LC_CS_tau_p_value_perm_results <- slope_tests_LC_CS[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LC_CS_pvalue_permutations_results_bonf <- p.adjust(LC_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -859,6 +1050,17 @@ median(LC_CS_pvalue_permutations_results_bonf) #median
 sd(LC_CS_pvalue_permutations_results_bonf) #standard deviation
 range(LC_CS_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_CS_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LC_CS_pvalue_permutations_results) #mean
+median(LC_CS_pvalue_permutations_results) #median 
+sd(LC_CS_pvalue_permutations_results) #standard deviation
+range(LC_CS_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LC_CS_tau_perm_results)) +
@@ -879,17 +1081,28 @@ median(LC_CS_tau_p_value_perm_results_bonf) #median
 sd(LC_CS_tau_p_value_perm_results_bonf) #standard deviation
 range(LC_CS_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_CS_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LC_CS_tau_p_value_perm_results) #mean
+median(LC_CS_tau_p_value_perm_results) #median 
+sd(LC_CS_tau_p_value_perm_results) #standard deviation
+range(LC_CS_tau_p_value_perm_results) #range
+
 
 #DBH
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("LC", "DBH") #focal_results <- focal_function("LC")
+slope_tests_LC_DBH <- slope_tests("LC", "DBH") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-LC_DBH_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-LC_DBH_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-LC_DBH_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-LC_DBH_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+LC_DBH_slope_permutations_results <- slope_tests_LC_DBH[[1]] #slope test statistics
+LC_DBH_pvalue_permutations_results <- slope_tests_LC_DBH[[2]] #p-values for the slope test
+LC_DBH_tau_perm_results <- slope_tests_LC_DBH[[3]] #tau/slope statistics
+LC_DBH_tau_p_value_perm_results <- slope_tests_LC_DBH[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 LC_DBH_pvalue_permutations_results_bonf <- p.adjust(LC_DBH_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -915,6 +1128,17 @@ median(LC_DBH_pvalue_permutations_results_bonf) #median
 sd(LC_DBH_pvalue_permutations_results_bonf) #standard deviation
 range(LC_DBH_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LC_DBH_pvalue_permutations_results) #mean
+median(LC_DBH_pvalue_permutations_results) #median 
+sd(LC_DBH_pvalue_permutations_results) #standard deviation
+range(LC_DBH_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = LC_DBH_tau_perm_results)) +
@@ -935,22 +1159,31 @@ median(LC_DBH_tau_p_value_perm_results_bonf) #median
 sd(LC_DBH_tau_p_value_perm_results_bonf) #standard deviation
 range(LC_DBH_tau_p_value_perm_results_bonf) #range
 
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = LC_DBH_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(LC_DBH_tau_p_value_perm_results) #mean
+median(LC_DBH_tau_p_value_perm_results) #median 
+sd(LC_DBH_tau_p_value_perm_results) #standard deviation
+range(LC_DBH_tau_p_value_perm_results) #range
 
 #### SD ####
 
 #SCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("SD", "SCA") #focal_results <- focal_function("SD")
+slope_tests_SD_SCA <- slope_tests("SD", "SCA") #focal_results <- focal_function("SD")
 
 #save the results from the permutations
-SD_SCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-SD_SCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-SD_SCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-SD_SCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+SD_SCA_slope_permutations_results <- slope_tests_SD_SCA[[1]] #slope test statistics
+SD_SCA_pvalue_permutations_results <- slope_tests_SD_SCA[[2]] #p-values for the slope test
+SD_SCA_tau_perm_results <- slope_tests_SD_SCA[[3]] #tau/slope statistics
+SD_SCA_tau_p_value_perm_results <- slope_tests_SD_SCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
-LC_SCA_pvalue_permutations_results_bonf <- p.adjust(SD_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
+SD_SCA_pvalue_permutations_results_bonf <- p.adjust(SD_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
 SD_SCA_tau_p_value_perm_results_bonf <- p.adjust(SD_SCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
 #Looking at the distribution and descriptive summary of the slope test statistics
@@ -973,6 +1206,17 @@ median(SD_SCA_pvalue_permutations_results_bonf) #median
 sd(SD_SCA_pvalue_permutations_results_bonf) #standard deviation
 range(SD_SCA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(SD_SCA_pvalue_permutations_results) #mean
+median(SD_SCA_pvalue_permutations_results) #median 
+sd(SD_SCA_pvalue_permutations_results) #standard deviation
+range(SD_SCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = SD_SCA_tau_perm_results)) +
@@ -993,16 +1237,27 @@ median(SD_SCA_tau_p_value_perm_results_bonf) #median
 sd(SD_SCA_tau_p_value_perm_results_bonf) #standard deviation
 range(SD_SCA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_SCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(SD_SCA_tau_p_value_perm_results) #mean
+median(SD_SCA_tau_p_value_perm_results) #median 
+sd(SD_SCA_tau_p_value_perm_results) #standard deviation
+range(SD_SCA_tau_p_value_perm_results) #range
+
 #LCA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("SD", "LCA") #focal_results <- focal_function("LC")
+slope_tests_SD_LCA <- slope_tests("SD", "LCA") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-SD_LCA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-SD_LCA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-SD_LCA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-SD_LCA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+SD_LCA_slope_permutations_results <- slope_tests_SD_LCA[[1]] #slope test statistics
+SD_LCA_pvalue_permutations_results <- slope_tests_SD_LCA[[2]] #p-values for the slope test
+SD_LCA_tau_perm_results <- slope_tests_SD_LCA[[3]] #tau/slope statistics
+SD_LCA_tau_p_value_perm_results <- slope_tests_SD_LCA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 SD_LCA_pvalue_permutations_results_bonf <- p.adjust(SD_LCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -1028,6 +1283,17 @@ median(SD_LCA_pvalue_permutations_results_bonf) #median
 sd(SD_LCA_pvalue_permutations_results_bonf) #standard deviation
 range(SD_LCA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(SD_LCA_pvalue_permutations_results) #mean
+median(SD_LCA_pvalue_permutations_results) #median 
+sd(SD_LCA_pvalue_permutations_results) #standard deviation
+range(SD_LCA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = SD_LCA_tau_perm_results)) +
@@ -1048,17 +1314,28 @@ median(SD_LCA_tau_p_value_perm_results_bonf) #median
 sd(SD_LCA_tau_p_value_perm_results_bonf) #standard deviation
 range(SD_LCA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_LCA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(SD_LCA_tau_p_value_perm_results) #mean
+median(SD_LCA_tau_p_value_perm_results) #median 
+sd(SD_LCA_tau_p_value_perm_results) #standard deviation
+range(SD_LCA_tau_p_value_perm_results) #range
+
 
 #CA
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("SD", "CA") #focal_results <- focal_function("LC")
+slope_tests_SD_CA <- slope_tests("SD", "CA") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-SD_CA_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-SD_CA_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-SD_CA_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-SD_CA_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+SD_CA_slope_permutations_results <- slope_tests_SD_CA[[1]] #slope test statistics
+SD_CA_pvalue_permutations_results <- slope_tests_SD_CA[[2]] #p-values for the slope test
+SD_CA_tau_perm_results <- slope_tests_SD_CA[[3]] #tau/slope statistics
+SD_CA_tau_p_value_perm_results <- slope_tests_SD_CA[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 SD_CA_pvalue_permutations_results_bonf <- p.adjust(SD_CA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -1084,6 +1361,17 @@ median(SD_CA_pvalue_permutations_results_bonf) #median
 sd(SD_CA_pvalue_permutations_results_bonf) #standard deviation
 range(SD_CA_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_CA_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(SD_CA_pvalue_permutations_results) #mean
+median(SD_CA_pvalue_permutations_results) #median 
+sd(SD_CA_pvalue_permutations_results) #standard deviation
+range(SD_CA_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = SD_CA_tau_perm_results)) +
@@ -1104,17 +1392,28 @@ median(SD_CA_tau_p_value_perm_results_bonf) #median
 sd(SD_CA_tau_p_value_perm_results_bonf) #standard deviation
 range(SD_CA_tau_p_value_perm_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_CA_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(SD_CA_tau_p_value_perm_results) #mean
+median(SD_CA_tau_p_value_perm_results) #median 
+sd(SD_CA_tau_p_value_perm_results) #standard deviation
+range(SD_CA_tau_p_value_perm_results) #range
+
 
 #CS
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
-slope_tests <- slope_tests("SD", "CS") #focal_results <- focal_function("LC")
+slope_tests_SD_CS <- slope_tests("SD", "CS") #focal_results <- focal_function("LC")
 
 #save the results from the permutations
-SD_CS_slope_permutations_results <- slope_tests[[1]] #slope test statistics
-SD_CS_pvalue_permutations_results <- slope_tests[[2]] #p-values for the slope test
-SD_CS_tau_perm_results <- slope_tests[[3]] #tau/slope statistics
-SD_CS_tau_p_value_perm_results <- slope_tests[[4]] #p-value statistic for the Kendall's Tau Test
+SD_CS_slope_permutations_results <- slope_tests_SD_CS[[1]] #slope test statistics
+SD_CS_pvalue_permutations_results <- slope_tests_SD_CS[[2]] #p-values for the slope test
+SD_CS_tau_perm_results <- slope_tests_SD_CS[[3]] #tau/slope statistics
+SD_CS_tau_p_value_perm_results <- slope_tests_SD_CS[[4]] #p-value statistic for the Kendall's Tau Test
 
 #use a Bonferroni Correction to control for multiple testing error
 SD_CS_pvalue_permutations_results_bonf <- p.adjust(SD_CS_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
@@ -1140,6 +1439,17 @@ median(SD_CS_pvalue_permutations_results_bonf) #median
 sd(SD_CS_pvalue_permutations_results_bonf) #standard deviation
 range(SD_CS_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_CS_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(SD_CS_pvalue_permutations_results) #mean
+median(SD_CS_pvalue_permutations_results) #median 
+sd(SD_CS_pvalue_permutations_results) #standard deviation
+range(SD_CS_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = SD_CS_tau_perm_results)) +
@@ -1159,6 +1469,17 @@ mean(SD_CS_tau_p_value_perm_results_bonf) #mean
 median(SD_CS_tau_p_value_perm_results_bonf) #median 
 sd(SD_CS_tau_p_value_perm_results_bonf) #standard deviation
 range(SD_CS_tau_p_value_perm_results_bonf) #range
+
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_CS_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(SD_CS_tau_p_value_perm_results) #mean
+median(SD_CS_tau_p_value_perm_results) #median 
+sd(SD_CS_tau_p_value_perm_results) #standard deviation
+range(SD_CS_tau_p_value_perm_results) #range
 
 
 #DBH
@@ -1196,6 +1517,17 @@ median(SD_DBH_pvalue_permutations_results_bonf) #median
 sd(SD_DBH_pvalue_permutations_results_bonf) #standard deviation
 range(SD_DBH_pvalue_permutations_results_bonf) #range
 
+#without Bonferonni correction
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_pvalue_permutations_results)) +
+  labs(x = "Slope Test P-Values")
+
+mean(SD_DBH_pvalue_permutations_results) #mean
+median(SD_DBH_pvalue_permutations_results) #median 
+sd(SD_DBH_pvalue_permutations_results) #standard deviation
+range(SD_DBH_pvalue_permutations_results) #range
+
 #Looking at the distribution and descriptive summary of the tau/slope statistic
 ggplot()+
   geom_histogram(aes(x = SD_DBH_tau_perm_results)) +
@@ -1215,6 +1547,17 @@ mean(SD_DBH_tau_p_value_perm_results_bonf) #mean
 median(SD_DBH_tau_p_value_perm_results_bonf) #median 
 sd(SD_DBH_tau_p_value_perm_results_bonf) #standard deviation
 range(SD_DBH_tau_p_value_perm_results_bonf) #range
+
+#without correction
+#Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
+ggplot()+
+  geom_histogram(aes(x = SD_DBH_tau_p_value_perm_results)) +
+  labs(x = "tau p-value")
+
+mean(SD_DBH_tau_p_value_perm_results) #mean
+median(SD_DBH_tau_p_value_perm_results) #median 
+sd(SD_DBH_tau_p_value_perm_results) #standard deviation
+range(SD_DBH_tau_p_value_perm_results) #range
 
 
 

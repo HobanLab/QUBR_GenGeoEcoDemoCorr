@@ -174,7 +174,6 @@ Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
 Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
 
 
-
 #LM
 #examining the layers at different extents
 
@@ -359,27 +358,27 @@ SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
 #Extracting the soil data to the tree points 
 
 #LM
-LM_soil_text_raster_250_data_pts <- extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
-LM_soil_other_raster_250_data_pts <- extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
-LM_soil_extra_raster_250_data_pts <- extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
+LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
+LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
 
 
 #LC
-LC_soil_text_raster_250_data_pts <- extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
-LC_soil_other_raster_250_data_pts <- extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
-LC_soil_extra_raster_250_data_pts <- extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
+LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
+LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 
 #SD
-SD_soil_text_raster_250_data_pts <- extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
-SD_soil_other_raster_250_data_pts <- extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
-SD_soil_extra_raster_250_data_pts <- extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
+SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
+SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
+SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
@@ -394,7 +393,6 @@ LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
-
 
 # LC
 
@@ -1215,7 +1213,13 @@ anova_vol_water_33_100.200 <- aov(vol_water_100.200 ~ Locality, data = fixed_fie
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200), fill = "skyblue") +
+  labs(y = expression("Clay/Loam Field Capacity at 100-200 cm " (10^-2 * cm^3 * cm^-3))) +
+  theme_classic()+
+  scale_x_discrete(labels=c("LC" = "La Cobriza", "LM" = "Las Matancitas",
+                            "SD" = "San Dionisio"))+
+  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15))
 
 # checking to see if residuals are normal
 hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
@@ -1456,6 +1460,7 @@ pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200, fi
 # sandy available water 0-5 cm
 
 anova_sandy_avail_water_0.5 <- aov(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+summary(anova_sandy_avail_water_0.5)
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1466,7 +1471,7 @@ hist(anova_sandy_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribu
 
 qqnorm(anova_sandy_avail_water_0.5$residuals) #qqnorm plot
 
-shapiro.test(anova_sandy_avail_water_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
+shapiro.test(anova_sandy_avail_water_0.5$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -1483,9 +1488,15 @@ leveneTest(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5 ~ fixed_
 thumb_test_sandy_avail_water_0.5 <- tapply(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
 max(thumb_test_sandy_avail_water_0.5, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
+#based on the shapiro test and fligner-killeen test, the data is normal and the variance is equal
 
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+#ANOVA test 
+anova(anova_sandy_avail_water_0.5)
+
+#post-hoc pairwise t tests
+
+pairwise.t.test(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
+
 
 #kruskall wallis test
 sandy_avail_water_0.5_kruskall <- kruskal.test(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -1532,6 +1543,14 @@ max(thumb_test_sandy_avail_water_100.200, na.rm = T) / min(thumb_test_sandy_avai
 
 #based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
 
+#Welch's ANOVA, does not assume equal variances 
+oneway.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+
+tamhaneT2Test(sandy_avail_water_100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+
+
 #kruskall wallis test
 sandy_avail_water_100.200_kruskall <- kruskal.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
 sandy_avail_water_100.200_mean_p.value <- sandy_avail_water_100.200_kruskall$p.value
@@ -1574,9 +1593,7 @@ leveneTest(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5 ~ fi
 thumb_test_clay_loam_avail_water_0.5 <- tapply(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
 max(thumb_test_clay_loam_avail_water_0.5, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskaLl wallice
 
 #kruskall wallis test
 clay_loam_avail_water_0.5_kruskall <- kruskal.test(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -1603,7 +1620,7 @@ hist(anova_clay_loam_avail_water_100.200$residuals, xlab = "Residuals", main = "
 
 qqnorm(anova_clay_loam_avail_water_100.200$residuals) #qqnorm plot
 
-shapiro.test(anova_clay_loam_avail_water_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
+shapiro.test(anova_clay_loam_avail_water_100.200$residuals) #Shapiro-Wilk test, is NOT significant, meaning the residuals are normal
 
 # checking equal variances with levene's test and rule of thumb
 
@@ -1620,9 +1637,14 @@ leveneTest(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200 
 thumb_test_clay_loam_avail_water_100.200 <- tapply(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
 max(thumb_test_clay_loam_avail_water_100.200, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
+#based on the shapiro test and fligner-killeen test, the data is normal and the variance is equal
 
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
+#ANOVA test 
+anova(anova_clay_loam_avail_water_100.200)
+
+#post-hoc pairwise t tests
+
+pairwise.t.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
 
 #kruskall wallis test
 clay_loam_avail_water_100.200_kruskall <- kruskal.test(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -1677,7 +1699,7 @@ random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm
                                                  "Volume of water content -10 kPa 0-5 cm", "Volume of water content -10 kPa 100-200 cm",
                                                  "Volume of water content -33 kPa 0-5 cm", "Volume of water content -33 kPa 100-200 cm",
                                                  "Volume of water content -1500 kPa 0-5 cm", "Volume of water content -1500 kPa 100-200 cm", 
-                                                 "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sandy Available Water 0-5 cm", "Sandy Available Water 100-200 cm",
+                                                 "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sand Available Water 0-5 cm", "Sand Available Water 100-200 cm",
                                                  "Clay/Loam Available Water 0-5 cm", "Clay/Loam Available Water 100-200 cm")),
                             "P_Value" = p_bonf_corrected,
                             "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")

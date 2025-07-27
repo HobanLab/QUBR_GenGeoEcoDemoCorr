@@ -517,7 +517,7 @@ river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create ras
 plot(river_buffer_SD_point_raster)
 
 #making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
+river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not in the river buffer have a 0 value
 dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
 dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
 plot(dist_near_river_buffer_SD_inverse)
