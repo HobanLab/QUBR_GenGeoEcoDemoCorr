@@ -197,17 +197,18 @@ morans_I <- function(population, variable){
   knn.dist <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(dataframe$DBH_ag)))
   
   #inverse distance weighting with raw distance-based weights without applying any normalization
-  lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_sf_trans_coordinates, type="idw", style="raw", 
+  lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_sf_trans_coordinates, type="idw", style="W", 
                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
   
   #creating lags for each tree, which computes the average neighboring short canopy axis for each tree
   dataframe$lag.metric <- lag.listw(lw.dist, dataframe[[metric]])
   
   # Create a regression model of the lagged response variable (average amongst closest trees) vs. the known response variable 
-  lm <- lm(lag.metric ~ Canopy_short, dataframe)
+  lm <- lm(lag.metric ~ dataframe[[metric]], dataframe)
   
   #computing the Moran's I statistic
-  moran(dataframe[[metric]], listw = lw.dist, n = length(lw.dist$neighbours), S0 = Szero(lw.dist))
+  global.moran.I <- moran(dataframe[[metric]], listw = lw.dist, n = length(lw.dist$neighbours), S0 = Szero(lw.dist))
+  global.moran.I
   
   #assessing statistical significance with a Monte-Carlo simulation
   MC.LM.metric <- moran.mc(dataframe[[metric]], lw.dist, nsim = 999)
@@ -217,6 +218,7 @@ morans_I <- function(population, variable){
   plot(MC.LM.metric, main="", las=1, xlab = metric)
   MC.LM.metric$p.value #extracting the pvalue
   
+  print(paste0("Global Moran's I: ", global.moran.I$I))
   print(paste0("Global Moran's I Monte Carlo P-value: ", MC.LM.metric$p.value))
   
   
@@ -241,7 +243,7 @@ morans_I <- function(population, variable){
     filter(pval_sig == T)
   
   return(list(dataframe$lag.metric, lm, MC.LM.metric,
-              MC_local.df, sig.tree, dataframe_sign, dataframe$p.metric.adjusted ))
+              MC_local.df, sig.tree, dataframe_sign, dataframe$p.metric.adjusted, global.moran.I))
   
 }
 
@@ -323,7 +325,7 @@ ggplot() +
 #global Moran's I
 
 #conducting Moran's I analysis
-LM_LCA_Morans_I <- morans_I("LM", "Canopy_short")
+LM_LCA_Morans_I <- morans_I("LM", "Canopy_long")
 
 #regression for ANN size metric vs. tree metric 
 LM_LCA_Morans_I[[2]]
@@ -863,7 +865,7 @@ MC_local.SD.canopy.short.df <- SD_SCA_Morans_I[[4]]
 SD_SCA_Morans_I[[5]]
 
 #assigning the trees with the significant local Moran's I to a dataframe
-SD_fixed_field_data_processed_sign <- SD_DBH_Morans_I[[6]]
+SD_fixed_field_data_processed_sign <- SD_SCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
 SD_fixed_field_data_processed$p.canopy.short.adjusted <- SD_SCA_Morans_I[[7]]

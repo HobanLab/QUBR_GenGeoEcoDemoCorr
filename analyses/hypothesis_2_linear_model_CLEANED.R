@@ -153,13 +153,14 @@ focal_function <- function(population){
   dataframe_cropped <- st_crop(dataframe_sf, box_sf_cropped)
   
   #Creating a grid over the cropped tree points 
-  tree_grid_cropped <- st_make_grid(dataframe_cropped, cellsize = (((40*mean(dataframe$DBH_ag))*2)*2)) #ASH NOTE: why is this *2*2 and not *4???
+  tree_grid_cropped <- st_make_grid(dataframe_cropped, cellsize = (((40*mean(dataframe$DBH_ag))*4))) 
   
   #creating an x_sequential column that is 1 through the number of LC points
   dataframe_sf <- dataframe_sf %>%
     mutate(X_sequential = 1:nrow(dataframe_sf))
   
-  set.seed(25) #setting the seed
+  #setting the seed
+  set.seed(25) 
   
   #randomly selecting a focal point from each grid cell with trees within them
   list_grids_and_points <- st_contains(tree_grid_cropped, dataframe_sf, sparse =T) #find which points are within which grid cells, make sure row number in the data frame of grid cells corresponds to the order of the points dataframe within st_contains
