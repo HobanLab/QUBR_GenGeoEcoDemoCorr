@@ -645,19 +645,6 @@ ggplot()+
 
 ggplot() +
   #geom_sf(data=BCS_polygon_UTM)+
- # geom_sf(data=bbox_poly_buffered)+
-  geom_raster(data= as.data.frame(clay_05_all_pop, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
-  geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates) +
-  geom_sf(data=random_20, color ="red") + 
-  labs(title = "Clay at 0-5 cm",
-       fill = "Clay Content (g/kg)",
-       x = "",
-       y = "") +
-  scale_fill_viridis_c(limits = c(50, 330))
-vol_wat_33kpa_05_all_pop$vol_water_0.5
-ggplot() +
-  #geom_sf(data=BCS_polygon_UTM)+
   #geom_sf(data=bbox_poly_buffered)+
   geom_raster(data= as.data.frame(vol_wat_33kpa_05_all_pop, xy = T), aes(x=x, y=y, fill = vol_water_0.5))+
   geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
@@ -734,11 +721,9 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
 
-View(all_known_pop_soils)
-
 #clay
 
-#extracting means from randomly selected 16 points 
+#extracting means from randomly selected 20 points 
 
 random_clay_0.5_means <- c() #creating empty list to collect means
 random_clay_100.200_means <- c() #creating empty list to collect means
@@ -756,6 +741,12 @@ for (i in 1:1000){ #for 1000 permutations
   
   random_clay_0.5_means <- c(random_clay_0.5_means, random_clay_0.5_mean) #adding the 0-5 mean to the list of means
   random_clay_100.200_means <- c(random_clay_100.200_means, random_clay_100.200_mean) #adding the 100-200 mean to the list of means
+  
+}
+
+random_pop_soils <- function(){
+  
+  
   
 }
 
