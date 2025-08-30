@@ -13893,6 +13893,7 @@ for (i in 1:1000){ #for 1000 permutations
   
 }
 
+
 #plotting the randomly selected points on the Baja polygon
 ggplot()+
   geom_sf(data=BCS_polygon_UTM)+

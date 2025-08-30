@@ -462,9 +462,9 @@ slopes_simulations <- function () {
                     "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
                     "Sand Available Water 0-5", "Sand Available Water 100-200",
                     "Clay/Loam Available Water 0-5", "Clay/Loam Available Water 100-200")
-  slopes_array <- array(NA, dim = c(22, 5, 3), #FIX 
+  slopes_array <- array(NA, dim = c(length(Soil.metrics), length(Size.metrics), length(Populations)), 
                         list(Soil.metrics, Size.metrics, Populations))
-  p_values_array <- array(NA, dim = c(22, 5, 3), 
+  p_values_array <- array(NA, dim = c(length(Soil.metrics), length(Size.metrics), length(Populations)), 
                         list(Soil.metrics, Size.metrics, Populations))
 
   plot_list <- list()   #to store plots
@@ -674,8 +674,9 @@ ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.v
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Values",
        title = "All Sites Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P-values Labeled") + 
-  scale_fill_distiller(palette = "RdPu", direction = -1) +
-  coord_flip()
+  scale_fill_distiller(palette = "RdPu", direction = -1) 
+  #theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust=0.5)) +
+  #coord_flip()
 
 #across LM
 size.pop.slopes.df.LM <- size.pop.slopes.df[size.pop.slopes.df$Population == "LM", ] #isolating the LM p-values/slopes
@@ -687,8 +688,7 @@ ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.v
        title = "Las Matancitas Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P-values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA))) +
-  coord_flip() 
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA))) 
 
 #labeled slopes
 ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.value, NA)), data = size.pop.slopes.df.LM) +
@@ -697,8 +697,7 @@ ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.v
        title = "Las Matancitas Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA)), color = "black") + 
-  coord_flip()  
+  geom_text(aes(label = ifelse(P.value < 0.05, round(Slope, 3), NA)), color = "black")
 
 
 
@@ -706,49 +705,44 @@ ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.v
 size.pop.slopes.df.LC <- size.pop.slopes.df[size.pop.slopes.df$Population == "LC", ] #isolating the LM p-values/slopes
 
 #labeled p-values
-ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LC) +
+ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.value, NA)), data = size.pop.slopes.df.LC) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  
        title = "La Cobriza Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P-values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1)  + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
-  coord_flip()
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
 
 #labeled slopes
-ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.LC) +
+ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.value, NA)), data = size.pop.slopes.df.LC) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", fill = "P Value",  
        title = "La Cobriza Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1)  + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
-  coord_flip()
-
+  geom_text(aes(label = ifelse(P.value < 0.05, round(Slope, 3), NA)))
 
 
 #across SD
 size.pop.slopes.df.SD <- size.pop.slopes.df[size.pop.slopes.df$Population == "SD", ] #isolating the LM p-values/slopes
 
 #labeled p-values
-ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
+ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.value, NA)), data = size.pop.slopes.df.SD) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", 
        fill = "P Value",  
        title = "San Dionisio Significant Associations between Soil and Size/Shape",
        subtitle = "Significant P Values Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, P_Value, NA))) +
-  coord_flip()
+  geom_text(aes(label = ifelse(P.value < 0.05, P.value, NA)))
 
 #labeled slopes
-ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P_Value < 0.05, P_Value, NA)), data = size.pop.slopes.df.SD) +
+ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.value, NA)), data = size.pop.slopes.df.SD) +
   geom_tile() + 
   labs(x = "Size Characteristic", y = "Soil Characteristic", 
        fill = "P Value",  
        title = "San Dionisio Significant Associations between Soil and Size/Shape",
        subtitle = "Significant Slopes Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_Value < 0.05, round(Slope, 3), NA))) +
-  coord_flip()
+  geom_text(aes(label = ifelse(P.value < 0.05, round(Slope, 3), NA))) 
 

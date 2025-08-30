@@ -563,9 +563,108 @@ fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_
 
 #### ANOVA comparing mean soil values between population ####
 
+mean_soil_function <- function(soil_group, data = fixed_field_data_processed_trees_soils, Populations = "Locality") {
+  
+  # Building the formula for the difference in means tests
+  formula <- as.formula(paste(soil_group, "~", Populations))
+  
+  # Initial ANOVA
+  anova_model <- aov(formula, data = data)
+  
+  # checking to see if the residuals are normal
+  shapiro_test <- shapiro.test(anova_model$residuals) 
+  
+  #Equal variance tests
+  
+  #Fligner-Killeen, more useful when data is not normal or there are outliers 
+  fligner_test <- fligner.test(formula, data = fixed_field_data_processed_trees_soils)
+  #bartlett's test for equal variances when data is normal, which in this case it is
+  bartlett_test <- bartlett.test(formula, data = fixed_field_data_processed_trees_soils)
+  #levene's test, not super robust to strong differences to normality
+  levenes_test <- car::leveneTest(formula, data = fixed_field_data_processed_trees_soils)
+  #rule of thumb test
+  thumb_test <- tapply(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality, sd)
+  thumb_test_results <- max(thumb_test, na.rm = T) / min(thumb_test, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+  
+  # checking conditions to choose with difference in means test to use
+  if (shapiro_test$p.value < 0.05) { #if the residuals are NOT normally distributed
+    #Kruskall-Wallis test because the data has normally distributed residuals and equal variance of residuals
+    test <- kruskal.test(formula, data = fixed_field_data_processed_trees_soils)
+    #post-hoc Wilcoxon rank sum tests
+    post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality,
+                         p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+    #storing the tests used
+    test_type = "Kruskall-Wallis + Wilcoxon Rank Sum Test"
+    #printing out which test was used
+    print(paste("Kruskall-Wallis Test with a Post-Hoc Wilcoxon Rank Sum Test"))
+    
+  } else if (shapiro_test$p.value > 0.05) { #if the residuals are normally distributed
+    if (fligner_test$p.value < 0.05 & thumb_test_results > 2) { #if the equal variance of residuals condition is NOT met
+      
+      #Welch's ANOVA, does not assume equal variances, but does meet normality condition
+      test <- oneway.test(formula, data = fixed_field_data_processed_trees_soils, var.equal = F)
+      #post hoc Welch's ANOVA test: Tamhane's T2 Test
+      post_hoc <- tamhaneT2Test(fixed_field_data_processed_trees_soils[[soil_group]]~fixed_field_data_processed_trees_soils$Locality_Factor, data = fixed_field_data_processed_trees_soils)
+      #storing the tests used
+      test_type = "Welch's ANOVA + Tamhane's Test"
+      #printing out which test was used
+      print(paste("Welch's ANOVA with a Post-Hoc Tamhane's Test"))
+      
+    } else if (fligner_test$p.value > 0.05 & thumb_test_results < 2) { #if the equal variance of residuals condition IS met
+      #traditional ANOVA because equal variance and normality were met
+      test <- anova(anova_model)
+      #post-hoc Tukey's HSD
+      post_hoc <- TukeyHSD(anova_model)
+      #storing the tests used
+      test_type = "ANOVA + Tukey's HSD"
+      #printing out which test was used
+      print(paste("ANOVA Test with a Post-Hoc Pairwise T-Test Test"))
+    }
+  }
+  
+  #Kruskall-Wallis test because it is non-parametric
+  kruskal_test <- kruskal.test(formula, data = fixed_field_data_processed_trees_soils)
+  #post-hoc Wilcoxon rank sum tests
+  kruskall_post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality,
+                                   p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+  
+  
+  return(list(
+    anova_model = summary(anova_model),
+    shapiro_test = shapiro_test,
+    fligner_test = fligner_test,
+    bartlett_test = bartlett_test,
+    levenes_test = levenes_test,
+    thumb_test_results = thumb_test_results,
+    final_test = test,
+    posthoc = post_hoc,
+    test_type = test_type,
+    kruskal_test = kruskal_test, 
+    kruskall_post_hoc = kruskall_post_hoc
+  ))
+  
+  
+}
+  
+
 ##clay 0-5 cm
 
-anova_clay_0_5 <- aov(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_clay_0.5 <- mean_soil_function("clay.content.0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_clay_0.5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_clay_0.5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_0.5$kruskal_test 
+
+#storing the 
+clay_0.5_mean_p.value <- mean_soil_function_clay_0.5$kruskal_test $p.value
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_0.5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -573,1092 +672,509 @@ ggplot()+
   theme_minimal()
 
 # checking to see if residuals are normal
+anova_clay_0_5 <- aov(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_clay_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content vs. Population")
 
-qqnorm(anova_clay_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_0_5$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-#residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay.content.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_0_5 <- tapply(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_0_5, na.rm = T) / min(thumb_test_clay_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(clay.content.0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-clay_0.5_kruskall <- kruskal.test(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-clay_0.5_mean_p.value <- clay_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 ##clay 100-200 
 
-anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_clay_100.200 <- mean_soil_function("clay.content.100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_clay_100.200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_clay_100.200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_100.200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_100.200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
+anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_clay_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_100_200$residuals) #Shapiro-Wilk test, not significant, meaning residuals are normal
-
-#significant meaning residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers, as in this case
-fligner.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal
-bartlett.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay.content.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data does not meet the condition of normal residuals and equal variance, meaning we will use a Kruskal-Wallis test
-
-#kruskall wallis test
-clay_100.200_kruskall <- kruskal.test(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-clay_100.200_mean_p.value <- clay_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay.content.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 
 #silt 0-5
 
-anova_silt_0_5 <- aov(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_silt_0.5 <- mean_soil_function("silt.0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_silt_0.5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_silt_0.5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_silt_0.5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_0.5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
+anova_silt_0_5 <- aov(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_silt_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_silt_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_silt_0_5$residuals) #Shapiro-Wilk test, 
-
-#significant, meaning residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils) #not significant so semi equal variance
-
-#bartlett's test for equal variances when data is normal,
-bartlett.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$silt.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_silt_0_5 <- tapply(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_silt_0_5, na.rm = T) / min(thumb_test_silt_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test, the data does not meet the condition of normal residuals, meaning we will use a Kruskal-Wallis test
-
-#kruskall wallis test
-silt_0.5_kruskall <- kruskal.test(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-silt_0.5_mean_p.value <- silt_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 ##silt 100-200
 
-anova_silt_100_200 <- aov(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_silt_100.200 <- mean_soil_function("silt.100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_silt_100.200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_silt_100.200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_silt_100.200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_100.200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
+anova_silt_100_200 <- aov(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_silt_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_silt_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_silt_100_200$residuals) #Shapiro-Wilk test, 
-
-#not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$silt.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_100_200 <- tapply(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_100_200, na.rm = T) / min(thumb_test_clay_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
-
-#ANOVA test 
-anova(anova_silt_100_200)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-silt_100.200_kruskall <- kruskal.test(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-silt_100.200_mean_p.value <- silt_100.200_kruskall$p.value
-
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$silt.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 ##sand  0-5 
 
-anova_sand_0_5 <- aov(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_sand_0.5 <- mean_soil_function("sand.0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_sand_0.5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_sand_0.5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sand_0.5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_0.5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
+anova_sand_0_5 <- aov(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_sand_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_sand_0_5$residuals) #Shapiro-Wilk test, 
-
-#not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sand.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sand_0_5 <- tapply(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sand_0_5, na.rm = T) / min(thumb_test_sand_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shaprio test and fligner-killeen test, the data appears to meet all the conditions and we can use a regular anova and XX Test
-
-#ANOVA test 
-anova(anova_sand_0_5)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-sand_0.5_kruskall <- kruskal.test(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-sand_0.5_mean_p.value <- sand_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 
 ## sand 100-200
 
-anova_sand_100_200 <- aov(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))
-
-# checking to see if residuals are normal
-hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_sand_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_sand_100_200$residuals) #Shapiro-Wilk test, 
-
-#not significant, meaning residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sand.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sand_100_200 <- tapply(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sand_100_200, na.rm = T) / min(thumb_test_sand_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the fligner-killeen test, the data appears to meet the normal residuals condition but not the equal variance, so we will use the welch's anova and tamhane's t2 post hoc test
+mean_soil_function_sand_100.200 <- mean_soil_function("sand.100.200")
 
 #Welch's ANOVA, does not assume equal variances 
-oneway.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+mean_soil_function_sand_100.200$final_test
 
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_sand_100.200$posthoc
 
-tamhaneT2Test(sand.100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sand_100.200$kruskal_test 
 
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-sand_100.200_kruskall <- kruskal.test(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-sand_100.200_mean_p.value <- sand_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sand.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-## ph 0-5
-
-anova_ph_0_5 <- aov(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_100.200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+anova_sand_100_200 <- aov(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
 
-qqnorm(anova_ph_0_5$residuals) #qqnorm plot
+## ph 0-5
+mean_soil_function_ph_0_5 <- mean_soil_function("ph_0.5")
 
-shapiro.test(anova_ph_0_5$residuals) #Shapiro-Wilk test, 
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_ph_0_5$final_test
 
-#is significant, meaning the residuals are not normal
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_ph_0_5$posthoc
 
-# checking equal variances with levene's test and rule of thumb
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_ph_0_5$kruskal_test 
 
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_0_5$kruskall_post_hoc
 
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))+
+  theme_minimal()
 
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$ph_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-ph_0.5_kruskall <- kruskal.test(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-ph_0.5_mean_p.value <- ph_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+# checking to see if residuals are normal
+anova_ph_0_5 <- aov(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for pH at 0-5 cm vs. Population")
 
 ##ph 100-200
 
-anova_ph_100_200 <- aov(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_ph_100_200 <- mean_soil_function("ph_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_ph_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_ph_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_ph_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_ph_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_ph_100_200$residuals) #Shapiro-Wilk test, 
-
-#is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$ph_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_ph_100_200 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_ph_100_200, na.rm = T) / min(thumb_test_ph_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the normality condition but it does meet normal residuals, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-ph_100.200_kruskall <- kruskal.test(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-ph_100.200_mean_p.value <- ph_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$ph_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_ph_100_200 <- aov(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for pH at 100-200 cm vs. Population")
 
 ##soil organic carbon 0-5
 
-anova_soc_0_5 <- aov(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_SOC_0_5 <- mean_soil_function("SOC.0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_SOC_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_SOC_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_SOC_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
-
-qqnorm(anova_soc_0_5$residuals) #qqnorm plot
-
-shapiro.test(anova_soc_0_5$residuals) #Shapiro-Wilk test, 
-
-#is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$SOC.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_soc_0_5 <- tapply(fixed_field_data_processed_trees_soils$ph_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_soc_0_5, na.rm = T) / min(thumb_test_soc_0_5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions, so we will use the kruskal wallis and  wilcox post hoc test
-
-#kruskall wallis test
-soc_0.5_kruskall <- kruskal.test(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-soc_0.5_mean_p.value <- soc_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+anova_soc_0_5 <- aov(SOC.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Organic Carbon at 0-5 cm vs. Population")
 
 #soil organic carbon 100-200
 
-anova_soc_100_200 <- aov(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_SOC_100_200 <- mean_soil_function("SOC.100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_SOC_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_SOC_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_SOC_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_soc_100_200$residuals) #qqnorm plot
-
-shapiro.test(anova_soc_100_200$residuals) #Shapiro-Wilk test, 
-
-#is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$SOC.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_soc_100_200 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_soc_100_200, na.rm = T) / min(thumb_test_soc_100_200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the conditions and we can use a regular ANOVA and pairwise t test
-
-#ANOVA test 
-anova(anova_soc_100_200)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-soc_100.200_kruskall <- kruskal.test(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-soc_100.200_mean_p.value <- soc_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_soc_100_200 <- aov(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Organic Carbon at 100-200 cm vs. Population")
 
 #volume of water content at -10 kpa 0-5
 
-anova_vol_water_10_0.5 <- aov(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_vol_water_10_0_5 <- mean_soil_function("vol_water_.10_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_vol_water_10_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_10_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_10_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_10_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_10_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_10_0.5$residuals) #Shapiro-Wilk test, 
-
-#is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_10_0.5 <- tapply(fixed_field_data_processed_trees_soils$SOC.100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_10_0.5, na.rm = T) / min(thumb_test_vol_water_10_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
-
-#kruskall wallis test
-vol_wat_10kpa_0.5_kruskall <- kruskal.test(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_10kpa_0.5_mean_p.value <- vol_wat_10kpa_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_vol_water_10_0.5 <- aov(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -10 kpa at 0-5 cm vs. Population")
 
 #volume of water content at -10 kpa 100-200
 
-anova_vol_water_10_100.200 <- aov(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_10_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_10_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are not normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_10_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_10_100.200, na.rm = T) / min(thumb_test_vol_water_10_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal residuals and so we have to use the kruskal wallis test
-
-#kruskall wallis test
-vol_wat_10kpa_100.200_kruskall <- kruskal.test(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_10kpa_100.200_mean_p.value <- vol_wat_10kpa_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-#volume of water content at -33 kpa 0-5
-
-anova_vol_water_33_0.5 <- aov(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_0.5))
-
-# checking to see if residuals are normal
-hist(anova_vol_water_33_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_33_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_33_0.5$residuals) #Shapiro-Wilk test, 
-
-#is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_33_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_33_0.5, na.rm = T) / min(thumb_test_vol_water_33_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the conditions of normal residuals, but not equal variance so we can use the Welch's ANOVA test
+mean_soil_function_vol_water_10_100_200 <- mean_soil_function("vol_water_.10_100.200")
 
 #Welch's ANOVA, does not assume equal variances 
-oneway.test(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
+mean_soil_function_vol_water_10_100_200$final_test
 
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_10_100_200$posthoc
 
-tamhaneT2Test(vol_water_0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_10_100_200$kruskal_test 
 
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_10_100_200$kruskall_post_hoc
 
-#kruskall wallis test
-vol_wat_33kpa_0.5_kruskall <- kruskal.test(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_33kpa_0.5_mean_p.value <- vol_wat_33kpa_0.5_kruskall$p.value
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200))+
+  theme_minimal()
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+# checking to see if residuals are normal
+anova_vol_water_10_100.200 <- aov(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -10 kpa at 100-200 cm vs. Population")
 
 #volume of water content at -33 kpa 100-200
 
-anova_vol_water_33_100.200 <- aov(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_vol_water_33_100_200 <- mean_soil_function("vol_water_100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_vol_water_33_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_33_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_33_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_33_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200), fill = "skyblue") +
-  labs(y = expression("Clay/Loam Field Capacity at 100-200 cm " (10^-2 * cm^3 * cm^-3))) +
-  theme_classic()+
-  scale_x_discrete(labels=c("LC" = "La Cobriza", "LM" = "Las Matancitas",
-                            "SD" = "San Dionisio"))+
-  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_33_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_33_100.200$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_10_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_10_100.200, na.rm = T) / min(thumb_test_vol_water_10_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the conditions of normal residuals, but not equal variance so we can use the Welch's ANOVA test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(vol_water_100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-vol_wat_33kpa_100.200_kruskall <- kruskal.test(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_33kpa_100.200_mean_p.value <- vol_wat_33kpa_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_vol_water_33_100.200 <- aov(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -33 kpa at 0-5 cm vs. Population")
 
 #volume of water content at -1500 kpa 0-5
 
-anova_vol_water_1500_0.5 <- aov(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_vol_water_1500_0_5 <- mean_soil_function("vol_water_.1500kPa_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_vol_water_1500_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_1500_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_1500_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_1500_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_vol_water_1500_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_1500_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_1500_0.5$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_1500_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_1500_0.5, na.rm = T) / min(thumb_test_vol_water_1500_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data meets the condition of normal residuals but not equal variance so we will use a welch's anova and tamhanes t2 posthoc test
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(vol_water_.1500kPa_0.5 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-
-#Despite that the data did not meet the condition of equal variance we will also add results of the kruskal-wallis
-
-#kruskall wallis test
-vol_wat_1500kpa_0.5_kruskall <- kruskal.test(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_1500kpa_0.5_mean_p.value <- vol_wat_1500kpa_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500kPa_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_vol_water_1500_0.5 <- aov(vol_water_.1500kPa_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_1500_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -1500 kpa at 0-5 cm vs. Population")
 
 #volume of water content at -1500 kpa 100-200
 
+mean_soil_function_vol_water_1500_100_200 <- mean_soil_function("vol_water_.1500_100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_vol_water_1500_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_1500_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_1500_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_1500_100_200$kruskall_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200))+
+  theme_minimal()
+
+# checking to see if residuals are normal
 anova_vol_water_1500_100.200 <- aov(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -1500 kpa at 100-20 cm vs. Population")
+
+#nitrogen 0-5
+
+mean_soil_function_nitrogen_0_5 <- mean_soil_function("nitrogen.0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_nitrogen_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_nitrogen_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_nitrogen_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_vol_water_1500_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_vol_water_1500_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_vol_water_1500_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_vol_water_1500_100.200, na.rm = T) / min(thumb_test_vol_water_1500_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-vol_wat_1500kpa_100.200_kruskall <- kruskal.test(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-vol_wat_1500kpa_100.200_mean_p.value <- vol_wat_1500kpa_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$vol_water_.1500_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-#nitrogen 05-
-
 anova_nitrogen_0.5 <- aov(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5))
-
-# checking to see if residuals are normal
-hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_nitrogen_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_nitrogen_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$nitrogen.0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_nitrogen_0.5 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_nitrogen_0.5, na.rm = T) / min(thumb_test_nitrogen_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-nitrogen_0.5_kruskall <- kruskal.test(nitrogen.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-nitrogen_0.5_mean_p.value <- nitrogen_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Nitrogen Content at 0-5 cm vs. Population")
 
 # nitrogen 100-200
 
-anova_nitrogen_100.200 <- aov(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_nitrogen_100_200 <- mean_soil_function("nitrogen.100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_nitrogen_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_nitrogen_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_nitrogen_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_nitrogen_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_nitrogen_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_nitrogen_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$nitrogen.100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_nitrogen_100.200 <- tapply(fixed_field_data_processed_trees_soils$vol_water_.10_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_nitrogen_100.200, na.rm = T) / min(thumb_test_nitrogen_100.200, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#kruskall wallis test
-nitrogen_100.200_kruskall <- kruskal.test(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-nitrogen_100.200_mean_p.value <- nitrogen_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$nitrogen.100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+anova_nitrogen_100.200 <- aov(nitrogen.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_nitrogen_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Nitrogen Content at 100-200 cm vs. Population")
 
 # sandy available water 0-5 cm
 
-anova_sandy_avail_water_0.5 <- aov(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-summary(anova_sandy_avail_water_0.5)
+mean_soil_function_sandy_avail_water_0_5 <- mean_soil_function("sandy_avail_water_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_sandy_avail_water_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_sandy_avail_water_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sandy_avail_water_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_sandy_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_sandy_avail_water_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_sandy_avail_water_0.5$residuals) #Shapiro-Wilk test, is not significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sandy_avail_water_0.5 <- tapply(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sandy_avail_water_0.5, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data is normal and the variance is equal
-
-#ANOVA test 
-anova(anova_sandy_avail_water_0.5)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-
-#kruskall wallis test
-sandy_avail_water_0.5_kruskall <- kruskal.test(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-sandy_avail_water_0.5_mean_p.value <- sandy_avail_water_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sandy_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+anova_sandy_avail_water_0.5 <- aov(sandy_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_sandy_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Sand Available Water at 0-5 cm vs. Population")
 
 # sandy available water 100-200 cm
 
-anova_sandy_avail_water_100.200 <- aov(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_sandy_avail_water_100_200 <- mean_soil_function("sandy_avail_water_100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_sandy_avail_water_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_sandy_avail_water_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sandy_avail_water_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_sandy_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_sandy_avail_water_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_sandy_avail_water_100.200$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$sandy_avail_water_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_sandy_avail_water_100.200 <- tapply(fixed_field_data_processed_trees_soils$sandy_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_sandy_avail_water_100.200, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskal wallice
-
-#based on the levene's and rule of thumb test, the data does not meet the condition of equal variance, meaning we will use a Welch test
-
-#Welch's ANOVA, does not assume equal variances 
-oneway.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils, var.equal = F)
-
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
-
-tamhaneT2Test(sandy_avail_water_100.200 ~ Locality_Factor, data = fixed_field_data_processed_trees_soils)
-
-
-#kruskall wallis test
-sandy_avail_water_100.200_kruskall <- kruskal.test(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-sandy_avail_water_100.200_mean_p.value <- sandy_avail_water_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sandy_avail_water_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$sandy_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+anova_sandy_avail_water_100.200 <- aov(sandy_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_sandy_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Sand Available Water at 100-200 cm vs. Population")
 
 # clay loam available water 0-5 cm
 
-anova_clay_loam_avail_water_0.5 <- aov(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_clay_loam_avail_water_0_5 <- mean_soil_function("clay_loam_avail_water_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_clay_loam_avail_water_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_clay_loam_avail_water_0_5$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_loam_avail_water_0_5$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_0_5$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_0.5))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_0.5))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_clay_loam_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_clay_loam_avail_water_0.5$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_loam_avail_water_0.5$residuals) #Shapiro-Wilk test, is significant, meaning the residuals are NOT normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_loam_avail_water_0.5 <- tapply(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_loam_avail_water_0.5, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data does not meet the conditions of normal so we will use kruskaLl wallice
-
-#kruskall wallis test
-clay_loam_avail_water_0.5_kruskall <- kruskal.test(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-clay_loam_avail_water_0.5_mean_p.value <- clay_loam_avail_water_0.5_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_0.5, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+anova_clay_loam_avail_water_0.5 <- aov(clay_loam_avail_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_loam_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
 
 # clay loam available water 100-200 cm
 
-anova_clay_loam_avail_water_100.200 <- aov(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+mean_soil_function_clay_loam_avail_water_100_200 <- mean_soil_function("clay_loam_avail_water_100.200")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_clay_loam_avail_water_100_200$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_clay_loam_avail_water_100_200$posthoc
+
+#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_loam_avail_water_100_200$kruskal_test 
+
+#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_100_200$kruskall_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_100.200))
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_100.200))+
+  theme_minimal()
 
 # checking to see if residuals are normal
-hist(anova_clay_loam_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Oranic Carbon at 100-200 cm vs. Population")
-
-qqnorm(anova_clay_loam_avail_water_100.200$residuals) #qqnorm plot
-
-shapiro.test(anova_clay_loam_avail_water_100.200$residuals) #Shapiro-Wilk test, is NOT significant, meaning the residuals are normal
-
-# checking equal variances with levene's test and rule of thumb
-
-#Fligner-Killeen, more useful when data is not normal or there are outliers 
-fligner.test(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#bartlett's test for equal variances when data is normal, which in this case it is
-bartlett.test(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-#levene's test, not super robust to strong differences to normality
-leveneTest(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200 ~ fixed_field_data_processed_trees_soils$Locality)
-
-#rule of thumb test
-thumb_test_clay_loam_avail_water_100.200 <- tapply(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality, sd)
-max(thumb_test_clay_loam_avail_water_100.200, na.rm = T) / min(thumb_test_sandy_avail_water_0.5, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-
-#based on the shapiro test and fligner-killeen test, the data is normal and the variance is equal
-
-#ANOVA test 
-anova(anova_clay_loam_avail_water_100.200)
-
-#post-hoc pairwise t tests
-
-pairwise.t.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality, p.adj.method = "bonf")
-
-#kruskall wallis test
-clay_loam_avail_water_100.200_kruskall <- kruskal.test(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-clay_loam_avail_water_100.200_mean_p.value <- clay_loam_avail_water_100.200_kruskall$p.value
-
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200 , fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(fixed_field_data_processed_trees_soils$clay_loam_avail_water_100.200, fixed_field_data_processed_trees_soils$Locality,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
+anova_clay_loam_avail_water_100.200 <- aov(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_loam_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 100-200 cm vs. Population")
 
 
 #Heat Map 
