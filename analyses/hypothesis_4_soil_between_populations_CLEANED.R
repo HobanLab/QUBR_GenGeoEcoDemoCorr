@@ -450,18 +450,18 @@ LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #ite
   return(tree_pt)
 })
 
-#### RESUME ####
 
 #creating a dataframe of all of the trees with their row number in the overall tree point dataframe and in which grid cell they are in
-LM_list_grids_and_point_trees_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
+LM_list_grids_and_point_trees_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
 colnames(LM_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
-LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>% #filters out grid cells that do not have trees within them
+#filters out grid cells that do not have trees within them
+LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>% 
   mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
 #filtering out point data to be just the trees within the grids
 LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
-  filter(X %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
+  filter(X %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe 
 
 #plotting the points, grid, and randomly selected points from each grid
 ggplot()+

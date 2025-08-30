@@ -932,14 +932,14 @@ random_pop.df <- random_pop.df %>%
 
 
 #labeled p-values
-ggplot(aes(x = fct_reorder(Soil.metrics, P_values), y = Significance, fill = P_values), data = random_pop.df) +
+ggplot(aes(x = fct_reorder(Soil.metrics, P_values_bonf_corrected), y = Significance, fill = P_values_bonf_corrected), data = random_pop.df) +
   geom_tile() + 
   labs(y = "Significant P-Value", x  = "Soil Characteristic", 
        fill = "P-Value",  
        title = "Association Between Soil Metrics and Population Locations",
        subtitle = "P-Values Below 0.5 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_values < 0.05, round(P_values, 4), NA)), col = "white") +
+  geom_text(aes(label = ifelse(P_values_bonf_corrected < 0.05, round(P_values_bonf_corrected, 4), NA)), col = "white") +
   coord_flip() +
   theme_classic() +
   theme(axis.text = element_text(size = 13),

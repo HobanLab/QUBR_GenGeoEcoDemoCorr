@@ -583,14 +583,8 @@ pvals_df <- as.data.frame.table(slope_simultations$p_values_array,
 pvals_df <- pvals_df %>%
   mutate(p_bonf_corrected = p.adjust(pvals_df$p_value, method = "bonferroni"))
 
-pvals_df$p_bonf_corrected
-
 size.pop.slopes.df <- merge(slopes_df, pvals_df, by = c("Var3", "Var2", "Var1")) #merging the two dataframes into one
 names(size.pop.slopes.df) <- c("Population", "Size.Variable", "Soil.Metric", "Slope", "P.value") #re-naming the columns to be more appropriate
-
-# Bonferroni correcting for multiple testing
-p_bonf_corrected <- p.adjust(p_value_mean, method = "bonferroni")
-p_bonf_corrected
 
 #creating a column for whether the p values are significant or not
 size.pop.slopes.df <- size.pop.slopes.df %>%
