@@ -530,13 +530,21 @@ slopes_simulations <- function () {
         plot_list[[plot_name]] <- plot_out
         
         #calculating pseudo p-value for 
-        total = 0  #set empty value
-        for (p in 1:length(slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-          if (slopes[p] > lm_real_slope){
-            total = total + 1
-          }
-        } #add number of values of in the random set of ANN values that are less than our mean ANN
-        p_value <- (total / length(slopes)) #the proportion of random ANNs that are less than our ANN
+        
+        # if using greater than hypothesis
+        
+        # total = 0  #set empty value
+        # for (p in 1:length(slopes)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+        #   if (slopes[p] > lm_real_slope){
+        #     total = total + 1
+        #   }
+        # } #add number of values of in the random set of ANN values that are less than our mean ANN
+        # p_value <- (total / length(slopes)) #the proportion of random ANNs that are less than our ANN
+        
+        # using the significantly different alternative hypothesis 
+        p_value_greater_than <- sum(slopes >= lm_real_slope)/length(slopes)   # proportion of simulated slopes higher than our real slope
+        p_value_less_than <- sum(slopes <= lm_real_slope)/length(slopes)   # proportion of simulated slopes lower than our real slope
+        p_value <- min(1, 2 * min(p_value_greater_than, p_value_less_than)) # take the smaller tail (the "more extreme" one), then double it
         
         slopes_array[j, k, i] = lm_real_slope #assigning the each index in the array with the new slope value
         p_values_array[j, k, i] = p_value #assigning the each index in the array with the new p value
@@ -571,9 +579,18 @@ slopes_df <- as.data.frame.table(slope_simultations$slopes_array,
                                  responseName = "slope") #creating a dataframe from the slope array
 pvals_df <- as.data.frame.table(slope_simultations$p_values_array, 
                                 responseName = "p_value") #creating a dataframe from the p value array
+# Bonferroni correcting for multiple testing
+pvals_df <- pvals_df %>%
+  mutate(p_bonf_corrected = p.adjust(pvals_df$p_value, method = "bonferroni"))
+
+pvals_df$p_bonf_corrected
 
 size.pop.slopes.df <- merge(slopes_df, pvals_df, by = c("Var3", "Var2", "Var1")) #merging the two dataframes into one
 names(size.pop.slopes.df) <- c("Population", "Size.Variable", "Soil.Metric", "Slope", "P.value") #re-naming the columns to be more appropriate
+
+# Bonferroni correcting for multiple testing
+p_bonf_corrected <- p.adjust(p_value_mean, method = "bonferroni")
+p_bonf_corrected
 
 #creating a column for whether the p values are significant or not
 size.pop.slopes.df <- size.pop.slopes.df %>%

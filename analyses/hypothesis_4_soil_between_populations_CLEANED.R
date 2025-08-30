@@ -1,10 +1,35 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%Looking to see if the Quercus brandegeei populations have different mean soil metrics%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# The purpose of this script is determine whether there are significantly different mean
+# soil metrics (clay content, pH, etc.) between the three Quercus brandegeei populations.
+# A lack of differences could indicate which characteristics may explain why the trees are found at
+# these distinct sites versus other locations. 
+# Observed differences could may explain other differences in tree growth/survival between the sites, 
+# as well as relate to environmental/topographic characteristics. 
+
+# To test this, we used difference in means tests based on which conditions were met for each soil metric.
+    # If the residuals were not normal, we used a Kruskal-Wallis test and Post-Hoc Wilcoxon Rank Sum Test
+    # If the residuals were normal but the variance was NOT equal, we used a Welch's ANOVA test and Post-Hoc Tamhane's T2 Test
+    # If the residuals were normal and the variance was equal, we used a Traditional ANOVA test and Post-Hoc Pairwise T-test
+
+# The script is broken into sections of 
+# 1) loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
+#San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
+# 2) processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
+#boxs around the  rivers, stacking the rasters for each population, and processing them into one dataframe for all and each population
+# 3) Creating the four new soil metrics: Sandy available Water (0-5 and 100-200 cm) and Clay/Loam Available Water (0-5 and 100-200 cm)
+# 4) Making the function for checking conditions and running the appropriate difference in means test
+# 5) Running the function and storing the outputs for each soil metric
+
 #### Loading libraries and relevant data ####
 
-library(tidyverse)
+library(tidyverse) # for graphing and data organization
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
 library(smatr)
-library(ggpmisc)
+library(ggpmisc) # ggplot extension
 library(PMCMRplus) # for Dunn test
 library(geomtextpath) # for PCA graphing
 library(spatstat) # to run the nndist function
@@ -12,17 +37,20 @@ library(raster) #to plot rasters
 library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
 
-#loading in the data
+# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#transforming the data into shapefiles with either WGS84 
+#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
                                           coords = c("long", "lat"), crs = 4326)
 
-#transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
+#creating a transformed point shapefile with UTM 12 N an equal area projection
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
 #create dataframe with X and Y UTM coordinates
+
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
@@ -53,7 +81,7 @@ SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>
   filter(Locality == "SD") %>%
   st_as_sfc()
 
-#### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
+# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LM")
@@ -65,7 +93,8 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
   filter(Locality == "SD")
 
 
-#upload ArcGIS river shapefile and filter out polygons for each population
+#Upload ArcGIS river shapefile and filter out polygons for each population
+
 river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
 river_LM  <- river_LM$geometry[1]
 plot(river_LM)
@@ -77,7 +106,6 @@ plot(river_LC)
 river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
-
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
@@ -111,11 +139,10 @@ LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
 
+#### Load in Soil Metric Data ####
 
-## Load in environmental rasters ##
+# loading in soil textures raster tifs from CONABIO
 
-
-#loading in soil textures from CONABIO, theses are too larger, about 1 km^2 I believe
 clay_05 <- raster(paste0("./data/Soil Grid/clay content/clay content 0-5.tif"))
 clay_200 <- raster(paste0("./data/Soil Grid/clay content/clay content 100-200.tif"))
 silt_05 <- raster(paste0("./data/Soil Grid/silt/silt 0-5.tif"))
@@ -138,20 +165,19 @@ vol_wat_33kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kP
 vol_wat_33kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -33 kPa /vol_water_100-200.tif")) #100-200 cm -33 kpa volumn water content
 vol_wat_1500kpa_05 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500kPa_0-5.tif"))  #0-5 cm -1500 kpa volumn water content
 vol_wat_1500kpa_200 <- raster(paste0("./data/Soil Grid/vol. water content at -1500 kPa/vol_water_-1500_100-200.tif")) #100-200 cm -1500 kpa volumn water content
-nitrogen_05 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 0-5.tif"))
-nitrogen_200 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 100-200.tif"))
-Soil_Organic_Carbon_05 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 0-5.tif"))
-Soil_Organic_Carbon_200 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 100-200.tif"))
+nitrogen_05 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 0-5.tif")) #0-5 cm nitrogen content 
+nitrogen_200 <- raster(paste0("./data/Soil Grid/Nitrogen/nitrogen 100-200.tif")) #100-200 cm nitrogen content 
+Soil_Organic_Carbon_05 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 0-5.tif")) #0-5 cm soil organic carbon
+Soil_Organic_Carbon_200 <- raster(paste0("./data/Soil Grid/Soil Organic Carbon/SOC 100-200.tif")) #100-200 cm soil organic carbon
 
+#project the soil metric rasters to equal area projection (UTM 12N) which uses meters as distance measurement 
 
-#project rasters to equal area projection (UTM 12N), uses meters as distance measurement 
 clay_05_utm <- projectRaster(clay_05, crs=26912) #converting the 0-5 cm clay raster to utm 12
 clay_200_utm <- projectRaster(clay_200, crs=26912) #converting the 90-200 cm clay raster to utm 12
 silt_05_utm <- projectRaster(silt_05, crs=26912)
 silt_200_utm <- projectRaster(silt_200, crs=26912)
 sand_05_utm <- projectRaster(sand_05, crs=26912)
 sand_200_utm <- projectRaster(sand_200, crs=26912)
-
 ph_05_utm <- projectRaster(ph_05, crs=26912) 
 ph_200_utm <- projectRaster(ph_200, crs=26912) 
 ocd_05_utm <- projectRaster(ocd_05, crs=26912)
@@ -173,19 +199,17 @@ nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
 Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
 Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
 
+## cropping the soil metrics to bounding boxes around each population ##
 
-#LM
-#examining the layers at different extents
+# LM
 
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
+# using the extent of the box around the rivers to crop the raster for each soil texture layer
 clay_05_LM <- crop(clay_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100)) 
 clay_200_LM <- crop(clay_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 silt_05_LM <- crop(silt_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
 silt_200_LM <- crop(silt_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_05_LM <- crop(sand_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 sand_200_LM <- crop(sand_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
 ph_05_LM <- crop(ph_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 ph_200_LM <- crop(ph_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 ocd_05_LM <- crop(ocd_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
@@ -202,27 +226,19 @@ vol_wat_33kpa_05_LM <- crop(vol_wat_33kpa_05_utm, extent(LM_box[1]-100, LM_box[3
 vol_wat_33kpa_200_LM <- crop(vol_wat_33kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 vol_wat_1500kpa_05_LM <- crop(vol_wat_1500kpa_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 vol_wat_1500kpa_200_LM <- crop(vol_wat_1500kpa_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
-
-
 nitrogen_05_LM <-  crop(nitrogen_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 nitrogen_200_LM <- crop(nitrogen_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 Soil_Organic_Carbon_05_LM <- crop(Soil_Organic_Carbon_05_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 Soil_Organic_Carbon_200_LM <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))
 
 
-#attempt of using ggplot to plot clay layer with river shapefile
+# plotting an example soil metric raster with river shapefile and tree points  
 ggplot()+
   geom_raster(data = as.data.frame(Soil_Organic_Carbon_05_LM, xy=T), aes(x=x, y=y, fill = SOC.0.5))+
   geom_sf(data = river_LM_trans)+
   geom_sf(data = LM_fixed_field_data_processed)
 
-
-ggplot()+
-  geom_raster(data = as.data.frame(ph_200_LM, xy=T), aes(x=x, y=y, fill = ph_100.200))+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed)
-
-#creating a stack of the raster layers
+#creating stacks of the soil raster layers (using multiple for visualization purposes)
 soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
 soil_stack_LM_other <- stack(ph_05_LM, ph_200_LM, ocd_05_LM, ocd_200_LM, coarse_frag_05_LM, coarse_frag_200_LM, #the stack of all of the other soil variables, with different extents than the soil texture rasters
                              cat_ex_cap_05_LM, cat_ex_cap_200_LM, bulk_dens_05_LM, bulk_dens_200_LM, vol_wat_10kpa_05_LM,
@@ -242,15 +258,14 @@ plot(soil_stack_LM_extra, zlim = c(30, 360)) #version where the plots have the s
 
 
 #LC
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
-#using the extent of the box around the rivers to crop the raster for each soil texture layer
+
+# using the extent of the box around the rivers to crop the raster for each soil texture layer
 clay_05_LC <- crop(clay_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100)) 
 clay_200_LC <- crop(clay_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 silt_05_LC <- crop(silt_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 silt_200_LC <- crop(silt_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 sand_05_LC <- crop(sand_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 sand_200_LC <- crop(sand_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-
 ph_05_LC <- crop(ph_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 ph_200_LC <- crop(ph_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 ocd_05_LC <- crop(ocd_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
@@ -266,16 +281,13 @@ vol_wat_10kpa_200_LC <- crop(vol_wat_10kpa_200_utm, extent(LC_box[1]-100, LC_box
 vol_wat_33kpa_05_LC <- crop(vol_wat_33kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_33kpa_200_LC <- crop(vol_wat_33kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 vol_wat_1500kpa_05_LC <- crop(vol_wat_1500kpa_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
-
 vol_wat_1500kpa_200_LC <- crop(vol_wat_1500kpa_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 nitrogen_05_LC <-  crop(nitrogen_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 nitrogen_200_LC <- crop(nitrogen_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 Soil_Organic_Carbon_05_LC <- crop(Soil_Organic_Carbon_05_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 Soil_Organic_Carbon_200_LC <- crop(Soil_Organic_Carbon_200_utm, extent(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))
 
-
-
-#creating a stack of the raster layers 
+#creating stacks of the soil raster layers (using multiple for visualization purposes)
 soil_stack_LC_soil_text <- stack(clay_05_LC, clay_200_LC, silt_05_LC, silt_200_LC, sand_05_LC, sand_200_LC) #the stack of all of the soil texture rasters
 soil_stack_LC_other <- stack(ph_05_LC, ph_200_LC, ocd_05_LC, ocd_200_LC, coarse_frag_05_LC, coarse_frag_200_LC, #the stack of all of the other soil variables, with different extents than the soil texture rasters
                              cat_ex_cap_05_LC, cat_ex_cap_200_LC, bulk_dens_05_LC, bulk_dens_200_LC, vol_wat_10kpa_05_LC,
@@ -301,7 +313,6 @@ silt_05_SD <- crop(silt_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-1
 silt_200_SD <- crop(silt_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 sand_05_SD <- crop(sand_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 sand_200_SD <- crop(sand_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
-
 ph_05_SD <- crop(ph_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 ph_200_SD <- crop(ph_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 ocd_05_SD <- crop(ocd_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
@@ -323,8 +334,7 @@ nitrogen_200_SD <- crop(nitrogen_200_utm, extent(SD_box[1]-100, SD_box[3]+100, S
 Soil_Organic_Carbon_05_SD <- crop(Soil_Organic_Carbon_05_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 Soil_Organic_Carbon_200_SD <- crop(Soil_Organic_Carbon_200_utm, extent(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))
 
-
-#creating a stack of the raster layers
+#creating stacks of the soil raster layers (using multiple for visualization purposes)
 soil_stack_SD_soil_text <- stack(clay_05_SD, clay_200_SD, silt_05_SD, silt_200_SD, sand_05_SD, sand_200_SD) #the stack of all of the soil texture rasters
 soil_stack_SD_other <- stack(ph_05_SD, ph_200_SD, ocd_05_SD, ocd_200_SD, coarse_frag_05_SD, coarse_frag_200_SD, #the stack of all of the other soil variables, with different extents than the soil texture rasters
                              cat_ex_cap_05_SD, cat_ex_cap_200_SD, bulk_dens_05_SD, bulk_dens_200_SD, vol_wat_10kpa_05_SD,
@@ -340,7 +350,6 @@ plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the s
 plot(soil_stack_SD_extra)
 plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the same scale
 
-
 #creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
 
 #creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
@@ -355,7 +364,7 @@ LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
 SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
   mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed))
 
-#Extracting the soil data to the tree points 
+#### Extracting the soil data to the tree points ####
 
 #LM
 LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
@@ -365,7 +374,6 @@ LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_s
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
 
-
 #LC
 LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
 LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
@@ -373,7 +381,6 @@ LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fix
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
-
 
 #SD
 SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
@@ -386,46 +393,50 @@ SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils
 
 #### Creating Sandy and Clay/Loamy Available Water Columns ####
 
+# Making four new soil metric variables for soil available water, which equals the field capacity - permanent wilting point
+
 # LM
 
 LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
-  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>% # Sand Available Water 0-5 cm
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
 # LC
 
 LC_fixed_field_data_processed_soils <- LC_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200)  # Clay/Loam Available Water 100-200 cm
 
 # SD
 
 SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
-  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>%
-  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>%
-  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) 
+  mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>% # Sand Available Water 0-5 cm
+  mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
+  mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
+  mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
+#### Comparing the soil metrics between populations ####
 
-### Comparing the soil metrics between populations ###
+# For each population, randomly selecting one tree from each grid cell to avoid issues because 
+# the rasters are only 250 m resolution and certain populations might have more points in specific 
+# cells, skewing the mean results away from the potentially real mean
 
 #LM
 
 #creating a grid over the soil cells
 LM_tree_grid_cropped <- st_make_grid(soil_stack_LM_soil_text, cellsize = c(230, 265))
 
-#plotting the grid over an example soil raster
+#plotting the grid over an example soil raster to ensure they were made properly
 ggplot()+
   geom_raster(data= as.data.frame(soil_stack_LM_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_sf(data = LM_tree_grid_cropped, fill = NA)
 
-
 #selecting a point from each grid cell with trees within them
-LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #making sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
 set.seed(24) #setting the seed
 LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
   if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
@@ -438,6 +449,8 @@ LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #ite
   }
   return(tree_pt)
 })
+
+#### RESUME ####
 
 #creating a dataframe of all of the trees with their row number in the overall tree point dataframe and in which grid cell they are in
 LM_list_grids_and_point_trees_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #unlists the list of grid cells and what focal trees were within them and turns it into a dataframe
@@ -588,18 +601,18 @@ mean_soil_function <- function(soil_group, data = fixed_field_data_processed_tre
   
   # checking conditions to choose with difference in means test to use
   if (shapiro_test$p.value < 0.05) { #if the residuals are NOT normally distributed
-    #Kruskall-Wallis test because the data has normally distributed residuals and equal variance of residuals
+    #kruskal-Wallis test because the data has normally distributed residuals and equal variance of residuals
     test <- kruskal.test(formula, data = fixed_field_data_processed_trees_soils)
     #post-hoc Wilcoxon rank sum tests
     post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality,
                          p.adjust.method = "fdr") #p value adjusted using false discovery rate method
     #storing the tests used
-    test_type = "Kruskall-Wallis + Wilcoxon Rank Sum Test"
+    test_type = "kruskal-Wallis + Wilcoxon Rank Sum Test"
     #printing out which test was used
-    print(paste("Kruskall-Wallis Test with a Post-Hoc Wilcoxon Rank Sum Test"))
+    print(paste("kruskal-Wallis Test with a Post-Hoc Wilcoxon Rank Sum Test"))
     
   } else if (shapiro_test$p.value > 0.05) { #if the residuals are normally distributed
-    if (fligner_test$p.value < 0.05 & thumb_test_results > 2) { #if the equal variance of residuals condition is NOT met
+    if (bartlett_test$p.value < 0.05 & thumb_test_results > 2) { #if the equal variance of residuals condition is NOT met
       
       #Welch's ANOVA, does not assume equal variances, but does meet normality condition
       test <- oneway.test(formula, data = fixed_field_data_processed_trees_soils, var.equal = F)
@@ -610,7 +623,7 @@ mean_soil_function <- function(soil_group, data = fixed_field_data_processed_tre
       #printing out which test was used
       print(paste("Welch's ANOVA with a Post-Hoc Tamhane's Test"))
       
-    } else if (fligner_test$p.value > 0.05 & thumb_test_results < 2) { #if the equal variance of residuals condition IS met
+    } else if (bartlett_test$p.value > 0.05 & thumb_test_results < 2) { #if the equal variance of residuals condition IS met
       #traditional ANOVA because equal variance and normality were met
       test <- anova(anova_model)
       #post-hoc Tukey's HSD
@@ -622,10 +635,10 @@ mean_soil_function <- function(soil_group, data = fixed_field_data_processed_tre
     }
   }
   
-  #Kruskall-Wallis test because it is non-parametric
+  #kruskal-Wallis test because it is non-parametric
   kruskal_test <- kruskal.test(formula, data = fixed_field_data_processed_trees_soils)
   #post-hoc Wilcoxon rank sum tests
-  kruskall_post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality,
+  kruskal_post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality,
                                    p.adjust.method = "fdr") #p value adjusted using false discovery rate method
   
   
@@ -640,7 +653,7 @@ mean_soil_function <- function(soil_group, data = fixed_field_data_processed_tre
     posthoc = post_hoc,
     test_type = test_type,
     kruskal_test = kruskal_test, 
-    kruskall_post_hoc = kruskall_post_hoc
+    kruskal_post_hoc = kruskal_post_hoc
   ))
   
   
@@ -657,14 +670,14 @@ mean_soil_function_clay_0.5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_clay_0.5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#Kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_clay_0.5$kruskal_test 
 
-#storing the 
-clay_0.5_mean_p.value <- mean_soil_function_clay_0.5$kruskal_test $p.value
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_0.5_mean_p.value <- mean_soil_function_clay_0.5$kruskal_test$p.value
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_clay_0.5$kruskall_post_hoc
+#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -686,11 +699,14 @@ mean_soil_function_clay_100.200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_clay_100.200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_clay_100.200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_clay_100.200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_100.200_mean_p.value <- mean_soil_function_clay_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -712,11 +728,14 @@ mean_soil_function_silt_0.5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_silt_0.5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_silt_0.5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_silt_0.5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+silt_0.5_mean_p.value <- mean_soil_function_silt_0.5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -737,11 +756,14 @@ mean_soil_function_silt_100.200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_silt_100.200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
-mean_soil_function_silt_100.200$kruskal_test 
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_silt_100.200$kruskal_test
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_silt_100.200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+silt_100.200_mean_p.value <- mean_soil_function_silt_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -762,11 +784,14 @@ mean_soil_function_sand_0.5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_sand_0.5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_sand_0.5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_sand_0.5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sand_0.5_mean_p.value <- mean_soil_function_sand_0.5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -787,11 +812,14 @@ mean_soil_function_sand_100.200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_sand_100.200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_sand_100.200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_sand_100.200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sand_100.200_mean_p.value <- mean_soil_function_sand_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -811,11 +839,14 @@ mean_soil_function_ph_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_ph_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_ph_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_ph_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+ph_0.5_mean_p.value <- mean_soil_function_ph_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -836,11 +867,14 @@ mean_soil_function_ph_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_ph_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
-mean_soil_function_ph_100_200$kruskal_test 
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_ph_100_200$kruskal_test
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_ph_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+ph_100.200_mean_p.value <- mean_soil_function_ph_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -861,11 +895,14 @@ mean_soil_function_SOC_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_SOC_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_SOC_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_SOC_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+soc_0.5_mean_p.value <- mean_soil_function_SOC_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -886,11 +923,14 @@ mean_soil_function_SOC_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_SOC_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_SOC_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_SOC_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+soc_100.200_mean_p.value <- mean_soil_function_SOC_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -911,11 +951,14 @@ mean_soil_function_vol_water_10_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_vol_water_10_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_vol_water_10_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_vol_water_10_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_10kpa_0.5_mean_p.value <- mean_soil_function_vol_water_10_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_10_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -936,11 +979,14 @@ mean_soil_function_vol_water_10_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_vol_water_10_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
-mean_soil_function_vol_water_10_100_200$kruskal_test 
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_10_100_200$kruskal_test
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_vol_water_10_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_10kpa_100.200_mean_p.value <- mean_soil_function_vol_water_10_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_10_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -950,6 +996,34 @@ ggplot()+
 # checking to see if residuals are normal
 anova_vol_water_10_100.200 <- aov(vol_water_.10_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
 hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -10 kpa at 100-200 cm vs. Population")
+
+#volume of water content at -33 kpa 0-5
+
+mean_soil_function_vol_water_33_0_5 <- mean_soil_function("vol_water_0.5")
+
+#Welch's ANOVA, does not assume equal variances 
+mean_soil_function_vol_water_33_0_5$final_test
+
+#post hoc Welch's ANOVA test: Tamhane's T2 Test
+mean_soil_function_vol_water_33_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_33_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_33kpa_0.5_mean_p.value <- mean_soil_function_vol_water_33_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_33_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_vol_water_33_0.5 <- aov(vol_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_vol_water_33_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -33 kpa at 0-5 cm vs. Population")
 
 #volume of water content at -33 kpa 100-200
 
@@ -961,11 +1035,14 @@ mean_soil_function_vol_water_33_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_vol_water_33_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_vol_water_33_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_vol_water_33_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_33kpa_100.200_mean_p.value <- mean_soil_function_vol_water_33_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_33_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -974,7 +1051,7 @@ ggplot()+
 
 # checking to see if residuals are normal
 anova_vol_water_33_100.200 <- aov(vol_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -33 kpa at 0-5 cm vs. Population")
+hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -33 kpa at 100-200 cm vs. Population")
 
 #volume of water content at -1500 kpa 0-5
 
@@ -986,11 +1063,14 @@ mean_soil_function_vol_water_1500_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_vol_water_1500_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
-mean_soil_function_vol_water_1500_0_5$kruskal_test 
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_vol_water_1500_0_5$kruskal_test
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_vol_water_1500_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_1500kpa_0.5_mean_p.value <- mean_soil_function_vol_water_1500_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_1500_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1011,11 +1091,14 @@ mean_soil_function_vol_water_1500_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_vol_water_1500_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_vol_water_1500_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_vol_water_1500_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+vol_wat_1500kpa_100.200_mean_p.value <- mean_soil_function_vol_water_1500_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_vol_water_1500_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1024,7 +1107,7 @@ ggplot()+
 
 # checking to see if residuals are normal
 anova_vol_water_1500_100.200 <- aov(vol_water_.1500_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
-hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -1500 kpa at 100-20 cm vs. Population")
+hist(anova_vol_water_1500_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -1500 kpa at 100-200 cm vs. Population")
 
 #nitrogen 0-5
 
@@ -1036,11 +1119,14 @@ mean_soil_function_nitrogen_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_nitrogen_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_nitrogen_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_nitrogen_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+nitrogen_0.5_mean_p.value <- mean_soil_function_nitrogen_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1061,11 +1147,14 @@ mean_soil_function_nitrogen_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_nitrogen_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_nitrogen_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_nitrogen_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+nitrogen_100.200_mean_p.value <- mean_soil_function_nitrogen_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1086,11 +1175,14 @@ mean_soil_function_sandy_avail_water_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_sandy_avail_water_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_sandy_avail_water_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_sandy_avail_water_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sandy_avail_water_0.5_mean_p.value <- mean_soil_function_sandy_avail_water_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1111,11 +1203,15 @@ mean_soil_function_sandy_avail_water_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_sandy_avail_water_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_sandy_avail_water_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_sandy_avail_water_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sandy_avail_water_100.200_mean_p.value <- mean_soil_function_sandy_avail_water_100_200$kruskal_test$p.value
+
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1136,11 +1232,14 @@ mean_soil_function_clay_loam_avail_water_0_5$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_clay_loam_avail_water_0_5$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_clay_loam_avail_water_0_5$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_clay_loam_avail_water_0_5$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_loam_avail_water_0.5_mean_p.value <- mean_soil_function_clay_loam_avail_water_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1161,11 +1260,14 @@ mean_soil_function_clay_loam_avail_water_100_200$final_test
 #post hoc Welch's ANOVA test: Tamhane's T2 Test
 mean_soil_function_clay_loam_avail_water_100_200$posthoc
 
-#Kruskall-Wallis test because it is non-parametric and comparable across soil metrics
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
 mean_soil_function_clay_loam_avail_water_100_200$kruskal_test 
 
-#Kruskall-Wallis test post-hoc Wilcoxon rank sum tests
-mean_soil_function_clay_loam_avail_water_100_200$kruskall_post_hoc
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_loam_avail_water_100.200_mean_p.value <- mean_soil_function_clay_loam_avail_water_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
 ggplot()+
@@ -1206,8 +1308,6 @@ p_value_mean <- c(clay_0.5_mean_p.value, clay_100.200_mean_p.value, silt_0.5_mea
 
 # Bonferroni correcting for multiple testing
 p_bonf_corrected <- p.adjust(p_value_mean, method = "bonferroni")
-p_bonf_corrected
-
 
 #creating empty dataframe for inputting the function into
 random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm", "Silt 0-5 cm", "Silt 100-200 cm", "Sand 0-5 cm", "Sand 100-200 cm",
@@ -1218,7 +1318,7 @@ random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm
                                                  "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sand Available Water 0-5 cm", "Sand Available Water 100-200 cm",
                                                  "Clay/Loam Available Water 0-5 cm", "Clay/Loam Available Water 100-200 cm")),
                             "P_Value" = p_bonf_corrected,
-                            "Significance" = c(rep(NA, 18)))   #ifelse(p_values < 0.05, "Y", "N")
+                            "Significance" = c(rep(NA, 22)))   #ifelse(p_values < 0.05, "Y", "N")
 
 #creating the significance column for the p-values
 random_pop.df <- random_pop.df %>%

@@ -34,7 +34,6 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
 
-
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R

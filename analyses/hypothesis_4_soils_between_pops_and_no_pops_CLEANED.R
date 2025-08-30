@@ -721,69 +721,7 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
 
-#clay
-
-#extracting means from randomly selected 20 points 
-
-random_clay_0.5_means <- c() #creating empty list to collect means
-random_clay_100.200_means <- c() #creating empty list to collect means
-
-set.seed(20)
-for (i in 1:1000){ #for 1000 permutations
-
-  random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
-  random_20 <- random_20 %>%
-    st_as_sf()
-  random_20_pop_soil_clay <- raster::extract(soil_stack_clay, random_20) #extracting the soil metrics for the random points
-  
-  random_clay_0.5_mean <- mean(random_20_pop_soil_clay[,1]) #storing the mean of the 0-5 value
-  random_clay_100.200_mean <- mean(random_20_pop_soil_clay[,2]) #storing the mean of the 100-200 value
-  
-  random_clay_0.5_means <- c(random_clay_0.5_means, random_clay_0.5_mean) #adding the 0-5 mean to the list of means
-  random_clay_100.200_means <- c(random_clay_100.200_means, random_clay_100.200_mean) #adding the 100-200 mean to the list of means
-  
-}
-
-#plotting the randomly selected points on the Baja polygon
-ggplot()+
-  geom_sf(data=BCS_polygon_UTM)+
-  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_20, color ="blue")
-
-#plotting the randomly selected points just on the cropped polygon
-ggplot()+
-  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
-  geom_sf(data=random_20, color ="blue")
-
-#storing the real means
-all_known_clay_0.5_mean <- mean(all_known_pop_soils$clay.content.0.5)
-all_known_clay_100.200_mean <- mean(all_known_pop_soils$clay.content.100.200)
-
-#for Clay 0-5
-
-#plotting the histogram of the randomly distributed p-values and our real slope
-ggplot()+
-  geom_histogram(aes(x=random_clay_0.5_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
-  geom_vline(xintercept=all_known_clay_0.5_mean, col = "red")+ #line of our real slope
-  xlab("Mean Clay 0-5 of Random Populations vs.Known Populations (n=20)")+
-  theme_classic()
-
-random_clay_0.5_means <- na.omit(random_clay_0.5_means) #remove NAs
-
-#calculating pseudo p-value for 
-total = 0  #set empty vaue
-for (i in 1:length(random_clay_0.5_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-  if (random_clay_0.5_means[i] < all_known_clay_0.5_mean){
-    total = total + 1
-  }
-} #add number of values of in the random set of ANN values that are less than our mean ANN
-clay_0.5_random_p.value <- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are less than our ANN, our p-value
-
-1- (total / length(random_clay_0.5_means)) #the proportion of random ANNs that are greater than our ANN
-
-
+#creating the list of soil metrics to iterate over
 Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 0-5", "Sand 100-200",
                   "Ph 0-5", "Ph 100-200",  "Volume of water content -10 kpa 0-5",
                   "Volume of water content -10 kpa 100-200", "Volume of water content -33 kpa 0-5",
@@ -931,14 +869,23 @@ random_pop_soils <- function(){
     
     random_soil_means <- na.omit(random_soil_means) #removing NAs
     
+    # if using greater than hypothesis
+    
     #calculating pseudo p-value for 
-    total = 0  #set empty value
-    for (k in 1:length(random_soil_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
-      if (random_soil_means[k] < all_known_mean){
-        total = total + 1
-      }
-    } #add number of values of in the random set of means values that are less than our mean ANN
-    random_p.value <- 1 - (total / length(random_soil_means)) #the proportion of random ANNs that are greater than our ANN
+    # total = 0  #set empty value
+    # for (k in 1:length(random_soil_means)){ #loop that adds 1 to the value total if the simulated ANN value is less than our average value for our trees
+    #   if (random_soil_means[k] < all_known_mean){
+    #     total = total + 1
+    #   }
+    # } #add number of values of in the random set of means values that are less than our mean ANN
+    # random_p.value <- 1 - (total / length(random_soil_means)) #the proportion of random ANNs that are greater than our ANN
+    
+    # using the significantly different alternative hypothesis 
+    
+    p_value_greater_than <- sum(random_soil_means >= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes higher than our real slope
+    p_value_less_than <- sum(random_soil_means <= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes lower than our real slope
+    random_p.value <- min(1, 2 * min(p_value_greater_than, p_value_less_than)) # take the smaller tail (the "more extreme" one), then double it
+    
     
     #adding the p value to total list of p-values for all soil metrics
     random_soil_p_values <- c(random_soil_p_values, random_p.value)
