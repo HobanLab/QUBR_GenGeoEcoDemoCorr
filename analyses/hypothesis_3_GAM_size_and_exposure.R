@@ -9,13 +9,20 @@
 # We used Generalized Additive Models (GAMs) after having trouble with multiple linear 
 # regressions because of issues with the normality conditions and some nervousness about linearity. 
 
+# The script is broken into sections of
+# 1) Loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
+#San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
+# 2) Creating the elevation, aspect, and slope columns in the tree dataframes,
+# 3) Descriptive summary such as histograms and barcharts showing the spread of the data and summary statistics (e.g. mean, sd, etc.),
+# 4)
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
 library(smatr)
-library(ggpmisc)
+library(ggpmisc) #ggplot extension
 library(raster) #for working with the rast files
 library(terra) # for extracting the slope and aspect from the DEM elevation files
 library(car) #to create added variable plots and to run levene's test for checking ANOVA conditions
@@ -34,25 +41,26 @@ library("gg3D") #3d plotting
 library(mgcViz) #3d plotting
 library(rgl) #3d plotting
 
-#loading in the tree data
+# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#transforming the data into shapefiles with either WGS84 
+#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
                                           coords = c("long", "lat"), crs = 4326)
 
-#transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
-
+#creating a transformed point shapefile with UTM 12 N an equal area projection
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
 #create dataframe with X and Y UTM coordinates
+
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
-#export the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
+#exporting the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
 fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
-View(fixed_field_data_processed_sf_transformed)
 
 #creating shapefiles for each population, turning sf of all points into sfc
 
@@ -68,9 +76,9 @@ SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>
   filter(Locality == "SD") %>%
   st_as_sfc()
 
-#transformations of LM variables (log, square root, ) for linear models
+#transformations of tree size/shape variables (log and square root) for linear models
 
-#creating columns with transformations: logged all of the variables
+#creating columns with transformations: logged all of the size/shape variables
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_lg = log(Canopy_short))%>%
   mutate(Canopy_long_lg = log(Canopy_long))%>%
@@ -78,7 +86,7 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_lg = log(Crown_spread))%>%
   mutate(DBH_ag_lg = log(DBH_ag))
 
-#creating columns with transformations: square root all of the variables
+#creating columns with transformations: square root all of the size/shape variables
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
   mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
@@ -86,26 +94,22 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
   mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
-#set elevation as a numeric value
+#setting elevation as a numeric value
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.))
 
+# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
-#### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
-
-#Las Matancitas (LM)
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LM")
 
-#La Cobriza (LC)
 LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LC")
 
-#San Dionisio (SD)
 SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "SD")
 
-#creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
+#creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
 fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
                                         (Elevation..m. == 360) ~ NA, 
@@ -117,21 +121,22 @@ LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
                                         (Elevation..m. < 700) ~ Elevation..m.))
 
-#creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the populaiton data frames
+#creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
 LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
                                         (Elevation..m. < 700) ~ Elevation..m.))
 
-#plotting the tree points by elevation (m)
+#plotting all of the tree points by elevation (m) to check the range of values 
 ggplot()+
   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates, aes(color = Elevation..m.FIXED))
 
-##creating a new elevation column so that the 360 m outlier is 460
+#creating a new elevation column so that a 360 m outlier is 460
 SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
-#upload ArcGIS river shapefile and filter out polygons for each population
+#Upload ArcGIS river shapefile and filter out polygons for each population
+
 river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
 river_LM  <- river_LM$geometry[1]
 plot(river_LM)
@@ -150,60 +155,64 @@ river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
 river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 
 #creating buffers around the rivers
+
+#LM
 river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
-ggplot()+
+ggplot()+  #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_LM)+
   geom_sf(data = river_LM_trans)+
   geom_sf(data = LM_fixed_field_data_processed_sf)
 
-river_buffer_LC<- st_buffer(river_LC_trans, 100) #230 m buffer
-ggplot()+
+#LC
+river_buffer_LC <- st_buffer(river_LC_trans, 100) #230 m buffer
+ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_LC)+
   geom_sf(data = river_LC_trans)+
   geom_sf(data = LC_fixed_field_data_processed_sf)
 
-river_buffer_SD<- st_buffer(river_SD_trans, 70) #70 m buffer
-ggplot()+
+#SD
+river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer
+ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_SD)+
   geom_sf(data = river_SD_trans)+
   geom_sf(data = SD_fixed_field_data_processed_sf)
 
-
 #creating bounding boxes for each population
 
-#creating a boundry box of LM with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
+#creating a boundary box for LM with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
 LM_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LM") %>%
   st_bbox %>%
   st_as_sfc()
 
-#creating a boundry box of LC with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
+#creating a boundary box for LC with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
 LC_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LC") %>%
   st_bbox %>%
   st_as_sfc()
 
-#creating a boundry box of SD with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
+#creating a boundary box for SD with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
 SD_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "SD") %>%
   st_bbox %>%
   st_as_sfc()
 
-#creating bboxs for all of the river shapefiles for each population
+#creating bounding boxes for all of the river shapefiles for each population
 LM_box <- st_bbox(river_LM_trans)
 LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
 #### Creating the elevation, aspect, and slope columns in the dataframe ####
 
-#elevation data from INEGI 15 m, so we can calculate slope and aspect
+# elevation data is from INEGI 15 m and allows us to calculate slope and aspect
 
 
 #BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY, FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
-#After LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
-#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m continuous elevation model DATA: https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
+#AFTER LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
+#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m CONTINUOUS ELEVATION MODEL DATA: 
+# https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
 
-#SO WE COMMENTED OUT CODE THAT IS HOW WE LOADED IN THE ORIGINAL RASTER AND CREATED AND EXPORTED THE CROPPED RASTERS FOR EACH POPULATION
+#SO WE COMMENTED OUT THE CODE WE USED TO LOAD IN THE ORIGINAL RASTER AND CREATE AND EXPORT THE CROPPED RASTERS FOR EACH POPULATION THAT WE DOWNLOAD LATER
 
 # #projecting the INGEI 15 m continuous elevation model into UTM 12N 
 # gdalwarp(srcfile = './data/15 m Elevation Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',  
@@ -346,7 +355,7 @@ ggplot()+
 #extracting the slope in degrees, using the queens method (neighbor = 8)
 all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degrees', neighbors = 8, 'slope')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
@@ -358,7 +367,7 @@ ggplot()+
 #extracting the slope in degrees, using the queens method (neighbor = 8)
 LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'slope')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
   geom_sf(data = LM_fixed_field_data_processed)+
@@ -369,7 +378,7 @@ ggplot()+
 #extracting the slope in degrees, using the queens method (neighbor = 8)
 LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'slope')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
   geom_sf(data = LC_fixed_field_data_processed)+
@@ -380,7 +389,7 @@ ggplot()+
 #extracting the slope in degrees, using the queens method (neighbor = 8)
 SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'slope')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
   geom_sf(data = SD_fixed_field_data_processed)+
@@ -405,7 +414,7 @@ ggplot()+
 #extracting the aspect in degrees, using the queens method (neighbor = 8)
 LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'aspect')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
   geom_sf(data = LM_fixed_field_data_processed)+
@@ -416,7 +425,7 @@ ggplot()+
 #extracting the aspect in degrees, using the queens method (neighbor = 8)
 LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'aspect')
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
   geom_sf(data = LC_fixed_field_data_processed)+
@@ -428,21 +437,22 @@ ggplot()+
 SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'aspect')
 
 
-#plot the slopes
+#plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
   geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 
-#creating dataframes for each population and the slope and aspect data by extracting the slope and aspect data fromk each cell for each point and combining the data into a dataframe
-
+#creating dataframes for each population and the slope and aspect data by extracting the slope and aspect data 
+# from each cell for each point and combining the data into a dataframe
 
 #all points
+
 all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
 all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point value
-all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
-all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
+all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the all point dataframe
+all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the all point dataframe
 
 #LM
 
@@ -454,30 +464,31 @@ LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_ter
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
 #LC
+
 LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
 LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
 LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LC point dataframe
 
 #SD
+
 SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
 SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
 SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
-SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the SD point dataframe
 
-#recategorizing the aspect data
+#re-categorizing the aspect data (using either the 4 or 8 cardinal directions)
 
-#setting values of 360 to 0 
+#setting values of 360 to 0
 
 #all points
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
                                                           (all_points_aspect_raster_15_data_pts != "360")~ all_points_aspect_raster_15_data_pts))
-
 
 #LM
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
@@ -499,9 +510,9 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
 
 # all points
 
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
-# the directions are a range of 45 degrees 
+# the directions are by a range of 45 degrees 
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts_8_categorical = case_when((all_points_aspect_raster_15_data_pts > 0 & all_points_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                         (all_points_aspect_raster_15_data_pts >= 337.5 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", #359.99999
@@ -513,9 +524,9 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
                                                                         (all_points_aspect_raster_15_data_pts >= 247.5 & all_points_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                         (all_points_aspect_raster_15_data_pts >= 292.5 & all_points_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# Using the 4 cardinal directions: North, East, South, West
 
-# the directions are a range of 90 degrees 
+# the directions are by a range of 90 degrees 
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts_4_categorical = case_when((all_points_aspect_raster_15_data_pts >= 0 & all_points_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                         (all_points_aspect_raster_15_data_pts >= 315 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -525,9 +536,9 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
 
 # LM
 
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
-# the directions are a range of 45 degrees 
+# the directions are by a range of 45 degrees 
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts_8_categorical = case_when((LM_aspect_raster_15_data_pts > 0 & LM_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (LM_aspect_raster_15_data_pts >= 337.5 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -539,9 +550,9 @@ LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %
                                                                 (LM_aspect_raster_15_data_pts >= 247.5 & LM_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                 (LM_aspect_raster_15_data_pts >= 292.5 & LM_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# Using the 4 cardinal directions: North, East, South, West
 
-# the directions are a range of 90 degrees 
+# the directions are by a range of 90 degrees 
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts_4_categorical = case_when((LM_aspect_raster_15_data_pts >= 0 & LM_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (LM_aspect_raster_15_data_pts >= 315 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -552,9 +563,9 @@ LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %
 
 # LC
 
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
-# the directions are a range of 45 degrees 
+# the directions are by a range of 45 degrees 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts_8_categorical = case_when((LC_aspect_raster_15_data_pts > 0 & LC_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (LC_aspect_raster_15_data_pts >= 337.5 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", 
@@ -567,9 +578,9 @@ LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %
                                                                 (LC_aspect_raster_15_data_pts >= 292.5 & LC_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
 
-# North, East, South, West
+# Using the 4 cardinal directions: North, East, South, West
 
-# the directions are a range of 90 degrees 
+# the directions are by a range of 90 degrees 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts_4_categorical = case_when((LC_aspect_raster_15_data_pts >= 0 & LC_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (LC_aspect_raster_15_data_pts >= 315 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -578,9 +589,9 @@ LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %
                                                                 (LC_aspect_raster_15_data_pts >= 225 & LC_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
 
 #SD
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
-# the directions are a range of 45 degrees 
+# the directions are by a range of 45 degrees 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts_8_categorical = case_when((SD_aspect_raster_15_data_pts > 0 & SD_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (SD_aspect_raster_15_data_pts >= 337.5 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -592,9 +603,9 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 247.5 & SD_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                 (SD_aspect_raster_15_data_pts >= 292.5 & SD_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# Using the 4 cardinal directions: North, East, South, West
 
-# the directions are a range of 90 degrees 
+# the directions are by a range of 90 degrees 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts_4_categorical = case_when((SD_aspect_raster_15_data_pts >= 0 & SD_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (SD_aspect_raster_15_data_pts >= 315 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
@@ -602,202 +613,213 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 135 & SD_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
                                                                 (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
 
-
 #### Descriptive Summary ####
 
 #histograms
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #LM
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #LC
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed) + #  Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+# Elevation histograms to look at the spread of the data
+
+# all points
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+# LM
+ggplot(LM_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.FIXED))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+#LC
+ggplot(LC_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+#SD
+ggplot(SD_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
 #histograms for slope
 
-ggplot(LM_fixed_field_data_processed_terrain) + # Generate the base plot
+#LM
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_terrain) + # Generate the base plot
+#LC
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
+#SD
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
-#barcharts for aspect
+# barcharts for looking at the spread of aspect
 
 # 8 categories of direction
 
-ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
+#LM
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+#LC
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+#SD
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 # 4 categories of direction
 
+#LM
 ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#LC
 ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#SD
 ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 
-
-#Summaries
+#Summary Statistics
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
 
-
-#descriptive summary for LM
-
+#### RESUME ####
 
 #### Generalized Additive Models ####
 
@@ -805,9 +827,24 @@ View(field_data_summarized)
      #generalized additive models whereby...
 
     # a) We removed NAs from the explanatory and response variables
-    # b) 
+    # b) We then created four base GAM models: 
+              #one with no smoothing (basically a linear regression) with all explanatory variables (elevation, slope, and aspect)
+              #one with smoothing on all quantitative explanatory variables (elevation, slope),
+              #one with smoothing on the first quantitative explanatory variable (elevation),
+              #one with smoothing on the second quantitative explanatory variable (slope)
+    # c) We compared the four models AIC values to see which one had the lowest, supporting which model fits the data the best
+    # d) We then checked if the conditions of the GAM were met well (normal distribution and equal variance 
+        #of the residuals since we are using a GAM with a Gaussian distribution)
+    # e) Using the dredge function to determine which explanatory variables allow for the best fitting model
+    # f) Comparing the previously selected function and the dredge function to see which one is a better fit 
+        #using AIC and an ANOVA F-test (only works if one models variables are entirely present in the other model)
+    # g) We then ran a K check on the chosen model (if it used smoothing) to see if the K dimension choices for the model are adequate
+        #p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
+    # h) We then plotted the GAMs to be able to describe the relationship between the explanatory variables and the size/shape characteristics 
+    # i) We then looked for interactions and compared the interaction model to the previous best model and if we have a significant interaction term we have to consider
+    # j) We then plotted the interactions both in 2D and 3D
 
-#using only the 8 categories
+#We used only the 8 categories to get a more specific idea of how direction may be influencing size 
 
 # all points 
 
@@ -827,30 +864,36 @@ all_points_fixed_field_data_processed_terrain_no_NA <- all_points_fixed_field_da
 # influential
 
 #SCA
+
+#creating the basic GAM models
+
+#regular linear regression
 all_points_add.gam_SCA <- gam(Canopy_short ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
-                              data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                              data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na.fail makes sure the later dredge does not have to worry about NAs
+#smoothing both quantitative variables
 all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#smoothing the first explanatory variable (elevation)
 all_points_add.gam_SCA.smoothed_first_term <- gam(Canopy_short ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                   data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
+#smoothing the second explanatory variable (slope)
 all_points_add.gam_SCA.smoothed_second_term <- gam(Canopy_short ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 
-
-#comparing the models' AIC, shows the smoothed model is the best fit
+#comparing the models' AIC values, the model with the lowest value shows the best fit
 AIC(all_points_add.gam_SCA, all_points_add.gam_SCA.smoothed, all_points_add.gam_SCA.smoothed_first_term, 
     all_points_add.gam_SCA.smoothed_second_term)
 
-#checking overall fit and potential issues
+#checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal vairance of residuals assumption)
 par(mfrow = c(2, 2))
 gam.check(all_points_add.gam_SCA.smoothed)
 #based on these results we can see that the normality condition is not well met, so we can try
 
-#comparing the model's the models GCV summary values to see which is lowest
+#comparing the model's the models GCV summary values to see which is lowest as another method of comparing the fit of the models
 summary(all_points_add.gam_SCA)
 summary(all_points_add.gam_SCA.smoothed)
 
-#we do not need to dredge the poisson model, but hear is the 
+#using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(all_points_add.gam_SCA.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] 
 
@@ -858,19 +901,23 @@ dredge[1,]
 all_points_add.gam_SCA.smoothed.dredge <-  gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
                                                data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 
-#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+#Comparing the dredge model and the previously-considered best model
+
+#Anova F-test comparing strength of dredge vs. full model demonstrates dredge performs just as well 
+#significance means the model with more variables explains significantly more of the response
 anova(all_points_add.gam_SCA.smoothed.dredge, all_points_add.gam_SCA.smoothed, test = "F")
-#AIC comparing the dredge and full model 
+#AIC comparing the dredge and full model to see which one is a better fit to the data
 AIC(all_points_add.gam_SCA.smoothed.dredge, all_points_add.gam_SCA.smoothed) 
 #results show marginal differences
 
 #Chosen model: all_points_add.gam_SCA.smoothed
 
-#checking K to see if we 
+#checking K to see if our smoothing terms are K dimension choices for the model are adequate
+#ow p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
 k.check(all_points_add.gam_SCA.smoothed.dredge)
 k.check(all_points_add.gam_SCA.smoothed)
 
-#no interaction plots
+#plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(all_points_add.gam_SCA.smoothed, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
@@ -880,9 +927,12 @@ plot.gam(all_points_add.gam_SCA.smoothed, select=1,
 visreg(all_points_add.gam_SCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
              gg = F, xlab = "Aspect", ylab = "Effect on Short Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
-#looking for interaction
+#checking for significant interaction terms
+
+#chosen function
 all_points_add.gam_SCA.smoothed <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#interaction model
 all_points_add.gam_SCA.smoothed.inter <- gam(Canopy_short ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                              data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_SCA.smoothed.inter)
@@ -907,40 +957,48 @@ plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED
 
 
 # LCA
+
+#creating the basic GAM models
+
+#regular linear regression
 all_points_add.gam_LCA <- gam(Canopy_long ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                               data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#smoothing both quantitative variables
 all_points_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#smoothing the first explanatory variable (elevation)
 all_points_add.gam_LCA.smoothed_first_term <- gam(Canopy_long ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                   data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
+#smoothing the second explanatory variable (slope)
 all_points_add.gam_LCA.smoothed_second_term <- gam(Canopy_long ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 
 
-#comparing the models' AIC, shows the smoothed model is the best fit
+#comparing the models' AIC values, the model with the lowest value shows the best fit
 AIC(all_points_add.gam_LCA, all_points_add.gam_LCA.smoothed, all_points_add.gam_LCA.smoothed_first_term, 
     all_points_add.gam_LCA.smoothed_second_term)
 
-#checking overall fit and potential issues
+#checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal vairance of residuals assumption)
 par(mfrow = c(2, 2))
 gam.check(all_points_add.gam_LCA.smoothed)
 #based on these results we can see that the normality condition is not well met, so we can try
 
-#comparing the model's the models GCV summary values to see which is lowest
+#comparing the model's the models GCV summary values to see which is lowest as another method of comparing the fit of the models
 summary(all_points_add.gam_LCA)
 summary(all_points_add.gam_LCA.smoothed)
 
-#we do not need to dredge the poisson model, but hear is the 
+#using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(all_points_add.gam_LCA.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] 
 #the full model is the dredge output
 
 #Chosen model: all_points_add.gam_LCA.smoothed
 
-#checking K to see if we 
+#checking K to see if our smoothing terms are K dimension choices for the model are adequate
+#p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
 k.check(all_points_add.gam_LCA.smoothed)
 
-#plotting the gam results (run in one chunk)
+#plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(all_points_add.gam_LCA.smoothed, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
@@ -950,16 +1008,12 @@ plot.gam(all_points_add.gam_LCA.smoothed, select=2,
 visreg(all_points_add.gam_LCA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Long Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
+#checking for significant interaction terms
 
-# 3d plotting in plotly and with gg3D
-plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
-        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
-        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_long, type="scatter3d", mode="markers", 
-        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
-
-#looking for interaction
+#chosen function
 all_points_add.gam_LCA.smoothed <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#interaction model
 all_points_add.gam_LCA.smoothed.inter <- gam(Canopy_long ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                              data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_LCA.smoothed.inter)
@@ -975,34 +1029,46 @@ legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), 
 visreg(all_points_add.gam_SCA.smoothed.inter, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Long Canopy Axis")  # Uses ggplot2 for a cleaner plot
 
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_long, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 # CA
 
-#we choose to log because the residuals were highly non-normal and it chances elevations significance
+#we choose to log Canopy Area because the residuals were highly non-normal and it chances elevations significance
+
+#creating the basic GAM models
+
+#regular linear regression
 all_points_add.gam_CA <- gam(log(Canopy_area) ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                               data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#smoothing both quantitative variables
 all_points_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#smoothing the first explanatory variable (elevation)
 all_points_add.gam_CA.smoothed_first_term <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                   data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
+#smoothing the second explanatory variable (slope)
 all_points_add.gam_CA.smoothed_second_term <- gam(log(Canopy_area) ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                    data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
-#logging canopy area lower the AIC significantly
+#logging canopy area lowered the AIC significantly
 
-#comparing the models' AIC, shows the smoothed model is the best fit
+#comparing the models' AIC values, the model with the lowest value shows the best fit
 AIC(all_points_add.gam_CA, all_points_add.gam_CA.smoothed, all_points_add.gam_CA.smoothed_first_term, 
     all_points_add.gam_CA.smoothed_second_term)
 
-#checking overall fit and potential issues
+#checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal vairance of residuals assumption)
 par(mfrow = c(2, 2))
 gam.check(all_points_add.gam_CA.smoothed)
 #based on these results we can see that the normality condition is not well met, so we can try
 
-#comparing the model's the models GCV summary values to see which is lowest
+#comparing the model's the models GCV summary values to see which is lowest as another method of comparing the fit of the models
 summary(all_points_add.gam_CA)
 summary(all_points_add.gam_CA.smoothed)
 
-#we do not need to dredge the poisson model, but hear is the 
+#using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(all_points_add.gam_CA.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] 
 
@@ -1010,20 +1076,24 @@ dredge[1,]
 all_points_add.gam_CA.smoothed.dredge <-  gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
                                                data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 
-#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+#Comparing the dredge model and the previously-considered best model
+
+#Anova F-test comparing strength of dredge vs. full model demonstrates dredge performs just as well 
+#significance means the model with more variables explains significantly more of the response
 anova(all_points_add.gam_CA.smoothed.dredge, all_points_add.gam_CA.smoothed, test = "F")
-#AIC comparing the dredge and full model 
+#AIC comparing the dredge and full model to see which one is a better fit to the data
 AIC(all_points_add.gam_CA.smoothed.dredge, all_points_add.gam_CA.smoothed) 
 #results show marginal differences
 
 #Chosen model: all_points_add.gam_CA.smoothed.dredge
 summary(all_points_add.gam_CA.smoothed.dredge)
 
-#checking K to see if we 
+#checking K to see if our smoothing terms are K dimension choices for the model are adequate
+#p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
 k.check(all_points_add.gam_CA.smoothed.dredge)
 k.check(all_points_add.gam_CA.smoothed)
 
-
+#plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(all_points_add.gam_CA.smoothed, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
@@ -1033,17 +1103,12 @@ plot.gam(all_points_add.gam_CA.smoothed, select=2,
 visreg(all_points_add.gam_CA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
 
+#checking for significant interaction terms
 
-# 3d plotting in plotly and with gg3D
-plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
-        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
-        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area, type="scatter3d", mode="markers", 
-        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
-
-
-#looking for interaction
+#chosen function
 all_points_add.gam_CA.smoothed <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                        data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#interaction model
 all_points_add.gam_CA.smoothed.inter <- gam(log(Canopy_area) ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                              data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_CA.smoothed.inter)
@@ -1059,34 +1124,44 @@ legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), 
 visreg(all_points_add.gam_CA.smoothed.inter, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
 
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Canopy_area, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 # CS
 
+#creating the basic GAM models
 
+#regular linear regression
 all_points_add.gam_CS <- gam(Crown_spread ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                              data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#smoothing both quantitative variables
 all_points_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                       data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#smoothing the first explanatory variable (elevation)
 all_points_add.gam_CS.smoothed_first_term <- gam(Crown_spread ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                  data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
+#smoothing the second explanatory variable (slope)
 all_points_add.gam_CS.smoothed_second_term <- gam(Crown_spread ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                   data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
-#comparing the models' AIC, shows the smoothed model is the best fit
+#comparing the models' AIC values, the model with the lowest value shows the best fit
 AIC(all_points_add.gam_CS, all_points_add.gam_CS.smoothed, all_points_add.gam_CS.smoothed_first_term, 
     all_points_add.gam_CS.smoothed_second_term)
 
-#checking overall fit and potential issues
+#checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal vairance of residuals assumption)
 par(mfrow = c(2, 2))
 gam.check(all_points_add.gam_CS.smoothed)
 #based on these results we can see that the normality condition is not well met, so we can try
 
-#comparing the model's the models GCV summary values to see which is lowest
+#comparing the model's the models GCV summary values to see which is lowest as another method of comparing the fit of the models
 summary(all_points_add.gam_CS)
 summary(all_points_add.gam_CS.smoothed)
 
-#we do not need to dredge the poisson model, but hear is the 
+#using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(all_points_add.gam_CS.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] 
 
@@ -1094,21 +1169,25 @@ dredge[1,]
 all_points_add.gam_CS.smoothed.dredge <-  gam(Crown_spread ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
                                               data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 
-#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+#Comparing the dredge model and the previously-considered best model
+
+#Anova F-test comparing strength of dredge vs. full model demonstrates dredge performs just as well 
+#significance means the model with more variables explains significantly more of the response
 anova(all_points_add.gam_CS.smoothed.dredge, all_points_add.gam_CS.smoothed, test = "F")
-#AIC comparing the dredge and full model 
+#AIC comparing the dredge and full model to see which one is a better fit to the data
 AIC(all_points_add.gam_CS.smoothed.dredge, all_points_add.gam_CS.smoothed) 
 #results show marginal differences
 
 #Chosen model: all_points_add.gam_CA.smoothed.dredge
 summary(all_points_add.gam_CS.smoothed.dredge)
 
-#checking K to see if we 
+#checking K to see if our smoothing terms are K dimension choices for the model are adequate
+#p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
 k.check(all_points_add.gam_CS.smoothed.dredge)
 k.check(all_points_add.gam_CS.smoothed)
 
 
-#plotting the model
+#plotting the chosen function, with no interaction
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(all_points_add.gam_CA.smoothed, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
@@ -1118,17 +1197,12 @@ plot.gam(all_points_add.gam_CA.smoothed, select=2,
 visreg(all_points_add.gam_CA.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Canopy Area")  # Uses ggplot2 for a cleaner plot
 
+#checking for significant interaction terms
 
-# 3d plotting in plotly and with gg3D
-plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
-        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
-        z=all_points_fixed_field_data_processed_terrain_no_NA$Crown_spread, type="scatter3d", mode="markers", 
-        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
-
-
-#looking for interaction
+#chosen function
 all_points_add.gam_CS.smoothed <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                       data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#interaction model
 all_points_add.gam_CS.smoothed.inter <- gam(Crown_spread ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                             data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_CS.smoothed.inter)
@@ -1144,35 +1218,46 @@ legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), 
 visreg(all_points_add.gam_CS.smoothed.inter, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on Crown Spread")  # Uses ggplot2 for a cleaner plot
 
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$Crown_spread, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 # DBH_ag
 
+#creating the basic GAM models
+
+#regular linear regression
 all_points_add.gam_DBH <- gam(DBH_ag ~ Elevation..m.FIXED + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                              data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+#smoothing both quantitative variables
 all_points_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                       data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#smoothing the first explanatory variable (elevation)
 all_points_add.gam_DBH.smoothed_first_term <- gam(DBH_ag ~ s(Elevation..m.FIXED) + all_points_slope_raster_15_data_pts + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                  data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
+#smoothing the second explanatory variable (slope)
 all_points_add.gam_DBH.smoothed_second_term <- gam(DBH_ag ~ Elevation..m.FIXED + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                                   data = all_points_fixed_field_data_processed_terrain_no_NA, na.action = na.fail)
 #logging canopy area lower the AIC significantly
 
-#comparing the models' AIC, shows the smoothed model is the best fit
+#comparing the models' AIC values, the model with the lowest value shows the best fit
 AIC(all_points_add.gam_DBH, all_points_add.gam_DBH.smoothed, all_points_add.gam_DBH.smoothed_first_term, 
     all_points_add.gam_DBH.smoothed_second_term)
 anova(all_points_add.gam_DBH, all_points_add.gam_DBH.smoothed_first_term, 
     all_points_add.gam_DBH.smoothed_second_term, all_points_add.gam_DBH.smoothed)
 
-#checking overall fit and potential issues
+#checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal vairance of residuals assumption)
 par(mfrow = c(2, 2))
 gam.check(all_points_add.gam_DBH.smoothed)
 #based on these results we can see that the normality condition is not well met, so we can try
 
-#comparing the model's the models GCV summary values to see which is lowest
+#comparing the model's the models GCV summary values to see which is lowest as another method of comparing the fit of the models
 summary(all_points_add.gam_DBH)
 summary(all_points_add.gam_DBH.smoothed)
 
-#we do not need to dredge the poisson model, but hear is the 
+#using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(all_points_add.gam_DBH.smoothed) #using the dredge model to narro the models down to the best choice
 dredge[1,] 
 
@@ -1180,21 +1265,24 @@ dredge[1,]
 all_points_add.gam_DBH.smoothed.dredge <-  gam(DBH_ag ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts), 
                                               data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 
-#Anova F test comparing strength of dredge vs. full model demonstrates dredge performs just as well.
+#Comparing the dredge model and the previously-considered best model
+
+#Anova F-test comparing strength of dredge vs. full model demonstrates dredge performs just as well 
+#significance means the model with more variables explains significantly more of the response
 anova(all_points_add.gam_DBH.smoothed.dredge, all_points_add.gam_DBH.smoothed, test = "F")
-#AIC comparing the dredge and full model 
+#AIC comparing the dredge and full model to see which one is a better fit to the data
 AIC(all_points_add.gam_DBH.smoothed.dredge, all_points_add.gam_DBH.smoothed) 
 #results show marginal differences
 
 #Chosen model: all_points_add.gam_DBH.smoothd.dredge
 summary(all_points_add.gam_DBH.smoothed.dredge)
 
-#checking K to see if we 
+#checking K to see if our smoothing terms are K dimension choices for the model are adequate
+#p-values may indicate that the basis dimension, k, has been set too low, especially if the reported edf is close to k
 k.check(all_points_add.gam_DBH.smoothed.dredge)
 k.check(all_points_add.gam_DBH.smoothed)
 
-
-#plotting the model
+#plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(all_points_add.gam_DBH.smoothed, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
@@ -1204,16 +1292,12 @@ plot.gam(all_points_add.gam_DBH.smoothed, select=2,
 visreg(all_points_add.gam_DBH.smoothed, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on DBH")  # Uses ggplot2 for a cleaner plot
 
+#checking for significant interaction terms
 
-# 3d plotting in plotly and with gg3D
-plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
-        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
-        z=all_points_fixed_field_data_processed_terrain_no_NA$DBH_ag, type="scatter3d", mode="markers", 
-        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
-
-#looking for interaction
+#chosen function
 all_points_add.gam_DBH.smoothed <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                       data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
+#interaction model
 all_points_add.gam_DBH.smoothed.inter <- gam(DBH_ag ~ s(Elevation..m.FIXED, all_points_slope_raster_15_data_pts) + all_points_aspect_raster_15_data_pts_8_categorical, 
                                             data = all_points_fixed_field_data_processed_terrain_no_NA,  na.action = na.fail)
 summary(all_points_add.gam_DBH.smoothed.inter)
@@ -1229,7 +1313,11 @@ legend("topright", col = c("lightgreen", "black", "#F08080"), lty = c(3, 1, 2), 
 visreg(all_points_add.gam_DBH.smoothed.inter, "all_points_aspect_raster_15_data_pts_8_categorical",
        gg = F, xlab = "Aspect", ylab = "Effect on DBH")  # Uses ggplot2 for a cleaner plot
 
-
+# 3d plotting in plotly and with gg3D
+plot_ly(x=all_points_fixed_field_data_processed_terrain_no_NA$Elevation..m.FIXED, 
+        y=all_points_fixed_field_data_processed_terrain_no_NA$all_points_slope_raster_15_data_pts, 
+        z=all_points_fixed_field_data_processed_terrain_no_NA$DBH_ag, type="scatter3d", mode="markers", 
+        color=all_points_fixed_field_data_processed_terrain_no_NA$all_points_aspect_raster_15_data_pts_8_categorical)
 
 # LM
 
