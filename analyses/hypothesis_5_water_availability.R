@@ -24,7 +24,6 @@
 # 6) Using tables and heat maps to summarize the results (the slopes and their significances)
 
 #### Loading libraries and relevant data ####
-
 library(tidyverse)
 library(moments) # for calculating the moments of each variable
 library(sf) # for plotting spatial objects
@@ -51,15 +50,63 @@ fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
 #creating a transformed point shapefile with UTM 12 N an equal area projection
 fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
-#create dataframe with X and Y UTM coordinates
+#creating columns with transformations: logged all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_lg = log(Canopy_short))%>%
+  mutate(Canopy_long_lg = log(Canopy_long))%>%
+  mutate(Canopy_area_lg = log(Canopy_area))%>%
+  mutate(Crown_spread_lg = log(Crown_spread))%>%
+  mutate(DBH_ag_lg = log(DBH_ag))
 
+#creating columns with transformations: square root all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
+  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
+  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
+  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
+  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
+
+#creating columns with transformations: inverse all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_inv = (1/Canopy_short))%>%
+  mutate(Canopy_long_inv = (1/Canopy_long))%>%
+  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
+  mutate(Crown_spread_inv = (1/Crown_spread))%>%
+  mutate(DBH_ag_inv = (1/DBH_ag))
+
+#create dataframe with X and Y UTM coordinates
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
 #export the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
 fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "./data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
-View(fixed_field_data_processed_sf_transformed)
+
+#transforming the response variables variables (log, square root, inverse) for the linear models
+
+#creating columns with transformations: log of all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_lg = log(Canopy_short))%>%
+  mutate(Canopy_long_lg = log(Canopy_long))%>%
+  mutate(Canopy_area_lg = log(Canopy_area))%>%
+  mutate(Crown_spread_lg = log(Crown_spread))%>%
+  mutate(DBH_ag_lg = log(DBH_ag))
+
+#creating columns with transformations: square root of all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
+  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
+  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
+  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
+  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
+
+#creating columns with transformations: inverse of all of the variables
+fixed_field_data_processed_sf_transformed <- fixed_field_data_processed_sf_transformed %>%
+  mutate(Canopy_short_inv = (1/Canopy_short))%>%
+  mutate(Canopy_long_inv = (1/Canopy_long))%>%
+  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
+  mutate(Crown_spread_inv = (1/Crown_spread))%>%
+  mutate(DBH_ag_inv = (1/DBH_ag))
 
 #creating shapefiles for each population, turning sf of all points into sfc
 
@@ -74,24 +121,6 @@ LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>
 SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "SD") %>%
   st_as_sfc()
-
-#transformations of variables (log, square root) for the linear models
-
-#creating columns with transformations: log transformation of all of the variables
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root transformation of all of the variables
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
 # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
@@ -233,10 +262,10 @@ plot(dist_near_river_buffer_SD) #plotting the distance to river raster
 
 #LM
 
-#Assigning points within and overlapping with the river to have true
+#Assigning points within and overlapping with the river to be "true"
 LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
 LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
-
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_LM_trans)+
   geom_sf(data=LM_fixed_field_data_processed)+
@@ -244,9 +273,10 @@ ggplot()+
 
 #LC 
 
+#Assigning points within and overlapping with the river to be "true"
 LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed, river_LC_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
 LC_fixed_field_data_processed_intersects_river <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
-
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_LC_trans)+
   geom_sf(data=LC_fixed_field_data_processed)+
@@ -254,31 +284,30 @@ ggplot()+
 
 #SD
 
+#Assigning points within and overlapping with the river to be "true"
 SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed, river_SD_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
 SD_fixed_field_data_processed_intersects_river <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
-
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_SD_trans)+
   geom_sf(data=SD_fixed_field_data_processed)+
   geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
 
-
-## Extracting distance to river for each point tree from the distance to river raster
+## Extracting distance to river for each tree using the distance to river raster
 
 #LM
 LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting distance to river for each tree
-LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #bind the distance to river data for each point to the LM point dataframe
+LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #binding the distance to river data for each point to the LM point dataframe
 
 
 #LC
 LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting distance to river for each tree
-LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #bind the distance to river data for each tree to the LC point dataframe
+LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #binding the distance to river data for each tree to the LC point dataframe
 
 
 #SD
 SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting distance to river for each tree
-SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #bind the distance to river data for each point to the SD point dataframe
-
+SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #binding the distance to river data for each point to the SD point dataframe
 
 ## Assigning all points within/overlapping river to distances of 0
 
@@ -287,105 +316,35 @@ LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance
   mutate(d = case_when((LM_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (LM_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
 
-
 #LC
 LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
   mutate(d = case_when((LC_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (LC_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
 
-
 #SD
-
 SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
   mutate(d = case_when((SD_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (SD_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value
 
-
-#transformations of variables (log, square root, ) for linear models
-
-
-#LM
-
-#creating columns with transformations: logged all of the variables
-LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root all of the variables
-LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
-
-#creating columns with transformations: inverse all of the variables
-LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_inv = (1/Canopy_short))%>%
-  mutate(Canopy_long_inv = (1/Canopy_long))%>%
-  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
-  mutate(Crown_spread_inv = (1/Crown_spread))%>%
-  mutate(DBH_ag_inv = (1/DBH_ag))
-
-#LC
-
-#creating columns with transformations: logged all of the variables
-LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root all of the variables
-LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
-
-#creating columns with transformations: inverse all of the variables
-LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_inv = (1/Canopy_short))%>%
-  mutate(Canopy_long_inv = (1/Canopy_long))%>%
-  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
-  mutate(Crown_spread_inv = (1/Crown_spread))%>%
-  mutate(DBH_ag_inv = (1/DBH_ag))
-
-#SD
-
-#creating columns with transformations: logged all of the variables
-SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root all of the variables
-SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
-
-#creating columns with transformations: inverse all of the variables
-SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
-  mutate(Canopy_short_inv = (1/Canopy_short))%>%
-  mutate(Canopy_long_inv = (1/Canopy_long))%>%
-  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
-  mutate(Crown_spread_inv = (1/Crown_spread))%>%
-  mutate(DBH_ag_inv = (1/DBH_ag))
-
-
-#Simple Linear Regressions
+#### Simple Linear Regressions ####
 
 #comparing distance to river's edge to size values
+
+# For all populations/each population and size/shape metric we created single variable regressions by...
+      #a) creating the single variable linear regressions with the un-transformed response variable, logged variable, and 
+          # square root of the variable, respectively, either with or without outliers
+      #b) testing which model best satisfies the conditions for the analysis: LINES
+            # Linearity, Independence, Normality of residuals, Equal variance of residuals, and simple random sample 
+                    # we tested Linearity by looking at the scatterplots,
+                    # we tested Independence by thinking about the explanatory and response variables across the points,
+                    # we tested Normality of Residuals using histograms, qq norm plots, and the Shapiro-Wilk's test,
+                    # we tested Equal Variance of Residuals using a fitted vs. residuals plot,
+                    # we tested Simple Random Sample by thinkg about the data collection method.
+      #c) We then looked for significant associations (slopes/correlations)
+            # 1) If the LINES conditions are met...
+                    # we ran a slope test and a Pearson's correlation test to see if there is a significant association
+            # 2) If the LINES conditions are not met...
+                    # we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
 
 #LM
 
@@ -393,21 +352,115 @@ SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance
 
 #removing outliers
 
-#Cook's D
-LM_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance)
-LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #calculating the cook.s D for each point
-plot(LM_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (2 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #creating a linear regression to use to calculate the Cook's D
+plot(LM_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (2 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 46, 54, 61, 89, 90,  103, 122, 
                                                                                                     126, 151, 152, 154, 155, 157, 163, 164, 170, 178, 194,
                                                                                                     195, 200, 209, 211, 213, 214, 220),]
 
+
+simple_linear_regressions <- function(){
+  
+  
+  #removing outliers
+  
+  #using Cook's D to check for highly influential points that may skew the linear model results
+  LM_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+  LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #creating a linear regression to use to calculate the Cook's D
+  plot(LM_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+  influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (3 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+  influential
+  
+  #removing points that were deemed too influential on the linear model fit
+  LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(as.numeric(names(influential))),]
+                                                                                                      
+  
+  #creating the base linear regression (no removal of outliers, no transformations)
+  LM_slr_dist_sca_base  <- lm(LM_fixed_field_data_processed_distance$Canopy_short ~ LM_fixed_field_data_processed_distance$d)
+  LM_slr_dist_sca_base_summary <- summary(LM_slr_dist_sca_base) #extracting the summary of the linear regression
+  LM_slr_dist_sca_base_p_value <- LM_slr_dist_sca_base_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with transformations
+  
+  #linear regression with log transformation of response variable
+  LM_slr_dist_sca_base_lg  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_lg ~ LM_fixed_field_data_processed_distance$d)
+  LM_slr_dist_sca_base_lg_summary <- summary(LM_slr_dist_sca_base_lg) #extracting the summary of the linear regression
+  LM_slr_dist_sca_base_lg_p_value <- LM_slr_dist_sca_base_lg_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with square root transformation of response variable
+  LM_slr_dist_sca_base_sqrt  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance$d)
+  LM_slr_dist_sca_base_sqrt_summary <- summary(LM_slr_dist_sca_base_sqrt) #extracting the summary of the linear regression
+  LM_slr_dist_sca_base_sqrt_p_value <- LM_slr_dist_sca_base_sqrt_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with inverse transformation of response variable
+  LM_slr_dist_sca_base_inv  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_inv ~ LM_fixed_field_data_processed_distance$d)
+  LM_slr_dist_sca_base_inv_summary <- summary(LM_slr_dist_sca_base_inv) #extracting the summary of the linear regression
+  LM_slr_dist_sca_base_inv_p_value <- LM_slr_dist_sca_base_inv_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with transformations and removal of outliers
+  
+  #linear regression with log transformation of response variable
+  LM_slr_dist_sca_no_out_lg  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_lg ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
+  LM_slr_dist_sca_no_out_lg_summary <- summary(LM_slr_dist_sca_no_out_lg) #extracting the summary of the linear regression
+  LM_slr_dist_sca_no_out_lg_p_value <- LM_slr_dist_sca_no_out_lg_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with square root transformation of response variable
+  LM_slr_dist_sca_no_out_sqrt  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
+  LM_slr_dist_sca_no_out_sqrt_summary <- summary(LM_slr_dist_sca_no_out_sqrt) #extracting the summary of the linear regression
+  LM_slr_dist_sca_no_out_sqrt_p_value <- LM_slr_dist_sca_no_out_sqrt_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #linear regression with inverse transformation of response variable
+  LM_slr_dist_sca_no_out_inv  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_inv ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
+  LM_slr_dist_sca_no_out_inv_summary <- summary(LM_slr_dist_sca_no_out_inv) #extracting the summary of the linear regression
+  LM_slr_dist_sca_no_out_inv_p_value <- LM_slr_dist_sca_no_out_inv_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
+  
+  #making a list of all of the potential models
+  linear_regressions_p_values <- c(LM_slr_dist_sca_base_p_value, # base model
+                          LM_slr_dist_sca_base_lg_p_value, LM_slr_dist_sca_base_sqrt_p_value, LM_slr_dist_sca_base_inv_p_value, #base model with transformations of the response variable
+                          LM_slr_dist_sca_no_out_lg_p_value, LM_slr_dist_sca_no_out_sqrt_p_value, LM_slr_dist_sca_no_out_inv_p_value)  #slope test p-values with no outliers and transformations of the response variable
+ 
+  which(min(linear_regressions_p_values))
+  
+  #checking normality with Shapiro-Wilk Test
+  shapiro_wilk <- shapiro.test(LM_slr_dist_sca$residuals)
+  
+  # checking to see if the residuals are normal
+  
+  shapiro_test <- shapiro.test(anova_model$residuals) #Shapiro-Wilks Test
+  
+  #Equal variance tests
+  
+  #Fligner-Killeen, more useful when data is not normal or there are outliers 
+  fligner_test <- fligner.test(formula, data = fixed_field_data_processed_trees_soils)
+  #bartlett's test for equal variances when data is normal, which in this case it is
+  bartlett_test <- bartlett.test(formula, data = fixed_field_data_processed_trees_soils)
+  #levene's test, not super robust to strong differences to normality
+  levenes_test <- car::leveneTest(formula, data = fixed_field_data_processed_trees_soils)
+  #rule of thumb test
+  thumb_test <- tapply(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality, sd)
+  thumb_test_results <- max(thumb_test, na.rm = T) / min(thumb_test, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+  
+  #if the normal residuals and equal variance of residuals conditions ARE met
+  if (shapiro_test$p.value > 0.05 & bartlett_test$p.value > 0.05 & thumb_test_results < 2) { 
+    #return test results and that it met those conditions
+  } 
+  #return test results and that it DID NOT meet those conditions
+  
+  #returns the name of the model that performed the best, normality results, equal variance results, and the slope test results
+  return()
+  
+}
+
+
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -419,31 +472,31 @@ LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance$Canopy_short ~ LM_
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_lg ~ LM_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_inv ~ LM_fixed_field_data_processed_distance$d)
 
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_lg ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_sca  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_inv ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(LM_slr_dist_sca, aes(x= LM_slr_dist_sca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Distance")+
@@ -454,19 +507,17 @@ ggplot(LM_slr_dist_sca, aes(x= LM_slr_dist_sca$residuals))+
 ggplot(LM_slr_dist_sca, aes(sample = LM_slr_dist_sca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LM_slr_dist_sca$residuals) #significantly normal when square root transformation used and no removal of outliers
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Distance (m)")+
   ylab("Sqrt(Short Canopy Axis (m))")
-
                                                                                                  
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LM_slr_dist_sca, aes(x = LM_slr_dist_sca$fitted.values, y = LM_slr_dist_sca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -480,21 +531,21 @@ summary(LM_slr_dist_sca)
 
 #LCA
 
-#Cook's D
-LM_slr_LCA <- lm(Canopy_long ~ d, data = LM_fixed_field_data_processed_distance)
-LM_slr_LCA_cooks <- cooks.distance(LM_slr_LCA) #calculating the cook.s D for each point
-plot(LM_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_LCA <- lm(Canopy_long ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+LM_slr_LCA_cooks <- cooks.distance(LM_slr_LCA) #creating a linear regression to use to calculate the Cook's D
+plot(LM_slr_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_distance_lca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 50, 89,  106, 122, 127, 154, 155,
                                                                                                     170, 178, 191, 195, 209, 211, 213, 218, 219, 220),]
 
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -507,29 +558,29 @@ LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance$Canopy_long ~ LM_f
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance$Canopy_long_lg ~ LM_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance$Canopy_long_sqrt ~ LM_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance$Canopy_long_inv ~ LM_fixed_field_data_processed_distance$d)
 
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance_lca_no_outliers$Canopy_long_lg ~ LM_fixed_field_data_processed_distance_lca_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance_lca_no_outliers$Canopy_long_sqrt ~ LM_fixed_field_data_processed_distance_lca_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_lca  <- lm(LM_fixed_field_data_processed_distance_lca_no_outliers$Canopy_long_inv ~ LM_fixed_field_data_processed_distance_lca_no_outliers$d)
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance_lca_no_outliers, (aes(x=d, y=Canopy_long_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -538,7 +589,7 @@ ggplot(data = LM_fixed_field_data_processed_distance_lca_no_outliers, (aes(x=d, 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(LM_slr_dist_lca, aes(x= LM_slr_dist_lca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Inverse Distance")+
@@ -549,11 +600,11 @@ ggplot(LM_slr_dist_lca, aes(x= LM_slr_dist_lca$residuals))+
 ggplot(LM_slr_dist_lca, aes(sample = LM_slr_dist_lca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LM_slr_dist_lca$residuals) #significantly normal when square root transformation and outliers are removed
 
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LM_slr_dist_lca, aes(x = LM_slr_dist_lca$fitted.values, y = LM_slr_dist_lca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -567,14 +618,14 @@ summary(LM_slr_dist_lca)
 #CA
 
 
-#Cook's D
-LM_slr_CA <- lm(Canopy_area ~ d, data = LM_fixed_field_data_processed_distance)
-LM_slr_CA_cooks <- cooks.distance(LM_slr_CA) #calculating the cook.s D for each point
-plot(LM_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (1.5 * mean(LM_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_CA <- lm(Canopy_area ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+LM_slr_CA_cooks <- cooks.distance(LM_slr_CA) #creating a linear regression to use to calculate the Cook's D
+plot(LM_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (1.5 * mean(LM_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_distance_ca_no_outliers <- LM_fixed_field_data_processed_distance[-c(30, 43, 45, 50, 54, 61, 89, 90, 103,
                                                                                                    122, 126, 127, 152, 154, 155, 157, 162, 
                                                                                                    164, 170, 178, 180, 191, 194, 195, 200,
@@ -582,45 +633,43 @@ LM_fixed_field_data_processed_distance_ca_no_outliers <- LM_fixed_field_data_pro
 
 #checking linearity 
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Inverse Distance (m)")+
   ylab("Canopy Area")
 
-#creating the linear regression
-LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance$Canopy_area ~ LM_fixed_field_data_processed_distance$d)
+#creating the linear regressions
 
+#linear regression without transformations
+LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance$Canopy_area ~ LM_fixed_field_data_processed_distance$d)
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance$Canopy_area_lg ~ LM_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance$Canopy_area_sqrt ~ LM_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance$Canopy_area_inv ~ LM_fixed_field_data_processed_distance$d)
-
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_lg ~ LM_fixed_field_data_processed_distance_ca_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_sqrt ~ LM_fixed_field_data_processed_distance_ca_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_ca  <- lm(LM_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_inv ~ LM_fixed_field_data_processed_distance_ca_no_outliers$d)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 
-#checking normality
-
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LM_slr_dist_ca, aes(x= LM_slr_dist_ca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Inverse Distance")+
@@ -631,10 +680,10 @@ ggplot(LM_slr_dist_ca, aes(x= LM_slr_dist_ca$residuals))+
 ggplot(LM_slr_dist_ca, aes(sample = LM_slr_dist_ca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LM_slr_dist_ca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LM_slr_dist_ca, aes(x = LM_slr_dist_ca$fitted.values, y = LM_slr_dist_ca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -645,13 +694,11 @@ ggplot(data = LM_slr_dist_ca, aes(x = LM_slr_dist_ca$fitted.values, y = LM_slr_d
 #Slope Test visible in summary of the lm
 summary(LM_slr_dist_ca)
 
-
 #CS
 
 #checking linearity 
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -661,22 +708,22 @@ ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Crown_spread))
 #creating the linear regression
 LM_slr_dist_cs  <- lm(LM_fixed_field_data_processed_distance$Crown_spread ~ LM_fixed_field_data_processed_distance$d)
 
-
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_cs  <- lm(LM_fixed_field_data_processed_distance$Crown_spread_lg ~ LM_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_cs  <- lm(LM_fixed_field_data_processed_distance$Crown_spread_sqrt ~ LM_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_cs  <- lm(LM_fixed_field_data_processed_distance$Crown_spread_inv ~ LM_fixed_field_data_processed_distance$d)
-
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#histogram of the residuals
 ggplot(LM_slr_dist_cs, aes(x= LM_slr_dist_cs$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Inverse Distance")+
@@ -687,10 +734,10 @@ ggplot(LM_slr_dist_cs, aes(x= LM_slr_dist_cs$residuals))+
 ggplot(LM_slr_dist_cs, aes(sample = LM_slr_dist_cs$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LM_slr_dist_cs$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LM_slr_dist_cs, aes(x = LM_slr_dist_cs$fitted.values, y = LM_slr_dist_cs$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -705,8 +752,7 @@ summary(LM_slr_dist_cs)
 
 #checking linearity 
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -716,45 +762,45 @@ ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+
 #creating the linear regression
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag ~ LM_fixed_field_data_processed_distance$d)
 
-#Cook's D
-LM_slr_DBH <- lm(DBH_ag ~ d, data = LM_fixed_field_data_processed_distance)
-LM_slr_DBH_cooks <- cooks.distance(LM_slr_DBH) #calculating the cook.s D for each point
-plot(LM_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_DBH_cooks[(LM_slr_DBH_cooks > (2 * mean(LM_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_DBH <- lm(DBH_ag ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+LM_slr_DBH_cooks <- cooks.distance(LM_slr_DBH) #creating a linear regression to use to calculate the Cook's D
+plot(LM_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_DBH_cooks[(LM_slr_DBH_cooks > (2 * mean(LM_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_distance_dbh_no_outliers <- LM_fixed_field_data_processed_distance[-c(16, 50, 54, 66, 74, 80, 89, 90,
                                                                                                     95, 87, 122, 126, 127, 153, 155, 161, 162, 164,
                                                                                                     166, 170, 178, 180, 209, 211, 213, 215, 220),]
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag_lg ~ LM_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag_sqrt ~ LM_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance$DBH_ag_inv ~ LM_fixed_field_data_processed_distance$d)
 
 #without outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LM_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
-
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#histogram of the residuals
 ggplot(LM_slr_dist_dbh, aes(x= LM_slr_dist_dbh$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
@@ -765,10 +811,10 @@ ggplot(LM_slr_dist_dbh, aes(x= LM_slr_dist_dbh$residuals))+
 ggplot(LM_slr_dist_dbh, aes(sample = LM_slr_dist_dbh$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LM_slr_dist_dbh$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LM_slr_dist_dbh, aes(x = LM_slr_dist_dbh$fitted.values, y = LM_slr_dist_dbh$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -786,7 +832,7 @@ summary(LM_slr_dist_dbh)
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -796,22 +842,22 @@ ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short))
 #creating the linear regression
 LC_slr_dist_sca  <- lm(LC_fixed_field_data_processed_distance$Canopy_short ~ LC_fixed_field_data_processed_distance$d)
 
-
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_sca  <- lm(LC_fixed_field_data_processed_distance$Canopy_short_lg ~ LC_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_sca  <- lm(LC_fixed_field_data_processed_distance$Canopy_short_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_sca  <- lm(LC_fixed_field_data_processed_distance$Canopy_short_inv ~ LC_fixed_field_data_processed_distance$d)
-
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#histogram of the residuals
 ggplot(LC_slr_dist_sca, aes(x= LC_slr_dist_sca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Inverse Distance")+
@@ -822,10 +868,10 @@ ggplot(LC_slr_dist_sca, aes(x= LC_slr_dist_sca$residuals))+
 ggplot(LC_slr_dist_sca, aes(sample = LC_slr_dist_sca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LC_slr_dist_sca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LC_slr_dist_sca, aes(x = LC_slr_dist_sca$fitted.values, y = LC_slr_dist_sca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -841,7 +887,7 @@ summary(LC_slr_dist_sca)
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -851,23 +897,20 @@ ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))
 #creating the linear regression
 LC_slr_dist_lca  <- lm(LC_fixed_field_data_processed_distance$Canopy_long ~ LC_fixed_field_data_processed_distance$d)
 
-
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_lca  <- lm(LC_fixed_field_data_processed_distance$Canopy_long_lg ~ LC_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_lca  <- lm(LC_fixed_field_data_processed_distance$Canopy_long_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_lca  <- lm(CM_fixed_field_data_processed_distance$Canopy_long_inv ~ LC_fixed_field_data_processed_distance$d)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 
-
-#checking normality
-
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LC_slr_dist_lca, aes(x= LC_slr_dist_lca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Inverse Distance")+
@@ -878,10 +921,10 @@ ggplot(LC_slr_dist_lca, aes(x= LC_slr_dist_lca$residuals))+
 ggplot(LC_slr_dist_lca, aes(sample = LC_slr_dist_lca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LC_slr_dist_lca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LC_slr_dist_lca, aes(x = LC_slr_dist_lca$fitted.values, y = LC_slr_dist_lca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -896,8 +939,7 @@ summary(LC_slr_dist_lca)
 
 #checking linearity 
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -907,22 +949,21 @@ ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_area)))
 #creating the linear regression
 LC_slr_dist_ca  <- lm(LC_fixed_field_data_processed_distance$Canopy_area ~ LC_fixed_field_data_processed_distance$d)
 
-
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_ca  <- lm(LC_fixed_field_data_processed_distance$Canopy_area_lg ~ LC_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_ca  <- lm(LC_fixed_field_data_processed_distance$Canopy_area_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_ca  <- lm(CM_fixed_field_data_processed_distance$Canopy_area_inv ~ LC_fixed_field_data_processed_distance$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(LC_slr_dist_ca, aes(x= LC_slr_dist_ca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Inverse Distance")+
@@ -933,10 +974,10 @@ ggplot(LC_slr_dist_ca, aes(x= LC_slr_dist_ca$residuals))+
 ggplot(LC_slr_dist_ca, aes(sample = LC_slr_dist_ca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LC_slr_dist_ca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LC_slr_dist_ca, aes(x = LC_slr_dist_ca$fitted.values, y = LC_slr_dist_ca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -953,7 +994,7 @@ summary(LC_slr_dist_ca)
 #checking linearity 
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -966,19 +1007,19 @@ LC_slr_dist_cs  <- lm(LC_fixed_field_data_processed_distance$Crown_spread ~ LC_f
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_cs  <- lm(LC_fixed_field_data_processed_distance$Crown_spread_lg ~ LC_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_cs  <- lm(LC_fixed_field_data_processed_distance$Crown_spread_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_cs  <- lm(CM_fixed_field_data_processed_distance$Crown_spread_inv ~ LC_fixed_field_data_processed_distance$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(LC_slr_dist_cs, aes(x= LC_slr_dist_cs$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Inverse Distance")+
@@ -989,10 +1030,10 @@ ggplot(LC_slr_dist_cs, aes(x= LC_slr_dist_cs$residuals))+
 ggplot(LC_slr_dist_cs, aes(sample = LC_slr_dist_cs$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LC_slr_dist_cs$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LC_slr_dist_cs, aes(x = LC_slr_dist_cs$fitted.values, y = LC_slr_dist_cs$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1008,7 +1049,7 @@ summary(LC_slr_dist_cs)
 #checking linearity 
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1019,15 +1060,15 @@ ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag ~ LC_fixed_field_data_processed_distance$d)
 
 
-#Cook's D
-LC_slr_DBH <- lm(DBH_ag ~ d, data = LC_fixed_field_data_processed_distance)
-LC_slr_DBH_cooks <- cooks.distance(LC_slr_DBH) #calculating the cook.s D for each point
-plot(LC_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_DBH_cooks[(LC_slr_DBH_cooks > (1.5 * mean(LC_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_DBH <- lm(DBH_ag ~ d, data = LC_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+LC_slr_DBH_cooks <- cooks.distance(LC_slr_DBH) #creating a linear regression to use to calculate the Cook's D
+plot(LC_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_DBH_cooks[(LC_slr_DBH_cooks > (1.5 * mean(LC_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_distance_dbh_no_outliers <- LM_fixed_field_data_processed_distance[-c(3, 38, 48, 51, 54, 56, 60, 61, 64,
                                                                                                     67, 68, 69, 72, 73, 75, 77, 83, 84, 85, 99, 
                                                                                                     119, 126, 151, 159, 161, 181, 206),]
@@ -1035,30 +1076,30 @@ LM_fixed_field_data_processed_distance_dbh_no_outliers <- LM_fixed_field_data_pr
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_lg ~ LC_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_sqrt ~ LC_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_dbh  <- lm(LC_fixed_field_data_processed_distance$DBH_ag_inv ~ LC_fixed_field_data_processed_distance$d)
 
 #without outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 LC_slr_dist_dbh  <- lm(LM_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ LM_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(LC_slr_dist_dbh, aes(x= LC_slr_dist_dbh$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
@@ -1069,10 +1110,10 @@ ggplot(LC_slr_dist_dbh, aes(x= LC_slr_dist_dbh$residuals))+
 ggplot(LC_slr_dist_dbh, aes(sample = LC_slr_dist_dbh$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(LC_slr_dist_dbh$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = LC_slr_dist_dbh, aes(x = LC_slr_dist_dbh$fitted.values, y = LC_slr_dist_dbh$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1092,18 +1133,18 @@ summary(LC_slr_dist_dbh)
 
 #removing outliers
 
-#Cook's D
-SD_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance)
-SD_slr_SCA_cooks <- cooks.distance(SD_slr_SCA) #calculating the cook.s D for each point
-plot(SD_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_SCA_cooks[(SD_slr_SCA_cooks > (2 * mean(SD_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+SD_slr_SCA_cooks <- cooks.distance(SD_slr_SCA) #creating a linear regression to use to calculate the Cook's D
+plot(SD_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_SCA_cooks[(SD_slr_SCA_cooks > (2 * mean(SD_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 influential_SD_slr_SCA <- as.numeric(names(influential))
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_distance_sca_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_SCA,] 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1115,29 +1156,29 @@ SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short ~ SD_
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short_lg ~ SD_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short_sqrt ~ SD_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance$Canopy_short_inv ~ SD_fixed_field_data_processed_distance$d)
 
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_lg ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_sqrt ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_sca  <- lm(SD_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_inv ~ SD_fixed_field_data_processed_distance_sca_no_outliers$d)
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance_sca_no_outliers, (aes(x=d, y=Canopy_short_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1151,7 +1192,7 @@ ggplot(data = SD_fixed_field_data_processed_distance_sca_no_outliers, (aes(x=d, 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(SD_slr_dist_sca, aes(x= SD_slr_dist_sca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Distance")+
@@ -1162,10 +1203,10 @@ ggplot(SD_slr_dist_sca, aes(x= SD_slr_dist_sca$residuals))+
 ggplot(SD_slr_dist_sca, aes(sample = SD_slr_dist_sca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(SD_slr_dist_sca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = SD_slr_dist_sca, aes(x = SD_slr_dist_sca$fitted.values, y = SD_slr_dist_sca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1182,7 +1223,7 @@ summary(SD_slr_dist_sca)
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1195,19 +1236,19 @@ SD_slr_dist_lca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long ~ SD_f
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_lca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long_lg ~ SD_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_lca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long_sqrt ~ SD_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_lca  <- lm(SD_fixed_field_data_processed_distance$Canopy_long_inv ~ SD_fixed_field_data_processed_distance$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(SD_slr_dist_lca, aes(x= SD_slr_dist_lca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Inverse Distance")+
@@ -1218,10 +1259,10 @@ ggplot(SD_slr_dist_lca, aes(x= SD_slr_dist_lca$residuals))+
 ggplot(SD_slr_dist_lca, aes(sample = SD_slr_dist_lca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(SD_slr_dist_lca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = SD_slr_dist_lca, aes(x = SD_slr_dist_lca$fitted.values, y = SD_slr_dist_lca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1237,18 +1278,18 @@ summary(SD_slr_dist_lca)
 
 #checking linearity 
 
-#Cook's D
-SD_slr_CA <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance)
-SD_slr_CA_cooks <- cooks.distance(SD_slr_CA) #calculating the cook.s D for each point
-plot(SD_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_CA <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+SD_slr_CA_cooks <- cooks.distance(SD_slr_CA) #creating a linear regression to use to calculate the Cook's D
+plot(SD_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
 influential <- SD_slr_CA_cooks[(SD_slr_CA_cooks > (2 * mean(SD_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 4 times the mean cook's D
 influential
 influential_SD_slr_CA <- as.numeric(names(influential))
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_distance_ca_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_CA,]
                                                                                                    
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1261,30 +1302,30 @@ SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area ~ SD_fi
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area_lg ~ SD_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area_sqrt ~ SD_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance$Canopy_area_inv ~ SD_fixed_field_data_processed_distance$d)
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_lg ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_sqrt ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_ca  <- lm(SD_fixed_field_data_processed_distance_ca_no_outliers$Canopy_area_inv ~ SD_fixed_field_data_processed_distance_ca_no_outliers$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(SD_slr_dist_ca, aes(x= SD_slr_dist_ca$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Inverse Distance")+
@@ -1295,10 +1336,10 @@ ggplot(SD_slr_dist_ca, aes(x= SD_slr_dist_ca$residuals))+
 ggplot(SD_slr_dist_ca, aes(sample = SD_slr_dist_ca$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(SD_slr_dist_ca$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = SD_slr_dist_ca, aes(x = SD_slr_dist_ca$fitted.values, y = SD_slr_dist_ca$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1312,22 +1353,22 @@ summary(SD_slr_dist_ca)
 
 #CS
 
-#Cook's D
-SD_slr_CS <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance)
-SD_slr_CS_cooks <- cooks.distance(SD_slr_CS) #calculating the cook.s D for each point
-plot(SD_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_CS <- lm(Canopy_area ~ d, data = SD_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
+SD_slr_CS_cooks <- cooks.distance(SD_slr_CS) #creating a linear regression to use to calculate the Cook's D
+plot(SD_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
 influential <- SD_slr_CS_cooks[(SD_slr_CS_cooks > (3 * mean(SD_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 4 times the mean cook's D
 influential
 influential_SD_slr_CS <- as.numeric(names(influential))
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_distance_cs_no_outliers <- SD_fixed_field_data_processed_distance[-influential_SD_slr_CS,]
 
 
 #checking linearity 
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1339,30 +1380,30 @@ SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread ~ SD_f
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread_lg ~ SD_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread_sqrt ~ SD_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance$Crown_spread_inv ~ SD_fixed_field_data_processed_distance$d)
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_lg ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_sqrt ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_cs  <- lm(SD_fixed_field_data_processed_distance_cs_no_outliers$Crown_spread_inv ~ SD_fixed_field_data_processed_distance_cs_no_outliers$d)
 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(SD_slr_dist_cs, aes(x= SD_slr_dist_cs$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Inverse Distance")+
@@ -1373,10 +1414,10 @@ ggplot(SD_slr_dist_cs, aes(x= SD_slr_dist_cs$residuals))+
 ggplot(SD_slr_dist_cs, aes(sample = SD_slr_dist_cs$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(SD_slr_dist_cs$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = SD_slr_dist_cs, aes(x = SD_slr_dist_cs$fitted.values, y = SD_slr_dist_cs$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1390,14 +1431,14 @@ summary(SD_slr_dist_cs)
 #DBH
 
 
-#Cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
 SD_slr_dbh <- lm(DBH_ag ~ d, data = SD_fixed_field_data_processed_distance)
-SD_slr_dbh_cooks <- cooks.distance(SD_slr_dbh) #calculating the cook.s D for each point
-plot(SD_slr_dbh_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (2 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+SD_slr_dbh_cooks <- cooks.distance(SD_slr_dbh) #creating a linear regression to use to calculate the Cook's D
+plot(SD_slr_dbh_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_dbh_cooks[(SD_slr_dbh_cooks > (2 * mean(SD_slr_dbh_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_distance_dbh_no_outliers <- SD_fixed_field_data_processed_distance[-c(24, 30, 73, 85, 88, 103, 105, 
                                                                                                    110, 120, 134, 135, 136, 141, 142, 144,
                                                                                                    146, 147, 204, 199, 206, 211),]
@@ -1405,7 +1446,7 @@ SD_fixed_field_data_processed_distance_dbh_no_outliers <- SD_fixed_field_data_pr
 #checking linearity 
 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=d, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1418,28 +1459,28 @@ SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance$DBH_ag ~ SD_fixed_
 
 #linear regression with transformations
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance$DBH_ag_lg ~ SD_fixed_field_data_processed_distance$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance$DBH_ag_sqrt ~ SD_fixed_field_data_processed_distance$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance$DBH_ag_inv ~ SD_fixed_field_data_processed_distance$d)
 
 
 #linear regression with transformations and removal of outliers
 
-#logged transformations
+#linear regression with log transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_lg ~ SD_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#square root transformations
+#linear regression with square root transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_sqrt ~ SD_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#inverse transformations
+#linear regression with inverse transformation of response variable
 SD_slr_dist_dbh  <- lm(SD_fixed_field_data_processed_distance_dbh_no_outliers$DBH_ag_inv ~ SD_fixed_field_data_processed_distance_dbh_no_outliers$d)
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_distance_dbh_no_outliers, (aes(x=d, y=DBH_ag_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1448,7 +1489,7 @@ ggplot(data = SD_fixed_field_data_processed_distance_dbh_no_outliers, (aes(x=d, 
 
 #checking normality
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 ggplot(SD_slr_dist_dbh, aes(x= SD_slr_dist_dbh$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Distance (m)")+
@@ -1459,10 +1500,10 @@ ggplot(SD_slr_dist_dbh, aes(x= SD_slr_dist_dbh$residuals))+
 ggplot(SD_slr_dist_dbh, aes(sample = SD_slr_dist_dbh$residuals))+
   geom_qq()
 
-#shaprio wilk test
+#Shapiro-Wilk Test
 shapiro.test(SD_slr_dist_dbh$residuals) #significantly not normal, except when outliers are removed
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = SD_slr_dist_dbh, aes(x = SD_slr_dist_dbh$fitted.values, y = SD_slr_dist_dbh$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+

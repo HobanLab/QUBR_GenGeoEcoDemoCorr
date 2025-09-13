@@ -25,6 +25,26 @@
 # 6) Using tables and heat maps to summarize the results (the slopes and their significances)
 
 
+
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #creating a raster out of the river linestring object
+plot(river_LM_trans_point_raster) #plotting the river linestring object
+
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river river into a linestring object
+river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #creating a raster of river buffer linestring object
+plot(river_buffer_LM_point_raster) #plotting the river buffer linestring object
+
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
+dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_LM) #plotting the distance to river raster
+
+
+
+
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
