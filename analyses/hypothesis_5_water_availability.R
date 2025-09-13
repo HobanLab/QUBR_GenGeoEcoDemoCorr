@@ -1,3 +1,28 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%Investigating to see if Quercus brandegeei tree shapes are influenced by Water Availability Proxies%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
+# The purpose of this script is to determine if the trees' distance to river (a proxy for water availability)
+# has a significant relationship with the size/shape of trees (short canopy axis, long canopy axis, canopy area, crown spread, DBH)
+# A significant relationship could indicate how distance to river may influence the size and shape of the 
+# trees and potentially help explain their distribution. 
+
+# To test this, we used Simple Linear Regressions for each population, using distance to river as the explanatory 
+# variables and each size metric as the response variable. We used a permutation test, comparing the slope of the 
+# real linear regressions to a distribution of slopes for the linear regression if the size and shape metrics 
+# were randomly shuffled, to support if the relationship is significant without assumption a normal distribution.
+
+# The script is broken into sections of
+# 1) Loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
+#San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
+# 2) Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
+#boxs around the  rivers, stacking the rasters for each population, and processing them into one dataframe for all and each population
+# 3) Creating the four new soil metrics: Sandy available Water (0-5 and 100-200 cm) and Clay/Loam Available Water (0-5 and 100-200 cm)
+# 4) Making a function for calculating the real and randomized single linear regressions/slopes comparing tree 
+# size to soil metrics for each population and calculating the p-values. 
+# 5) Running the function and storing the output, graphing the histograms/slopes, turning the results into a dataframe
+# 6) Using tables and heat maps to summarize the results (the slopes and their significances)
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
@@ -14,17 +39,20 @@ library(starsExtra) #to use dist_to_nearest
 library(geostatsp) 
 library(tmaptools)
 
+# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-#transforming the data into shapefiles with either WGS84 
+#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
                                           coords = c("long", "lat"), crs = 4326)
 
-#transforming the shapefile of trees from WGS84 into equal area projection UTM 12N
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
-
+#creating a transformed point shapefile with UTM 12 N an equal area projection
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
 #create dataframe with X and Y UTM coordinates
+
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
@@ -47,9 +75,9 @@ SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>
   filter(Locality == "SD") %>%
   st_as_sfc()
 
-#transformations of LM variables (log, square root, ) for linear models
+#transformations of variables (log, square root) for the linear models
 
-#creating columns with transformations: logged all of the variables
+#creating columns with transformations: log transformation of all of the variables
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_lg = log(Canopy_short))%>%
   mutate(Canopy_long_lg = log(Canopy_long))%>%
@@ -57,7 +85,7 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_lg = log(Crown_spread))%>%
   mutate(DBH_ag_lg = log(DBH_ag))
 
-#creating columns with transformations: square root all of the variables
+#creating columns with transformations: square root transformation of all of the variables
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
   mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
@@ -65,7 +93,7 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
   mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
-#### Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns ####
+# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LM")
@@ -77,7 +105,8 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
   filter(Locality == "SD")
 
 
-#upload ArcGIS river shapefile and filter out polygons for each population
+#Upload ArcGIS river shapefile and filter out polygons for each population
+
 river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
 river_LM  <- river_LM$geometry[1]
 plot(river_LM)
@@ -95,29 +124,32 @@ river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
 river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
 river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 
-#creating buffers around the rivers
+#creating buffers around the rivers 
+
+#LM
 river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
 ggplot()+
   geom_sf(data = river_buffer_LM)+
   geom_sf(data = river_LM_trans)+
   geom_sf(data = LM_fixed_field_data_processed_sf)
 
+#LC
 river_buffer_LC<- st_buffer(river_LC_trans, 100) #230 m buffer
 ggplot()+
   geom_sf(data = river_buffer_LC)+
   geom_sf(data = river_LC_trans)+
   geom_sf(data = LC_fixed_field_data_processed_sf)
 
+#SD
 river_buffer_SD<- st_buffer(river_SD_trans, 70) #70 m buffer
 ggplot()+
   geom_sf(data = river_buffer_SD)+
   geom_sf(data = river_SD_trans)+
   geom_sf(data = SD_fixed_field_data_processed_sf)
 
-
 #creating bounding boxes for each population
 
-#creating a boundry box of LM with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
+#creating a boundary box of LM with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
 LM_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LM") %>%
   st_bbox %>%
@@ -141,68 +173,67 @@ LC_box <- st_bbox(river_LC_trans)
 SD_box <- st_bbox(river_SD_trans)
 
 
-###creating distance
+#### Creating the distance to river columns ####
+
+## Generating the distance to river rasters for each population
 
 #LM
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #create raster of lake edge points
-plot(river_LM_trans_point_raster)
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #creating a raster out of the river linestring object
+plot(river_LM_trans_point_raster) #plotting the river linestring object
 
-river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points
-plot(river_buffer_LM_point_raster)
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #creating a raster of river buffer linestring object
+plot(river_buffer_LM_point_raster) #plotting the river buffer linestring object
 
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-#dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_LM) #not using inverse distance
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the cell that are not the river buffer linestring raster have a 0 value
+dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_LM) #plotting the distance to river raster
 
 #LC
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #create raster of lake edge points
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #creating a raster out of the river linestring object
 plot(river_LC_trans_point_raster)
 
-river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turns the polyline of the river buffer into a multipoint object in stars
-river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #create raster of lake edge points
-plot(river_buffer_LC_point_raster)
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #creating a raster of river buffer linestring object
+plot(river_buffer_LC_point_raster) #plotting the river buffer linestring object
 
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-#dist_near_river_buffer_LC_inverse <- 1/dist_near_river_buffer_LC #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
+dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
 plot(dist_near_river_buffer_LC) #not using inverse distance
-
-
 
 #SD
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #create raster of lake edge points
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #creating a raster out of the river linestring object
 plot(river_SD_trans_point_raster)
 
-river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turns the polyline of the river buffer into a multipoint object
-river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create raster of lake edge points
-plot(river_buffer_SD_point_raster)
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #creating a raster of river buffer linestring object
+plot(river_buffer_SD_point_raster) #plotting the river buffer linestring object
 
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-#dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(dist_near_river_buffer_SD) #not using inverse distance
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
+dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_SD) #plotting the distance to river raster
 
 
-#making it so points within or overlapping with the river are assigned 1 
-
-#Assigning points within and overlapping with the river to have true
+## Making it so the cells in the distance raster within or overlapping with the river raster are assigned 1 
 
 #LM
 
+#Assigning points within and overlapping with the river to have true
 LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
 LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
 
@@ -232,28 +263,24 @@ ggplot()+
   geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
 
 
-
-###extract distance to river for each point 
-
-#all points
-
+## Extracting distance to river for each point tree from the distance to river raster
 
 #LM
-LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting aspect for each point value
-LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
+LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting distance to river for each tree
+LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #bind the distance to river data for each point to the LM point dataframe
 
 
 #LC
-LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting aspect for each point value
-LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
+LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting distance to river for each tree
+LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #bind the distance to river data for each tree to the LC point dataframe
 
 
 #SD
-SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting aspect for each point value
-SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #bind the aspect data for each point to the LM point dataframe
+SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting distance to river for each tree
+SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #bind the distance to river data for each point to the SD point dataframe
 
 
-### Assigning all points within/overlapping river to distances of 0
+## Assigning all points within/overlapping river to distances of 0
 
 #LM
 LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>% 

@@ -334,6 +334,90 @@ LM_field_data_focal_summarized_focal <- LM_focal_tree_dataframe %>%
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(LM_field_data_focal_summarized_focal)
 
+
+
+
+
+
+
+
+
+#8 categories for direction
+
+
+#all points 
+
+#removing NAs in SCA and aspect to allow us to run tests
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+  drop_na(Canopy_short) %>%
+  drop_na(all_points_aspect_raster_15_data_pts_8_categorical)
+
+#short canopy axis
+
+#boxplot of sizes by the directional categories
+ggplot(data = all_points_fixed_field_data_processed_terrain)+
+  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
+  xlab("Directions")+
+  ylab("Short Canopy Axis (m)")
+
+#generating the ANOVA and ANOVA summary
+all_points_aov_SCA_aspect_8 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+summary(all_points_aov_SCA_aspect_8) #ANOVA summary
+
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
+all_points_t_test_SCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
+                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
+
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+hist(all_points_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
+
+qqnorm(all_points_aov_SCA_aspect_8$residuals) #qqnorm plot
+
+shapiro.test(all_points_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test, if significant, have to run a non-parametric test
+
+#residuals are not normal
+
+# checking equal variances with Fligner-Killeen Test, Levene's Rest, and Rule of Thumb Test
+
+#Fligner-Killeen, more useful than the other equal variance tests when dealing with non-normal and when outliers present
+fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#Levene's Test, not super robust to strong differences to normality
+leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
+
+#Rule of Thumb Test
+all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, 
+                                    all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
+max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two, the test did not pass
+
+#variances are equally distributed
+
+#non-parametric tests
+
+#Kruskal-Wallis test
+kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
+
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
+pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #### creating the generalized linear effects model ####
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample

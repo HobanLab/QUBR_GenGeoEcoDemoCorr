@@ -1,5 +1,5 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%Looking to see if Q. brandegeei's size/shape is influenced by elevation, slope, and aspect, respectively%%%%%%%%%%%%%
+# %%%%Looking to see if Q. brandegeei's size/shape is influenced by either elevation, slope, and/or aspect%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #the purpose of the script is to determine how the elevation, slope, and aspect each 
@@ -9,11 +9,12 @@
 
   # 1) loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
             #San Dionisio, and La Cobriza populations and loading in the river outline shapefiles
-  # 2) Loading and processing in the environmental characteristics (elevation, slope, aspect)
-  # 3) Descriptive summary of the variables 
-  # 4) Comparing size of the trees to their elevation to look for a relationship using single linear regression
-  # 5) Comparing size of the trees to their slope to look for a relationship using single linear regression
-  # 6) Comparing size of the trees to their aspect to look for a relationship using Kruskall-Wallis Tests
+  # 2) Processing the elevation column to fix unit issues and NAs
+  # 3) Loading and processing in the environmental characteristics (elevation, slope, aspect)
+  # 4) Descriptive summary of the variables 
+  # 5) Comparing size of the trees to their elevation to look for a relationship using single linear regression
+  # 6) Comparing size of the trees to their slope to look for a relationship using single linear regression
+  # 7) Comparing size of the trees to their aspect to look for a relationship using Kruskall-Wallis Tests
 
 #### Loading libraries and relevant data ####
 
@@ -31,9 +32,8 @@ library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
-# creating the point shapefiles of the tree locations for each population in UTM 12 N
+fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
@@ -41,10 +41,10 @@ fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
                                           coords = c("long", "lat"), crs = 4326)
 
 #creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) # this in UTM 12 N an equal area projection
-
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
 
 #create dataframe with X and Y UTM coordinates
+
 fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
@@ -86,7 +86,8 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
 
 #### Processing elevation for each population ####
 
-#set elevation as a numeric value
+#setting elevation as a numeric value
+
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.)) # for all points
 
@@ -99,7 +100,7 @@ fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_s
                                         (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
-#Filtering the cleaned elevation dataset for each population
+#filtering the cleaned elevation dataset for each population
 
 #LM
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
@@ -114,25 +115,26 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
   filter(Locality == "SD")
 
 #creating a new elevation column so the values that were mistakenly put in feet are in meters
-LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
 
-#creating a new elevation column so the values that were mistakenly put in feet are in meters
+#LM
+LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+                                        (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
+
+#LC
 LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+                                        (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
 
 #creating a new elevation column so the values that were mistakenly put in feet are in meters 
        #and setting the outlier elevation to NA
 SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.)) %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+                                        (Elevation..m. < 700) ~ Elevation..m.)) %>% #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA,  #change the elevation of 360 which appears to be a miswritten elevation to NA
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
-
-#plotting the tree points by elevation (m) for each population
+#plotting the tree points by elevation (m) for each population to confirm corrections
 
 #LM
 ggplot()+
@@ -147,7 +149,7 @@ ggplot()+
   geom_sf(data = SD_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
 
 
-#upload ArcGIS river shapefile and filter out polygons for each population
+#Upload ArcGIS river shapefile and filter out polygons for each population
 
 #LM
 river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
@@ -159,34 +161,37 @@ river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/L
 river_LC  <- river_LC$geometry[1]
 plot(river_LC)
 
-#SD
+#LM
 river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-river_LM_trans <- st_transform(river_LM, crs = 26912) 
-river_LC_trans <- st_transform(river_LC, crs = 26912)
-river_SD_trans <- st_transform(river_SD, crs = 26912)
+river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 
 
-#### creating the elevation, aspect, and slope rasters ####
+#### Creating the elevation, aspect, and slope rasters ####
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
-#BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY, FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
-#AFTER LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
-#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m continuous elevation model DATA: https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
+#BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
+#AFTER LOADING IN THE ORIGINAL DATA, WE CROPPED THE DATA TO FIT TO JUST OUR POPULATIONS BOUNDING BOXES, EXPORTED THOSE FILES, AND THEN DOWNLOADED THEM.
+
+#HERE IS A LINK TO A GOOGLE DRIVE WITH THE INGEI 15 m continuous ELEVATION MODEL DATA: https://drive.google.com/drive/folders/17RxjebifsRFFS4iEucDQtMFaqjzRI-Ss?usp=sharing 
 
 #SO WE COMMENTED OUT CODE THAT IS HOW WE LOADED IN THE ORIGINAL RASTER AND CREATED AND EXPORTED THE CROPPED RASTERS FOR EACH POPULATION
 
-# #creating bboxs for all of the river shapefiles for each population
-# LM_box <- st_bbox(river_LM_trans)
-# LC_box <- st_bbox(river_LC_trans)
-# SD_box <- st_bbox(river_SD_trans)
+# creating bboxs for all of the river shapefiles for each population
+
+# LM_box <- st_bbox(river_LM_trans) #LM
+# LC_box <- st_bbox(river_LC_trans) #LC
+# SD_box <- st_bbox(river_SD_trans) #SD
 
 
 ##projecting the INGEI 15 m continuous elevation model into UTM 12N 
+
 # gdalwarp(srcfile = './data/15 m Elevation Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',  
 #          dstfile = './data/15 m Elevation Raster/CEM_15_utm.tif', 
 #          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
@@ -202,17 +207,18 @@ river_SD_trans <- st_transform(river_SD, crs = 26912)
 # 
 # #all points
 # 
-# #mapping cropped 
+# #mapping the cropped raster
+
 # CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
 # 
-# #plotting the LM elevation raster with the all points
+# #plotting the all points elevation raster with the all points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
 #   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
 # 
 # #LM
 # 
-# #mapping cropped 
+# #mapping the croppedraster
 # CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
 # 
 # #plotting the LM elevation raster with the LM points
@@ -222,40 +228,44 @@ river_SD_trans <- st_transform(river_SD, crs = 26912)
 # 
 # #LC
 # 
-# #mapping cropped 
+# #mapping the cropped raster
 # CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
 # 
-# #plotting the LM elevation raster with the LM points
+# #plotting the LC elevation raster with the LC points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
 #   geom_sf(data = LC_fixed_field_data_processed)
 # 
 # #SD
 # 
-# #mapping cropped 
+# #mapping the cropped raster
 # CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
 # 
-# #plotting the LM elevation raster with the LM points
+# #plotting the SD elevation raster with the SD points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
 #   geom_sf(data = SD_fixed_field_data_processed)
 
-# #exporting this cropped rasters as a tif
+# #exporting this cropped rasters as tif FILES TO DOWNLOAD LATER
 # writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
 # writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LC.tif')
 # writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
 
-#HERE IS THE IMPORTATION OF THE CROPPED RASTERS
+#HERE IS THE IMPORTATION OF THE CROPPED RASTERS:
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
+
+#LM
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
-terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 
+#LC
 CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
-terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 
+#SD
 CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
-terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 
 #creating the all points raster by merging the LM, LC, and SD rasters
 CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
@@ -358,43 +368,46 @@ ggplot()+
   geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
-#creating dataframes for each population with columns for slope,, aspect, and elevation by extracting the slope and 
+#creating dataframes for each population with columns for slope, aspect, and elevation by extracting the slope, elevation, and 
          #aspect data from each cell for each point and combining the data into a single dataframe
 
 #all points
-all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
-all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point value
-all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #binding the aspect data for each point to the LM point dataframe
-all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #binding the slope data for each point to the LM point dataframe
+
+all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point 
+all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point 
+all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #binding the aspect data for each point to the all points point dataframe
+all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #binding the slope data for each point to the all points point dataframe
 
 #LM
 
-LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
-LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point value
-LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point value
+LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point 
+LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point 
+LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point 
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #binding the aspect data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #binding the slope data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #binding the elevation data for each point to the LM point dataframe
 
 #LC
-LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
-LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
-LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #binding the aspect data for each point to the SD point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #binding the slope data for each point to the SD point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #binding the elevation data for each point to the LM point dataframe
+
+LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point 
+LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point 
+LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point 
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #binding the aspect data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #binding the slope data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #binding the elevation data for each point to the LC point dataframe
 
 #SD
-SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
-SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
-SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
+
+SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point 
+SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point 
+SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point 
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #binding the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #binding the slope data for each point to the SD point dataframe
-SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #binding the elevation data for each point to the LM point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #binding the elevation data for each point to the SD point dataframe
 
-#re-categorizing the aspect data into 4 (N,E,S,W) and 8 categories (N,NE,E,SE, etc.)
+## re-categorizing the aspect data into 4 (N,E,S,W) and 8 categories (N,NE,E,SE, etc.)
 
-#First I have to set values of 360º to 0, since they are the same direction
+#First, we set values of 360º to 0, since they are the same direction
 
 #all points data
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
@@ -416,6 +429,8 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
   mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == 360) ~  0,
                                                   (SD_aspect_raster_15_data_pts != 360)~ SD_aspect_raster_15_data_pts))
 
+#Second, we re categorize the aspect degrees to cardinal directions
+
 # all points
 
 # 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
@@ -431,7 +446,7 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
                                                                 (all_points_aspect_raster_15_data_pts >= 202.5 & all_points_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
                                                                 (all_points_aspect_raster_15_data_pts >= 247.5 & all_points_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                 (all_points_aspect_raster_15_data_pts >= 292.5 & all_points_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-# North, East, South, West
+# 4 categories: North, East, South, West
 
 # the directions are a range of 90 degrees 
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
@@ -443,7 +458,7 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
 
 # LM
 
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are a range of 45 degrees 
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
@@ -457,7 +472,7 @@ LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %
                                                               (LM_aspect_raster_15_data_pts >= 247.5 & LM_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                               (LM_aspect_raster_15_data_pts >= 292.5 & LM_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# 4 categories: North, East, South, West
 
 # the directions are a range of 90 degrees 
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
@@ -469,7 +484,7 @@ LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %
 
 # LC
 
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are a range of 45 degrees 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
@@ -483,7 +498,7 @@ LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %
                                                                 (LC_aspect_raster_15_data_pts >= 247.5 & LC_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                 (LC_aspect_raster_15_data_pts >= 292.5 & LC_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# 4 categories: North, East, South, West
 
 # the directions are a range of 90 degrees 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
@@ -495,7 +510,8 @@ LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %
 
 
 #SD
-# North, Northeast, East, Southeast, South, Southwest, West, Northwest
+
+# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are a range of 45 degrees 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
@@ -509,7 +525,7 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 247.5 & SD_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
                                                                 (SD_aspect_raster_15_data_pts >= 292.5 & SD_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
 
-# North, East, South, West
+# 4 categories: North, East, South, West
 
 # the directions are a range of 90 degrees 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
@@ -522,63 +538,76 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
 #### Descriptive Summary ####
 
 #histograms
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+
+#SCA
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#LCA
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#CS
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#CA
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#DBH
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#Elevation before corrections
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed) + # Generate the base plot
+#LM Elevation
+ggplot(LM_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.FIXED))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed) + # Generate the base plot
+#LC Elevation
+ggplot(LC_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed) + # Generate the base plot
+#SD Elevation
+ggplot(SD_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
 #histograms for slope
 
+#LM
 ggplot(LM_fixed_field_data_processed_terrain) + # Generate the base plot
   geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
+#LC
 ggplot(LC_fixed_field_data_processed_terrain) + # Generate the base plot
   geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
+#SD
 ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
   geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
@@ -588,16 +617,19 @@ ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
 
 # 8 categories of direction
 
+#LM
 ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#LC
 ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#SD
 ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
@@ -605,72 +637,83 @@ ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
 
 # 4 categories of direction
 
+#LM
 ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#LC
 ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
+#SD
 ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
+#descriptive summaries statistics
+
+# Created a dataframe which contains the "classical" univariate descriptive statistics of each of the important variables
 field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
+  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd))) 
 View(field_data_summarized)
 
 
 #### Sizes vs. Elevation ####
 
 # For all populations/each population and size/shape metric we created single variable regressions by...
-  #a) creating the single variable linear regressions with the un-transformed variable, logged variable, and 
-          # square root of the variable respectively either with or without outliers
+  #a) creating the single variable linear regressions with the un-transformed response variable, logged variable, and 
+          # square root of the variable, respectively, either with or without outliers
   #b) testing which model best satisfies the conditions for the analysis: LINES
           # Linearity, Independence, Normality of residuals, Equal variance of residuals, and simple random sample 
+                # we tested Linearity by looking at the scatterplots,
+                # we tested Independence by thinking about the explanatory and response variables across the points,
+                # we tested Normality of Residuals using histograms, qq norm plots, and the Shapiro-Wilk's test,
+                # we tested Equal Variance of Residuals using a fitted vs. residuals plot,
+                # we tested Simple Random Sample by thinkg about the data collection method.
   #c) We then looked for significant associations (slopes/correlations)
         # 1) If the LINES conditions are met...
-               # we run a slope test to see if there is a significant association
+               # we ran a slope test and a Pearson's correlation test to see if there is a significant association
         # 2) If the LINES conditions are not met...
-               # we run a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
+               # we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
 
 # For all trees
 
-#removing NAs
+# removing NAs
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  drop_na(Elevation..m.FIXED)
+  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
 
 #SCA
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-#creating the linear regression
+#creating the linear regression without transformations
 all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
 # square root transformation does the best job of meeting the conditions
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(all_points_lm_sca_elev, aes(x= all_points_lm_sca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
@@ -681,9 +724,10 @@ ggplot(all_points_lm_sca_elev, aes(x= all_points_lm_sca_elev$residuals))+
 ggplot(all_points_lm_sca_elev, aes(sample = all_points_lm_sca_elev$residuals))+
   geom_qq()
 
+#Shapiro-Wilk Test
 shapiro.test(all_points_lm_sca_elev$residuals) #only not significant for a square root transformation, we could use mann-kendall test for non-parametric data or the square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_sca_elev, aes(x = all_points_lm_sca_elev$fitted.values, y = all_points_lm_sca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -691,7 +735,7 @@ ggplot(data = all_points_lm_sca_elev, aes(x = all_points_lm_sca_elev$fitted.valu
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression reslts
 summary(all_points_lm_sca_elev)
 
 #correlation test
@@ -701,60 +745,64 @@ cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fix
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-all_points_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
-all_points_slr_LCA_cooks <- cooks.distance(all_points_slr_LCA) #calculating the cook.s D for each point
-plot(all_points_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_LCA_cooks[(all_points_slr_LCA_cooks > (3 * mean(all_points_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_LCA_cooks <- cooks.distance(all_points_slr_LCA) #calculating the Cook's D for each point
+plot(all_points_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unusually high
+influential <- all_points_slr_LCA_cooks[(all_points_slr_LCA_cooks > (3 * mean(all_points_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 49, 88, 89, 105, 126, 169, 177, 189, 
                                                                                                                       190, 194, 208, 210, 212, 27, 218, 219, 242, 250,
-                                                                                                                      252, 254, 258, 270, 290, 291, 295, 304, 305, 306, 307,
-                                                                                                                      309, 318, 338, 343, 375, 376, 377, 378, 379, 381, 384, 398, 433, 449,
+                                                                                                                      252, 254, 258, 270, 290, 291, 295, 304, 305, 306, 307,                                                                                                                  309, 318, 338, 343, 375, 376, 377, 378, 379, 381, 384, 398, 433, 449,
                                                                                                                       480, 494, 514, 572, 643, 648),]
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_long_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long_lg ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_lca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Canopy_long_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers$Elevation..m.FIXED)
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(all_points_lm_lca_elev, aes(x= all_points_lm_lca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm plot
+#qqnorm plot plot
 ggplot(all_points_lm_lca_elev, aes(sample = all_points_lm_lca_elev$residuals))+
   geom_qq()
 
-#shapiro-wilk test is sig despite transformations and removal of outliers, so we have to use Mann-Kendall non-parametric test
-shapiro.test(all_points_lm_lca_elev$residuals) 
+#Shapiro-Wilk Test 
+shapiro.test(all_points_lm_lca_elev$residuals) #it is sig despite transformations and removal of outliers, so we have to use Mann-Kendall non-parametric test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_lca_elev, aes(x = all_points_lm_lca_elev$fitted.values, y = all_points_lm_lca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -762,44 +810,44 @@ ggplot(data = all_points_lm_lca_elev, aes(x = all_points_lm_lca_elev$fitted.valu
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_lca_elev)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test
 all_points_tau_result_LCA <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_long,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_LCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = (fixed_field_data_processed_sf_trans_coordinates$Canopy_long), color = "blue")) +
   geom_line(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = all_points_trend_line_LCA), color = "red") +
   labs(x = "Elevation", y = "Long Canopy Axis", title = "Trend Line Plot") +
   theme_minimal()
 
-#canopy area
+#Canopy Area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
-#Cook's D
-all_points_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
-all_points_slr_CA_cooks <- cooks.distance(all_points_slr_CA) #calculating the cook.s D for each point
-plot(all_points_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_CA_cooks[(all_points_slr_CA_cooks > (3 * mean(all_points_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_CA_cooks <- cooks.distance(all_points_slr_CA) #calculating the Cook's D for each point
+plot(all_points_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_CA_cooks[(all_points_slr_CA_cooks > (3 * mean(all_points_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 49, 89, 163, 169, 177,
                                                                                                                      190, 208, 210, 212, 217, 219, 249, 251,
                                                                                                                      252, 253, 254, 270, 304, 305, 306,
@@ -807,42 +855,46 @@ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers <- fixed_field_da
                                                                                                                      398, 433, 449, 472, 
                                                                                                                      480, 494, 514, 572, 648, 660),]
                                                                                                                      
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_area_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_area_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
-#creating the linear regression
+#linear regression without transformations
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area_lg ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CA_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Canopy_area_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_ca_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(all_points_lm_CA_elev, aes(x= all_points_lm_CA_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm 
+#qqnorm plot  
 ggplot(all_points_lm_CA_elev, aes(sample = all_points_lm_CA_elev$residuals))+
   geom_qq()
 
-#shapiro-wilk test is sig depsite transformations and removal of outliers, so we need to use a non-parametric mann-kendall test
-shapiro.test(all_points_lm_CA_elev$residuals) 
+#Shapiro-Wilk Test 
+shapiro.test(all_points_lm_CA_elev$residuals) #shapiro-wilk test is sig depsite transformations and removal of outliers, so we need to use a non-parametric mann-kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_CA_elev, aes(x = all_points_lm_CA_elev$fitted.values, y = all_points_lm_CA_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -850,44 +902,44 @@ ggplot(data = all_points_lm_CA_elev, aes(x = all_points_lm_CA_elev$fitted.values
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_CA_elev)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test
 all_points_tau_result_CA <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Canopy_area,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Canopy_area ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = (fixed_field_data_processed_sf_trans_coordinates$Canopy_area), color = "blue")) +
   geom_line(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = all_points_trend_line_LCA), color = "red") +
   labs(x = "Elevation (m)", y = "Long Canopy Axis", title = "Trend Line Plot") +
   theme_minimal()
 
-#crown spread
+#Crown Spread
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Crown Spread")
 
-#Cook's D
-all_points_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
-all_points_slr_CS_cooks <- cooks.distance(all_points_slr_CS) #calculating the cook.s D for each point
-plot(all_points_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_CS_cooks[(all_points_slr_CS_cooks > (3 * mean(all_points_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_CS_cooks <- cooks.distance(all_points_slr_CS) #calculating the Cook's D for each point
+plot(all_points_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_CS_cooks[(all_points_slr_CS_cooks > (3 * mean(all_points_slr_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 45, 88, 89, 163, 169, 177,
                                                                                                                     189, 190, 194, 208, 210, 212, 217, 219, 242, 249, 251,
                                                                                                                      252, 253, 254, 270, 290, 291, 295, 304, 305, 306,
@@ -895,41 +947,46 @@ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers <- fixed_field_da
                                                                                                                      398, 433, 449, 
                                                                                                                      480, 494, 514, 572, 648, 660),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#logged CS
+#linear regression with log transformation of response variable
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#square rooted CS
+#linear regression with square root transformation of response variable
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Crown_spread_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
 
-#logged CS
+#linear regression with log transformation of response variable
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread_lg ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
 
-#square root CS
+#linear regression with square root transformation of response variable
 all_points_lm_CS_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Crown_spread_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_cs_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(all_points_lm_CS_elev, aes(x= all_points_lm_CS_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_CS_elev, aes(sample = all_points_lm_CS_elev$residuals))+
   geom_qq()
 
-#all were sig, despite transformations and removal of outliers, so need to use non-parametric mann-kendall test
-shapiro.test(all_points_lm_CS_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(all_points_lm_CS_elev$residuals) #all were sig, despite transformations and removal of outliers, so need to use non-parametric mann-kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_CS_elev, aes(x = all_points_lm_CS_elev$fitted.values, y = all_points_lm_CS_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -937,19 +994,19 @@ ggplot(data = all_points_lm_CS_elev, aes(x = all_points_lm_CS_elev$fitted.values
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_CS_elev)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test
 all_points_tau_result_CS <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$Crown_spread,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_CS)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$Crown_spread ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
@@ -960,7 +1017,7 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for DBH
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -969,14 +1026,14 @@ ggplot(data = fixed_field_data_processed_sf_trans_coordinates, (aes(x=Elevation.
 
 #removing outliers
 
-#Cook's D
-all_points_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates)
-all_points_slr_DBH_cooks <- cooks.distance(all_points_slr_DBH) #calculating the cook.s D for each point
-plot(all_points_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_DBH_cooks[(all_points_slr_DBH_cooks > (3 * mean(all_points_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_DBH_cooks <- cooks.distance(all_points_slr_DBH) #calculating the Cook's D for each point
+plot(all_points_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_DBH_cooks[(all_points_slr_DBH_cooks > (3 * mean(all_points_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(16,49, 53, 65, 73, 79, 89, 94, 96, 125, 152, 160,
                                                                                                                       163, 165, 169, 177, 208, 210, 212, 214, 219, 244, 
                                                                                                                       245, 246, 247, 249, 250, 251,
@@ -986,47 +1043,52 @@ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers <- fixed_field_d
                                                                                                                       376, 378, 379, 384, 
                                                                                                                       398, 449, 613, 648, 660),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag_lg ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$DBH_ag_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
 
+#creating the linear regressions without any outliers
 
-#creating linear regressions without outliers
+#linear regression without transformations
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag_lg ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 all_points_lm_DBH_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$DBH_ag_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers$Elevation..m.FIXED)
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(all_points_lm_DBH_elev, aes(x= all_points_lm_DBH_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_DBH_elev, aes(sample = all_points_lm_DBH_elev$residuals))+
   geom_qq()
 
-#all were sig, despite transformations and removal of outliers, so need to use non-parametric mann-kendall test
-shapiro.test(all_points_lm_DBH_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(all_points_lm_DBH_elev$residuals) #all were sig, despite transformations and removal of outliers, so need to use non-parametric mann-kendall test
 
-#plotting the linear model in ggplot for DBH
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = fixed_field_data_processed_sf_trans_coordinates_dbh_no_outliers, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.values, y = all_points_lm_DBH_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1034,19 +1096,19 @@ ggplot(data = all_points_lm_DBH_elev, aes(x = all_points_lm_DBH_elev$fitted.valu
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_DBH_elev)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test
 all_points_tau_result_DBH <- cor.test(fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, fixed_field_data_processed_sf_trans_coordinates$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_DBH <- predict(loess(fixed_field_data_processed_sf_trans_coordinates$DBH_ag ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = (fixed_field_data_processed_sf_trans_coordinates$DBH_ag), color = "blue")) +
   geom_line(aes(x = fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED, y = all_points_trend_line_DBH), color = "red") +
@@ -1055,16 +1117,15 @@ ggplot() +
 
 # LM 
 
-#we had to remove the elevation NA to make the linear models
+#removing NAs in elevation
 LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
   drop_na(Elevation..m.FIXED)
-length(LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 #short canopy axis
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1075,37 +1136,41 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy
         axis.text.x = element_text(size=12), 
         axis.text.y = element_text(size=12))
 
-#Cook's D
-LM_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
-LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #calculating the cook.s D for each point
-plot(LM_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (3 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #calculating the Cook's D for each point
+plot(LM_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (3 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_sca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 44, 45, 113, 125, 126, 147, 
                                                                                   169, 177, 189, 194, 208, 210, 219),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#logged sca
+#linear regression with log transformation of response variable
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#squared sca
+#linear regression with square root transformation of response variable
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed$Canopy_short_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#creating the linear regression
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed_sca_no_outliers$Canopy_short ~ LM_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
-#logged sca
+#linear regression with log transformation of response variable
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed_sca_no_outliers$Canopy_short_lg ~ LM_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
-#squared sca
+#linear regression with square root transformation of response variable
 LM_lm_sca_elev  <- lm(LM_fixed_field_data_processed_sca_no_outliers$Canopy_short_sqrt ~ LM_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LM_lm_sca_elev, aes(x= LM_lm_sca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
@@ -1116,10 +1181,10 @@ ggplot(LM_lm_sca_elev, aes(x= LM_lm_sca_elev$residuals))+
 ggplot(LM_lm_sca_elev, aes(sample = LM_lm_sca_elev$residuals))+
   geom_qq()
 
-#normality met when using outliers and square root of SCA
-shapiro.test(LM_lm_sca_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_sca_elev$residuals) #normality met when using outliers and square root of SCA
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_sca_elev, aes(x = LM_lm_sca_elev$fitted.values, y = LM_lm_sca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1127,7 +1192,7 @@ ggplot(data = LM_lm_sca_elev, aes(x = LM_lm_sca_elev$fitted.values, y = LM_lm_sc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_sca_elev)
 
 #correlation test
@@ -1137,61 +1202,65 @@ cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_p
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-LM_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
-LM_slr_LCA_cooks <- cooks.distance(LM_slr_LCA) #calculating the cook.s D for each point
-plot(LM_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed) #calculating the Cook's D for each point
+LM_slr_LCA_cooks <- cooks.distance(LM_slr_LCA) #calculating the Cook's D for each point
+plot(LM_slr_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_LCA_cooks[(LM_slr_LCA_cooks > (3 * mean(LM_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_lca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 42, 49, 88, 113, 126, 138, 141, 147, 169, 
                                                                                   177, 189, 185, 189, 190, 194, 208, 210, 212, 217, 218, 219),]
 
 
 #creating the linear regression
 
+#linear regression without transformations
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#logged lca
+#linear regression with log transformation of response variable
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#square root lca
+#linear regression with square root transformation of response variable
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed$Canopy_long_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
-#logged lca
+#linear regression with log transformation of response variable
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long_lg ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
-#square root lca
+#linear regression with square root transformation of response variable
 LM_lm_lca_elev  <- lm(LM_fixed_field_data_processed_lca_no_outliers$Canopy_long_sqrt ~ LM_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LM_lm_lca_elev, aes(x= LM_lm_lca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_lca_elev, aes(sample = LM_lm_lca_elev$residuals))+
   geom_qq()
 
-#sign not normally distributed with just transformations,but non sign with square root trans and removal of outliers
-shapiro.test(LM_lm_lca_elev$residuals) 
+#Shapiro-Wilk Test 
+shapiro.test(LM_lm_lca_elev$residuals) #sign not normally distributed with just transformations,but non sign with square root trans and removal of outliers
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_lca_elev, aes(x = LM_lm_lca_elev$fitted.values, y = LM_lm_lca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1199,19 +1268,19 @@ ggplot(data = LM_lm_lca_elev, aes(x = LM_lm_lca_elev$fitted.values, y = LM_lm_lc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_lca_elev)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_LCA <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Canopy_long,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(LM_tau_result_LCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_LCA <- predict(loess(LM_fixed_field_data_processed$Canopy_long ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
@@ -1222,66 +1291,70 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
-#Cook's D
-LM_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
-LM_slr_CA_cooks <- cooks.distance(LM_slr_CA) #calculating the cook.s D for each point
-plot(LM_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (3 * mean(LM_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LM_slr_CA_cooks <- cooks.distance(LM_slr_CA) #calculating the Cook's D for each point
+plot(LM_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_CA_cooks[(LM_slr_CA_cooks > (3 * mean(LM_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_ca_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 44, 89, 113, 125, 126, 147, 169, 177, 
                                                                                  189, 208, 210, 212, 217, 219),]
 
 #creating the linear regression
 
+#linear regression without transformations
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed$Canopy_area_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area_lg ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LM_lm_CA_elev  <- lm(LM_fixed_field_data_processed_ca_no_outliers$Canopy_area_sqrt ~ LM_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("sqrt(Canopy Area_")
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LM_lm_CA_elev, aes(x= LM_lm_CA_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_CA_elev, aes(sample = LM_lm_CA_elev$residuals))+
   geom_qq()
 
-#with just transformations sig, but with removal of outliers and square root trans it is normal
-shapiro.test(LM_lm_CA_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_CA_elev$residuals) #with just transformations sig, but with removal of outliers and square root trans it is normal
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1289,20 +1362,19 @@ ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_CA_elev)
 
-
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_CA <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$Canopy_area,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(LM_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed$Canopy_area ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
@@ -1313,21 +1385,21 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Crown Spread")
 
-#Cook's D
-LM_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
-LM_slr_CS_cooks <- cooks.distance(LM_slr_CS) #calculating the cook.s D for each point
-plot(LM_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_CS_cooks[(LM_slr_CS_cooks > (3 * mean(LM_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LM_slr_CS_cooks <- cooks.distance(LM_slr_CS) #calculating the Cook's D for each point
+plot(LM_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_CS_cooks[(LM_slr_CS_cooks > (3 * mean(LM_slr_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_cs_no_outliers <- LM_fixed_field_data_processed[-c(21, 29, 44, 113, 125, 126, 147, 169, 177, 
                                                                                  189, 194, 208, 210, 212, 217, 219),]
 
@@ -1335,48 +1407,51 @@ LM_fixed_field_data_processed_cs_no_outliers <- LM_fixed_field_data_processed[-c
 
 #creating the linear regression
 
+#linear regression without transformations
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated CS
+#linear regression with log transformation of response variable
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated CS
+#linear regression with square root transformation of response variable
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed$Crown_spread_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
 
-#without outliers 
+#creating the linear regressions without any outliers 
 
+#linear regression without transformations
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed_cs_no_outliers$Crown_spread ~ LM_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated CS
+#linear regression with log transformation of response variable
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed_cs_no_outliers$Crown_spread_lg ~ LM_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated CS
+#linear regression with square root transformation of response variable
 LM_lm_CS_elev  <- lm(LM_fixed_field_data_processed_cs_no_outliers$Crown_spread_sqrt ~ LM_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LM_lm_CS_elev, aes(x= LM_lm_CS_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_CS_elev, aes(sample = LM_lm_CS_elev$residuals))+
   geom_qq()
 
-#not sign with square root transformation 
-shapiro.test(LM_lm_CS_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_CS_elev$residuals) #not significant with a square root transformation 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_spread_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("sqrt(Crown Spread)")
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_CS_elev, aes(x = LM_lm_CS_elev$fitted.values, y = LM_lm_CS_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1384,19 +1459,19 @@ ggplot(data = LM_lm_CS_elev, aes(x = LM_lm_CS_elev$fitted.values, y = LM_lm_CS_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_CS_elev)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_CS <- cor.test(LM_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED, LM_fixed_field_data_processed_cs_no_outliers$Crown_spread,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(LM_tau_result_CS)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed_cs_no_outliers$Crown_spread ~ LM_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
@@ -1408,21 +1483,21 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
 
-#Cook's D
-LM_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed)
-LM_slr_DBH_cooks <- cooks.distance(LM_slr_DBH) #calculating the cook.s D for each point
-plot(LM_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_slr_DBH_cooks[(LM_slr_DBH_cooks > (3 * mean(LM_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = LM_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LM_slr_DBH_cooks <- cooks.distance(LM_slr_DBH) #calculating the Cook's D for each point
+plot(LM_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_slr_DBH_cooks[(LM_slr_DBH_cooks > (3 * mean(LM_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_dbh_no_outliers <- LM_fixed_field_data_processed[-c(16, 21, 29, 53, 73, 79, 94, 96, 114, 125, 126, 152, 160, 162, 165,
                                                                                  169, 177, 208, 210, 212, 214, 219),]
 
@@ -1430,27 +1505,29 @@ LM_fixed_field_data_processed_dbh_no_outliers <- LM_fixed_field_data_processed[-
 
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_lg ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed$DBH_ag_sqrt ~ LM_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed_dbh_no_outliers$DBH_ag ~ LM_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed_dbh_no_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_DBH_elev  <- lm(LM_fixed_field_data_processed_dbh_no_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -1462,21 +1539,23 @@ ggplot(data = LM_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag
         axis.text.x = element_text(size=12), 
         axis.text.y = element_text(size=12))
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LM_lm_DBH_elev, aes(x= LM_lm_DBH_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_DBH_elev, aes(sample = LM_lm_DBH_elev$residuals))+
   geom_qq()
 
-#significant for all transformations, have to ue non-parametric method
-shapiro.test(LM_lm_DBH_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_DBH_elev$residuals) #significant for all transformations, have to ue non-parametric method
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DBH_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1484,22 +1563,19 @@ ggplot(data = LM_lm_DBH_elev, aes(x = LM_lm_DBH_elev$fitted.values, y = LM_lm_DB
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_DBH_elev)
 
-ggplot()+
-  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
-
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_DBH <- cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_processed$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(LM_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_DBH <- predict(loess(LM_fixed_field_data_processed$DBH_ag ~ LM_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LM_fixed_field_data_processed$Elevation..m.FIXED, y = (LM_fixed_field_data_processed$DBH_ag), color = "blue")) +
   geom_line(aes(x = LM_fixed_field_data_processed$Elevation..m.FIXED, y = LM_trend_line_DBH), color = "red") +
@@ -1512,58 +1588,56 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-LC_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed)
-LC_slr_SCA_cooks <- cooks.distance(LC_slr_SCA) #calculating the cook.s D for each point
-plot(LC_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_SCA_cooks[(LC_slr_SCA_cooks > (3 * mean(LC_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LC_slr_SCA_cooks <- cooks.distance(LC_slr_SCA) #calculating the Cook's D for each point
+plot(LC_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_SCA_cooks[(LC_slr_SCA_cooks > (3 * mean(LC_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_sca_no_outliers <- LC_fixed_field_data_processed[-c(34, 38, 54, 74, 77, 85, 99, 119,
                                                                                   177, 195, 203),]
 
+#creating the linear regressions
 
-
-
-
-
-#creating the linear regression
+#linear regression without transformations
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with logged transformation of short canopy axis
+#linear regression with log transformation of response variable
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with square root transformation of short canopy axis
+#linear regression with square root transformation of response variable
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#without outliers 
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed_sca_no_outliers$Canopy_short ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with logged transformation of short canopy axis
+#linear regression with log transformation of response variable
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with square root transformation of short canopy axis
+#linear regression with square root transformation of response variable
 LC_lm_sca_elev  <- lm(LC_fixed_field_data_processed$Canopy_short_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot with a logged SCA value
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_short_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("log(Short Canopy Axis)")
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
@@ -1574,10 +1648,10 @@ ggplot(LC_lm_sca_elev, aes(x= LC_lm_sca_elev$residuals))+
 ggplot(LC_lm_sca_elev, aes(sample = LC_lm_sca_elev$residuals))+
   geom_qq()
 
-#not sign with logged transformation of sca
-shapiro.test(LC_lm_sca_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_sca_elev$residuals) #not significant with logged transformation of sca
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_sca_elev, aes(x = LC_lm_sca_elev$fitted.values, y = LC_lm_sca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1585,7 +1659,7 @@ ggplot(data = LC_lm_sca_elev, aes(x = LC_lm_sca_elev$fitted.values, y = LC_lm_sc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_sca_elev)
 
 #correlation test
@@ -1595,64 +1669,63 @@ cor.test(LM_fixed_field_data_processed$Elevation..m.FIXED, LM_fixed_field_data_p
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Canopy_long_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-LC_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed)
-LC_slr_LCA_cooks <- cooks.distance(LC_slr_LCA) #calculating the cook.s D for each point
-plot(LC_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_LCA_cooks[(LC_slr_LCA_cooks > (3 * mean(LC_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LC_slr_LCA_cooks <- cooks.distance(LC_slr_LCA) #calculating the Cook's D for each point
+plot(LC_slr_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_LCA_cooks[(LC_slr_LCA_cooks > (3 * mean(LC_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_lca_no_outliers <- LC_fixed_field_data_processed[-c(3, 13, 19, 32, 34, 38, 54, 55, 74, 77,
                                                                                   85, 99, 119, 126, 159, 177),]
 
+#creating the linear regressions
 
-
-
-
-
-
-#creating the linear regression
+#linear regression without transformations
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear transformation with logged long canopy axis
+#linear regression with log transformation of response variable
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear transformation with square root long canopy axis
+#linear regression with square root transformation of response variable
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed$Canopy_long_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed_lca_no_outliers$Canopy_long ~ LC_fixed_field_data_processed_lca_no_outliers$Elevation..m.)
 
-#linear transformation with logged long canopy axis
+#linear regression with log transformation of response variable
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed_lca_no_outliers$Canopy_long_lg ~ LC_fixed_field_data_processed_lca_no_outliers$Elevation..m.)
 
-#linear transformation with square root long canopy axis
+#linear regression with square root transformation of response variable
 LC_lm_lca_elev  <- lm(LC_fixed_field_data_processed_lca_no_outliers$Canopy_long_sqrt ~ LC_fixed_field_data_processed_lca_no_outliers$Elevation..m.)
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LC_lm_lca_elev, aes(x= LC_lm_lca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_lca_elev, aes(sample = LC_lm_lca_elev$residuals))+
   geom_qq()
 
-#not sign with logged transformation
-shapiro.test(LC_lm_lca_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_lca_elev$residuals) #not significant with logged transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_lca_elev, aes(x = LC_lm_lca_elev$fitted.values, y = LC_lm_lca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1660,66 +1733,69 @@ ggplot(data = LC_lm_lca_elev, aes(x = LC_lm_lca_elev$fitted.values, y = LC_lm_lc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_lca_elev)
 
 #canopy area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
-#Cook's D
-LC_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed)
-LC_slr_CA_cooks <- cooks.distance(LC_slr_CA) #calculating the cook.s D for each point
-plot(LC_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_CA_cooks[(LC_slr_CA_cooks > (3 * mean(LC_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LC_slr_CA_cooks <- cooks.distance(LC_slr_CA) #calculating the Cook's D for each point
+plot(LC_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_CA_cooks[(LC_slr_CA_cooks > (3 * mean(LC_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_ca_no_outliers <- LC_fixed_field_data_processed[-c(3, 34, 38, 54, 74, 77, 85, 99, 119, 177, 203),]
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed$Canopy_area_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#without outliers
+#creating the linear regressions without any outliers
 
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_ca_no_outliers$Canopy_area ~ LC_fixed_field_data_processed_ca_no_outliers$Elevation..m.)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_ca_no_outliers$Canopy_area_lg ~ LC_fixed_field_data_processed_ca_no_outliers$Elevation..m.)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LC_lm_CA_elev  <- lm(LC_fixed_field_data_processed_ca_no_outliers$Canopy_area_sqrt ~ LC_fixed_field_data_processed_ca_no_outliers$Elevation..m.)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LC_lm_CA_elev, aes(x= LC_lm_CA_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_CA_elev, aes(sample = LC_lm_CA_elev$residuals))+
   geom_qq()
 
-#not sign with log transformation of CA
-shapiro.test(LC_lm_CA_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_CA_elev$residuals) #not significant with log transformation of CA
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1727,73 +1803,76 @@ ggplot(data = LM_lm_CA_elev, aes(x = LM_lm_CA_elev$fitted.values, y = LM_lm_CA_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_CA_elev)
-
 
 #crown spread
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CS
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Crown Spread")
 
-#Cook's D
-LC_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed)
-LC_slr_CS_cooks <- cooks.distance(LC_slr_CS) #calculating the cook.s D for each point
-plot(LC_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_CS_cooks[(LC_slr_CS_cooks > (3 * mean(LC_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LC_slr_CS_cooks <- cooks.distance(LC_slr_CS) #calculating the Cook's D for each point
+plot(LC_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_CS_cooks[(LC_slr_CS_cooks > (3 * mean(LC_slr_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_cs_no_outliers <- LC_fixed_field_data_processed[-c(3, 13, 34, 38, 54, 55, 74, 77, 85, 99, 119, 177, 203),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear transformation with logged crown spread
+#linear regression with log transformation of response variable
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear transformation with square rooted crown spread
+#linear regression with square root transformation of response variable
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed$Crown_spread_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed_cs_no_outliers$Crown_spread ~ LC_fixed_field_data_processed_cs_no_outliers$Elevation..m.)
 
-#linear transformation with logged crown spread
+#linear regression with log transformation of response variable
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed_cs_no_outliers$Crown_spread_lg ~ LC_fixed_field_data_processed_cs_no_outliers$Elevation..m.)
 
-#linear transformation with square rooted crown spread
+#linear regression with square root transformation of response variable
 LC_lm_CS_elev  <- lm(LC_fixed_field_data_processed_cs_no_outliers$Crown_spread_sqrt ~ LC_fixed_field_data_processed_cs_no_outliers$Elevation..m.)
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot with logged crown spread
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=Crown_spread_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("log(Crown Spread)")
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LC_lm_CS_elev, aes(x= LC_lm_CS_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_CS_elev, aes(sample = LC_lm_CS_elev$residuals))+
   geom_qq()
 
-#not sign with logged transformation
-shapiro.test(LC_lm_CS_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_CS_elev$residuals) #not significant with logged transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_CS_elev, aes(x = LC_lm_CS_elev$fitted.values, y = LC_lm_CS_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1801,74 +1880,77 @@ ggplot(data = LC_lm_CS_elev, aes(x = LC_lm_CS_elev$fitted.values, y = LC_lm_CS_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_CS_elev)
-
 
 #DBH
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
 
-#Cook's D
-LC_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed)
-LC_slr_DBH_cooks <- cooks.distance(LC_slr_DBH) #calculating the cook.s D for each point
-plot(LC_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_slr_DBH_cooks[(LC_slr_DBH_cooks > (3 * mean(LC_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = LC_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+LC_slr_DBH_cooks <- cooks.distance(LC_slr_DBH) #calculating the Cook's D for each point
+plot(LC_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_slr_DBH_cooks[(LC_slr_DBH_cooks > (3 * mean(LC_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_dbh_no_outliers <- LC_fixed_field_data_processed[-c(3, 33, 38, 48, 51, 54, 56, 58, 60, 61,
                                                                                   64, 67, 69, 72, 73, 75, 77, 84, 85, 99, 119, 126, 161),]
 
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_lg ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed$DBH_ag_sqrt ~ LC_fixed_field_data_processed$Elevation..m.)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_dbh_no_outliers$DBH_ag ~ LC_fixed_field_data_processed_dbh_no_outliers$Elevation..m.)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_dbh_no_outliers$DBH_ag_lg ~ LC_fixed_field_data_processed_dbh_no_outliers$Elevation..m.)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LC_lm_DBH_elev  <- lm(LC_fixed_field_data_processed_dbh_no_outliers$DBH_ag_sqrt ~ LC_fixed_field_data_processed_dbh_no_outliers$Elevation..m.)
 
-#plotting the linear model in ggplot for DBH
+#plotting the scatterplot and linear model in ggplot with a square root transformation of DBH
 ggplot(data = LC_fixed_field_data_processed, (aes(x=Elevation..m., y=DBH_ag_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("sqrt(DBH)")
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(LC_lm_DBH_elev, aes(x= LC_lm_DBH_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_DBH_elev, aes(sample = LC_lm_DBH_elev$residuals))+
   geom_qq()
 
-#not sign with square root transformation and ithout outliers
-shapiro.test(LC_lm_DBH_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_DBH_elev$residuals) #not significant with square root transformation and ithout outliers
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_DBH_elev, aes(x = LC_lm_DBH_elev$fitted.values, y = LC_lm_DBH_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1876,20 +1958,19 @@ ggplot(data = LC_lm_DBH_elev, aes(x = LC_lm_DBH_elev$fitted.values, y = LC_lm_DB
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_DBH_elev)
 
-
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LC_tau_result_DBH <- cor.test(LC_fixed_field_data_processed$Elevation..m.FIXED, LC_fixed_field_data_processed$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(LC_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LC_trend_line_DBH <- predict(loess(LC_fixed_field_data_processed$DBH_ag ~ LC_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_processed$Elevation..m.FIXED, y = (LC_fixed_field_data_processed$DBH_ag), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_processed$Elevation..m.FIXED, y = LC_trend_line_DBH), color = "red") +
@@ -1897,65 +1978,66 @@ ggplot() +
   theme_minimal()
 
 
-#SD linear models
+## SD linear models
 
+#dropping the NAs from SD elevation values
 SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
   drop_na(Elevation..m.FIXED)
-
-#using the fixed elevation 
 
 #short canopy axis
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-SD_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed)
-SD_slr_SCA_cooks <- cooks.distance(SD_slr_SCA) #calculating the cook.s D for each point
-plot(SD_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_SCA_cooks[(SD_slr_SCA_cooks > (3 * mean(SD_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+SD_slr_SCA_cooks <- cooks.distance(SD_slr_SCA) #calculating the Cook's D for each point
+plot(SD_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_SCA_cooks[(SD_slr_SCA_cooks > (3 * mean(SD_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_sca_no_outliers <- SD_fixed_field_data_processed[-c(1, 49, 69, 70, 74, 83, 84, 86,
                                                                                   97, 117, 121, 122, 155, 156, 158, 210),]
 
+#creating the linear regressions
 
-
-#creating the linear regression
+#linear regression without transformations
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed$Canopy_short_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed_sca_no_outliers$Canopy_short ~ SD_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed_sca_no_outliers$Canopy_short_lg ~ SD_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_sca_elev  <- lm(SD_fixed_field_data_processed_sca_no_outliers$Canopy_short_sqrt ~ SD_fixed_field_data_processed_sca_no_outliers$Elevation..m.FIXED)
 
-
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot with the logged transformation of SCA
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_short_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("log(Short Canopy Axis)")
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  #histogram of the residuals
 ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
@@ -1966,12 +2048,12 @@ ggplot(SD_lm_sca_elev, aes(x= SD_lm_sca_elev$residuals))+
 ggplot(SD_lm_sca_elev, aes(sample = SD_lm_sca_elev$residuals))+
   geom_qq()
 
-#significant with all transformations and removing of outliers
-shapiro.test(SD_lm_sca_elev$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_sca_elev$residuals) #significant with all transformations and removing of outliers
 
 #will need to use a non-parametric test of association because I cannot get it to pass the normality condition
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_sca_elev, aes(x = SD_lm_sca_elev$fitted.values, y = SD_lm_sca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -1979,23 +2061,22 @@ ggplot(data = SD_lm_sca_elev, aes(x = SD_lm_sca_elev$fitted.values, y = SD_lm_sc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_sca_elev)
 
 #correlation test
 cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$Canopy_short)
 
-
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_SCA <- cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$Canopy_short,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(SD_tau_result_SCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 SD_trend_line_SCA <- predict(loess(SD_fixed_field_data_processed$Canopy_short ~ SD_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = (SD_fixed_field_data_processed$Canopy_short), color = "blue")) +
   geom_line(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = SD_trend_line_SCA), color = "red") +
@@ -2007,63 +2088,63 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-SD_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed)
-SD_slr_LCA_cooks <- cooks.distance(SD_slr_LCA) #calculating the cook.s D for each point
-plot(SD_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_LCA_cooks[(SD_slr_LCA_cooks > (3 * mean(SD_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_LCA <- lm(Canopy_long ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+SD_slr_LCA_cooks <- cooks.distance(SD_slr_LCA) #calculating the Cook's D for each point
+plot(SD_slr_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_LCA_cooks[(SD_slr_LCA_cooks > (3 * mean(SD_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_lca_no_outliers <- SD_fixed_field_data_processed[-c(2, 3, 70, 74, 83, 84, 85, 86, 88, 97,
                                                                                   117, 121, 122, 157, 191),]
 
+#creating the linear regressions
 
-
-
-#creating the linear regression
+#linear regression without transformations
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed$Canopy_long_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers 
+#creating the linear regressions without any outliers 
 
+#linear regression without transformations
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed_lca_no_outliers$Canopy_long ~ SD_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed_lca_no_outliers$Canopy_long_lg ~ SD_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_lca_elev  <- lm(SD_fixed_field_data_processed_lca_no_outliers$Canopy_long_sqrt ~ SD_fixed_field_data_processed_lca_no_outliers$Elevation..m.FIXED)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(SD_lm_lca_elev, aes(x= SD_lm_lca_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_lca_elev, aes(sample = SD_lm_lca_elev$residuals))+
   geom_qq()
 
-# not sign when using a logged transformation or a square root one, but the normality condition was met better with square rooting
-shapiro.test(SD_lm_lca_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_lca_elev$residuals) # not sign when using a logged transformation or a square root one, but the normality condition was met better with square rooting
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_lca_elev, aes(x = SD_lm_lca_elev$fitted.values, y = SD_lm_lca_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2071,67 +2152,72 @@ ggplot(data = SD_lm_lca_elev, aes(x = SD_lm_lca_elev$fitted.values, y = SD_lm_lc
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_lca_elev)
 
 #canopy area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Canopy Area")
 
-#Cook's D
-SD_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed)
-SD_slr_CA_cooks <- cooks.distance(SD_slr_CA) #calculating the cook.s D for each point
-plot(SD_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_CA_cooks[(SD_slr_CA_cooks > (3 * mean(SD_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_CA <- lm(Canopy_area ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+SD_slr_CA_cooks <- cooks.distance(SD_slr_CA) #calculating the Cook's D for each point
+plot(SD_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_CA_cooks[(SD_slr_CA_cooks > (3 * mean(SD_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_ca_no_outliers <- SD_fixed_field_data_processed[-c(1, 3, 49, 74, 83, 84, 85, 86, 97,
                                                                                   117, 121, 122, 155, 156, 157, 158, 210),]
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed$Canopy_area_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_ca_no_outliers$Canopy_area ~ SD_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_ca_no_outliers$Canopy_area_lg ~ SD_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CA_elev  <- lm(SD_fixed_field_data_processed_ca_no_outliers$Canopy_area_sqrt ~ SD_fixed_field_data_processed_ca_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(SD_lm_CA_elev, aes(x= SD_lm_CA_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_CA_elev, aes(sample = SD_lm_CA_elev$residuals))+
   geom_qq()
 
-#not sign with any transformations or removal of outliers
-shapiro.test(SD_lm_CA_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_CA_elev$residuals) #not sign with any transformations or removal of outliers
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_CA_elev, aes(x = SD_lm_CA_elev$fitted.values, y = SD_lm_CA_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2139,21 +2225,21 @@ ggplot(data = SD_lm_CA_elev, aes(x = SD_lm_CA_elev$fitted.values, y = SD_lm_CA_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_CA_elev)
 
 #because the conditions for the slope test were not met, we can use the non-parametric Mann-Kendall's test to check for significant associations
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_CA <- cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$Canopy_area,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(SD_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 SD_trend_line_CA <- predict(loess(SD_fixed_field_data_processed$Canopy_area ~ SD_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = (SD_fixed_field_data_processed$Canopy_area), color = "blue")) +
   geom_line(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = SD_trend_line_CA), color = "red") +
@@ -2165,61 +2251,64 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("Crown Spread")
 
-#Cook's D
-SD_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed)
-SD_slr_CS_cooks <- cooks.distance(SD_slr_CS) #calculating the cook.s D for each point
-plot(SD_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_CS_cooks[(SD_slr_CS_cooks > (3 * mean(SD_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_CS <- lm(Crown_spread ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+SD_slr_CS_cooks <- cooks.distance(SD_slr_CS) #calculating the Cook's D for each point
+plot(SD_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_CS_cooks[(SD_slr_CS_cooks > (3 * mean(SD_slr_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_cs_no_outliers <- SD_fixed_field_data_processed[-c(1, 2, 3, 69, 70, 74, 83, 84, 85, 86, 97,
                                                                                  117, 121, 122, 158, 210),]
 
+#creating the linear regressions
 
-
-#creating the linear regression
+#linear regression without transformations
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed$Crown_spread_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed_cs_no_outliers$Crown_spread ~ SD_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed_cs_no_outliers$Crown_spread_lg ~ SD_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CS_elev  <- lm(SD_fixed_field_data_processed_cs_no_outliers$Crown_spread_sqrt ~ SD_fixed_field_data_processed_cs_no_outliers$Elevation..m.FIXED)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(SD_lm_CS_elev, aes(x= SD_lm_CS_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_CS_elev, aes(sample = SD_lm_CS_elev$residuals))+
   geom_qq()
 
-#significant without outlies and all transformations, need to use non-parametric Mann-Kendall's test
-shapiro.test(SD_lm_CS_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_CS_elev$residuals) #significant without outlies and all transformations, need to use non-parametric Mann-Kendall's test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_CS_elev, aes(x = SD_lm_CS_elev$fitted.values, y = SD_lm_CS_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2227,21 +2316,21 @@ ggplot(data = SD_lm_CS_elev, aes(x = SD_lm_CS_elev$fitted.values, y = SD_lm_CS_e
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_CS_elev)
 
 #because the conditions for the slope test were not met, we can use the non-parametric Mann-Kendall's test to check for significant associations
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_CS <- cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$Crown_spread,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(SD_tau_result_CS)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 SD_trend_line_CS <- predict(loess(SD_fixed_field_data_processed$Crown_spread ~ SD_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = (SD_fixed_field_data_processed$Crown_spread), color = "blue")) +
   geom_line(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = SD_trend_line_CS), color = "red") +
@@ -2252,62 +2341,63 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation")+
   ylab("DBH")
 
-#Cook's D
-SD_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed)
-SD_slr_DBH_cooks <- cooks.distance(SD_slr_DBH) #calculating the cook.s D for each point
-plot(SD_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_slr_DBH_cooks[(SD_slr_DBH_cooks > (3 * mean(SD_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_slr_DBH <- lm(DBH_ag ~ Elevation..m.FIXED, data = SD_fixed_field_data_processed) #creating a linear regression to use to calculate the Cook's D
+SD_slr_DBH_cooks <- cooks.distance(SD_slr_DBH) #calculating the Cook's D for each point
+plot(SD_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_slr_DBH_cooks[(SD_slr_DBH_cooks > (3 * mean(SD_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_dbh_no_outliers <- SD_fixed_field_data_processed[-c(1, 2, 3, 37, 84, 85, 86, 87, 97,
                                                                                  117, 122, 132, 153, 157, 175, 210, 222),]
 
+#creating the linear regressions
 
-
-
-#creating the linear regression
+#linear regression without transformations
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag_lg ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed$DBH_ag_sqrt ~ SD_fixed_field_data_processed$Elevation..m.FIXED)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_dbh_no_outliers$DBH_ag ~ SD_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_dbh_no_outliers$DBH_ag_lg ~ SD_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 SD_lm_DBH_elev  <- lm(SD_fixed_field_data_processed_dbh_no_outliers$DBH_ag_sqrt ~ SD_fixed_field_data_processed_dbh_no_outliers$Elevation..m.FIXED)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(SD_lm_DBH_elev, aes(x= SD_lm_DBH_elev$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_DBH_elev, aes(sample = SD_lm_DBH_elev$residuals))+
   geom_qq()
 
-#significant without outliers and all transformations
-shapiro.test(SD_lm_DBH_elev$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_DBH_elev$residuals) #significant without outliers and all transformations
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_DBH_elev, aes(x = SD_lm_DBH_elev$fitted.values, y = SD_lm_DBH_elev$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2315,21 +2405,21 @@ ggplot(data = SD_lm_DBH_elev, aes(x = SD_lm_DBH_elev$fitted.values, y = SD_lm_DB
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Elevation")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_DBH_elev)
 
 #because the conditions for the slope test were not met, we can use the non-parametric Mann-Kendall's test to check for significant associations
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_DBH <- cor.test(SD_fixed_field_data_processed$Elevation..m.FIXED, SD_fixed_field_data_processed$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(SD_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 SD_trend_line_DBH <- predict(loess(SD_fixed_field_data_processed$DBH_ag ~ SD_fixed_field_data_processed$Elevation..m.FIXED))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = (SD_fixed_field_data_processed$DBH_ag), color = "blue")) +
   geom_line(aes(x = SD_fixed_field_data_processed$Elevation..m.FIXED, y = SD_trend_line_DBH), color = "red") +
@@ -2342,70 +2432,79 @@ ggplot() +
 # linear models comparing slope to size/shape
 
 # For all populations/each population and size/shape metric we created single variable regressions by...
-      #a) creating the single variable linear regressions with the un-transformed variable, logged variable, and 
-             # square root of the variable respectively either with or without outliers
+      #a) creating the single variable linear regressions with the un-transformed response variable, logged variable, and 
+              # square root of the variable, respectively, either with or without outliers
       #b) testing which model best satisfies the conditions for the analysis: LINES
              # Linearity, Independence, Normality of residuals, Equal variance of residuals, and simple random sample 
+                    # we tested Linearity by looking at the scatterplots,
+                    # we tested Independence by thinking about the explanatory and response variables across the points,
+                    # we tested Normality of Residuals using histograms, qq norm plots, and the Shapiro-Wilk's test,
+                    # we tested Equal Variance of Residuals using a fitted vs. residuals plot,
+                    # we tested Simple Random Sample by thinkg about the data collection method.
       #c) We then looked for significant associations (slopes/correlations)
-             # 1) If the LINES conditions are met...
-                    # we run a slope test to see if there is a significant association
-             # 2) If the LINES conditions are not met...
-                    # we run a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
+            # 1) If the LINES conditions are met...
+                    # we ran a slope test and a Pearson's correlation test to see if there is a significant association
+            # 2) If the LINES conditions are not met...
+                    # we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
+
 
 #all points 
 
-#removing NAs preventing us from running tests
+#removing NAs in SCA and slope from all points to run tests
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   drop_na(Canopy_short) %>%
   drop_na(all_points_slope_raster_15_data_pts)
-
 
 #short canopy axis
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x= all_points_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-all_points_slr_SCA <- lm(Canopy_short ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain)
-all_points_slr_SCA_cooks <- cooks.distance(all_points_slr_SCA) #calculating the cook.s D for each point
-plot(all_points_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_SCA_cooks[(all_points_slr_SCA_cooks > (3 * mean(all_points_slr_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_SCA <- lm(Canopy_short ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_SCA_cooks <- cooks.distance(all_points_slr_SCA) #calculating the Cook's D for each point
+plot(all_points_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_SCA_cooks[(all_points_slr_SCA_cooks > (3 * mean(all_points_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 all_points_fixed_field_data_processed_terrain_sca_no_outliers <- all_points_fixed_field_data_processed_terrain[-c(45, 164, 170, 178, 209, 211, 213, 220, 243, 253, 271, 305,
                                                                                                                   306, 307, 309, 319, 334, 336, 339, 344, 358, 359, 364, 378, 379,
                                                                                                                   380, 381, 385, 431, 435, 451, 474, 482, 496, 516, 574, 615, 629, 630, 634, 635,
                                                                                                                   636, 637, 638, 641, 645, 647, 650, 662),]
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#log transformation
+#linear regression with log transformation of response variable
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#square root transformation
+#linear regression with square root transformation of response variable
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain_sca_no_outliers$Canopy_short ~ all_points_fixed_field_data_processed_terrain_sca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#log transformation
+#linear regression with log transformation of response variable
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain_sca_no_outliers$Canopy_short_lg ~ all_points_fixed_field_data_processed_terrain_sca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#square root transformation
+#linear regression with square root transformation of response variable
 all_points_lm_sca_slope  <- lm(all_points_fixed_field_data_processed_terrain_sca_no_outliers$Canopy_short_sqrt ~ all_points_fixed_field_data_processed_terrain_sca_no_outliers$all_points_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(all_points_lm_sca_slope, aes(x= all_points_lm_sca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
@@ -2416,10 +2515,10 @@ ggplot(all_points_lm_sca_slope, aes(x= all_points_lm_sca_slope$residuals))+
 ggplot(all_points_lm_sca_slope, aes(sample = all_points_lm_sca_slope$residuals))+
   geom_qq()
 
-#shaprio-welk, never not significant without outliers or with transofrmations, use the mann-kendall test
-shapiro.test(all_points_lm_sca_slope$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(all_points_lm_sca_slope$residuals) #never not significant without outliers or with transformations, use the mann-kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_sca_slope, aes(x = all_points_lm_sca_slope$fitted.values, y = all_points_lm_sca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2427,23 +2526,22 @@ ggplot(data = all_points_lm_sca_slope, aes(x = all_points_lm_sca_slope$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_sca_slope)
 
 #correlation test
 cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short)
 
-
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_SCA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_short,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_SCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LC_trend_line_LCA <- predict(loess(LC_fixed_field_data_all_focal_trees$Canopy_long ~ LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
@@ -2455,63 +2553,65 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-all_points_slr_LCA <- lm(Canopy_long ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain)
-all_points_slr_LCA_cooks <- cooks.distance(all_points_slr_LCA) #calculating the cook.s D for each point
-plot(all_points_slr_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_LCA_cooks[(all_points_slr_LCA_cooks > (3 * mean(all_points_slr_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_LCA <- lm(Canopy_long ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_LCA_cooks <- cooks.distance(all_points_slr_LCA) #calculating the Cook's D for each point
+plot(all_points_slr_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_LCA_cooks[(all_points_slr_LCA_cooks > (3 * mean(all_points_slr_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 all_points_fixed_field_data_processed_terrain_lca_no_outliers <- all_points_fixed_field_data_processed_terrain[-c(127, 170, 209, 211, 213, 218, 219, 220, 243, 296, 305,
                                                                                                                   306, 307, 308, 309, 310, 319, 334, 339, 344, 355, 356, 358, 359, 360, 362, 364, 378, 379,
                                                                                                                   380, 381, 383, 385, 400, 435, 451, 482, 496, 516, 574, 615, 627, 629, 631, 632, 634, 635,
                                                                                                                   641, 642, 645, 646, 647, 650),]
 
+#creating the linear regressions
 
-
-#creating the linear regression
-
+#linear regression without transformations
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#log transformation
+#linear regression with log transformation of response variable
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#square root transformation
+#linear regression with square root transformation of response variable
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain_lca_no_outliers$Canopy_long ~ all_points_fixed_field_data_processed_terrain_lca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#log transformation
+#linear regression with log transformation of response variable
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain_lca_no_outliers$Canopy_long_lg ~ all_points_fixed_field_data_processed_terrain_lca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#square root transformation
+#linear regression with square root transformation of response variable
 all_points_lm_lca_slope  <- lm(all_points_fixed_field_data_processed_terrain_lca_no_outliers$Canopy_long_sqrt ~ all_points_fixed_field_data_processed_terrain_lca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(all_points_lm_lca_slope, aes(x= all_points_lm_lca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_lca_slope, aes(sample = all_points_lm_lca_slope$residuals))+
   geom_qq()
 
-#not significant without outliers and square root transformation
-shapiro.test(all_points_lm_lca_slope$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(all_points_lm_lca_slope$residuals) #not significant without outliers and square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_lca_slope, aes(x = all_points_lm_lca_slope$fitted.values, y = all_points_lm_lca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2519,21 +2619,21 @@ ggplot(data = all_points_lm_lca_slope, aes(x = all_points_lm_lca_slope$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_lca_slope)
 
 #does not meet the condition of homoscedasticity, so we need to use a non-parametric Mann-Kendall's test
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_LCA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_long,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_LCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = (all_points_fixed_field_data_processed_terrain$Canopy_long), color = "blue")) +
   geom_line(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = all_points_trend_line_LCA), color = "red") +
@@ -2544,65 +2644,66 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
-
-#Cook's D
-all_points_slr_CA <- lm(Canopy_area ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain)
-all_points_slr_CA_cooks <- cooks.distance(all_points_slr_CA) #calculating the cook.s D for each point
-plot(all_points_slr_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_CA_cooks[(all_points_slr_CA_cooks > (3 * mean(all_points_slr_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results 
+all_points_slr_CA <- lm(Canopy_area ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_CA_cooks <- cooks.distance(all_points_slr_CA) #calculating the Cook's D for each point
+plot(all_points_slr_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_CA_cooks[(all_points_slr_CA_cooks > (3 * mean(all_points_slr_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 all_points_fixed_field_data_processed_terrain_ca_no_outliers <- all_points_fixed_field_data_processed_terrain[-c(45, 90, 164, 170, 178, 209, 211, 213, 218, 220, 253, 255, 271, 305,
                                                                                                                   306, 307, 309, 339, 344, 364, 377, 378, 379,
                                                                                                                   380, 381, 383, 385, 386, 400, 431, 435, 451, 474, 482, 496, 
                                                                                                                   516, 574, 615, 629, 635,
                                                                                                                   641, 645, 646, 647, 650, 662),]
 
+#creating the linear regressions
 
-
-#creating the linear regression
+#linear regression without transformations
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain_ca_no_outliers$Canopy_area ~ all_points_fixed_field_data_processed_terrain_ca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain_ca_no_outliers$Canopy_area_lg ~ all_points_fixed_field_data_processed_terrain_ca_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CA_slope  <- lm(all_points_fixed_field_data_processed_terrain_ca_no_outliers$Canopy_area_sqrt ~ all_points_fixed_field_data_processed_terrain_ca_no_outliers$all_points_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(all_points_lm_CA_slope, aes(x= all_points_lm_CA_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_CA_slope, aes(sample = all_points_lm_CA_slope$residuals))+
   geom_qq()
 
-#shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
+#Shapiro-Wilk Test
 shapiro.test(all_points_lm_CA_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_CA_slope, aes(x = all_points_lm_CA_slope$fitted.values, y = all_points_lm_CA_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2610,19 +2711,19 @@ ggplot(data = all_points_lm_CA_slope, aes(x = all_points_lm_CA_slope$fitted.valu
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_CA_slope)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_CA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_area,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_CA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = (all_points_fixed_field_data_processed_terrain$Canopy_area), color = "blue")) +
   geom_line(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = all_points_trend_line_CA), color = "red") +
@@ -2634,63 +2735,66 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CS
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Crown Spread")
 
-#Cook's D
-all_points_slr_CS <- lm(Crown_spread ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain)
-all_points_slr_CS_cooks <- cooks.distance(all_points_slr_CS) #calculating the cook.s D for each point
-plot(all_points_slr_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_CS_cooks[(all_points_slr_CS_cooks > (3 * mean(all_points_slr_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_CS <- lm(Crown_spread ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_CS_cooks <- cooks.distance(all_points_slr_CS) #calculating the Cook's D for each point
+plot(all_points_slr_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_CS_cooks[(all_points_slr_CS_cooks > (3 * mean(all_points_slr_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 all_points_fixed_field_data_processed_terrain_cs_no_outliers <- all_points_fixed_field_data_processed_terrain[-c(45, 164, 170, 178, 209, 211, 213, 218, 220, 243, 253, 271, 296, 305,
                                                                                                                  306, 307, 308, 309, 319, 334, 336, 339, 344, 355, 358, 359,
                                                                                                                  360, 362, 364, 366, 378, 379,
                                                                                                                  380, 381, 383, 385, 400, 435, 451, 482, 496, 
                                                                                                                  516, 574, 615, 627, 629, 631, 632, 635,
                                                                                                                  641, 645, 646, 647, 650, 662),]
+#creating the linear regressions
 
-#creating the linear regression
-
+#linear regression without transformations
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain_cs_no_outliers$Crown_spread ~ all_points_fixed_field_data_processed_terrain_cs_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain_cs_no_outliers$Crown_spread_lg ~ all_points_fixed_field_data_processed_terrain_cs_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 all_points_lm_CS_slope  <- lm(all_points_fixed_field_data_processed_terrain_cs_no_outliers$Crown_spread_sqrt ~ all_points_fixed_field_data_processed_terrain_cs_no_outliers$all_points_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(all_points_lm_CS_slope, aes(x= all_points_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_CS_slope, aes(sample = all_points_lm_CS_slope$residuals))+
   geom_qq()
 
-#shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
-shapiro.test(all_points_lm_CS_slope$residuals) 
+#Shapiro-Wilk Test 
+shapiro.test(all_points_lm_CS_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_CS_slope, aes(x = all_points_lm_CS_slope$fitted.values, y = all_points_lm_CS_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2698,46 +2802,44 @@ ggplot(data = all_points_lm_CS_slope, aes(x = all_points_lm_CS_slope$fitted.valu
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_CS_slope)
 
-
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_CS <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Crown_spread,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_CS)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = (LC_fixed_field_data_all_focal_trees$Canopy_long), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_LCA_over_distance, y = LC_trend_line_LCA), color = "red") +
   labs(x = "LCA over Distance", y = "Long Canopy Axis", title = "Trend Line Plot") +
   theme_minimal()
 
-
 #DBH
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = all_points_fixed_field_data_processed_terrain, (aes(x=all_points_slope_raster_15_data_pts, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("DBH")
 
-#Cook's D
-all_points_slr_DBH <- lm(DBH_ag ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain)
-all_points_slr_DBH_cooks <- cooks.distance(all_points_slr_DBH) #calculating the cook.s D for each point
-plot(all_points_slr_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- all_points_slr_DBH_cooks[(all_points_slr_DBH_cooks > (3 * mean(all_points_slr_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_DBH <- lm(DBH_ag ~ all_points_slope_raster_15_data_pts, data = all_points_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_DBH_cooks <- cooks.distance(all_points_slr_DBH) #calculating the Cook's D for each point
+plot(all_points_slr_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- all_points_slr_DBH_cooks[(all_points_slr_DBH_cooks > (3 * mean(all_points_slr_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 all_points_fixed_field_data_processed_terrain_dbh_no_outliers <- all_points_fixed_field_data_processed_terrain[-c(16, 50, 54, 80, 90, 97, 126, 153, 161, 166, 
                                                                                                                   170, 178, 211, 213, 220, 245, 250, 251, 253, 254, 258,
                                                                                                                   259, 284, 286, 287, 305,
@@ -2746,42 +2848,45 @@ all_points_fixed_field_data_processed_terrain_dbh_no_outliers <- all_points_fixe
                                                                                                                  380, 381, 400, 451, 466, 496, 
                                                                                                                  470, 496, 615, 628, 629, 630, 631, 635, 636, 641, 645, 646, 
                                                                                                                  647, 640, 662),]
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_lg ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain_dbh_no_outliers$DBH_ag ~ all_points_fixed_field_data_processed_terrain_dbh_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain_dbh_no_outliers$DBH_ag_lg ~ all_points_fixed_field_data_processed_terrain_dbh_no_outliers$all_points_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 all_points_lm_DBH_slope  <- lm(all_points_fixed_field_data_processed_terrain_dbh_no_outliers$DBH_ag_sqrt ~ all_points_fixed_field_data_processed_terrain_dbh_no_outliers$all_points_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(all_points_lm_DBH_slope, aes(x= all_points_lm_DBH_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(all_points_lm_DBH_slope, aes(sample = all_points_lm_DBH_slope$residuals))+
   geom_qq()
 
-#shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
-shapiro.test(all_points_lm_DBH_slope$residuals) 
+#Shapiro-Wilk Test
+shapiro.test(all_points_lm_DBH_slope$residuals) #shapiro-wilk test, all versions of the models are sig meaning we must use a Mann-Kendall test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = all_points_lm_DBH_slope, aes(x = all_points_lm_DBH_slope$fitted.values, y = all_points_lm_DBH_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2789,73 +2894,74 @@ ggplot(data = all_points_lm_DBH_slope, aes(x = all_points_lm_DBH_slope$fitted.va
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(all_points_lm_DBH_slope)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_DBH <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_DBH <- predict(loess(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = (all_points_fixed_field_data_processed_terrain$DBH_ag), color = "blue")) +
   geom_line(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = all_points_trend_line_DBH), color = "red") +
   labs(x = "Slope", y = "DBH", title = "Trend Line Plot") +
   theme_minimal()
 
-
 # LM 
-
-
 
 #short canopy axis
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x= LM_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-LM_lm_focal_SCA <- lm(Canopy_short ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain)
-LM_lm_focal_SCA_cooks <- cooks.distance(LM_lm_focal_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_lm_focal_SCA <- lm(Canopy_short ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LM_lm_focal_SCA_cooks <- cooks.distance(LM_lm_focal_SCA) #calculating the Cook's D for each point
+plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_terrain_no_sca_outliers <- LM_fixed_field_data_processed_terrain[-c(45, 116, 118, 119, 126,
                                                                                               151, 152, 164, 170, 178, 209, 211, 213, 220),]
 
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short ~ LM_fixed_field_data_processed_terrain_no_sca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short_lg ~ LM_fixed_field_data_processed_terrain_no_sca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_sca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short_sqrt ~ LM_fixed_field_data_processed_terrain_no_sca_outliers$LM_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
@@ -2866,10 +2972,10 @@ ggplot(LM_lm_sca_slope, aes(x= LM_lm_sca_slope$residuals))+
 ggplot(LM_lm_sca_slope, aes(sample = LM_lm_sca_slope$residuals))+
   geom_qq()
 
-#shapiro wilk test not significant when using square root transformation
-shapiro.test(LM_lm_sca_slope$residuals) 
+#Shapiro-Wilk Test 
+shapiro.test(LM_lm_sca_slope$residuals) #shapiro wilk test not significant when using square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_sca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2877,7 +2983,7 @@ ggplot(data = LM_lm_sca_slope, aes(x = LM_lm_sca_slope$fitted.values, y = LM_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_sca_slope)
 
 #correlation test
@@ -2887,62 +2993,63 @@ cor.test(LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, LM_f
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-LM_lm_focal_LCA <- lm(Canopy_long ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain)
-LM_lm_focal_LCA_cooks <- cooks.distance(LM_lm_focal_LCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_LCA_cooks[(LM_lm_focal_LCA_cooks > (3 * mean(LM_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_lm_focal_LCA <- lm(Canopy_long ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LM_lm_focal_LCA_cooks <- cooks.distance(LM_lm_focal_LCA) #calculating the Cook's D for each point
+plot(LM_lm_focal_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_lm_focal_LCA_cooks[(LM_lm_focal_LCA_cooks > (3 * mean(LM_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_terrain_no_lca_outliers <- LM_fixed_field_data_processed_terrain[-c(43, 50, 106, 116, 127,
                                                                                                   164, 170, 178, 209, 211, 213, 218, 219, 220),]
 
+#creating the linear regressions
 
-
-
-#creating the linear regression
+#linear regression without transformations
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long ~ LM_fixed_field_data_processed_terrain_no_lca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long_lg ~ LM_fixed_field_data_processed_terrain_no_lca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_lca_slope  <- lm(LM_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long_sqrt ~ LM_fixed_field_data_processed_terrain_no_lca_outliers$LM_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LM_lm_lca_slope, aes(x= LM_lm_lca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_lca_slope, aes(sample = LM_lm_lca_slope$residuals))+
   geom_qq()
 
-#none of the models without outliers and with transformations have non-significant shapiro wilks test
-shapiro.test(LM_lm_lca_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_lca_slope$residuals) #none of the models without outliers and with transformations have non-significant shapiro wilks test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_lca_slope, aes(x = LM_lm_lca_slope$fitted.values, y = LM_lm_lca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -2950,82 +3057,87 @@ ggplot(data = LM_lm_lca_slope, aes(x = LM_lm_lca_slope$fitted.values, y = LM_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_lca_slope)
 
-#non parametric Mann-Kendall Test for the version without outliers
+#non-parametric Mann-Kendall Test, non-parametric test for the version without outliers
 all_points_tau_result_LCA <- cor.test(all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, all_points_fixed_field_data_processed_terrain$Canopy_long,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(all_points_tau_result_LCA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 all_points_trend_line_LCA <- predict(loess(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = (all_points_fixed_field_data_processed_terrain$Canopy_long), color = "blue")) +
   geom_line(aes(x = all_points_fixed_field_data_processed_terrain$all_points_slope_raster_15_data_pts, y = all_points_trend_line_DBH), color = "red") +
   labs(x = "Slope", y = "Long Canopy Axis", title = "Trend Line Plot") +
   theme_minimal()
 
-
 #canopy area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y = Canopy_area_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
-#Cook's D
-LM_lm_focal_CA <- lm(Canopy_area ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain)
-LM_lm_focal_CA_cooks <- cooks.distance(LM_lm_focal_CA) #calculating the cook.s D for each point
-plot(LM_lm_focal_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_CA_cooks[(LM_lm_focal_CA_cooks > (3 * mean(LM_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_lm_focal_CA <- lm(Canopy_area ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LM_lm_focal_CA_cooks <- cooks.distance(LM_lm_focal_CA) #calculating the Cook's D for each point
+plot(LM_lm_focal_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_lm_focal_CA_cooks[(LM_lm_focal_CA_cooks > (3 * mean(LM_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_terrain_no_ca_outliers <- LM_fixed_field_data_processed_terrain[-c(45, 90, 116, 126, 127,
                                                                                                   164, 170, 178, 209, 211, 213, 218, 220),]
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area ~ LM_fixed_field_data_processed_terrain_no_ca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain_no_ca_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LM_lm_CA_slope  <- lm(LM_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_sqrt ~ LM_fixed_field_data_processed_terrain_no_ca_outliers$LM_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LM_lm_CA_slope, aes(x= LM_lm_CA_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
+#qqnorm plot
 ggplot(LM_lm_CA_slope, aes(sample = LM_lm_CA_slope$residuals))+
   geom_qq()
 
-#non-significant when using without outliers and using square root transformation
-shapiro.test(LM_lm_CA_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_CA_slope$residuals) #non-significant when using without outliers and using square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3033,52 +3145,51 @@ ggplot(data = LM_lm_CA_slope, aes(x = LM_lm_CA_slope$fitted.values, y = LM_lm_CA
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_CA_slope)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_CA <- cor.test(LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, LM_fixed_field_data_processed_terrain$Canopy_area_lg,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value 
+# Print Kendall's tau (a correlation metric) and its associated p-value 
 print(LM_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_CA <- predict(loess(LM_fixed_field_data_processed_terrain$Canopy_area_lg ~ LM_fixed_field_data_processed_terrain$sum_CA_over_distance))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = (LC_fixed_field_data_all_focal_trees$Crown_spread), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_all_focal_trees$sum_CS_over_distance, y = LC_trend_line_CS), color = "red") +
   labs(x = "CS over Distance", y = "Crown Spread ", title = "Trend Line Plot") +
   theme_minimal()
 
-
-
 #crown spread
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CS
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Crown Spread")
 
-#Cook's D
-LM_lm_focal_CS <- lm(Crown_spread ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain)
-LM_lm_focal_CS_cooks <- cooks.distance(LM_lm_focal_CS) #calculating the cook.s D for each point
-plot(LM_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_CS_cooks[(LM_lm_focal_CS_cooks > (3 * mean(LM_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_lm_focal_CS <- lm(Crown_spread ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LM_lm_focal_CS_cooks <- cooks.distance(LM_lm_focal_CS) #calculating the Cook's D for each point
+plot(LM_lm_focal_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_lm_focal_CS_cooks[(LM_lm_focal_CS_cooks > (3 * mean(LM_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_terrain_no_cs_outliers <- LM_fixed_field_data_processed_terrain[-c(45, 116, 118, 126, 127, 152,
                                                                                                  164, 170, 178, 209, 211, 213, 218, 220),]
 
 
-#creating the linear regression
+#creating the linear regressions
 
+#linear regression without transformations
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
 #linear regression with log transformation 
@@ -3087,8 +3198,9 @@ LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread_lg ~ LM
 #linear regression with square root transformation 
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread ~ LM_fixed_field_data_processed_terrain_no_cs_outliers$LM_slope_raster_15_data_pts)
 
 #linear regression with log transformation 
@@ -3098,21 +3210,23 @@ LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain_no_cs_outliers$Crown
 LM_lm_CS_slope  <- lm(LM_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread_sqrt ~ LM_fixed_field_data_processed_terrain_no_cs_outliers$LM_slope_raster_15_data_pts)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(LM_lm_CS_slope, aes(x= LM_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_CS_slope, aes(sample = LM_lm_CS_slope$residuals))+
   geom_qq()
 
-#nonsignificant with a square root transformation
-shapiro.test(LM_lm_CS_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_CS_slope$residuals) #not significant with a square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3120,68 +3234,70 @@ ggplot(data = LM_lm_CS_slope, aes(x = LM_lm_CS_slope$fitted.values, y = LM_lm_CS
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_CS_slope)
-
 
 #DBH
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LM_fixed_field_data_processed_terrain, (aes(x=LM_slope_raster_15_data_pts, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("DBH")
 
-#Cook's D
-LM_lm_focal_DBH <- lm(DBH_ag ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain)
-LM_lm_focal_DBH_cooks <- cooks.distance(LM_lm_focal_DBH) #calculating the cook.s D for each point
-plot(LM_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_DBH_cooks[(LM_lm_focal_DBH_cooks > (3 * mean(LM_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LM_lm_focal_DBH <- lm(DBH_ag ~ LM_slope_raster_15_data_pts, data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LM_lm_focal_DBH_cooks <- cooks.distance(LM_lm_focal_DBH) #calculating the Cook's D for each point
+plot(LM_lm_focal_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LM_lm_focal_DBH_cooks[(LM_lm_focal_DBH_cooks > (3 * mean(LM_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LM_fixed_field_data_processed_terrain_no_dbh_outliers <- LM_fixed_field_data_processed_terrain[-c(16, 54, 97, 116, 126, 127, 153,
                                                                                                  161, 164, 165, 166, 170, 178, 211, 213, 215, 220),]
 
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_lg ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag ~ LM_fixed_field_data_processed_terrain_no_dbh_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_lg ~ LM_fixed_field_data_processed_terrain_no_dbh_outliers$LM_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LM_lm_DBH_slope  <- lm(LM_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_sqrt ~ LM_fixed_field_data_processed_terrain_no_dbh_outliers$LM_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LM_lm_DBH_slope, aes(x= LM_lm_DBH_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LM_lm_DBH_slope, aes(sample = LM_lm_DBH_slope$residuals))+
   geom_qq()
 
-#without outliers and with transformations they are all significant
-shapiro.test(LM_lm_DBH_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LM_lm_DBH_slope$residuals) #creating the linear regressions without any outliers and with transformations they are all significant
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_DBH_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3189,19 +3305,19 @@ ggplot(data = LM_lm_DBH_slope, aes(x = LM_lm_DBH_slope$fitted.values, y = LM_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LM_lm_DBH_slope)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LM_tau_result_DBH <- cor.test(LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, LM_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value 
+# Print Kendall's tau (a correlation metric) and its associated p-value 
 print(LM_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_DBH <- predict(loess(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, y = (LM_fixed_field_data_processed_terrain$DBH_ag), color = "blue")) +
   geom_line(aes(x = LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, y = LM_trend_line_DBH), color = "red") +
@@ -3214,24 +3330,26 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-LC_lm_focal_SCA <- lm(Canopy_short ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain)
-LC_lm_focal_SCA_cooks <- cooks.distance(LC_lm_focal_SCA) #calculating the cook.s D for each point
-plot(LC_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_SCA_cooks[(LC_lm_focal_SCA_cooks > (3 * mean(LC_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_lm_focal_SCA <- lm(Canopy_short ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LC_lm_focal_SCA_cooks <- cooks.distance(LC_lm_focal_SCA) #calculating the Cook's D for each point
+plot(LC_lm_focal_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_lm_focal_SCA_cooks[(LC_lm_focal_SCA_cooks > (3 * mean(LC_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_terrain_no_sca_outliers <- LC_fixed_field_data_processed_terrain[-c(34, 48, 54, 77, 85, 90, 91, 94, 99, 105, 108, 119, 117),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
 #linear regression with logged transformation of short canopy axis
@@ -3240,8 +3358,9 @@ LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_lg ~ L
 #linear regression with square root transformation 
 LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short ~ LC_fixed_field_data_processed_terrain_no_sca_outliers$LC_slope_raster_15_data_pts)
 
 #linear regression with logged transformation of short canopy axis
@@ -3250,9 +3369,9 @@ LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_sca_outliers$Can
 #linear regression with square root transformation 
 LC_lm_sca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short_sqrt ~ LC_fixed_field_data_processed_terrain_no_sca_outliers$LC_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LC_lm_sca_slope, aes(x= LC_lm_sca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
@@ -3263,10 +3382,10 @@ ggplot(LC_lm_sca_slope, aes(x= LC_lm_sca_slope$residuals))+
 ggplot(LC_lm_sca_slope, aes(sample = LC_lm_sca_slope$residuals))+
   geom_qq()
 
-#not significant with a log transformation
-shapiro.test(LC_lm_sca_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_sca_slope$residuals) #not significant with a log transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_sca_slope, aes(x = LC_lm_sca_slope$fitted.values, y = LC_lm_sca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3274,7 +3393,7 @@ ggplot(data = LC_lm_sca_slope, aes(x = LC_lm_sca_slope$fitted.values, y = LC_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_sca_slope)
 
 #correlation test
@@ -3284,25 +3403,27 @@ cor.test(LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts, LC_f
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_15_data_pts, y=Canopy_long_lg)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-LC_lm_focal_LCA <- lm(Canopy_long ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain)
-LC_lm_focal_LCA_cooks <- cooks.distance(LC_lm_focal_LCA) #calculating the cook.s D for each point
-plot(LC_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_LCA_cooks[(LC_lm_focal_LCA_cooks > (3 * mean(LC_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_lm_focal_LCA <- lm(Canopy_long ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LC_lm_focal_LCA_cooks <- cooks.distance(LC_lm_focal_LCA) #calculating the Cook's D for each point
+plot(LC_lm_focal_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_lm_focal_LCA_cooks[(LC_lm_focal_LCA_cooks > (3 * mean(LC_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_terrain_no_lca_outliers <- LC_fixed_field_data_processed_terrain[-c(3, 38, 54, 77, 85, 91, 92, 94, 99, 105, 108, 114, 119, 119, 126, 159, 177),]
 
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
 #linear transformation with logged long canopy axis
@@ -3311,8 +3432,9 @@ LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long_lg ~ LC
 #linear transformation with square root transformation long canopy axis
 LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long ~ LC_fixed_field_data_processed_terrain_no_lca_outliers$LC_slope_raster_15_data_pts)
 
 #linear transformation with logged long canopy axis
@@ -3321,22 +3443,23 @@ LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_lca_outliers$Can
 #linear transformation with square root transformation long canopy axis
 LC_lm_lca_slope  <- lm(LC_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long_sqrt ~ LC_fixed_field_data_processed_terrain_no_lca_outliers$LC_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LC_lm_lca_slope, aes(x= LC_lm_lca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_lca_slope, aes(sample = LC_lm_lca_slope$residuals))+
   geom_qq()
 
-#non significant with a log transformation
-shapiro.test(LC_lm_lca_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_lca_slope$residuals) #non significant with a log transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_lca_slope, aes(x = LC_lm_lca_slope$fitted.values, y = LC_lm_lca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3344,65 +3467,70 @@ ggplot(data = LC_lm_lca_slope, aes(x = LC_lm_lca_slope$fitted.values, y = LC_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_lca_slope)
 
 #canopy area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_15_data_pts, y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
-#Cook's D
-LC_lm_focal_CA <- lm(Canopy_area ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain)
-LC_lm_focal_CA_cooks <- cooks.distance(LC_lm_focal_CA) #calculating the cook.s D for each point
-plot(LC_lm_focal_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_CA_cooks[(LC_lm_focal_CA_cooks > (3 * mean(LC_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_lm_focal_CA <- lm(Canopy_area ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LC_lm_focal_CA_cooks <- cooks.distance(LC_lm_focal_CA) #calculating the Cook's D for each point
+plot(LC_lm_focal_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_lm_focal_CA_cooks[(LC_lm_focal_CA_cooks > (3 * mean(LC_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_terrain_no_ca_outliers <- LC_fixed_field_data_processed_terrain[-c(3, 34, 38, 54, 77, 85, 91, 94, 99, 105, 108, 114, 119, 177),]
 
-#creating the linear regression
+#creating the linear regressions
 
+#linear regression without transformations
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area ~ LC_fixed_field_data_processed_terrain_no_ca_outliers$LC_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_lg ~ LC_fixed_field_data_processed_terrain_no_ca_outliers$LC_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 LC_lm_CA_slope  <- lm(LC_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_sqrt ~ LC_fixed_field_data_processed_terrain_no_ca_outliers$LC_slope_raster_15_data_pts)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(LC_lm_CA_slope, aes(x= LC_lm_CA_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_CA_slope, aes(sample = LC_lm_CA_slope$residuals))+
   geom_qq()
 
-#non significant with a log transformation
-shapiro.test(LC_lm_CA_slope$residuals)
+#Shapiro-Wilk Test 
+shapiro.test(LC_lm_CA_slope$residuals) #non significant with a log transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_CA_slope, aes(x = LC_lm_CA_slope$fitted.values, y = LC_lm_CA_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3410,67 +3538,69 @@ ggplot(data = LC_lm_CA_slope, aes(x = LC_lm_CA_slope$fitted.values, y = LC_lm_CA
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_CA_slope)
-
 
 #crown spread
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_15_data_pts, y=Crown_spread)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Crown Spread")
 
-#Cook's D
-LC_lm_focal_CS <- lm(Crown_spread ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain)
-LC_lm_focal_CS_cooks <- cooks.distance(LC_lm_focal_CS) #calculating the cook.s D for each point
-plot(LC_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_CS_cooks[(LC_lm_focal_CS_cooks > (3 * mean(LC_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_lm_focal_CS <- lm(Crown_spread ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LC_lm_focal_CS_cooks <- cooks.distance(LC_lm_focal_CS) #calculating the Cook's D for each point
+plot(LC_lm_focal_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_lm_focal_CS_cooks[(LC_lm_focal_CS_cooks > (3 * mean(LC_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_terrain_no_cs_outliers <- LC_fixed_field_data_processed_terrain[-c(3, 34, 38, 54, 77, 85, 91, 94, 99, 105, 108, 114, 119, 177),]
 
+#creating the linear regressions
 
-#creating the linear regression
-
+#linear regression without transformations
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear transformation with logged crown spread
+#linear regression with log transformation of response variable
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear transformation with square rooted crown spread
+#linear regression with square root transformation of response variable
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread ~ LC_fixed_field_data_processed_terrain_no_cs_outliers$LC_slope_raster_15_data_pts)
 
-#linear transformation with logged crown spread
+#linear regression with log transformation of response variable
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread_lg ~ LC_fixed_field_data_processed_terrain_no_cs_outliers$LC_slope_raster_15_data_pts)
 
-#linear transformation with square rooted crown spread
+#linear regression with square root transformation of response variable
 LC_lm_CS_slope  <- lm(LC_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread_sqrt ~ LC_fixed_field_data_processed_terrain_no_cs_outliers$LC_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LC_lm_CS_slope, aes(x= LC_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_CS_slope, aes(sample = LC_lm_CS_slope$residuals))+
   geom_qq()
 
-#not significant with a log transformation
-shapiro.test(LC_lm_CS_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_CS_slope$residuals) #not significant with a log transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_CS_slope, aes(x = LC_lm_CS_slope$fitted.values, y = LC_lm_CS_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3478,68 +3608,70 @@ ggplot(data = LC_lm_CS_slope, aes(x = LC_lm_CS_slope$fitted.values, y = LC_lm_CS
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_CS_slope)
-
 
 #DBH
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = LC_fixed_field_data_processed_terrain, (aes(x=LC_slope_raster_15_data_pts, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope")+
   ylab("DBH")
 
-#Cook's D
-LC_lm_focal_DBH <- lm(DBH_ag ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain)
-LC_lm_focal_DBH_cooks <- cooks.distance(LC_lm_focal_DBH) #calculating the cook.s D for each point
-plot(LC_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LC_lm_focal_DBH_cooks[(LC_lm_focal_DBH_cooks > (3 * mean(LC_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+LC_lm_focal_DBH <- lm(DBH_ag ~ LC_slope_raster_15_data_pts, data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+LC_lm_focal_DBH_cooks <- cooks.distance(LC_lm_focal_DBH) #calculating the Cook's D for each point
+plot(LC_lm_focal_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- LC_lm_focal_DBH_cooks[(LC_lm_focal_DBH_cooks > (3 * mean(LC_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 LC_fixed_field_data_processed_terrain_no_dbh_outliers <- LC_fixed_field_data_processed_terrain[-c(3, 54, 61, 69, 72, 73, 75, 77, 84, 85, 94, 99, 105, 108, 119, 
                                                                                                  126, 159, 161),]
 
+#creating the linear regressions
 
-
-#creating the linear regression
+#linear regression without transformations
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_lg ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag ~ LC_fixed_field_data_processed_terrain_no_dbh_outliers$LC_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_lg ~ LC_fixed_field_data_processed_terrain_no_dbh_outliers$LC_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 LC_lm_DBH_slope  <- lm(LC_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_sqrt ~ LC_fixed_field_data_processed_terrain_no_dbh_outliers$LC_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(LC_lm_DBH_slope, aes(x= LC_lm_DBH_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(LC_lm_DBH_slope, aes(sample = LC_lm_DBH_slope$residuals))+
   geom_qq()
 
-#non significant without outliers
-shapiro.test(LC_lm_DBH_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(LC_lm_DBH_slope$residuals) #non significant without outliers
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = LC_lm_DBH_slope, aes(x = LC_lm_DBH_slope$fitted.values, y = LC_lm_DBH_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3547,26 +3679,24 @@ ggplot(data = LC_lm_DBH_slope, aes(x = LC_lm_DBH_slope$fitted.values, y = LC_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(LC_lm_DBH_slope)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 LC_tau_result_DBH <- cor.test(LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts, LC_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value 
+# Print Kendall's tau (a correlation metric) and its associated p-value 
 print(LC_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_DBH <- predict(loess(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts, y = (LC_fixed_field_data_processed_terrain$DBH_ag), color = "blue")) +
   geom_line(aes(x = LC_fixed_field_data_processed_terrain$LC_slope_raster_15_data_pts, y = LC_trend_line_DBH), color = "red") +
   labs(x = "Slope", y = "DBH", title = "Trend Line Plot") +
   theme_minimal()
-
-
 
 #SD linear models
 
@@ -3574,45 +3704,48 @@ ggplot() +
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Short Canopy Axis")
 
-#Cook's D
-SD_lm_focal_SCA <- lm(Canopy_short ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain)
-SD_lm_focal_SCA_cooks <- cooks.distance(SD_lm_focal_SCA) #calculating the cook.s D for each point
-plot(SD_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_SCA_cooks[(SD_lm_focal_SCA_cooks > (3 * mean(SD_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_lm_focal_SCA <- lm(Canopy_short ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+SD_lm_focal_SCA_cooks <- cooks.distance(SD_lm_focal_SCA) #calculating the Cook's D for each point
+plot(SD_lm_focal_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_lm_focal_SCA_cooks[(SD_lm_focal_SCA_cooks > (3 * mean(SD_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_terrain_no_sca_outliers <- SD_fixed_field_data_processed_terrain[-c(21, 49, 83, 85, 87, 97, 117, 122, 156, 157, 
                                                                                                   159, 163, 202, 208, 211),]
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_short_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short ~ SD_fixed_field_data_processed_terrain_no_sca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short_lg ~ SD_fixed_field_data_processed_terrain_no_sca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_sca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_sca_outliers$Canopy_short_sqrt ~ SD_fixed_field_data_processed_terrain_no_sca_outliers$SD_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(SD_lm_sca_slope, aes(x= SD_lm_sca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Slope (degrees)")+
@@ -3623,10 +3756,10 @@ ggplot(SD_lm_sca_slope, aes(x= SD_lm_sca_slope$residuals))+
 ggplot(SD_lm_sca_slope, aes(sample = SD_lm_sca_slope$residuals))+
   geom_qq()
 
-#non significant with square root transformation
-shapiro.test(SD_lm_sca_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_sca_slope$residuals) #non significant with square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_sca_slope, aes(x = SD_lm_sca_slope$fitted.values, y = SD_lm_sca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3634,7 +3767,7 @@ ggplot(data = SD_lm_sca_slope, aes(x = SD_lm_sca_slope$fitted.values, y = SD_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for SCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_sca_slope)
 
 #correlation test
@@ -3644,60 +3777,64 @@ cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, SD_f
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Long Canopy Axis")
 
-#Cook's D
-SD_lm_focal_LCA <- lm(Canopy_long ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain)
-SD_lm_focal_LCA_cooks <- cooks.distance(SD_lm_focal_LCA) #calculating the cook.s D for each point
-plot(SD_lm_focal_LCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_LCA_cooks[(SD_lm_focal_LCA_cooks > (3 * mean(SD_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_lm_focal_LCA <- lm(Canopy_long ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+SD_lm_focal_LCA_cooks <- cooks.distance(SD_lm_focal_LCA) #calculating the Cook's D for each point
+plot(SD_lm_focal_LCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_lm_focal_LCA_cooks[(SD_lm_focal_LCA_cooks > (3 * mean(SD_lm_focal_LCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_terrain_no_lca_outliers <- SD_fixed_field_data_processed_terrain[-c(21, 74, 83, 85, 97, 117, 122, 156, 158, 
                                                                                                   159, 161, 163, 188, 192, 202, 206, 208, 211),]
 
-#creating the linear regression
+#creating the linear regressions
 
+#linear regression without transformations
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_long_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long ~ SD_fixed_field_data_processed_terrain_no_lca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long_lg ~ SD_fixed_field_data_processed_terrain_no_lca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_lca_slope  <- lm(SD_fixed_field_data_processed_terrain_no_lca_outliers$Canopy_long_sqrt ~ SD_fixed_field_data_processed_terrain_no_lca_outliers$SD_slope_raster_15_data_pts)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(SD_lm_lca_slope, aes(x= SD_lm_lca_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_lca_slope, aes(sample = SD_lm_lca_slope$residuals))+
   geom_qq()
 
-#non significant with a log transformation
-shapiro.test(SD_lm_lca_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_lca_slope$residuals) #non significant with a log transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_lca_slope, aes(x = SD_lm_lca_slope$fitted.values, y = SD_lm_lca_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3705,66 +3842,70 @@ ggplot(data = SD_lm_lca_slope, aes(x = SD_lm_lca_slope$fitted.values, y = SD_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for LCA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_lca_slope)
 
 #canopy area
 
 #checking linearity 
 
-#plotting the linear model in ggplot for CA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y = Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("Canopy Area")
 
-#Cook's D
-SD_lm_focal_CA <- lm(Canopy_area ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain)
-SD_lm_focal_CA_cooks <- cooks.distance(SD_lm_focal_CA) #calculating the cook.s D for each point
-plot(SD_lm_focal_CA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_CA_cooks[(SD_lm_focal_CA_cooks > (3 * mean(SD_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_lm_focal_CA <- lm(Canopy_area ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+SD_lm_focal_CA_cooks <- cooks.distance(SD_lm_focal_CA) #calculating the Cook's D for each point
+plot(SD_lm_focal_CA_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_lm_focal_CA_cooks[(SD_lm_focal_CA_cooks > (3 * mean(SD_lm_focal_CA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_terrain_no_ca_outliers <- SD_fixed_field_data_processed_terrain[-c(31, 49, 83, 85, 97, 117, 122, 155, 156, 157, 158, 
                                                                                                   159, 163, 202, 208, 211, 223),]
 
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain$Canopy_area_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area ~ SD_fixed_field_data_processed_terrain_no_ca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with log transformation of canopy area
+#linear regression with log transformation of response variable
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_lg ~ SD_fixed_field_data_processed_terrain_no_ca_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of canopy area
+#linear regression with square root transformation of response variable
 SD_lm_CA_slope  <- lm(SD_fixed_field_data_processed_terrain_no_ca_outliers$Canopy_area_sqrt ~ SD_fixed_field_data_processed_terrain_no_ca_outliers$SD_slope_raster_15_data_pts)
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(SD_lm_CA_slope, aes(x= SD_lm_CA_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_CA_slope, aes(sample = SD_lm_CA_slope$residuals))+
   geom_qq()
 
-#significant without outliers and with transformations need to use non-parametric test
-shapiro.test(SD_lm_CA_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_CA_slope$residuals) #significant without outliers and with transformations need to use non-parametric test
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_CA_slope, aes(x = SD_lm_CA_slope$fitted.values, y = SD_lm_CA_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3772,31 +3913,30 @@ ggplot(data = SD_lm_CA_slope, aes(x = SD_lm_CA_slope$fitted.values, y = SD_lm_CA
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CA and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_CA_slope)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_CA <- cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, SD_fixed_field_data_processed_terrain$Canopy_area,  method = "kendall")
 
-# Print Kendall's tau and its associated p-value 
+# Print Kendall's tau (a correlation metric) and its associated p-value 
 print(SD_tau_result_CA)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 LM_trend_line_DBH <- predict(loess(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, y = (LM_fixed_field_data_processed_terrain$DBH_ag), color = "blue")) +
   geom_line(aes(x = LM_fixed_field_data_processed_terrain$LM_slope_raster_15_data_pts, y = LM_trend_line_DBH), color = "red") +
   labs(x = "Slope", y = "DBH", title = "Trend Line Plot") +
   theme_minimal()
 
-
 #crown spread
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=Crown_spread_sqrt)))+ 
   geom_smooth(method='lm')+
   geom_point()+
@@ -3808,19 +3948,20 @@ ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_d
     axis.title.y = element_text(size = 16),
     axis.text.y = element_text(size = 14))
 
-#Cook's D
-SD_lm_focal_CS <- lm(Crown_spread ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain)
-SD_lm_focal_CS_cooks <- cooks.distance(SD_lm_focal_CS) #calculating the cook.s D for each point
-plot(SD_lm_focal_CS_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_CS_cooks[(SD_lm_focal_CS_cooks > (3 * mean(SD_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_lm_focal_CS <- lm(Crown_spread ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+SD_lm_focal_CS_cooks <- cooks.distance(SD_lm_focal_CS) #calculating the Cook's D for each point
+plot(SD_lm_focal_CS_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_lm_focal_CS_cooks[(SD_lm_focal_CS_cooks > (3 * mean(SD_lm_focal_CS_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_terrain_no_cs_outliers <- SD_fixed_field_data_processed_terrain[-c(21, 49, 74, 83, 85, 97, 117, 122, 156, 158, 
                                                                                                  159, 163, 202, 206, 208, 211),]
 
+#creating the linear regressions
 
-#creating the linear regression
+#linear regression without transformations
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
 #linear regression with logged transformation of crown spread
@@ -3829,8 +3970,9 @@ SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread_lg ~ SD
 #linear regression with square root transformation of crown spread
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain$Crown_spread_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
 
+#linear regression without transformations
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread ~ SD_fixed_field_data_processed_terrain_no_cs_outliers$SD_slope_raster_15_data_pts)
 
 #linear regression with logged transformation of crown spread
@@ -3840,21 +3982,23 @@ SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain_no_cs_outliers$Crown
 SD_lm_CS_slope  <- lm(SD_fixed_field_data_processed_terrain_no_cs_outliers$Crown_spread_sqrt ~ SD_fixed_field_data_processed_terrain_no_cs_outliers$SD_slope_raster_15_data_pts)
 
 
-#checking normality of residuals with a histogram and qqnorm plot
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
+
+#histogram of the residuals
 ggplot(SD_lm_CS_slope, aes(x= SD_lm_CS_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_CS_slope, aes(sample = SD_lm_CS_slope$residuals))+
   geom_qq()
 
-#not significant with square root transformation
-shapiro.test(SD_lm_CS_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_CS_slope$residuals) #not significant with square root transformation
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_CS_slope, aes(x = SD_lm_CS_slope$fitted.values, y = SD_lm_CS_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3862,66 +4006,70 @@ ggplot(data = SD_lm_CS_slope, aes(x = SD_lm_CS_slope$fitted.values, y = SD_lm_CS
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for CS and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_CS_slope)
-
 
 #DBH
 
 #checking linearity 
 
-#plotting the linear model in ggplot for SCA
+#plotting the scatterplot and linear model in ggplot
 ggplot(data = SD_fixed_field_data_processed_terrain, (aes(x=SD_slope_raster_15_data_pts, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Slope (degrees)")+
   ylab("DBH")
 
-#Cook's D
-SD_lm_focal_DBH <- lm(DBH_ag ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain)
-SD_lm_focal_DBH_cooks <- cooks.distance(SD_lm_focal_DBH) #calculating the cook.s D for each point
-plot(SD_lm_focal_DBH_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- SD_lm_focal_DBH_cooks[(SD_lm_focal_DBH_cooks > (3 * mean(SD_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+#using Cook's D to check for highly influential points that may skew the linear model results
+SD_lm_focal_DBH <- lm(DBH_ag ~ SD_slope_raster_15_data_pts, data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+SD_lm_focal_DBH_cooks <- cooks.distance(SD_lm_focal_DBH) #calculating the Cook's D for each point
+plot(SD_lm_focal_DBH_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- SD_lm_focal_DBH_cooks[(SD_lm_focal_DBH_cooks > (3 * mean(SD_lm_focal_DBH_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
 influential
 
-#removing outliers based on which points were deemed influential
+#removing points that were deemed too influential on the linear model fit
 SD_fixed_field_data_processed_terrain_no_dbh_outliers <- SD_fixed_field_data_processed_terrain[-c(31, 37, 85, 117, 122, 154, 158, 
                                                                                                  159, 176, 208, 211, 223),]
 
-#creating the linear regression
+#creating the linear regressions
+
+#linear regression without transformations
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_lg ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain$DBH_ag_sqrt ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts)
 
-#without outliers
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag ~ SD_fixed_field_data_processed_terrain_no_dbh_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with logged transformation of aggregated DBH
+#linear regression with log transformation of response variable
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_lg ~ SD_fixed_field_data_processed_terrain_no_dbh_outliers$SD_slope_raster_15_data_pts)
 
-#linear regression with square root transformation of aggregated DBH
+#linear regression with square root transformation of response variable
 SD_lm_DBH_slope  <- lm(SD_fixed_field_data_processed_terrain_no_dbh_outliers$DBH_ag_sqrt ~ SD_fixed_field_data_processed_terrain_no_dbh_outliers$SD_slope_raster_15_data_pts)
 
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test  
 
-#checking normality of residuals with a histogram and qqnorm plot
+#histogram of the residuals
 ggplot(SD_lm_DBH_slope, aes(x= SD_lm_DBH_slope$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. Slope (degrees)")+
   xlab("Residuals")+
   ylab("Frequency")
 
-#qq norm
+#qqnorm plot
 ggplot(SD_lm_DBH_slope, aes(sample = SD_lm_DBH_slope$residuals))+
   geom_qq()
 
-#significant with all transformations and without outliers, need non-parametric tests
-shapiro.test(SD_lm_DBH_slope$residuals)
+#Shapiro-Wilk Test
+shapiro.test(SD_lm_DBH_slope$residuals) #significant with all transformations and without outliers, need non-parametric tests
 
-#checking equal variance
+#checking equal variance with a residuals vs. fitted values plot
 ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_DBH_slope$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
@@ -3929,25 +4077,24 @@ ggplot(data = SD_lm_DBH_slope, aes(x = SD_lm_DBH_slope$fitted.values, y = SD_lm_
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and Slope (degrees)")
 
-#Slope Test visible in summary of the lm
+#Slope Test, obtained from the summary of the linear regression results
 summary(SD_lm_DBH_slope)
 
-#non parametric Mann-Kendall Test
+#non-parametric Mann-Kendall Test, non-parametric test
 SD_tau_result_DBH <- cor.test(SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, SD_fixed_field_data_processed_terrain$DBH_ag,  method = "kendall") #DBH_ag_sqrt
 
-# Print Kendall's tau and its associated p-value
+# Print Kendall's tau (a correlation metric) and its associated p-value
 print(SD_tau_result_DBH)
 
-# Calculate the trend line
+# Calculating the trend line for plotting
 SD_trend_line_DBH <- predict(loess(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts))
 
-# Create a trend line plot
+# Creating a trend line plot
 ggplot() +
   geom_point(aes(x = SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, y = (SD_fixed_field_data_processed_terrain$DBH_ag), color = "blue")) +
   geom_line(aes(x = SD_fixed_field_data_processed_terrain$SD_slope_raster_15_data_pts, y = SD_trend_line_DBH), color = "red") +
   labs(x = "Slope", y = "DBH", title = "Trend Line Plot") +
   theme_minimal()
-
 
 #### Sizes vs. Aspect ####
 
@@ -3959,49 +4106,49 @@ ggplot() +
    #the 8 or 4 categories of aspect by...
        
    #a) creating box plots of tree size/shape 
-   #b) fit an ANOVA (analysis of variance) model and seeing if there are any pairwise significant comparisons
+   #b) fitting an ANOVA (analysis of variance) model and seeing if there are any pairwise significant comparisons
    #c) checking to see if the ANOVA model meets the conditions (normal distribution of the residuals, homodescadisicity, independence)
             #normal residuals is checked with histograms, qq norm plot, and Shapiro-Wilks test
-            #equal variance is tested with Fligner-Killeen test which is more useful when dealing with non-normal and when outliers present
-                     #Levene's Test is also used to check equal variance which is not super robust to strong differences to normality
-                     #Finally, a rule of thumb test is also use to look for equal variance.
+            #equal variance is tested with Fligner-Killeen test which is more useful when dealing with non-normal residuals and when outliers are present
+                     #Levene's Test is also used to check equal variance, but is not super robust to strong differences to normality
+                     #Finally, a rule of thumb test is also used to look for equal variance.
    #d) checking for significant difference in means between size/shape between aspect categories
             # 1) if conditions are met...
-                       #use the summary results from the ANOVA model to check for a significant difference in means
+                      #we used the summary results from the ANOVA model to check for a significant difference in means
             # 2) if conditions are not met...
-                       #use the Kruskall-Wallis test (non-parametric test) to look for a general significant difference in means
-                           #and if it is significant, use the post-hoc Wilcoxon rank sum test to look at pairwise comparisons of
-                                #significant differences in mean size/shape between aspect categories
+                      #we used the Kruskal-Wallis test (non-parametric test) to look for a general significant difference in means
+                           #and if it is significant, we used the post-hoc Wilcoxon rank sum test to look at pairwise comparisons of
+                           #significant differences in mean size/shape between aspect categories
 
 #8 categories for direction
 
 
 #all points 
 
-#removing NAs preventing us from running tests
+#removing NAs in SCA and aspect to allow us to run tests
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   drop_na(Canopy_short) %>%
   drop_na(all_points_aspect_raster_15_data_pts_8_categorical)
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_SCA_aspect_8 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_SCA_aspect_8)
+summary(all_points_aov_SCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_SCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
                                                   all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
-# checking to see if residuals are normal
-hist(all_points_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
+hist(all_points_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_SCA_aspect_8$residuals) #qqnorm plot
 
@@ -4009,102 +4156,96 @@ shapiro.test(all_points_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals are not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test
 
-#Fligner-Killeen, more useful when dealing with non-normal and when outliers present
+#Fligner-Killeen, more useful than the other equal variance tests when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test, not super robust to strong differences to normality
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
-max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+#Rule of Thumb Test
+all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, 
+                                    all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction #calculating the standard deviation for the response variable across each cardinal direction
+max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two, the test did not pass
 
 #variances are equally distributed
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_LCA_aspect_8 <- aov(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_LCA_aspect_8)
+summary(all_points_aov_LCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_LCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_long, 
                                           all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
-
 # checking to see if residuals are normal
-hist(all_points_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(all_points_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_LCA_aspect_8$residuals) #qqnorm plot
 
-shapiro.test(all_points_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test, sign have to run a non-paramrtric test
+shapiro.test(all_points_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test, if significant, have to run a non-parametric test
 
 #not normally distributed
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-all_points_thumb_test_LCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_LCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_LCA, na.rm = T) / min(all_points_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances condition is met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_CA_aspect_8 <- aov(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_CA_aspect_8)
+summary(all_points_aov_CA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_CA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_area, 
                                          all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(all_points_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(all_points_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_CA_aspect_8$residuals) #qqnorm plot
 
@@ -4112,51 +4253,47 @@ shapiro.test(all_points_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-all_points_thumb_test_CA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_CA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_CA, na.rm = T) / min(all_points_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances condition is met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_CS_aspect_8 <- aov(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_CS_aspect_8)
+summary(all_points_aov_CS_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_CS_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Crown_spread, 
                                          all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(all_points_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(all_points_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_CS_aspect_8$residuals) #qqnorm plot
 
@@ -4164,51 +4301,47 @@ shapiro.test(all_points_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-all_points_thumb_test_CS <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_CS <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_CS, na.rm = T) / min(all_points_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_DBH_aspect_8 <- aov(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_DBH_aspect_8)
+summary(all_points_aov_DBH_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_DBH_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$DBH_ag, 
                                           all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
-
 # checking to see if residuals are normal
-hist(all_points_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(all_points_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_DBH_aspect_8$residuals) #qqnorm plot
 
@@ -4216,49 +4349,49 @@ shapiro.test(all_points_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals are not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-all_points_thumb_test_DBH <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_DBH <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_DBH, na.rm = T) / min(all_points_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "none") #version with no p-value adjustment
 
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 
 # LM
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_SCA_aspect_8 <- aov(Canopy_short ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_SCA_aspect_8)
+summary(LM_aov_SCA_aspect_8) #ANOVA summary
 
 # checking to see if residuals are normal
-hist(LM_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LM_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_SCA_aspect_8$residuals) #qqnorm plot
 
@@ -4266,51 +4399,48 @@ shapiro.test(LM_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test, not super robust to strong differences to normality
+#Levene's Test, not super robust to strong differences to normality, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_SCA, na.rm = T) / min(LM_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_8_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_LCA_aspect_8 <- aov(Canopy_long ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_LCA_aspect_8)
+summary(LM_aov_LCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_LCA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_long, 
                                           LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LM_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LM_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_LCA_aspect_8$residuals) #qqnorm plot
 
@@ -4318,50 +4448,47 @@ shapiro.test(LM_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_LCA, na.rm = T) / min(LM_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_8_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_CA_aspect_8 <- aov(Canopy_area ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_CA_aspect_8)
+summary(LM_aov_CA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_CA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_area, 
                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LM_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_CA_aspect_8$residuals) #qqnorm plot
 
@@ -4369,50 +4496,47 @@ shapiro.test(LM_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_CA, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_8_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_CS_aspect_8 <- aov(Crown_spread ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_CS_aspect_8)
+summary(LM_aov_CS_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_CS_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Crown_spread, 
                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LM_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_CS_aspect_8$residuals) #qqnorm plot
 
@@ -4420,51 +4544,48 @@ shapiro.test(LM_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_CS, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_DBH_aspect_8 <- aov(DBH_ag ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_DBH_aspect_8)
+summary(LM_aov_DBH_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_DBH_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$DBH_ag, 
                                           LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LM_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LM_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_DBH_aspect_8$residuals) #qqnorm plot
 
@@ -4472,32 +4593,28 @@ shapiro.test(LM_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$DBH_ag ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_DBH, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # LC
 
@@ -4509,22 +4626,22 @@ LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %
   drop_na(LC_aspect_raster_15_data_pts_8_categorical)
 
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_SCA_aspect_8 <- aov(Canopy_short ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-esummary(LC_aov_SCA_aspect_8)
+esummary(LC_aov_SCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_SCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LC_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_SCA_aspect_8$residuals) #qqnorm plot
 
@@ -4532,50 +4649,47 @@ shapiro.test(LC_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_LCA_aspect_8 <- aov(Canopy_long ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_LCA_aspect_8)
+summary(LC_aov_LCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_LCA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_long, 
                                           LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LC_aov_LCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_LCA_aspect_8$residuals) #qqnorm plot
 
@@ -4583,54 +4697,47 @@ shapiro.test(LC_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-
-# checking equal variances with levene's test and rule of thumb
-
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_LCA, na.rm = T) / min(LC_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_CA_aspect_8 <- aov(Canopy_area ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_CA_aspect_8)
+summary(LC_aov_CA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_CA_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_area, 
                                          LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_t_test_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LC_t_test_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_t_test_CA_aspect_8$residuals) #qqnorm plot
 
@@ -4638,52 +4745,48 @@ shapiro.test(LC_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_CA, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_CS_aspect_8 <- aov(Crown_spread ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_CS_aspect_8)
+summary(LC_aov_CS_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_CS_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Crown_spread, 
                                          LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LC_t_test_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LC_t_test_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_t_test_CS_aspect_8$residuals) #qqnorm plot
 
@@ -4691,52 +4794,48 @@ shapiro.test(LC_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_CS, na.rm = T) / min(LC_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_DBH_aspect_8 <- aov(DBH_ag ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_DBH_aspect_4)
+summary(LC_aov_DBH_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_DBH_aspect_8 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$DBH_ag, 
                                           LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
-
 # checking to see if residuals are normal
-hist(LC_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LC_t_test_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_t_test_DBH_aspect_8$residuals) #qqnorm plot
 
@@ -4744,32 +4843,28 @@ shapiro.test(LC_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ LC_aspect_raster_15_data_pts_8_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # SD
 
@@ -4780,22 +4875,22 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
   drop_na(Canopy_short) %>%
   drop_na(SD_aspect_raster_15_data_pts_8_categorical)
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_SCA_aspect_8 <- aov(Canopy_short ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_SCA_aspect_8)
+summary(SD_aov_SCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_aov_SCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
                                         SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(SD_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(SD_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_SCA_aspect_8$residuals) #qqnorm plot
 
@@ -4803,48 +4898,42 @@ shapiro.test(SD_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_SCA, na.rm = T) / min(SD_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_LCA_aspect_8 <- aov(Canopy_long ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_LCA_aspect_8)
+summary(SD_aov_LCA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_LCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_long, 
                                           SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
@@ -4857,52 +4946,48 @@ shapiro.test(SD_aov_LCA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_LCA, na.rm = T) / min(SD_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_CA_aspect_8 <- aov(Canopy_area ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_CA_aspect_8)
+summary(SD_aov_CA_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_CA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_area, 
                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(SD_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(SD_aov_CA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_CA_aspect_8$residuals) #qqnorm plot
 
@@ -4910,50 +4995,47 @@ shapiro.test(SD_aov_CA_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_CS_aspect_8 <- aov(Crown_spread ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_CS_aspect_8)
+summary(SD_aov_CS_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_CS_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Crown_spread, 
                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(SD_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(SD_aov_CS_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_CS_aspect_8$residuals) #qqnorm plot
 
@@ -4961,36 +5043,32 @@ shapiro.test(SD_aov_CS_aspect_8$residuals) #Shapiro-Wilk test
 
 #residual not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
-
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_8_categorical, y = DBH_ag))+
   xlab("Directions")+
@@ -5002,17 +5080,17 @@ ggplot(data = SD_fixed_field_data_processed_terrain)+
     axis.title.y = element_text(size = 16),
     axis.text.y = element_text(size = 14))
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_DBH_aspect_8 <- aov(DBH_ag ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_DBH_aspect_8)
+summary(SD_aov_DBH_aspect_8) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_DBH_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$DBH_ag, 
                                         SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(SD_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(SD_aov_DBH_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_DBH_aspect_8$residuals) #qqnorm plot
 
@@ -5020,29 +5098,26 @@ shapiro.test(SD_aov_DBH_aspect_8$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical)
 
-#rule of thumb test
-SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_DBH, na.rm = T) / min(SD_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ SD_aspect_raster_15_data_pts_8_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
@@ -5058,23 +5133,23 @@ all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_pro
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_SCA_aspect_4 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_SCA_aspect_4)
+summary(all_points_aov_SCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_SCA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
                                                   all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categoricalv, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(all_points_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(all_points_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_SCA_aspect_4$residuals) #qqnorm plot
 
@@ -5082,51 +5157,48 @@ shapiro.test(all_points_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test, not super robust to strong differences to normality
+#Levene's Test, not super robust to strong differences to normality, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-all_points_thumb_test_SCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_SCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_SCA_4, na.rm = T) / min(all_points_thumb_test_SCA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variances not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_LCA_aspect_4 <- aov(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_LCA_aspect_4)
+summary(all_points_aov_LCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_LCA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_long, 
                                                   all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(all_points_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(all_points_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_LCA_aspect_4$residuals) #qqnorm plot
 
@@ -5134,50 +5206,47 @@ shapiro.test(all_points_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_long ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-all_points_thumb_test_LCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_LCA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_LCA_4, na.rm = T) / min(all_points_thumb_test_LCA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_long, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_CA_aspect_4 <- aov(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_CA_aspect_4)
+summary(all_points_aov_CA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_CA_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_area, 
                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(all_points_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(all_points_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_CA_aspect_4$residuals) #qqnorm plot
 
@@ -5185,51 +5254,48 @@ shapiro.test(all_points_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_area ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-all_points_thumb_test_CA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_CA_4 <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_CA_4, na.rm = T) / min(all_points_thumb_test_CA_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_area, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_CS_aspect_4 <- aov(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_CS_aspect_4)
+summary(all_points_aov_CS_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_CS_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Crown_spread, 
                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(all_points_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(all_points_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_CS_aspect_4$residuals) #qqnorm plot
 
@@ -5237,51 +5303,48 @@ shapiro.test(all_points_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal 
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$Crown_spread ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-all_points_thumb_test_CS_4 <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_CS_4 <- tapply(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_CS_4, na.rm = T) / min(all_points_thumb_test_CS_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Crown_spread, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = all_points_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_4_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 all_points_aov_DBH_aspect_4 <- aov(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_DBH_aspect_4)
+summary(all_points_aov_DBH_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 all_points_t_test_DBH_aspect_4 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$DBH_ag, 
                                                   all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(all_points_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(all_points_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(all_points_aov_DBH_aspect_4$residuals) #qqnorm plot
 
@@ -5289,53 +5352,49 @@ shapiro.test(all_points_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(all_points_fixed_field_data_processed_terrain$DBH_ag ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-all_points_thumb_test_DBH_4 <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+all_points_thumb_test_DBH_4 <- tapply(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(all_points_thumb_test_DBH_4, na.rm = T) / min(all_points_thumb_test_DBH_4, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ all_points_aspect_raster_15_data_pts_4_categorical, data = all_points_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$DBH_ag, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # LM
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_4_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_SCA_aspect_4 <- aov(Canopy_short ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_SCA_aspect_4)
+summary(LM_aov_SCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_SCA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LM_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_SCA_aspect_4$residuals) #qqnorm plot
 
@@ -5343,55 +5402,47 @@ shapiro.test(LM_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_short ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_SCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_SCA, na.rm = T) / min(LM_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition is met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_short, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
-LM_t_test_SCA_aspect_8 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_short, 
-                                          LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_4_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_LCA_aspect_4 <- aov(Canopy_long ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LCMaov_LCA_aspect_4)
+summary(LCMaov_LCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_LCA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_long, 
-                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
+                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf") 
 
 # checking to see if residuals are normal
-hist(LM_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LM_t_test_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_t_test_LCA_aspect_4$residuals) #qqnorm plot
 
@@ -5399,50 +5450,47 @@ shapiro.test(LM_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_long ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_LCA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_LCA, na.rm = T) / min(LM_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_long, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_4_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_CA_aspect_4 <- aov(Canopy_area ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_CA_aspect_4)
+summary(LM_aov_CA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_CA_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Canopy_area, 
                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LM_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_CA_aspect_4$residuals) #qqnorm plot
 
@@ -5450,51 +5498,48 @@ shapiro.test(LM_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Canopy_area ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_CA <- tapply(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_CA, na.rm = T) / min(LM_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Canopy_area, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_4_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_CS_aspect_4 <- aov(Crown_spread ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_CS_aspect_4)
+summary(LM_aov_CS_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_CS_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$Crown_spread, 
                                        LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LM_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LM_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_CS_aspect_4$residuals) #qqnorm plot
 
@@ -5502,51 +5547,47 @@ shapiro.test(LM_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$Crown_spread ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_CS <- tapply(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_CS, na.rm = T) / min(LM_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$Crown_spread, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LM_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LM_aspect_raster_15_data_pts_4_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LM_aov_DBH_aspect_4 <- aov(DBH_ag ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
-summary(LM_aov_DBH_aspect_4)
+summary(LM_aov_DBH_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LM_t_test_DBH_aspect_4 <- pairwise.t.test(LM_fixed_field_data_processed_terrain$DBH_ag, 
                                         LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LM_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LM_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(LM_aov_DBH_aspect_4$residuals) #qqnorm plot
 
@@ -5554,52 +5595,49 @@ shapiro.test(LM_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LM_fixed_field_data_processed_terrain$LM_t_test_DBH_aspect_4 ~ LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$LM_t_test_DBH_aspect_4, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LM_thumb_test_DBH <- tapply(LM_fixed_field_data_processed_terrain$LM_t_test_DBH_aspect_4, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LM_thumb_test_DBH, na.rm = T) / min(LM_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ LM_aspect_raster_15_data_pts_4_categorical, data = LM_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LM_fixed_field_data_processed_terrain$DBH_ag, LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # LC
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_4_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_SCA_aspect_4 <- aov(Canopy_short ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_SCA_aspect_4)
+summary(LC_aov_SCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_SCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_short, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(LC_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_SCA_aspect_4$residuals) #qqnorm plot
 
@@ -5607,51 +5645,48 @@ shapiro.test(LC_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_short ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LC_thumb_test_SCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_SCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_SCA, na.rm = T) / min(LC_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_short, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_4_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_LCA_aspect_4 <- aov(Canopy_long ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_LCA_aspect_4)
+summary(LC_aov_LCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_LCA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_long, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(LC_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_LCA_aspect_4$residuals) #qqnorm plot
 
@@ -5659,51 +5694,48 @@ shapiro.test(LC_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals were not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_long ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_LCA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_LCA, na.rm = T) / min(LC_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_long, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_4_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_CA_aspect_4 <- aov(Canopy_area ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_CA_aspect_4)
+summary(LC_aov_CA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_CA_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Canopy_area, 
                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(LC_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(LC_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_CA_aspect_4$residuals) #qqnorm plot
 
@@ -5711,52 +5743,48 @@ shapiro.test(LC_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Canopy_area ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_CA <- tapply(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_CA, na.rm = T) / min(LC_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Canopy_area, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_4_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_CS_aspect_4 <- aov(Crown_spread ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_CS_aspect_4)
+summary(LC_aov_CS_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_CS_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$Crown_spread, 
                                        LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LC_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(LC_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_CS_aspect_4$residuals) #qqnorm plot
 
@@ -5764,52 +5792,47 @@ shapiro.test(LC_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 
 #residuals not normal
 
-# checking equal variances with levene's test and rule of thumb
+# checking equal variances with Fligner-Killeen Test, Levene's Test, and Rule of Thumb Test 
 
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$Crown_spread ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_CS <- tapply(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_CS, na.rm = T) / min(LC_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$Crown_spread, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = LC_aspect_raster_15_data_pts_4_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 LC_aov_DBH_aspect_4 <- aov(DBH_ag ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
-summary(LC_aov_DBH_aspect_4)
+summary(LC_aov_DBH_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 LC_t_test_DBH_aspect_4 <- pairwise.t.test(LC_fixed_field_data_processed_terrain$DBH_ag, 
                                         LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(LC_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(LC_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(LC_aov_DBH_aspect_4$residuals) #qqnorm plot
 
@@ -5822,49 +5845,45 @@ shapiro.test(LC_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test, sig so we need t
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(LC_fixed_field_data_processed_terrain$DBH_ag ~ LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+LC_thumb_test_DBH <- tapply(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(LC_thumb_test_DBH, na.rm = T) / min(LC_thumb_test_DBH, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance is met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ LC_aspect_raster_15_data_pts_4_categorical, data = LC_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(LC_fixed_field_data_processed_terrain$DBH_ag, LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted using false discovery rate method
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 # SD
 
 #short canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_4_categorical, y = Canopy_short))+
   xlab("Directions")+
   ylab("Short Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_SCA_aspect_4 <- aov(Canopy_short ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_SCA_aspect_4)
-
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+summary(SD_aov_SCA_aspect_4) #ANOVA summary
+ 
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_SCA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
                                         SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(SD_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect")
+hist(SD_aov_SCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_SCA_aspect_4$residuals) #qqnorm plot
 
@@ -5877,46 +5896,42 @@ shapiro.test(SD_aov_SCA_aspect_4$residuals) #Shapiro-Wilk test, sig so need to u
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_short ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_short ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_SCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_SCA, na.rm = T) / min(SD_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_short ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_short, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
-
 #long canopy axis
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_4_categorical, y = Canopy_long))+
   xlab("Directions")+
   ylab("Long Canopy Axis (m)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_LCA_aspect_4 <- aov(Canopy_long ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_LCA_aspect_4)
+summary(SD_aov_LCA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_LCA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_long, 
                                           SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal
-hist(SD_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect")
+hist(SD_aov_LCA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Long Canopy Axis vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_LCA_aspect_4$residuals) #qqnorm plot
 
@@ -5929,47 +5944,43 @@ shapiro.test(SD_aov_LCA_aspect_4$residuals) #Shapiro-Wilk test, sig so need to u
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_long ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_long ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_LCA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_LCA, na.rm = T) / min(SD_thumb_test_LCA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_long ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_long, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
-
 # canopy area
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_4_categorical, y = Canopy_area))+
   xlab("Directions")+
   ylab("Canopy Area (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_CA_aspect_4 <- aov(Canopy_area ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_CA_aspect_4)
+summary(SD_aov_CA_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_CA_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_area, 
                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(SD_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect")
+hist(SD_aov_CA_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Canopy Area vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_CA_aspect_4$residuals) #qqnorm plot
 
@@ -5982,47 +5993,42 @@ shapiro.test(SD_aov_CA_aspect_4$residuals) #Shapiro-Wilk test
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Canopy_area ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Canopy_area ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_CA <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_CA, na.rm = T) / min(SD_thumb_test_CA, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition not met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Canopy_area ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
-
 #crown spread
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_4_categorical, y = Crown_spread))+
   xlab("Directions")+
   ylab("Crown Spread (m2)")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_CS_aspect_4 <- aov(Crown_spread ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_CS_aspect_4)
+summary(SD_aov_CS_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_CS_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Crown_spread, 
                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
-
 # checking to see if residuals are normal
-hist(SD_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect")
+hist(SD_aov_CS_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for Crown Spread vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_CS_aspect_4$residuals) #qqnorm plot
 
@@ -6035,47 +6041,44 @@ shapiro.test(SD_aov_CS_aspect_4$residuals) #Shapiro-Wilk test
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(Crown_spread ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$Crown_spread ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_CS <- tapply(SD_fixed_field_data_processed_terrain$Canopy_area, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_CS, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(Crown_spread ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$Crown_spread, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
                      p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
 
 
 #DBH ag
 
-#boxplot of sizes over the directional categories
+#boxplot of sizes by the directional categories
 ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_boxplot(aes(x = SD_aspect_raster_15_data_pts_4_categorical, y = DBH_ag))+
   xlab("Directions")+
   ylab("DBH")
 
-#ANOVA
+#generating the ANOVA and ANOVA summary
 SD_aov_DBH_aspect_4 <- aov(DBH_ag ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
-summary(SD_aov_DBH_aspect_4)
+summary(SD_aov_DBH_aspect_4) #ANOVA summary
 
-#permutation t.test to see significant differences between categories using a bonferonni adjustment
+#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
 SD_t_test_DBH_aspect_4 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$DBH_ag, 
                                         SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, p.adj = "bonf")
 
 
 # checking to see if residuals are normal
-hist(SD_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect")
+hist(SD_aov_DBH_aspect_4$residuals, xlab = "Residuals", main = "Distribution of Residuals for DBH vs. Aspect") #histogram of the residuals
 
 qqnorm(SD_aov_DBH_aspect_4$residuals) #qqnorm plot
 
@@ -6088,28 +6091,23 @@ shapiro.test(SD_aov_DBH_aspect_4$residuals) #Shapiro-Wilk test, sig so have to u
 #Fligner-Killeen, more useful when dealing with non-normal and when outliers present
 fligner.test(DBH_ag ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#levene's test
+#Levene's Test, not super robust to strong differences to normality
 leveneTest(SD_fixed_field_data_processed_terrain$DBH_ag ~ SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical)
 
-#rule of thumb test
-SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd)
+#Rule of Thumb Test
+SD_thumb_test_DBH <- tapply(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
 max(SD_thumb_test_DBH, na.rm = T) / min(SD_thumb_test_CS, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
 
 #equal variance condition met
 
-#nonparametric tests
+#non-parametric tests
 
-#kruskall wallis test
+#Kruskal-Wallis test
 kruskal.test(DBH_ag ~ SD_aspect_raster_15_data_pts_4_categorical, data = SD_fixed_field_data_processed_terrain)
 
-#post-hoc Wilcoxon rank sum tests
+#post-hoc Wilcoxon rank sum tests to check difference in means/medians
 pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "none") #version with no p-value adjustment
-
-pairwise.wilcox.test(SD_fixed_field_data_processed_terrain$DBH_ag, SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_4_categorical,
-                     p.adjust.method = "fdr") #p value adjusted Crown_spread false discovery rate method
-
-
+                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
 
 
 #Boxplots to look at LC NW, SW, and N tended to have larger means

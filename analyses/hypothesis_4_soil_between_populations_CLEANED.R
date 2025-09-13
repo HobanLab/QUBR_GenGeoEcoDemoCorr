@@ -498,10 +498,15 @@ LC_list_grids_and_trees <- lapply(LC_list_grids_and_points, function(cell){ #ite
 })
 
 
+
+
 #creating a dataframe of all of the trees with their row number in the overall tree point dataframe and in which grid cell they are in
 LC_list_grids_and_point_trees_df <- as.data.frame(unlist(LC_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
 colnames(LC_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
 #filters out grid cells that do not have trees within them
+
+#### CHECK THAT THE TREE WE THINK WE ARE GRABBING IS ACTUALLY WHAT WE ARE GRABBING ####
+
 LC_list_grids_and_trees_fixed <- LC_list_grids_and_point_trees_df %>% 
   mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
   mutate(data_row = LC_fixed_field_data_processed$X[tree_row_num]) %>% #adding a column that writes the real row number the focal tree is in the overall data
