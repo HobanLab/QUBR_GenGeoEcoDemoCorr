@@ -481,7 +481,6 @@ ggplot()+
   geom_raster(data= as.data.frame(soil_stack_LC_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
   geom_sf(data = LC_tree_grid_cropped, fill = NA)
 
-####NOTE FROM ASH:I DONT THINK THIS CODE WORKS RIGHT NOW CORRECTLY BC THE ST_CONTAINS NEEDS TO BE THE CROPPED RASTER AND THEN ALL OF THE TREE DATA FOR THE ROW CALLS TO WORK CORRECTLY#####
 #selecting a point from each grid cell with trees within them
 LC_list_grids_and_points <- st_contains(LC_tree_grid_cropped, LC_fixed_field_data_processed_sf, sparse =T) #make sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
 set.seed(24) #setting the seed
@@ -497,21 +496,15 @@ LC_list_grids_and_trees <- lapply(LC_list_grids_and_points, function(cell){ #ite
   return(tree_pt)
 })
 
-
-
-
 #creating a dataframe of all of the trees with their row number in the overall tree point dataframe and in which grid cell they are in
 LC_list_grids_and_point_trees_df <- as.data.frame(unlist(LC_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
 colnames(LC_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name 
+
 #filters out grid cells that do not have trees within them
-
-#### CHECK THAT THE TREE WE THINK WE ARE GRABBING IS ACTUALLY WHAT WE ARE GRABBING ####
-
 LC_list_grids_and_trees_fixed <- LC_list_grids_and_point_trees_df %>% 
   mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
   mutate(data_row = LC_fixed_field_data_processed$X[tree_row_num]) %>% #adding a column that writes the real row number the focal tree is in the overall data
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
-
 
 #filtering out point data to be just the focal points
 LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_soils %>%
@@ -521,7 +514,15 @@ LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_soils
 ggplot()+
   geom_sf(data = LC_tree_grid_cropped)+
   geom_sf(data= LC_fixed_field_data_processed_sf)+
-  geom_sf(data = LC_fixed_field_data_processed_trees_soils, color = "red")
+  geom_sf(data = LC_fixed_field_data_processed_trees_soils, color = "red")+
+  geom_text(
+    data = LC_fixed_field_data_processed_trees_soils %>%
+      mutate(label = X),  #create numeric labels
+    aes(label = label, geometry = geometry), stat = "sf_coordinates",  
+    nudge_y = 10,            # adjust position so labels don’t overlap points
+    size = 5,
+    color = "blue"
+  )
 
 #SD
 

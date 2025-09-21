@@ -37,6 +37,7 @@ library(raster) #to use crop
 library(starsExtra) #to use dist_to_nearest
 library(geostatsp) 
 library(tmaptools)
+library(lmtest) #to use the Breuch-Pagan Test
 
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
 
@@ -346,6 +347,7 @@ SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance
             # 2) If the LINES conditions are not met...
                     # we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
 
+
 #LM
 
 #SCA
@@ -363,100 +365,6 @@ influential
 LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(43, 45, 46, 54, 61, 89, 90,  103, 122, 
                                                                                                     126, 151, 152, 154, 155, 157, 163, 164, 170, 178, 194,
                                                                                                     195, 200, 209, 211, 213, 214, 220),]
-
-
-simple_linear_regressions <- function(){
-  
-  
-  #removing outliers
-  
-  #using Cook's D to check for highly influential points that may skew the linear model results
-  LM_slr_SCA <- lm(Canopy_short ~ d, data = LM_fixed_field_data_processed_distance) #creating a linear regression to use to calculate the Cook's D
-  LM_slr_SCA_cooks <- cooks.distance(LM_slr_SCA) #creating a linear regression to use to calculate the Cook's D
-  plot(LM_slr_SCA_cooks, type = 'h') #checking to see which Cook's D are unusually high
-  influential <- LM_slr_SCA_cooks[(LM_slr_SCA_cooks > (3 * mean(LM_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
-  influential
-  
-  #removing points that were deemed too influential on the linear model fit
-  LM_fixed_field_data_processed_distance_sca_no_outliers <- LM_fixed_field_data_processed_distance[-c(as.numeric(names(influential))),]
-                                                                                                      
-  
-  #creating the base linear regression (no removal of outliers, no transformations)
-  LM_slr_dist_sca_base  <- lm(LM_fixed_field_data_processed_distance$Canopy_short ~ LM_fixed_field_data_processed_distance$d)
-  LM_slr_dist_sca_base_summary <- summary(LM_slr_dist_sca_base) #extracting the summary of the linear regression
-  LM_slr_dist_sca_base_p_value <- LM_slr_dist_sca_base_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with transformations
-  
-  #linear regression with log transformation of response variable
-  LM_slr_dist_sca_base_lg  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_lg ~ LM_fixed_field_data_processed_distance$d)
-  LM_slr_dist_sca_base_lg_summary <- summary(LM_slr_dist_sca_base_lg) #extracting the summary of the linear regression
-  LM_slr_dist_sca_base_lg_p_value <- LM_slr_dist_sca_base_lg_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with square root transformation of response variable
-  LM_slr_dist_sca_base_sqrt  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance$d)
-  LM_slr_dist_sca_base_sqrt_summary <- summary(LM_slr_dist_sca_base_sqrt) #extracting the summary of the linear regression
-  LM_slr_dist_sca_base_sqrt_p_value <- LM_slr_dist_sca_base_sqrt_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with inverse transformation of response variable
-  LM_slr_dist_sca_base_inv  <- lm(LM_fixed_field_data_processed_distance$Canopy_short_inv ~ LM_fixed_field_data_processed_distance$d)
-  LM_slr_dist_sca_base_inv_summary <- summary(LM_slr_dist_sca_base_inv) #extracting the summary of the linear regression
-  LM_slr_dist_sca_base_inv_p_value <- LM_slr_dist_sca_base_inv_summary$coefficients["LM_fixed_field_data_processed_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with transformations and removal of outliers
-  
-  #linear regression with log transformation of response variable
-  LM_slr_dist_sca_no_out_lg  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_lg ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
-  LM_slr_dist_sca_no_out_lg_summary <- summary(LM_slr_dist_sca_no_out_lg) #extracting the summary of the linear regression
-  LM_slr_dist_sca_no_out_lg_p_value <- LM_slr_dist_sca_no_out_lg_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with square root transformation of response variable
-  LM_slr_dist_sca_no_out_sqrt  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_sqrt ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
-  LM_slr_dist_sca_no_out_sqrt_summary <- summary(LM_slr_dist_sca_no_out_sqrt) #extracting the summary of the linear regression
-  LM_slr_dist_sca_no_out_sqrt_p_value <- LM_slr_dist_sca_no_out_sqrt_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #linear regression with inverse transformation of response variable
-  LM_slr_dist_sca_no_out_inv  <- lm(LM_fixed_field_data_processed_distance_sca_no_outliers$Canopy_short_inv ~ LM_fixed_field_data_processed_distance_sca_no_outliers$d)
-  LM_slr_dist_sca_no_out_inv_summary <- summary(LM_slr_dist_sca_no_out_inv) #extracting the summary of the linear regression
-  LM_slr_dist_sca_no_out_inv_p_value <- LM_slr_dist_sca_no_out_inv_summary$coefficients["LM_fixed_field_data_processed_distance_sca_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
-  #making a list of all of the potential models
-  linear_regressions_p_values <- c(LM_slr_dist_sca_base_p_value, # base model
-                          LM_slr_dist_sca_base_lg_p_value, LM_slr_dist_sca_base_sqrt_p_value, LM_slr_dist_sca_base_inv_p_value, #base model with transformations of the response variable
-                          LM_slr_dist_sca_no_out_lg_p_value, LM_slr_dist_sca_no_out_sqrt_p_value, LM_slr_dist_sca_no_out_inv_p_value)  #slope test p-values with no outliers and transformations of the response variable
- 
-  which(min(linear_regressions_p_values))
-  
-  #checking normality with Shapiro-Wilk Test
-  shapiro_wilk <- shapiro.test(LM_slr_dist_sca$residuals)
-  
-  # checking to see if the residuals are normal
-  
-  shapiro_test <- shapiro.test(anova_model$residuals) #Shapiro-Wilks Test
-  
-  #Equal variance tests
-  
-  #Fligner-Killeen, more useful when data is not normal or there are outliers 
-  fligner_test <- fligner.test(formula, data = fixed_field_data_processed_trees_soils)
-  #bartlett's test for equal variances when data is normal, which in this case it is
-  bartlett_test <- bartlett.test(formula, data = fixed_field_data_processed_trees_soils)
-  #levene's test, not super robust to strong differences to normality
-  levenes_test <- car::leveneTest(formula, data = fixed_field_data_processed_trees_soils)
-  #rule of thumb test
-  thumb_test <- tapply(fixed_field_data_processed_trees_soils[[soil_group]], fixed_field_data_processed_trees_soils$Locality, sd)
-  thumb_test_results <- max(thumb_test, na.rm = T) / min(thumb_test, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
-  
-  #if the normal residuals and equal variance of residuals conditions ARE met
-  if (shapiro_test$p.value > 0.05 & bartlett_test$p.value > 0.05 & thumb_test_results < 2) { 
-    #return test results and that it met those conditions
-  } 
-  #return test results and that it DID NOT meet those conditions
-  
-  #returns the name of the model that performed the best, normality results, equal variance results, and the slope test results
-  return()
-  
-}
-
 
 #checking linearity 
 
