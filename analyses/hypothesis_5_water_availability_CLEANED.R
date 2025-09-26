@@ -40,6 +40,11 @@ library(lmtest) #to use the Breuch-Pagan Test
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
+#adding a sequential column, "X," to number each tree
+
+fixed_field_data_processed <- fixed_field_data_processed %>%
+  mutate(X = row_number())
+
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
@@ -399,51 +404,35 @@ simple_linear_regressions <- function(population, size_variable){ #input the pop
   
   #creating the base linear regression (no removal of outliers, no transformations)
   slr_dist_base  <- lm(size_metric ~ dataframe_distance$d) #generating the linear regression 
-  slr_dist_base_summary <- summary(slr_dist_base) #extracting the summary of the linear regression
-  slr_dist_base_p_value <- slr_dist_base_summary$coefficients["dataframe_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
+
   #linear regression with transformations
-  
-  #### RETURN TO THIS TO FIX THE TRANSFORMED VARIABLE LM() FUNCTION ISSUE ####
-  
+
   #linear regression with a log transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_lg") #storing the name of the transformed variable
-  slr_dist_base_lg  <- lm(dataframe_distance[[transformed_variable]] ~ dataframe_distance$d) #generating the linear regression 
-  slr_dist_base_lg_summary <- summary(slr_dist_base_lg) #extracting the summary of the linear regression
-  slr_dist_base_lg_p_value <- slr_dist_base_lg_summary$coefficients["dataframe_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_base_lg  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance) #generating the linear regression
+
   #linear regression with a square root transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_sqrt") #storing the name of the transformed variable
-  slr_dist_base_sqrt  <- lm(dataframe_distance[[transformed_variable]] ~ dataframe_distance$d) #generating the linear regression 
-  slr_dist_base_sqrt_summary <- summary(slr_dist_base_sqrt) #extracting the summary of the linear regression
-  slr_dist_base_sqrt_p_value <- slr_dist_base_sqrt_summary$coefficients["dataframe_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_base_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance) #generating the linear regression 
+
   #linear regression with a inverse transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_inv") #storing the name of the transformed variable
-  slr_dist_base_inv  <- lm(dataframe_distance[[transformed_variable]] ~ dataframe_distance$d) #generating the linear regression 
-  slr_dist_base_inv_summary <- summary(slr_dist_base_inv) #extracting the summary of the linear regression
-  slr_dist_base_inv_p_value <- slr_dist_base_inv_summary$coefficients["dataframe_distance$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_base_inv  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance) #generating the linear regression 
+
   #linear regression with transformations and removal of outliers
   
   #linear regression with a log transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_lg") #storing the name of the transformed variable
-  slr_dist_no_out_lg  <- lm(dataframe_distance_no_outliers[[transformed_variable]] ~ dataframe_distance_no_outliers$d) #generating the linear regression 
-  slr_dist_no_out_lg_summary <- summary(slr_dist_no_out_lg) #extracting the summary of the linear regression
-  slr_dist_no_out_lg_p_value <- slr_dist_no_out_lg_summary$coefficients["dataframe_distance_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_no_out_lg  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance_no_outliers) #generating the linear regression 
+
   #linear regression with a square root transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_sqrt") #storing the name of the transformed variable
-  slr_dist_no_out_sqrt  <- lm(dataframe_distance_no_outliers[[transformed_variable]] ~ dataframe_distance_no_outliers$d) #generating the linear regression 
-  slr_dist_no_out_sqrt_summary <- summary(slr_dist_no_out_sqrt) #extracting the summary of the linear regression
-  slr_dist_no_out_sqrt_p_value <- slr_dist_no_out_sqrt_summary$coefficients["dataframe_distance_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_no_out_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance_no_outliers) #generating the linear regression 
+
   #linear regression with a inverse transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_inv") #storing the name of the transformed variable
-  slr_dist_no_out_inv  <- lm(dataframe_distance_no_outliers[[transformed_variable]] ~ dataframe_distance_no_outliers$d) #generating the linear regression 
-  slr_dist_no_out_inv_summary <- summary(slr_dist_no_out_inv) #extracting the summary of the linear regression
-  slr_dist_no_out_inv_p_value <- slr_dist_no_out_inv_summary$coefficients["dataframe_distance_no_outliers$d","Pr(>|t|)"] #extracting the slope p-value
-  
+  slr_dist_no_out_inv  <- lm(as.formula(paste0(transformed_variable, " ~ d")), data = dataframe_distance_no_outliers) #generating the linear regression 
+ 
   #finding and storing the results of the best performing model
   
   #making a list of all of the potential models
@@ -454,11 +443,6 @@ simple_linear_regressions <- function(population, size_variable){ #input the pop
                                     "No Outliers Model with Log Transformation" = slr_dist_no_out_lg, 
                                     "No Outliers Model with Square Root Transformation" =slr_dist_no_out_sqrt, 
                                     "No Outliers Model with Inverse Transformation" =slr_dist_no_out_inv)  #slope test p-values with no outliers and transformations of the response variable
-  
-  #making a list of all of the potential model slope test p-values
-  linear_regressions_p_values <- c(slr_dist_base_p_value, # base model
-                                   slr_dist_base_lg_p_value, slr_dist_base_sqrt_p_value, slr_dist_base_inv_p_value, #base model with transformations of the response variable
-                                   slr_dist_no_out_lg_p_value, slr_dist_no_out_sqrt_p_value, slr_dist_no_out_inv_p_value)  #slope test p-values with no outliers and transformations of the response variable
   
   #creating an empty list to store Shapiro-Wilks Test
   shapiro_wilk_list <- c()
@@ -540,7 +524,7 @@ simple_linear_regressions <- function(population, size_variable){ #input the pop
       chose_model_index <- which.max(shapiro_wilk_list)
       
       #extracting the best model based on which one has the smallest p-value
-      chosen_model <- test_model #linear_regressions_models[which.min(linear_regressions_p_values)][[1]], older version based on selecting the model with the lowerp-value
+      chosen_model <- test_model 
       
       #printing the chosen model
       chosen_model_statement <- print(paste("The chosen model is ", names(linear_regressions_models)[chose_model_index]))
@@ -554,7 +538,7 @@ simple_linear_regressions <- function(population, size_variable){ #input the pop
   } else { #if the condition is met
     
     #extracting the best model based on which one has the smallest p-value
-    chosen_model <- test_model #linear_regressions_models[which.min(linear_regressions_p_values)][[1]], older version based on selecting the model with the lowerp-value
+    chosen_model <- test_model 
     
     #printing the chosen model
     chosen_model_statement <- print(paste("The chosen model is ", names(linear_regressions_models)[chose_model_index]))
@@ -570,10 +554,10 @@ simple_linear_regressions <- function(population, size_variable){ #input the pop
   slope_test_summary <- summary(chosen_model) 
   
   #Storing the slope test t-value from the summary of the linear model
-  slope_test_t_value <- slope_test_summary$coefficients[2, "t value"]
+  slope_test_t_value <- slope_test_summary$coefficients["d", "t value"]
   
   #Storing the slope test p-value from the summary of the linear model
-  slope_test_p_value <- slope_test_summary$coefficients[2, "Pr(>|t|)"]
+  slope_test_p_value <- slope_test_summary$coefficients["d", "Pr(>|t|)"]
   
   print(paste("Slope Test Results:", 
               "t =", slope_test_t_value, 

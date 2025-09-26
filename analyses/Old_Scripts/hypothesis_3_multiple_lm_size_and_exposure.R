@@ -95,7 +95,6 @@ fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_s
                                         (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
-View(fixed_field_data_processed_sf_trans_coordinates)
 #creating a new elevation column so the values that were mistakenly put in feet are in meters
 LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
@@ -798,14 +797,9 @@ field_data_summarized <- fixed_field_data_processed %>%
 View(field_data_summarized)
 
 
-#descriptive summary for LM
-
-
-
-### Multiple Linear Regression ###
+#### Multiple Linear Regression ####
 
 #using only the 8 categories
-
 
 # all points 
 

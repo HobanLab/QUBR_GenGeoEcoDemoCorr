@@ -35,6 +35,11 @@ library(gdalUtilities) #to be able to use gdalwarp
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
+#adding a sequential column, "X," to number each tree
+
+fixed_field_data_processed <- fixed_field_data_processed %>%
+  mutate(X = row_number())
+
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
@@ -138,15 +143,18 @@ SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
 
 #LM
 ggplot()+
-  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
+  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+  labs(color = "Elevation (m)")
 
 #LC
 ggplot()+
-  geom_sf(data = LC_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
+  geom_sf(data = LC_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+  labs(color = "Elevation (m)")
 
 #SD
 ggplot()+
-  geom_sf(data = SD_fixed_field_data_processed, aes(color = Elevation..m.FIXED))
+  geom_sf(data = SD_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+  labs(color = "Elevation (m)")
 
 
 #Upload ArcGIS river shapefile and filter out polygons for each population
@@ -596,19 +604,19 @@ ggplot(SD_fixed_field_data_processed) +
 #histograms for slope
 
 #LM
-ggplot(LM_fixed_field_data_processed_terrain) + # Generate the base plot
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_terrain) + # Generate the base plot
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
@@ -618,19 +626,19 @@ ggplot(SD_fixed_field_data_processed_terrain) + # Generate the base plot
 # 8 categories of direction
 
 #LM
-ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
@@ -638,19 +646,19 @@ ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
 # 4 categories of direction
 
 #LM
-ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
@@ -691,6 +699,17 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
 
 #SCA
 
+#using Cook's D to check for highly influential points that may skew the linear model results
+all_points_slr_SCA <- lm(Canopy_short ~ Elevation..m.FIXED, data = fixed_field_data_processed_sf_trans_coordinates) #creating a linear regression to use to calculate the Cook's D
+all_points_slr_SCA_cooks <- cooks.distance(all_points_slr_SCA) #calculating the Cook's D for each point
+plot(all_points_slr_SCA_cooks, type = 'h') #checking to see which cook's D are unusually high
+influential <- all_points_slr_SCA_cooks[(all_points_slr_SCA_cooks > (3 * mean(all_points_slr_SCA_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+influential
+
+#removing points that were deemed too influential on the linear model fit
+fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(as.numeric(names(influential))),]
+
+
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
@@ -708,6 +727,18 @@ all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Ca
 
 #linear regression with square root transformation of response variable
 all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates$Canopy_short_sqrt ~ fixed_field_data_processed_sf_trans_coordinates$Elevation..m.FIXED)
+
+#creating the linear regressions without any outliers
+
+#linear regression without transformations
+all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Canopy_long ~ fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with log transformation of response variable
+all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Canopy_long_lg ~ fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Elevation..m.FIXED)
+
+#linear regression with square root transformation of response variable
+all_points_lm_sca_elev  <- lm(fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Canopy_long_sqrt ~ fixed_field_data_processed_sf_trans_coordinates_sca_no_outliers$Elevation..m.FIXED)
+
 
 # square root transformation does the best job of meeting the conditions
 
@@ -762,7 +793,7 @@ influential
 #removing points that were deemed too influential on the linear model fit
 fixed_field_data_processed_sf_trans_coordinates_lca_no_outliers <- fixed_field_data_processed_sf_trans_coordinates[-c(42, 44, 49, 88, 89, 105, 126, 169, 177, 189, 
                                                                                                                       190, 194, 208, 210, 212, 27, 218, 219, 242, 250,
-                                                                                                                      252, 254, 258, 270, 290, 291, 295, 304, 305, 306, 307,                                                                                                                  309, 318, 338, 343, 375, 376, 377, 378, 379, 381, 384, 398, 433, 449,
+                                                                                                                      252, 254, 258, 270, 290, 291, 295, 304, 305, 306, 307,                                                                                                               
                                                                                                                       480, 494, 514, 572, 643, 648),]
 #creating the linear regressions
 
@@ -2345,7 +2376,7 @@ ggplot() +
 ggplot(data = SD_fixed_field_data_processed, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm')+
   geom_point()+
-  xlab("Elevation")+
+  xlab("Elevation (m)")+
   ylab("DBH")
 
 #using Cook's D to check for highly influential points that may skew the linear model results
@@ -2356,8 +2387,7 @@ influential <- SD_slr_DBH_cooks[(SD_slr_DBH_cooks > (3 * mean(SD_slr_DBH_cooks, 
 influential
 
 #removing points that were deemed too influential on the linear model fit
-SD_fixed_field_data_processed_dbh_no_outliers <- SD_fixed_field_data_processed[-c(1, 2, 3, 37, 84, 85, 86, 87, 97,
-                                                                                 117, 122, 132, 153, 157, 175, 210, 222),]
+SD_fixed_field_data_processed_dbh_no_outliers <- SD_fixed_field_data_processed[-c(as.numeric(names(influential))),]
 
 #creating the linear regressions
 
@@ -4100,14 +4130,14 @@ ggplot() +
 
 # we ran ANOVAs to test difference in size means between cardinal directions
 
-#ANOVAs assume residuals are normally distributed, homodescadisicity, and independence
+#ANOVAs assume residuals are normally distributed, homoscedasticity, and independence
 
 # For all populations/each population and size/shape metric we tested for significant relationships with 
    #the 8 or 4 categories of aspect by...
        
    #a) creating box plots of tree size/shape 
    #b) fitting an ANOVA (analysis of variance) model and seeing if there are any pairwise significant comparisons
-   #c) checking to see if the ANOVA model meets the conditions (normal distribution of the residuals, homodescadisicity, independence)
+   #c) checking to see if the ANOVA model meets the conditions (normal distribution of the residuals, homoscedasticity, independence)
             #normal residuals is checked with histograms, qq norm plot, and Shapiro-Wilks test
             #equal variance is tested with Fligner-Killeen test which is more useful when dealing with non-normal residuals and when outliers are present
                      #Levene's Test is also used to check equal variance, but is not super robust to strong differences to normality

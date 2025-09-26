@@ -41,6 +41,11 @@ library(visreg) # to be able to plot Aspect/categorical variables with GAM
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
+#adding a sequential column, "X," to number each tree
+
+fixed_field_data_processed <- fixed_field_data_processed %>%
+  mutate(X = row_number())
+
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 

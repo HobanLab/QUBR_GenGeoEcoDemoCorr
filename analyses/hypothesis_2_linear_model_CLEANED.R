@@ -38,6 +38,11 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 
 fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
+#adding a sequential column, "X," to number each tree
+
+fixed_field_data_processed <- fixed_field_data_processed %>%
+  mutate(X = row_number())
+
 # creating the point shapefiles of the tree locations for each population in UTM 12 N
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
@@ -68,25 +73,15 @@ fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_pr
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
-# creating a dataframe with the 5 average nearest neighbors (ANN) for each individual tree/row
-fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordinates %>%  #creates a dataframe with the ANN of the closest 5 individual trees for each individual
-  mutate(dist1 = nndist(X = X.1, Y= Y, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
-  mutate(dist2 = nndist(X = X.1, Y= Y, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
-  mutate(dist3 = nndist(X = X.1, Y= Y, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
-  mutate(dist4 = nndist(X = X.1, Y= Y, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
-  mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
-  rowwise()%>% #so that in the next part we take the averages across rows
-  mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5))) # %>% #creates a column of the average distances (1-5) of each individual
-
 # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
-LM_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+LM_fixed_field_data_processed <- fixed_field_data_processed %>%
   filter(Locality == "LM")
 
-LC_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+LC_fixed_field_data_processed <- fixed_field_data_processed %>%
   filter(Locality == "LC")
 
-SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+SD_fixed_field_data_processed <- fixed_field_data_processed %>%
   filter(Locality == "SD")
 
 
@@ -118,7 +113,6 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
       # f) use a non-parametric Kendall's Tau Test to see if there is a significant correlation between the competition metric
             #and the size of the focal trees for the data with no outliers
 
-
 focal_function <- function(population){
   
   #assigning the dataframes based on the population
@@ -132,8 +126,6 @@ focal_function <- function(population){
     dataframe <- SD_fixed_field_data_processed
     dataframe_sf <- SD_fixed_field_data_processed_sf
   }
-  
-  
   
   # creating a bounding box based on the point locations
   box <- st_bbox(dataframe_sf)

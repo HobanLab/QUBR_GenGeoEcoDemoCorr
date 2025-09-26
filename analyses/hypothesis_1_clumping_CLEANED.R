@@ -45,118 +45,138 @@ library(starsExtra) #to use dist_to_nearest
 library(geostatsp) # To successfully use as.im
 library(tmaptools)
 
-# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# loading in the processed tree data 
+source("./analyses/Data_Processing_Script.R")
 
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+#ensuring there is a column from latitude and longitude in the populations transformed dataframe because those columns are needed in "hypothesis_1_clumping_CLEANED.R" 
 
-# creating the point shapefiles of the tree locations for each population in UTM 12 N
-
-#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                          coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
-
-#storing point shapefiles for the trees by population
-
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LM") %>%
-  st_as_sf()
-
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LC") %>%
-  st_as_sf()
-
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "SD") %>%
-  st_as_sf()
-
-# Importing BCS and River Shapefiles
-
-#turning the Baja California Sur polygon into a shapefile, to be able to visualize the point locations
-BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
-BCS_polygon <- st_as_sf(BCS_polygon) #ensures foreign will be an sf object (in this case a multipolygon)
-plot(BCS_polygon$geometry) #plotting the polygon
-
-#Loading in ArcGIS river shapefile and storing out polygons for each population
-
-#Las Matancitas (LM)
-river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp") 
-river_LM  <- river_LM$geometry[1]
-
-#La Cobriza (LC)
-river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
-river_LC  <- river_LC$geometry[1]
-
-#San Dionisio (SD)
-river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
-river_SD <- river_SD$geometry[1]
-
-
-#transforming the coordinate reference system of the river polygons to be equal area projection (UTM 12N), 
-#uses meters as distance measurement
-river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
-river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
-river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
-
-
-#plotting points with river shapefiles
-
-#LM
-ggplot()+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed_sf) +
-  theme_light()
-
-#LC
-ggplot()+
-  geom_sf(data = river_LC_trans)+
-  geom_sf(data = LC_fixed_field_data_processed_sf) +
-  theme_light()
-
-#SD
-ggplot()+
-  geom_sf(data = river_SD_trans)+
-  geom_sf(data = SD_fixed_field_data_processed_sf) +
-  theme_light()
-
-
-#creating buffers around the rivers and visualizing the buffers with the river/trees
-#buffers 
-
-#LM
-river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer, sf object
-ggplot()+
-  geom_sf(data = river_buffer_LM)+
-  geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed_sf)
-
-#LC
-river_buffer_LC<- st_buffer(river_LC_trans, 100) #100 m buffer, sf object
-ggplot()+
-  geom_sf(data = river_buffer_LC)+
-  geom_sf(data = river_LC_trans)+
-  geom_sf(data = LC_fixed_field_data_processed_sf)
-
-#SD
-river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer, sf object
-ggplot()+
-  geom_sf(data = river_buffer_SD)+
-  geom_sf(data = river_SD_trans)+
-  geom_sf(data = SD_fixed_field_data_processed_sf)
-
-## Creating fixed_field_data_processed dataframes for each population ##
-
-LM_fixed_field_data_processed <- fixed_field_data_processed %>%
+LM_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
   filter(Locality == "LM")
 
-LC_fixed_field_data_processed <- fixed_field_data_processed %>%
-  filter(Locality == "LC")
+LC_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
+  filter(Locality == "LC") 
 
-SD_fixed_field_data_processed <- fixed_field_data_processed %>%
-  filter(Locality == "SD")
+SD_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
+  filter(Locality == "SD") 
+
+
+# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# 
+# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# 
+# #adding a sequential column, "X," to number each tree
+# 
+# fixed_field_data_processed <- fixed_field_data_processed %>%
+#   mutate(X = row_number())
+# 
+# # creating the point shapefiles of the tree locations for each population in UTM 12 N
+# 
+# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+#                                           coords = c("long", "lat"), crs = 4326)
+# 
+# #creating a transformed point shapefile with UTM 12 N an equal area projection
+# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
+# 
+# #storing point shapefiles for the trees by population
+# 
+# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LM") %>%
+#   st_as_sf()
+# 
+# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LC") %>%
+#   st_as_sf()
+# 
+# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "SD") %>%
+#   st_as_sf()
+# 
+# # Importing BCS and River Shapefiles
+# 
+# #turning the Baja California Sur polygon into a shapefile, to be able to visualize the point locations
+# BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+# BCS_polygon <- st_as_sf(BCS_polygon) #ensures foreign will be an sf object (in this case a multipolygon)
+# plot(BCS_polygon$geometry) #plotting the polygon
+# 
+# #Loading in ArcGIS river shapefile and storing out polygons for each population
+# 
+# #Las Matancitas (LM)
+# river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp") 
+# river_LM  <- river_LM$geometry[1]
+# 
+# #La Cobriza (LC)
+# river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+# river_LC  <- river_LC$geometry[1]
+# 
+# #San Dionisio (SD)
+# river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+# river_SD <- river_SD$geometry[1]
+# 
+# 
+# #transforming the coordinate reference system of the river polygons to be equal area projection (UTM 12N), 
+# #uses meters as distance measurement
+# river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+# river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+# river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
+# 
+# 
+# #plotting points with river shapefiles
+# 
+# #LM
+# ggplot()+
+#   geom_sf(data = river_LM_trans)+
+#   geom_sf(data = LM_fixed_field_data_processed_sf) +
+#   theme_light()
+# 
+# #LC
+# ggplot()+
+#   geom_sf(data = river_LC_trans)+
+#   geom_sf(data = LC_fixed_field_data_processed_sf) +
+#   theme_light()
+# 
+# #SD
+# ggplot()+
+#   geom_sf(data = river_SD_trans)+
+#   geom_sf(data = SD_fixed_field_data_processed_sf) +
+#   theme_light()
+# 
+# 
+# #creating buffers around the rivers and visualizing the buffers with the river/trees
+# #buffers 
+# 
+# #LM
+# river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer, sf object
+# ggplot()+
+#   geom_sf(data = river_buffer_LM)+
+#   geom_sf(data = river_LM_trans)+
+#   geom_sf(data = LM_fixed_field_data_processed_sf)
+# 
+# #LC
+# river_buffer_LC<- st_buffer(river_LC_trans, 100) #100 m buffer, sf object
+# ggplot()+
+#   geom_sf(data = river_buffer_LC)+
+#   geom_sf(data = river_LC_trans)+
+#   geom_sf(data = LC_fixed_field_data_processed_sf)
+# 
+# #SD
+# river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer, sf object
+# ggplot()+
+#   geom_sf(data = river_buffer_SD)+
+#   geom_sf(data = river_SD_trans)+
+#   geom_sf(data = SD_fixed_field_data_processed_sf)
+# 
+# ## Creating fixed_field_data_processed dataframes for each population ##
+# 
+# LM_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "LM")
+# 
+# LC_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "LC")
+# 
+# SD_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "SD")
 
 #### Ripley's K Analysis (version with box, convex hull, and 20 m buffer around river) ####
 
@@ -449,8 +469,38 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 # When the average nearest neighbor is to the left of the histogram the points are more clustered than expected at random
 # When the average nearest neighbor is to the right of the histogram the points are more dispersed than expected at random
 
-
 # creating the river rasters for the ANN analysis 
+
+# creating the rasters that will be used for point generation later
+
+#turning river polygon into multipoints and then into a raster for using them to calculate the distances
+river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
+river_LM_trans_point_raster <- st_rasterize(river_points_sf) #create raster of lake edge points
+plot(river_LM_trans_point_raster)
+
+river_points <- st_line_sample(st_cast(river_LM_trans, "LINESTRING"), density = 1/50) # adjust spacing
+river_points <- st_cast(river_points, "POINT")
+river_points_sf <- st_sf(geometry = river_points)
+
+#creating a raster of the river buffer polygon within LINESTRING can be calculated
+river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
+river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
+plot(river_buffer_LM_point_raster)
+
+#making a stars object of the distances of each cell in the buffer raster from the river edge points
+river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
+dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
+dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+plot(LM_fixed_field_data_processed_sf)
+
+#creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
+dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
+  st_as_sf() %>% #converting the stars to a shapefile
+  mutate(d = case_when(d <= 70 ~ 1, 
+                       d > 1 ~ 1/d)) %>% #assigning cells less than 70 m away from rivers edge with value of 1 and taking 1/distance for all other cells
+  st_rasterize() #convert the shapefile into a raster
+plot(dist_near_river_buffer_LM_inverse)
+
 
 #LM
 
