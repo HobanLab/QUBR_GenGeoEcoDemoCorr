@@ -34,55 +34,61 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
 
-# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# activating scientific notation 
+options(scipen = 0)
 
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# loading in the processed tree data 
+source("./analyses/Data_Processing_Script.R")
 
-#adding a sequential column, "X," to number each tree
-
-fixed_field_data_processed <- fixed_field_data_processed %>%
-  mutate(X = row_number())
-
-# creating the point shapefiles of the tree locations for each population in UTM 12 N
-
-#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                          coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
-
-#storing point shapefiles for the trees by population
-
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LM") %>%
-  st_as_sf()
-
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LC") %>%
-  st_as_sf()
-
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "SD") %>%
-  st_as_sf()
-
-#create dataframe with X and Y UTM coordinates
-
-fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
-  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
-
-# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
-
-LM_fixed_field_data_processed <- fixed_field_data_processed %>%
-  filter(Locality == "LM")
-
-LC_fixed_field_data_processed <- fixed_field_data_processed %>%
-  filter(Locality == "LC")
-
-SD_fixed_field_data_processed <- fixed_field_data_processed %>%
-  filter(Locality == "SD")
+# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# 
+# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# 
+# #adding a sequential column, "X," to number each tree
+# 
+# fixed_field_data_processed <- fixed_field_data_processed %>%
+#   mutate(X = row_number())
+# 
+# # creating the point shapefiles of the tree locations for each population in UTM 12 N
+# 
+# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+#                                           coords = c("long", "lat"), crs = 4326)
+# 
+# #creating a transformed point shapefile with UTM 12 N an equal area projection
+# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
+# 
+# #storing point shapefiles for the trees by population
+# 
+# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LM") %>%
+#   st_as_sf()
+# 
+# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LC") %>%
+#   st_as_sf()
+# 
+# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "SD") %>%
+#   st_as_sf()
+# 
+# #create dataframe with X and Y UTM coordinates
+# 
+# fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+#   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+# 
+# # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
+# 
+# LM_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "LM")
+# 
+# LC_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "LC")
+# 
+# SD_fixed_field_data_processed <- fixed_field_data_processed %>%
+#   filter(Locality == "SD")
 
 
 
@@ -290,126 +296,6 @@ ggplot()+
   geom_sf(data = LM_fixed_field_data_processed_sf)+
   geom_sf(data = LM_focal_tree_dataframe_sf, color = 'blue')
 
-
-#descriptive statistics for the focal tree sum of size/shape metrics over distance
-
-#histograms
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = SCA_over_distance))+
-  xlab("Sum of Short Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = LCA_over_distance))+
-  xlab("Sum of Long Canopy Axis over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CS_over_distance))+
-  xlab("Sum of Canopy Spread over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = CA_over_distance))+
-  xlab("Sum of Canopy Area over Distance")+
-  ylab("Frequency")
-
-ggplot(LM_focal_tree_dataframe) + # Generate the base plot
-  geom_histogram(aes(x = DBH_over_distance))+
-  xlab("Sum of Aggregated DBH over Distance")+
-  ylab("Frequency")
-
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-LM_field_data_focal_summarized_focal <- LM_focal_tree_dataframe %>%
-  dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(LM_field_data_focal_summarized_focal)
-
-
-
-
-
-
-
-
-
-#8 categories for direction
-
-
-#all points 
-
-#removing NAs in SCA and aspect to allow us to run tests
-all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
-  drop_na(Canopy_short) %>%
-  drop_na(all_points_aspect_raster_15_data_pts_8_categorical)
-
-#short canopy axis
-
-#boxplot of sizes by the directional categories
-ggplot(data = all_points_fixed_field_data_processed_terrain)+
-  geom_boxplot(aes(x = all_points_aspect_raster_15_data_pts_8_categorical, y = Canopy_short))+
-  xlab("Directions")+
-  ylab("Short Canopy Axis (m)")
-
-#generating the ANOVA and ANOVA summary
-all_points_aov_SCA_aspect_8 <- aov(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-summary(all_points_aov_SCA_aspect_8) #ANOVA summary
-
-#pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
-all_points_t_test_SCA_aspect_8 <- pairwise.t.test(all_points_fixed_field_data_processed_terrain$Canopy_short, 
-                                                  all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
-
-
-#checking normality of residuals with a histogram, qqnorm plot, and Shapiro-Wilk Test
-hist(all_points_aov_SCA_aspect_8$residuals, xlab = "Residuals", main = "Distribution of Residuals for Short Canopy Axis vs. Aspect") #histogram of the residuals
-
-qqnorm(all_points_aov_SCA_aspect_8$residuals) #qqnorm plot
-
-shapiro.test(all_points_aov_SCA_aspect_8$residuals) #Shapiro-Wilk test, if significant, have to run a non-parametric test
-
-#residuals are not normal
-
-# checking equal variances with Fligner-Killeen Test, Levene's Rest, and Rule of Thumb Test
-
-#Fligner-Killeen, more useful than the other equal variance tests when dealing with non-normal and when outliers present
-fligner.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-
-#Levene's Test, not super robust to strong differences to normality
-leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical)
-
-#Rule of Thumb Test
-all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, 
-                                    all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction
-max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two, the test did not pass
-
-#variances are equally distributed
-
-#non-parametric tests
-
-#Kruskal-Wallis test
-kruskal.test(Canopy_short ~ all_points_aspect_raster_15_data_pts_8_categorical, data = all_points_fixed_field_data_processed_terrain)
-
-#post-hoc Wilcoxon rank sum tests to check difference in means/medians
-pairwise.wilcox.test(all_points_fixed_field_data_processed_terrain$Canopy_short, all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical,
-                     p.adjust.method = "fdr") #p-value adjusted using false discovery rate method
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #### creating the generalized linear effects model ####
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
@@ -481,6 +367,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_SCA)
+
+#getting coefficients
+LM_gls_focal_SCA_summary <- summary(LM_gls_focal_SCA)
+LM_gls_focal_SCA_summary$coefficients
 
 #non parametric Kendall's Tau Test for if the the residuals are not normal or if scatterplot seems non-linear 
 LM_tau_result_SCA <- cor.test(LM_focal_tree_dataframe$SCA_over_distance, 
@@ -576,6 +466,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LM_gls_focal_LCA)
 
+#getting coefficients
+LM_gls_focal_LCA_summary <- summary(LM_gls_focal_LCA)
+LM_gls_focal_LCA_summary$coefficients
+
 #non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_LCA <- cor.test(LM_focal_tree_dataframe$LCA_over_distance, 
                               LM_focal_tree_dataframe$Canopy_long,  method = "kendall")
@@ -657,6 +551,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LM_gls_focal_CA)
 
+#getting coefficients
+LM_gls_focal_CA_summary <- summary(LM_gls_focal_CA)
+LM_gls_focal_CA_summary$coefficients
+
 #non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_CA <- cor.test(LM_focal_tree_dataframe$CA_over_distance, LM_focal_tree_dataframe$Canopy_area,  method = "kendall")
 
@@ -735,6 +633,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_CS)
+
+#getting coefficients
+LM_gls_focal_CS_summary <- summary(LM_gls_focal_CS)
+LM_gls_focal_CS_summary$coefficients
 
 #non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_CS <- cor.test(LM_focal_tree_dataframe$Cs_over_distance, LM_focal_tree_dataframe$Crown_spread,  method = "kendall")
@@ -815,6 +717,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LM_gls_focal_DBH)
+
+#getting coefficients
+LM_gls_focal_DBH_summary <- summary(LM_gls_focal_DBH)
+LM_gls_focal_DBH_summary$coefficients
 
 #non parametric Kendall's Tau Test for the version without outliers
 LM_tau_result_DBH <- cor.test(LM_focal_tree_dataframe$DBH_over_distance, LM_focal_tree_dataframe$DBH_ag,  method = "kendall")
@@ -982,6 +888,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LC_gls_focal_SCA)
 
+#getting coefficients
+LC_gls_focal_SCA_summary <- summary(LC_gls_focal_SCA)
+LC_gls_focal_SCA_summary$coefficients
+
 #non parametric Kendall's Tau Test for the version without outliers
 LC_tau_result_SCA <- cor.test(LC_focal_tree_dataframe$SCA_over_distance, 
                               LC_focal_tree_dataframe$Canopy_short,  method = "kendall")
@@ -1063,6 +973,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LC_gls_focal_LCA_gaus)
+
+#getting coefficients
+LC_gls_focal_LCA_gaus_summary <- summary(LC_gls_focal_LCA_gaus)
+LC_gls_focal_LCA_gaus_summary$coefficients
 
 #because the residuals are not normal, we will use the Kendall's Tau correlation non-parametric test to see if the relationship is significant
 
@@ -1156,6 +1070,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LC_gls_focal_CA)
 
+#getting coefficients
+LC_gls_focal_CA_summary <- summary(LC_gls_focal_CA)
+LC_gls_focal_CA_summary$coefficients
+
 #non parametric Kendall's Tau Test Test for the version without outliers
 LC_tau_result_CA <- cor.test(LC_focal_tree_dataframe$CA_over_distance, 
                              LC_focal_tree_dataframe$Canopy_area,  method = "kendall")
@@ -1247,6 +1165,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(LC_gls_focal_CS_gaus)
 
+#getting coefficients
+LC_gls_focal_CS_gaus_summary <- summary(LC_gls_focal_CS_gaus)
+LC_gls_focal_CS_gaus_summary$coefficients
+
 #non parametric Kendall's Tau Test Test for the version without outliers
 LC_tau_result_CS <- cor.test(LC_focal_tree_dataframe$CS_over_distance, 
                              LC_focal_tree_dataframe$Crown_spread,  
@@ -1336,6 +1258,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(LC_gls_focal_DBH_gaus)
+
+#getting coefficients
+LC_gls_focal_DBH_gaus_summary <- summary(LC_gls_focal_DBH_gaus)
+LC_gls_focal_DBH_gaus_summary$coefficients
 
 #non parametric Kendall's Tau Test Test for the version without outliers
 LC_tau_result_DBH <- cor.test(LC_focal_tree_dataframe$CS_over_distance, 
@@ -1511,6 +1437,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(SD_gls_focal_SCA_exp)
 
+#getting coefficients
+SD_gls_focal_SCA_exp_summary <- summary(SD_gls_focal_SCA_exp)
+SD_gls_focal_SCA_exp_summary$coefficients
+
 #non parametric Kendall's Tau Test
 SD_tau_result_SCA <- cor.test(SD_focal_tree_dataframe$SCA_over_distance, 
                               SD_focal_tree_dataframe_no_SCA_outliers$Canopy_short,  
@@ -1602,6 +1532,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(SD_gls_focal_LCA_spher)
 
+#getting coefficients
+SD_gls_focal_LCA_spher_summary <- summary(SD_gls_focal_LCA_spher)
+SD_gls_focal_LCA_spher_summary$coefficients
+
 #non parametric Kendall's Tau Test
 SD_tau_result_LCA <- cor.test(SD_focal_tree_dataframe_no_LCA_outliers$LCA_over_distance, SD_focal_tree_dataframe_no_LCA_outliers$Canopy_long,  method = "kendall")
 
@@ -1689,6 +1623,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(SD_gls_focal_CA_lin)
+
+#getting coefficients
+SD_gls_focal_CA_lin_summary <- summary(SD_gls_focal_CA_lin)
+SD_gls_focal_CA_lin_summary$coefficients
 
 #non parametric Kendall's Tau Test
 SD_tau_result_CA <- cor.test(SD_focal_tree_dataframe$CA_over_distance, 
@@ -1786,6 +1724,10 @@ plot(semivario, smooth = TRUE)
 #negative slope hints at competition
 summary(SD_gls_focal_CS_exp)
 
+#getting coefficients
+SD_gls_focal_CS_exp_summary <- summary(SD_gls_focal_CS_exp)
+SD_gls_focal_CS_exp_summary$coefficients
+
 #non parametric Kendall's Tau Test
 SD_tau_result_CS <- cor.test(SD_focal_tree_dataframe$CS_over_distance, SD_focal_tree_dataframe$Crown_spread,  method = "kendall")
 
@@ -1811,7 +1753,6 @@ ggplot() +
   labs(x = "Sum of CS over Distance", y = "Crown Spread", title = "Trend Line Plot") +
   theme_minimal()
 
-
 #DBH
 
 #plotting the linear model in ggplot 
@@ -1826,7 +1767,6 @@ ggplot(data = SD_focal_tree_dataframe, (aes(x=DBH_over_distance, y=DBH_ag)))+
     axis.text.x = element_text(size = 14),
     axis.title.y = element_text(size = 16),
     axis.text.y = element_text(size = 14))
-
 
 #Cook's D
 SD_lm_focal_DBH <- lm(DBH_ag ~ DBH_over_distance, data = SD_focal_tree_dataframe)
@@ -1881,6 +1821,10 @@ plot(semivario, smooth = TRUE)
 #positive slope hints at facilitation
 #negative slope hints at competition
 summary(SD_gls_focal_DBH_gaus)
+
+#getting coefficients
+SD_gls_focal_DBH_gaus_summary <- summary(SD_gls_focal_DBH_gaus)
+SD_gls_focal_DBH_gaus_summary$coefficients
 
 #non parametric Kendall's Tau Test
 SD_tau_result_DBH <- cor.test(SD_focal_tree_dataframe$DBH_over_distance, SD_focal_tree_dataframe$DBH_ag,  method = "kendall")

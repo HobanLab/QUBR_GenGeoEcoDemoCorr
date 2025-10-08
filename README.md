@@ -10,9 +10,9 @@ Looking for correlations in the genetics, geography, ecology, and demographics o
 
  The [analyses](./analyses) folder contains all the R scripts split by unique analysis type used in this project (all done in R version 4.2.1)
 
-* [analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R) is a well commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
+* [analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R) is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
 
-* [hypothesis_1_clumping_CLEANED.R](./analyses/hypothesis_1_clumping_CLEANED.R) is a well commented R script to 
+* [hypothesis_1_clumping_CLEANED.R](./analyses/hypothesis_1_clumping_CLEANED.R) is a well-commented R script to 
 test this hypothesis: whether Quercus brandegeei seeds are predominantly distributed either by heavy rainfall or gravity, 
 which may impact both the spatial distribution and the genetic structure of a given population. If they were distributed by 
 heavy rainfall, we would expect the trees to be more dispersed than at random. If they were distributed by gravity, we would expect more clumping 
@@ -25,16 +25,35 @@ dispersed than at random. We used three different types of windows for random po
 using just a river raster outline, using an inverse distance to river outline, and using an on and inside the river raster to control
 for the potential varying influences of the river on tree clustering/dispersal. Finally, we used **Poisson Point Model Analyses**, to see if models that take into account the effect that the trees' inverse 
 distance to the river has on the placement of the trees better explains the distribution of the points than if they were 
-distributed at random. We observed significant clustering of trees and significant influence of the rivers on the distribution of trees at each population.
+distributed at random. We observed significant clustering of trees and significant influence of the rivers on the distribution of trees at and across each population.
 
-* [hypothesis_2_size_and_comp.R](./analyses/hypothesis_2_size_and_comp.R) is well commented R script to test this hypothesis: The size and shape 
+  **Hypothesis 2:** The size and shape of *Quercus brandegeei* individuals across all sites is impacted by distance to other individuals of the 
+  same species either due to competition or facilitation.  The size and shape 
 of Quercus brandegeei individuals across all sites is impacted by distance to other individuals of the same species either due to 
 competition or facilitation. If they are impacted by facilitation, we would expect closer trees would be bigger. If they are impacted 
-by competition, we would expect closer trees to be smaller. To test this, we used Global and Local Moran's I to determine whether values 
-of SCA, LCA, CS, CA, and DBH that were closer together were more similar in value or not. The global Moran's I looked for general spatial
-autocorrelation and the local Moran's I looked for areas were values were more similar than other areas. We used also performed a linear 
-regression to see if for focal trees, there was a relationship between how much competition they face (based on the size of the neighbors 
-over their distance to the focal trees) and the size of the focal trees. 
+by competition, we would expect closer trees to be smaller. This hypothesis is explored by three scripts:
+    ** hypothesis_2_moran_CLEANED.R
+    ** hypothesis_2_linear_model_CLEANED.R
+    ** hypothesis_2_linear_model_no_outliers_CLEANED.R 
+
+* [hypothesis_2_moran_CLEANED.R](./analyses/hypothesis_2_moran_CLEANED.R) us a well-commented R script to test hypothesis 2 with Global and Local Moran's I to determine whether values 
+of Short Canopy Axis, Long Canopy Axis, Crown Spread, Canopy Area, and DBH that were closer together were more similar in value or not. The global Moran's I looked for general spatial
+autocorrelation, and the local Moran's I looked for areas were values were more similar than other areas. We observed that there is significant global spatial autocorrelation
+at all combinations of populations and size and shape metrics, except for La Cobriza and San Dionisio with DBH. We also found varying levels of local spatial autocorrelation with 
+every combination of populations and size and shape metrics, except for Las Matancitas with Crown Spread and DBH and San Dionisio with Short Canopy Axis which showed none.
+
+* [hypothesis_2_linear_model_CLEANED.R](./analyses/hypothesis_2_linear_model_CLEANED.R) is well-commented R script to test this hypothesis 2 with generalized linear 
+regressions to see if for focal trees (a subset of trees that are independent and randomly selected), there is a relationship between the size of the trees and how much competition they face 
+(based on the size and distance of the neighbors from the focal trees). A negative relationship would suggest that there is competition between the trees. A positive relationship would suggest there 
+is facilitation between the trees. We tested the usefulness of models with different levels of control for spatial autocorrelation (none, exponential, guassian, spherical, linear, rational quadratics) and checked they met the best 
+model (based on AIC) met the conditions. If they did, we used a slope test, and if they did not, we used a non-parametric Kendall's Tau Test to check for any relationships. We observed that 
+only San Dionisio with Canopy Area and competition (with no control for spatial autocorrelation or outliers) showed a significant negative relationship, demonstrating potential competition.
+
+* [hypothesis_2_linear_model_no_outliers_CLEANED.R](./analyses/hypothesis_2_linear_model_no_outliers_CLEANED.R) is well-commented R script to test this hypothesis 2 with generalized linear 
+regressions that uses the same methodologies as for [hypothesis_2_linear_model_CLEANED.R](./analyses/hypothesis_2_linear_model_CLEANED.R), except the outliers are removed from the dataframe when the Cook's D
+values are greater than three times the mean Cook's D value. Removing the outliers allows the models to better meet the conditions but sacrifices potentially informative trends in the data.
+
+
 
 * [hypothesis_3_size_and_exposure.R](./analyses/hypothesis_3_size_and_exposure.R) is a well commented R script to test this hypothesis: is the size and shape of Quercus brandegeei individuals affected by the frequency of  high wind and hurricane events. For trees facing more exposure, higher elevations, steeper slopes, and south and east facing slopes, we expected them to be smaller. On the other hand, we expected trees facing less exposure, lower elevation, flatter slopes, and north and west facing aspects to be larger. To test this, we used linear models to see if there was a relationship between size characteristics (SCA, LCA, CS, CA, DBH) and elevation. We performed a similar linear model see if the size of trees were affected by their slope. Finally, we compared the average size values to their aspect (for both N,E,S,W and for N, NW, W, SW, S, SE, E, NE) with ANOVAs/Kruskal-Wallis Models. We used 15 m elevation/slope/aspect rasters. 
 
@@ -44,4 +63,4 @@ over their distance to the focal trees) and the size of the focal trees.
 
 * [hypothesis_5_water_availability.R](./analyses/hypothesis_5_water_availability.R) is a well commented R script to test the hypothesis is Q. brandegeei is predominantly restricted by water availability? We predicted the closer the individuals are to the river, the larger they would be and the further they were, the smaller they would be. For this, we did linear regressions for each population to see if the trees distance to the river had a relationship with their size.  
 
-* The results are summarized in this google sheet, entiled [General_Test_Results_Wanger_REEF_2025](https://docs.google.com/spreadsheets/d/1BemVj7ev1UcTnCs2zXe8JUpJoGbSO78u0YJfAZuehLs/edit?gid=0#gid=0) 
+  The results are summarized in this google sheet entitled [General_Test_Results_Wanger_REEF_2025](https://docs.google.com/spreadsheets/d/1BemVj7ev1UcTnCs2zXe8JUpJoGbSO78u0YJfAZuehLs/edit?gid=0#gid=0) 

@@ -35,128 +35,130 @@ library(MuMIn) #to be able to use model.sel for fitting linear models with spati
 library(geoR) # to be able to use variograms with the lme, requires XQuartz from 
 library(Kendall)# to use the Kendall's Tau test to look for non-parametric correlations in the data
 
+# loading in the processed tree data 
+source("./analyses/Data_Processing_Script.R")
+
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
 
+# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# 
+# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# 
+# #adding a sequential column, "X," to number each tree
+# 
+# fixed_field_data_processed <- fixed_field_data_processed %>%
+#   mutate(X = row_number())
+# 
+# # creating the point shapefiles of the tree locations for each population in UTM 12 N
+# 
+# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
+#                                           coords = c("long", "lat"), crs = 4326)
+# 
+# #creating a transformed point shapefile with UTM 12 N an equal area projection
+# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
+# 
+# #storing point shapefiles for the trees by population
+# 
+# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LM") %>%
+#   st_as_sf()
+# 
+# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LC") %>%
+#   st_as_sf()
+# 
+# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "SD") %>%
+#   st_as_sf()
+# 
+# #Loading in ArcGIS river shapefile and storing out polygons for each population
+# 
+# #Las Matancitas (LM)
+# river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+# river_LM  <- river_LM$geometry[1]
+# plot(river_LM)
+# 
+# #La Cobriza (LC)
+# river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+# river_LC  <- river_LC$geometry[1]
+# plot(river_LC)
+# 
+# #San Dionisio (SD)
+# river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+# river_SD <- river_SD$geometry[1]
+# plot(river_SD)
+# 
+# #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement
+# 
+# river_LM_trans <- st_transform(river_LM, crs = 26912)
+# river_LC_trans <- st_transform(river_LC, crs = 26912)
+# river_SD_trans <- st_transform(river_SD, crs = 26912)
+# 
+# 
+# #### Computing Average Nearest Neighbors for each tree ####
+# 
+# #create dataframe with X and Y UTM coordinates
+# 
+# fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+#   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+# 
+# 
+# # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
+# 
+# LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "LM")
+# 
+# LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "LC")
+# 
+# SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "SD")
 
-# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
-
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
-
-#adding a sequential column, "X," to number each tree
-
-fixed_field_data_processed <- fixed_field_data_processed %>%
-  mutate(X = row_number())
-
-# creating the point shapefiles of the tree locations for each population in UTM 12 N
-
-#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                          coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
-
-#storing point shapefiles for the trees by population
-
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LM") %>%
-  st_as_sf()
-
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LC") %>%
-  st_as_sf()
-
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "SD") %>%
-  st_as_sf()
-
-#Loading in ArcGIS river shapefile and storing out polygons for each population
-
-#Las Matancitas (LM)
-river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
-river_LM  <- river_LM$geometry[1]
-plot(river_LM)
-
-#La Cobriza (LC)
-river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
-river_LC  <- river_LC$geometry[1]
-plot(river_LC)
-
-#San Dionisio (SD)
-river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
-river_SD <- river_SD$geometry[1]
-plot(river_SD)
-
-#changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-
-river_LM_trans <- st_transform(river_LM, crs = 26912) 
-river_LC_trans <- st_transform(river_LC, crs = 26912)
-river_SD_trans <- st_transform(river_SD, crs = 26912)
-
-
-#### Computing Average Nearest Neighbors for each tree ####
-
-#create dataframe with X and Y UTM coordinates
-
-fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
-  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
-
-
-# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
-
-LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LM")
-
-LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LC")
-
-SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "SD")
-
-
-
-#### Descriptive Summary ####
-
-#histograms
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
-  geom_histogram(aes(x = Canopy_short))+
-  xlab("Short Canopy Axis")+
-  ylab("Frequency")
-
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
-  geom_histogram(aes(x = Canopy_long))+
-  xlab("Long Canopy Axis")+
-  ylab("Frequency")
-
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
-  geom_histogram(aes(x = Crown_spread))+
-  xlab("Canopy Spread")+
-  ylab("Frequency")
-
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
-  geom_histogram(aes(x = Canopy_area))+
-  xlab("Canopy Area")+
-  ylab("Frequency")
-
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
-  geom_histogram(aes(x = DBH_ag))+
-  xlab("Aggregated DBH")+
-  ylab("Frequency")
-
-#Summaries
-# Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-field_data_summarized <- fixed_field_data_processed %>%
-  dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
-View(field_data_summarized)
-
-#checking for duplicates and filtering them out
-duplicates <- fixed_field_data_processed_sf_trans_coordinates %>% #creates a dataframe called duplicates that filters out X.1 and Y if they have duplicates
-  filter(duplicated(X.1) == TRUE) %>%
-  filter(duplicated(Y) == TRUE)
+# 
+# 
+# #### Descriptive Summary ####
+# 
+# #histograms
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#   geom_histogram(aes(x = Canopy_short))+
+#   xlab("Short Canopy Axis")+
+#   ylab("Frequency")
+# 
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#   geom_histogram(aes(x = Canopy_long))+
+#   xlab("Long Canopy Axis")+
+#   ylab("Frequency")
+# 
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#   geom_histogram(aes(x = Crown_spread))+
+#   xlab("Canopy Spread")+
+#   ylab("Frequency")
+# 
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#   geom_histogram(aes(x = Canopy_area))+
+#   xlab("Canopy Area")+
+#   ylab("Frequency")
+# 
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Generate the base plot
+#   geom_histogram(aes(x = DBH_ag))+
+#   xlab("Aggregated DBH")+
+#   ylab("Frequency")
+# 
+# #Summaries
+# # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
+# field_data_summarized <- fixed_field_data_processed %>%
+#   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
+#   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
+# View(field_data_summarized)
+# 
+# #checking for duplicates and filtering them out
+# duplicates <- fixed_field_data_processed_sf_trans_coordinates %>% #creates a dataframe called duplicates that filters out X.1 and Y if they have duplicates
+#   filter(duplicated(X.1) == TRUE) %>%
+#   filter(duplicated(Y) == TRUE)
 
 
 #### Moran's I ####
@@ -181,15 +183,15 @@ morans_I <- function(population, variable){
   
   #assigning the dataframes based on the population
   if (population == "LM") {
-    dataframe <- LM_fixed_field_data_processed
+    dataframe <- LM_fixed_field_data_processed_source_source
   }
   
   if (population == "LC") {
-    dataframe <- LC_fixed_field_data_processed
+    dataframe <- LC_fixed_field_data_processed_source_source
   }
   
   if (population == "SD") {
-    dataframe <- SD_fixed_field_data_processed
+    dataframe <- SD_fixed_field_data_processed_source_source
   }
   
   ## Global Moran's I
@@ -202,7 +204,7 @@ morans_I <- function(population, variable){
   knn.dist <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(dataframe$DBH_ag)))
   
   #inverse distance weighting with raw distance-based weights without applying any normalization
-  lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_sf_trans_coordinates, type="idw", style="W", 
+  lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_source_sf_trans_coordinates_source, type="idw", style="W", 
                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
   
   #creating lags for each tree, which computes the average neighboring short canopy axis for each tree
@@ -228,6 +230,9 @@ morans_I <- function(population, variable){
   
   
   ## Local Moran's I
+  
+  #setting a seed for all of the results from using the morans_I() function because localmoran_perm() uses random permutations
+  set.seed(25)
   
   #using the weighted neighbors to simulate size values at random
   MC_local <- localmoran_perm(dataframe[[metric]], lw.dist, nsim = 9999, alternative = "greater")
@@ -339,7 +344,7 @@ LM_LCA_Morans_I[[2]]
 LM_LCA_Morans_I[[3]]
 
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.canopy.long <- LM_SCA_Morans_I[[1]]
+LM_fixed_field_data_processed$lag.canopy.long <- LM_LCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
