@@ -50,55 +50,55 @@ source("./analyses/Data_Processing_Script.R")
 
 #ensuring there is a column from latitude and longitude in the populations transformed dataframe because those columns are needed in "hypothesis_1_clumping_CLEANED.R" 
 
-LM_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
+LM_fixed_field_data_processed <- fixed_field_data_processed_source %>%
   filter(Locality == "LM")
 
-LC_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
+LC_fixed_field_data_processed <- fixed_field_data_processed_source %>%
   filter(Locality == "LC") 
 
-SD_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
+SD_fixed_field_data_processed <- fixed_field_data_processed_source %>%
   filter(Locality == "SD") 
 
 
 # # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
 # 
-# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# fixed_field_data_processed_source <- read.csv("./analyses/fixed_field_data_processed_source.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 # 
 # #adding a sequential column, "X," to number each tree
 # 
-# fixed_field_data_processed <- fixed_field_data_processed %>%
+# fixed_field_data_processed_source <- fixed_field_data_processed_source %>%
 #   mutate(X = row_number())
 # 
 # # creating the point shapefiles of the tree locations for each population in UTM 12 N
 # 
 # #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 # #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+# fixed_field_data_processed_source_sf <- st_as_sf(fixed_field_data_processed_source, 
 #                                           coords = c("long", "lat"), crs = 4326)
 # 
 # #creating a transformed point shapefile with UTM 12 N an equal area projection
-# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
+# fixed_field_data_processed_source_sf_transformed_source <- st_transform(fixed_field_data_processed_source_sf, crs = 26912)
 # 
 # #storing point shapefiles for the trees by population
 # 
-# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+# LM_fixed_field_data_processed_source_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
 #   filter(Locality == "LM") %>%
 #   st_as_sf()
 # 
-# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+# LC_fixed_field_data_processed_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
 #   filter(Locality == "LC") %>%
 #   st_as_sf()
 # 
-# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+# SD_fixed_field_data_processed_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
 #   filter(Locality == "SD") %>%
 #   st_as_sf()
 # 
 # # Importing BCS and River Shapefiles
 # 
 # #turning the Baja California Sur polygon into a shapefile, to be able to visualize the point locations
-# BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
-# BCS_polygon <- st_as_sf(BCS_polygon) #ensures foreign will be an sf object (in this case a multipolygon)
-# plot(BCS_polygon$geometry) #plotting the polygon
+# BCS_polygon_source <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+# BCS_polygon_source <- st_as_sf(BCS_polygon_source) #ensures foreign will be an sf object (in this case a multipolygon)
+# plot(BCS_polygon_source$geometry) #plotting the polygon
 # 
 # #Loading in ArcGIS river shapefile and storing out polygons for each population
 # 
@@ -127,19 +127,19 @@ SD_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
 # #LM
 # ggplot()+
 #   geom_sf(data = river_LM_trans)+
-#   geom_sf(data = LM_fixed_field_data_processed_sf) +
+#   geom_sf(data = LM_fixed_field_data_processed_source_source_sf) +
 #   theme_light()
 # 
 # #LC
 # ggplot()+
 #   geom_sf(data = river_LC_trans)+
-#   geom_sf(data = LC_fixed_field_data_processed_sf) +
+#   geom_sf(data = LC_fixed_field_data_processed_source_sf) +
 #   theme_light()
 # 
 # #SD
 # ggplot()+
 #   geom_sf(data = river_SD_trans)+
-#   geom_sf(data = SD_fixed_field_data_processed_sf) +
+#   geom_sf(data = SD_fixed_field_data_processed_source_sf) +
 #   theme_light()
 # 
 # 
@@ -151,31 +151,31 @@ SD_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
 # ggplot()+
 #   geom_sf(data = river_buffer_LM)+
 #   geom_sf(data = river_LM_trans)+
-#   geom_sf(data = LM_fixed_field_data_processed_sf)
+#   geom_sf(data = LM_fixed_field_data_processed_source_source_sf)
 # 
 # #LC
 # river_buffer_LC<- st_buffer(river_LC_trans, 100) #100 m buffer, sf object
 # ggplot()+
 #   geom_sf(data = river_buffer_LC)+
 #   geom_sf(data = river_LC_trans)+
-#   geom_sf(data = LC_fixed_field_data_processed_sf)
+#   geom_sf(data = LC_fixed_field_data_processed_source_sf)
 # 
 # #SD
 # river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer, sf object
 # ggplot()+
 #   geom_sf(data = river_buffer_SD)+
 #   geom_sf(data = river_SD_trans)+
-#   geom_sf(data = SD_fixed_field_data_processed_sf)
+#   geom_sf(data = SD_fixed_field_data_processed_source_sf)
 # 
-# ## Creating fixed_field_data_processed dataframes for each population ##
+# ## Creating fixed_field_data_processed_source dataframes for each population ##
 # 
-# LM_fixed_field_data_processed <- fixed_field_data_processed %>%
+# LM_fixed_field_data_processed_source_source <- fixed_field_data_processed_source %>%
 #   filter(Locality == "LM")
 # 
-# LC_fixed_field_data_processed <- fixed_field_data_processed %>%
+# LC_fixed_field_data_processed_source <- fixed_field_data_processed_source %>%
 #   filter(Locality == "LC")
 # 
-# SD_fixed_field_data_processed <- fixed_field_data_processed %>%
+# SD_fixed_field_data_processed_source <- fixed_field_data_processed_source %>%
 #   filter(Locality == "SD")
 
 #### Ripley's K Analysis (version with box, convex hull, and 20 m buffer around river) ####
@@ -185,27 +185,27 @@ SD_fixed_field_data_processed_lat_long <- fixed_field_data_processed %>%
 # all trees
 
 #finding minimum and maximum lat and long values for visualizing the tree locations with *1.002 wiggle room
-min_all_locality_long <- min(fixed_field_data_processed$long)*1.0002
-max_all_locality_long <- max(fixed_field_data_processed$long) - (max(fixed_field_data_processed$long) *.0002)
-min_all_locality_lat <- min(fixed_field_data_processed$lat)*1.02
-max_all_locality_lat <- max(fixed_field_data_processed$lat) - (max(fixed_field_data_processed$lat)*.02)
+min_all_locality_long <- min(fixed_field_data_processed_source$long)*1.0002
+max_all_locality_long <- max(fixed_field_data_processed_source$long) - (max(fixed_field_data_processed_source$long) *.0002)
+min_all_locality_lat <- min(fixed_field_data_processed_source$lat)*1.02
+max_all_locality_lat <- max(fixed_field_data_processed_source$lat) - (max(fixed_field_data_processed_source$lat)*.02)
 
 #plotting the BCS polygon with all of the tree points, colored by locality
-ggplot(data = BCS_polygon) +
+ggplot(data = BCS_polygon_source_source) +
   geom_sf() +
-  geom_sf(data = fixed_field_data_processed_sf_transformed, aes(color = Locality)) + 
+  geom_sf(data = fixed_field_data_processed_source_sf_transformed_source, aes(color = Locality)) + 
   coord_sf(xlim = c(min_all_locality_long, max_all_locality_long), 
            ylim = c(min_all_locality_lat, max_all_locality_lat))+
   theme_classic()
 
 #creating BCS boundary shapefile, turning sf of all points into sfc
-fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+fixed_field_data_processed_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
   st_as_sfc()
 
 #creating a boundary box with the UTM 12 N min and max lat lon values and then 
 #turning it into a simple feature geometry
 #will be useful for the Ripley's K
-fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
+fixed_field_data_processed_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
   st_bbox %>%
   st_as_sfc()
 
@@ -218,30 +218,30 @@ LM_min_all_locality_lat <- min(LM_fixed_field_data_processed$lat)
 LM_max_all_locality_lat <- max(LM_fixed_field_data_processed$lat) 
 
 #plotting the BCS LM polygon with the tree points
-ggplot(data = BCS_polygon) +
+ggplot(data = BCS_polygon_source) +
   geom_sf() +
-  geom_sf(data = fixed_field_data_processed_sf_transformed, aes(color = Locality)) + 
+  geom_sf(data = fixed_field_data_processed_source_sf_transformed_source, aes(color = Locality)) + 
   coord_sf(xlim = c(LM_min_all_locality_long, LM_max_all_locality_long), 
            ylim = c(LM_min_all_locality_lat, LM_max_all_locality_lat))+
   theme_classic()
 
 #creating LM boundary shapefile, turning sf of all points into sfc
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+LM_fixed_field_data_processed_source_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "LM") %>%
   st_as_sfc()
 
 #creating a boundary box of LM with the UTM 12 N min and max lat lon values and then 
 #turning it into a simple feature geometry
-LM_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
+LM_fixed_field_data_processed_source_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "LM") %>%
   st_bbox %>%
   st_as_sfc()
 
 # plotting the points, river, and bounding box
-ggplot(LM_fixed_field_data_processed_box)+
+ggplot(LM_fixed_field_data_processed_source_source_box)+
   geom_sf() +
-  geom_sf(data = river_LM_trans) +
-  geom_sf(data = LM_fixed_field_data_processed_sf)
+  geom_sf(data = river_LM_trans_source) +
+  geom_sf(data = LM_fixed_field_data_processed_source_source_sf)
 
 # LC
 
@@ -252,29 +252,29 @@ LC_min_all_locality_lat <- min(LC_fixed_field_data_processed$lat)
 LC_max_all_locality_lat <- max(LC_fixed_field_data_processed$lat) 
 
 #plotting the BCS LC polygon with the tree points
-ggplot(data = BCS_polygon) +
+ggplot(data = BCS_polygon_source) +
   geom_sf() +
-  geom_sf(data = fixed_field_data_processed_sf_transformed, aes(color = Locality)) + 
+  geom_sf(data = fixed_field_data_processed_source_sf_transformed_source, aes(color = Locality)) + 
   coord_sf(xlim = c(LC_min_all_locality_long, LC_max_all_locality_long), 
            ylim = c(LC_min_all_locality_lat, LC_max_all_locality_lat))+
   theme_classic()
 
 #creating LC boundary shapefile, turning sf of all points into sfc
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+LC_fixed_field_data_processed_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "LC") %>%
   st_as_sfc()
 
 #creating a boundry box of LC with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
-LC_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
+LC_fixed_field_data_processed_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "LC") %>%
   st_bbox %>%
   st_as_sfc()
 
 # plotting the points, river, and bounding box
-ggplot(LC_fixed_field_data_processed_box)+
+ggplot(LC_fixed_field_data_processed_source_box)+
   geom_sf() +
-  geom_sf(data = river_LC_trans) +
-  geom_sf(data = LC_fixed_field_data_processed_sf)
+  geom_sf(data = river_LC_trans_source) +
+  geom_sf(data = LC_fixed_field_data_processed_source_sf)
 
 # SD
 
@@ -285,54 +285,54 @@ SD_min_all_locality_lat <- min(SD_fixed_field_data_processed$lat)
 SD_max_all_locality_lat <- max(SD_fixed_field_data_processed$lat) 
 
 #plotting the BCS SD polygon with the tree points
-ggplot(data = BCS_polygon) +
+ggplot(data = BCS_polygon_source) +
   geom_sf() +
-  geom_sf(data = fixed_field_data_processed_sf_transformed, aes(color = Locality)) + 
+  geom_sf(data = fixed_field_data_processed_source_sf_transformed_source, aes(color = Locality)) + 
   coord_sf(xlim = c(SD_min_all_locality_long, SD_max_all_locality_long), 
            ylim = c(SD_min_all_locality_lat, SD_max_all_locality_lat))+
   theme_classic()
 
 #creating SD boundary shapefile, turning sf of all points into sfc
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+SD_fixed_field_data_processed_source_sf <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "SD") %>%
   st_as_sfc()
 
 #creating a boundry box of SD with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
-SD_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
+SD_fixed_field_data_processed_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
   filter(Locality == "SD") %>%
   st_bbox %>%
   st_as_sfc()
 
 # plotting the poins, river, and bounding box
-ggplot(SD_fixed_field_data_processed_box)+
+ggplot(SD_fixed_field_data_processed_source_box)+
   geom_sf() +
-  geom_sf(data = river_SD_trans) +
-  geom_sf(data = SD_fixed_field_data_processed_sf)
+  geom_sf(data = river_SD_trans_source) +
+  geom_sf(data = SD_fixed_field_data_processed_source_sf)
 
 ## Creating Convex Hulls using tree points of each population ##
 
 # creating one geometry with the tree points using st_union and then creating a convex hull with st_convex_hull
 
 # LM
-river_LM_convex_hull <- st_convex_hull(st_union(LM_fixed_field_data_processed_sf))  
+river_LM_convex_hull <- st_convex_hull(st_union(LM_fixed_field_data_processed_source_source_sf))  
 ggplot(river_LM_convex_hull)+
   geom_sf() +
-  geom_sf(data = river_LM_trans) +
-  geom_sf(data = LM_fixed_field_data_processed_sf)
+  geom_sf(data = river_LM_trans_source) +
+  geom_sf(data = LM_fixed_field_data_processed_source_source_sf)
 
 # LC
-river_LC_convex_hull <- st_convex_hull(st_union(LC_fixed_field_data_processed_sf)) 
+river_LC_convex_hull <- st_convex_hull(st_union(LC_fixed_field_data_processed_source_sf)) 
 ggplot(river_LC_convex_hull)+
   geom_sf() +
-  geom_sf(data = river_LC_trans) +
-  geom_sf(data = LC_fixed_field_data_processed_sf)
+  geom_sf(data = river_LC_trans_source) +
+  geom_sf(data = LC_fixed_field_data_processed_source_sf)
 
 # SD
-river_SD_convex_hull <- st_convex_hull(st_union(SD_fixed_field_data_processed_sf)) 
+river_SD_convex_hull <- st_convex_hull(st_union(SD_fixed_field_data_processed_source_sf)) 
 ggplot(river_SD_convex_hull)+
   geom_sf() +
-  geom_sf(data = river_SD_trans) +
-  geom_sf(data = SD_fixed_field_data_processed_sf)
+  geom_sf(data = river_SD_trans_source) +
+  geom_sf(data = SD_fixed_field_data_processed_source_sf)
 
 ## Calculating the Ripley's K ##
 
@@ -350,8 +350,8 @@ ggplot(river_SD_convex_hull)+
 
 # All points
 
-win <- as.owin(fixed_field_data_processed_box) #turning the box into a window
-ppp <- as.ppp(st_coordinates(fixed_field_data_processed_sf), W = win) #creating the poisson point pattern for LM
+win <- as.owin(fixed_field_data_processed_source_box) #turning the box into a window
+ppp <- as.ppp(st_coordinates(fixed_field_data_processed_source_sf), W = win) #creating the poisson point pattern for LM
 plot(ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 K <- Kest(ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(K, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) # plotting Ripley's output
@@ -359,22 +359,22 @@ plot(K, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE)) # plotting Ripley'
 # Ripley's K for LM 
 
 # Bounding Box
-LM_win <- as.owin(LM_fixed_field_data_processed_box) #turning the box into a window
-LM_ppp <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win) #creating the poisson point pattern for LM
+LM_win <- as.owin(LM_fixed_field_data_processed_source_source_box) #turning the box into a window
+LM_ppp <- as.ppp(st_coordinates(LM_fixed_field_data_processed_source_source_sf), W = LM_win) #creating the poisson point pattern for LM
 plot(LM_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LM_k <- Kest(LM_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LM_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 # Convex Hull
 LM_win_convex <- as.owin(river_LM_convex_hull)  #turning the convex hull into a window
-LM_ppp_convex <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_convex) #creating the poisson point pattern for lm
+LM_ppp_convex <- as.ppp(st_coordinates(LM_fixed_field_data_processed_source_source_sf), W = LM_win_convex) #creating the poisson point pattern for lm
 plot(LM_ppp_convex, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LM_k_convex <- Kest(LM_ppp_convex, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LM_k_convex, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 # Buffer River (100 m)
-LM_win_buffer <- as.owin(river_buffer_LM) #turning the buffer into a window
-LM_ppp_buffer <- as.ppp(st_coordinates(LM_fixed_field_data_processed_sf), W = LM_win_buffer) #creating the poisson point pattern for lm
+LM_win_buffer <- as.owin(river_buffer_LM_source) #turning the buffer into a window
+LM_ppp_buffer <- as.ppp(st_coordinates(LM_fixed_field_data_processed_source_source_sf), W = LM_win_buffer) #creating the poisson point pattern for lm
 plot(LM_ppp_buffer, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LM_k_buffer <- Kest(LM_ppp_buffer, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LM_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
@@ -390,22 +390,22 @@ title(xlab = bquote(italic("r (m)")),)
 #Ripley's K for LC 
 
 # Bounding Box
-LC_win <- as.owin(LC_fixed_field_data_processed_box) #turning the box into a window
-LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win) #creating the poisson point pattern for lm
+LC_win <- as.owin(LC_fixed_field_data_processed_source_box) #turning the box into a window
+LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_source_sf), W = LC_win) #creating the poisson point pattern for lm
 plot(LC_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LC_k <- Kest(LC_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LC_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 # Convex Hull
 LC_win_convex <- as.owin(river_LC_convex_hull) #turning the convex hull into a window
-LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win_convex) #creating the poisson point pattern for lm
+LC_ppp <- as.ppp(st_coordinates(LC_fixed_field_data_processed_source_sf), W = LC_win_convex) #creating the poisson point pattern for lm
 plot(LC_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LC_k_convex <- Kest(LC_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LC_k_convex, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 # Buffer River
-LC_win_buffer <- as.owin(river_buffer_LC) #turning the buffer into a window
-LC_ppp_buffer <- as.ppp(st_coordinates(LC_fixed_field_data_processed_sf), W = LC_win_buffer) #creating the poisson point pattern for lm
+LC_win_buffer <- as.owin(river_buffer_LC_source) #turning the buffer into a window
+LC_ppp_buffer <- as.ppp(st_coordinates(LC_fixed_field_data_processed_source_sf), W = LC_win_buffer) #creating the poisson point pattern for lm
 plot(LC_ppp_buffer, pch = 16, cex = 0.5) # plotting the randomized point pattern
 LC_k_buffer <- Kest(LC_ppp_buffer, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(LC_k_buffer, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
@@ -420,15 +420,15 @@ title(xlab = bquote(italic("r (m)")),)
 #Ripley's K for SD
 
 # Bounding Box
-SD_win <- as.owin(SD_fixed_field_data_processed_box) #turning the box into a window
-SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win) #creating the poisson point pattern for lm
+SD_win <- as.owin(SD_fixed_field_data_processed_source_box) #turning the box into a window
+SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_source_sf), W = SD_win) #creating the poisson point pattern for lm
 plot(SD_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 SD_k <- Kest(SD_ppp, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
 
 #Ripley's K for SD with Convex Hull
 SD_win_convex <- as.owin(river_SD_convex_hull) #turning the convex hull into a window
-SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_convex) #creating the poisson point pattern for lm
+SD_ppp <- as.ppp(st_coordinates(SD_fixed_field_data_processed_source_sf), W = SD_win_convex) #creating the poisson point pattern for lm
 plot(SD_ppp, pch = 16, cex = 0.5) # plotting the randomized point pattern
 SD_k <- Kest(SD_ppp, correction = "Ripley") #Ripley's K function
 plot(SD_k, main=NULL, las=1, legendargs=list(cex=0.8, xpd=TRUE))  # plotting Ripley's output
@@ -441,8 +441,8 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 
 
 # Buffer River
-SD_win_buffer <- as.owin(river_buffer_SD) #turning the buffer into a window
-SD_ppp_buffer <- as.ppp(st_coordinates(SD_fixed_field_data_processed_sf), W = SD_win_buffer) #creating the poisson point pattern for lm
+SD_win_buffer <- as.owin(river_buffer_SD_source) #turning the buffer into a window
+SD_ppp_buffer <- as.ppp(st_coordinates(SD_fixed_field_data_processed_source_sf), W = SD_win_buffer) #creating the poisson point pattern for lm
 plot(SD_ppp_buffer, pch = 16, cex = 0.5) # plotting the randomized point pattern
 SD_k_buffer <- Kest(SD_ppp_buffer, correction = "Ripley") # Ripley's K function, using the isotropic/Ripley correction
 # Making a nicer version of the plot for papers/presentations
@@ -474,24 +474,25 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 # creating the rasters that will be used for point generation later
 
 #turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_LM_trans_point_raster <- st_rasterize(river_points_sf) #create raster of lake edge points
-plot(river_LM_trans_point_raster)
+# river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
+# river_LM_trans_point_raster <- st_rasterize(river_points_sf) #create raster of lake edge points
+# plot(river_LM_trans_point_raster)
 
-river_points <- st_line_sample(st_cast(river_LM_trans, "LINESTRING"), density = 1/50) # adjust spacing
-river_points <- st_cast(river_points, "POINT")
-river_points_sf <- st_sf(geometry = river_points)
+# river_points <- st_line_sample(st_cast(river_LM_trans, "LINESTRING"), density = 1/50) # adjust spacing
+# river_points <- st_cast(river_points, "POINT")
+# river_points_sf <- st_sf(geometry = river_points)
+# 
+# #creating a raster of the river buffer polygon within LINESTRING can be calculated
+# river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
+# river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
+# plot(river_buffer_LM_point_raster)
+# 
+# #making a stars object of the distances of each cell in the buffer raster from the river edge points
+# river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
+# dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_source_source_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
 
-#creating a raster of the river buffer polygon within LINESTRING can be calculated
-river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
-plot(river_buffer_LM_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
-dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(LM_fixed_field_data_processed_sf)
+#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM 
 
 #creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
@@ -504,23 +505,25 @@ plot(dist_near_river_buffer_LM_inverse)
 
 #LM
 
-# creating the rasters that will be used for point generation later
+# # creating the rasters that will be used for point generation later
+# 
+# #turning river polygon into multipoints and then into a raster for using them to calculate the distances
+# river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
+# river_LM_trans_point_raster <- st_rasterize(river_LM_trans_outline) #create raster of lake edge points
+# plot(river_LM_trans_point_raster)
+# 
+# #creating a raster of the river buffer polygon within distances can be calculated
+# river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
+# river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
+# plot(river_buffer_LM_point_raster)
+# 
+# #making a stars object of the distances of each cell in the buffer raster from the river edge points
+# river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
+# dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_source_source_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_LM_trans_point_raster <- st_rasterize(river_LM_trans_outline) #create raster of lake edge points
-plot(river_LM_trans_point_raster)
-
-#creating a raster of the river buffer polygon within distances can be calculated
-river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
-plot(river_buffer_LM_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
-dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-plot(LM_fixed_field_data_processed_sf)
+#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM 
+plot(LM_fixed_field_data_processed_source_source_sf)
 
 #creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
@@ -532,19 +535,8 @@ plot(dist_near_river_buffer_LM_inverse)
 
 #LC
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #create raster of lake edge points
-plot(river_LC_trans_point_raster)
-
-river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turns the polyline of the river buffer into a multipoint object in stars
-river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #create raster of lake edge points
-plot(river_buffer_LC_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-dist_near_river_buffer_LC_inverse <- 1/dist_near_river_buffer_LC #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+dist_near_river_buffer_LC_inverse <- 1/dist_near_river_buffer_LC 
 plot(dist_near_river_buffer_LC_inverse)
 
 #creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
@@ -557,19 +549,21 @@ plot(dist_near_river_buffer_LC_inverse)
 
 #SD
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #create raster of lake edge points
-plot(river_SD_trans_point_raster)
+# #turning river polygon into multipoints and then into a raster for using them to calculate the distances
+# river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
+# river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #create raster of lake edge points
+# plot(river_SD_trans_point_raster)
+# 
+# river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turns the polyline of the river buffer into a multipoint object
+# river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create raster of lake edge points
+# plot(river_buffer_SD_point_raster)
+# 
+# #making a stars object of the distances of each cell in the buffer raster from the river edge points
+# river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not in the river buffer have a 0 value
+# dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
 
-river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turns the polyline of the river buffer into a multipoint object
-river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create raster of lake edge points
-plot(river_buffer_SD_point_raster)
-
-#making a stars object of the distances of each cell in the buffer raster from the river edge points
-river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not in the river buffer have a 0 value
-dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
-dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD 
 plot(dist_near_river_buffer_SD_inverse)
 
 #creating a raster with assigned values of 1 to cells within 50 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
@@ -585,7 +579,7 @@ plot(dist_near_river_buffer_SD_inverse)
 ANN_analysis <- function(population, window) {
   if (population == "LM") {
     ppp <- LM_ppp #assigning poisson point pattern 
-    dataframe <- LM_fixed_field_data_processed_sf #assigning dataframe
+    dataframe <- LM_fixed_field_data_processed_source_source_sf #assigning dataframe
 
     #window selection
     if (window == "Convex Hull"){ #ANN without controlling for river
@@ -601,7 +595,7 @@ ANN_analysis <- function(population, window) {
   
   if (population == "LC") {
     ppp <- LC_ppp #assigning poisson point model
-    dataframe <- LC_fixed_field_data_processed_sf #assigning dataframe
+    dataframe <- LC_fixed_field_data_processed_source_sf #assigning dataframe
     
     #window selection
     if (window == "Convex Hull"){ #ANN without controlling for river
@@ -617,7 +611,7 @@ ANN_analysis <- function(population, window) {
   
   if (population == "SD") {
     ppp <- SD_ppp #assigning poisson point pattern
-    dataframe <- SD_fixed_field_data_processed_sf #assigning dataframe
+    dataframe <- SD_fixed_field_data_processed_source_sf #assigning dataframe
 
     #ANN without controlling for river
     if (window == "Convex Hull"){
@@ -684,8 +678,8 @@ LM_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-va
 
 #plotting the randomly generated points, tree points, and the river
 ggplot()+ 
-  geom_sf(data=river_LM_trans)+ #plotting the river
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=river_LM_trans_source)+ #plotting the river
+  geom_sf(data=LM_fixed_field_data_processed_source_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LM_ANN_Anlysis$random_points, fill = NA) #plotting the random points
 
 #creating a histogram of the ANN Simulation Results
@@ -705,7 +699,7 @@ LC_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-va
 #plotting the randomly generated points, tree points, and the river
 ggplot()+ 
   geom_sf(data=river_LC_trans)+ #plotting the river 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LC_ANN_Anlysis$random_points, fill = NA) #plotting the random points
 
 #creating a histogram of the ANN Simulation Results
@@ -725,7 +719,7 @@ SD_ANN_Anlysis #first index is the ANN value, the second is the left-tailed p-va
 #plotting the randomly generated points, tree points, and the river
 ggplot()+ 
   geom_sf(data=river_SD_trans)+ #plotting the river edge raster
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=SD_ANN_Anlysis$random_points, fill = NA) #plotting the random points
 
 #creating a histogram of the ANN Simulation Results
@@ -765,7 +759,7 @@ LM_ANN_Anlysis_river #first index is the ANN value, the second is the left-taile
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=river_LM_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_fixed_field_data_processed_source_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LM_ANN_Anlysis_river$random_points$geom, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -785,7 +779,7 @@ LM_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=dist_near_river_buffer_LM_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_fixed_field_data_processed_source_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LM_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -805,7 +799,7 @@ LM_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the 
 #plotting the randomly generated points, tree points, and river raster
 ggplot()+ 
   geom_stars(data=st_rasterize(river_LM_trans))+ #plotting the river raster 
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LM_fixed_field_data_processed_source_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LM_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -826,7 +820,7 @@ LC_ANN_Anlysis_river #first index is the ANN value, the second is the left-taile
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=river_LC_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LC_ANN_Anlysis_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -846,7 +840,7 @@ LC_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=dist_near_river_buffer_LC_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LC_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -866,7 +860,7 @@ LC_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the 
 #plotting the randomly generated points, tree points, and river raster
 ggplot()+ 
   geom_stars(data=st_rasterize(river_LC_trans))+ #plotting the river raster 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=LC_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=LC_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -890,7 +884,7 @@ SD_ANN_Anlysis_river #first index is the ANN value, the second is the left-taile
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=river_SD_trans_point_raster)+ #plotting the river edge raster
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=SD_ANN_Anlysis_river$random_points, fill = NA) #plotting the random points
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
@@ -910,7 +904,7 @@ SD_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
   geom_stars(data=dist_near_river_buffer_SD_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=SD_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA)+ #plotting the random points
   labs(color = "Trees", fill = "Inverse Distance (m)")
 
@@ -945,7 +939,7 @@ SD_ANN_Anlysis_on_inside_river #first index is the ANN value, the second is the 
 #plotting the randomly generated points, tree points, and river raster
 ggplot()+ 
   geom_stars(data=st_rasterize(river_SD_trans))+ #plotting the river raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
+  geom_sf(data=SD_fixed_field_data_processed_source_sf, aes(col = "red"))+ #plotting the tree points
   geom_sf(data=SD_ANN_Anlysis_on_inside_river$random_points, fill = NA) #plotting the random points
 
 as_tibble(SD_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as a tibble
@@ -974,11 +968,11 @@ as_tibble(SD_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as
 dist_near_river_buffer_LM_inverse_im <- as.im(dist_near_river_buffer_LM_inverse)
 
 #Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
-PPM1 <- ppm(Q = as.ppp(LM_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LM_inverse_im) 
+PPM1 <- ppm(Q = as.ppp(LM_fixed_field_data_processed_source_source_sf) ~ dist_near_river_buffer_LM_inverse_im) 
 PPM1
 
 #null hypothesis, no change in the trend of the points
-PPM0 <- ppm(as.ppp(LM_fixed_field_data_processed_sf) ~ 1)
+PPM0 <- ppm(as.ppp(LM_fixed_field_data_processed_source_source_sf) ~ 1)
 PPM0
 
 #using a likelihood ratio test to compare the alternative and null models
@@ -994,11 +988,11 @@ plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im", se.fit = TRUE), mai
 dist_near_river_buffer_LC_inverse_im <- as.im(dist_near_river_buffer_LC_inverse)
 
 #Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
-PPM1 <- ppm(Q = as.ppp(LC_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LC_inverse_im) 
+PPM1 <- ppm(Q = as.ppp(LC_fixed_field_data_processed_source_sf) ~ dist_near_river_buffer_LC_inverse_im) 
 PPM1
 
 #null hypothesis, no change in the trend of the points
-PPM0 <- ppm(as.ppp(LC_fixed_field_data_processed_sf) ~ 1)
+PPM0 <- ppm(as.ppp(LC_fixed_field_data_processed_source_sf) ~ 1)
 PPM0
 
 #using a likelihood ratio test to compare the alternative and null models
@@ -1014,11 +1008,11 @@ plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im", se.fit = TRUE), mai
 dist_near_river_buffer_SD_inverse_im <- as.im(dist_near_river_buffer_SD_inverse)
 
 #Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
-PPM1 <- ppm(Q = as.ppp(SD_fixed_field_data_processed_sf) ~ dist_near_river_buffer_SD_inverse_im) 
+PPM1 <- ppm(Q = as.ppp(SD_fixed_field_data_processed_source_sf) ~ dist_near_river_buffer_SD_inverse_im) 
 PPM1
 
 #null hypothesis, no change in the trend of the points
-PPM0 <- ppm(as.ppp(SD_fixed_field_data_processed_sf) ~ 1)
+PPM0 <- ppm(as.ppp(SD_fixed_field_data_processed_source_sf) ~ 1)
 PPM0
 
 #using a likelihood ratio test to compare the alternative and null models
@@ -1031,22 +1025,18 @@ plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im", se.fit = TRUE), mai
 
 # making examples of random point distributions vs. points only along the river's edge for presentation 
 
-points_box = sf::st_sample(SD_box_sf, size=50) #randomizing points onlu in population bbox
+points_box = sf::st_sample(SD_box, size=50) #randomizing points onlu in population bbox
 points_river = sf::st_sample(river_SD_trans_points, size=50) #randomizing points along river's edge
-
-points <- st_as_sf(points, crs = 26912) #projecting the points
 
 #plotting the randomized box points
 ggplot()+
-  geom_sf(data = river_SD_trans)+
-  #geom_sf(data = SD_box_sf)+
+  geom_sf(data = river_SD_trans_source)+
   geom_sf(data = points_box, size = 2)+
   theme_classic()
 
 #plotting the randomized river's edge points
 ggplot()+
-  geom_sf(data = river_SD_trans)+
-  #geom_sf(data = SD_box_sf)+
+  geom_sf(data = river_SD_trans_source)+
   geom_sf(data = points_river, size = 2)+
   theme_classic()
 

@@ -438,17 +438,6 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
-## Finalizing the tree soil metric dataframe
-
-#combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell
-
-fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, SD_fixed_field_data_processed_trees_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
-
-#creating a column/variable with locality as a factor to be able to use it in the Tamhane's T2 Test later
-
-fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_data_processed_trees_soils$Locality)
-
 #### Creating the Function Comparing the soil vs. size values ####
 
 # This function that generates real and randomly generated slopes from single linear regressions comparing tree 

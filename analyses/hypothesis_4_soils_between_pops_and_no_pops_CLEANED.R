@@ -425,8 +425,8 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
 
 #combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell
 
-fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, SD_fixed_field_data_processed_trees_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_soils, LC_fixed_field_data_processed_soils) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
 
 #### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
