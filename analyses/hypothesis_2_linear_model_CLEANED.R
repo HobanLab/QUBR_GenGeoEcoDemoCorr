@@ -296,7 +296,7 @@ ggplot()+
   geom_sf(data = LM_fixed_field_data_processed_sf)+
   geom_sf(data = LM_focal_tree_dataframe_sf, color = 'blue')
 
-#### creating the generalized linear effects model ####
+### creating the generalized linear effects model 
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
 

@@ -17,9 +17,6 @@
 #San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
 # 2) using linear regression to see if tree size seem related to local competition  
 
-
-
-
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
