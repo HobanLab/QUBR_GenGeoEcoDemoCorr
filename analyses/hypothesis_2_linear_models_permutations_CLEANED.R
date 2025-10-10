@@ -1,6 +1,6 @@
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%Looking to see if Q. brandegeei compete or facilitate with one another%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%version with no outliers%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%with permutations of the slope test%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # The purpose of this script is to evaluated whether the size and shape of Quercus brandegeei 
@@ -8,14 +8,26 @@
 # either due to competition or facilitation. 
 # If they are impacted by facilitation, we would expect closer trees would be bigger. 
 # If they are impacted by competition, we would expect closer trees to be smaller. 
-# To test this, we used also performed a linear regression to see if for focal trees, there was a 
+# To test this, we used also created generalized linear models to see if for focal trees, there was a 
 # relationship between how much competition the trees face (based on the 
 # size of the neighbors over their distance to the focal trees) and the size of the focal trees.
+
+# We create a focal_function() to generate focal trees and calculate the competition metrics
+# for each tree and for each population. We then created a slope_tests() function to run the focal_function() 500
+# times with different seeds to randomly generate a new set of focal trees, find the best fitting GLS model, and 
+# then run the slope/Kendall's Tau to support the reliability of our findings.  
 
 # The script is broken into sections of 
 # 1) loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
 #San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
-# 2) using linear regression to see if tree size seem related to local competition  
+# 2) Creating the focal_function() to generate focal trees and calculate the competition metrics
+#for each tree and for each population
+# 3) Creating the slope_tests() function to run the focal_function() 500
+#times with different seeds to randomly generate a new set of focal trees, find the best fitting GLS model, and 
+#then run the slope/Kendall's Tau to support the reliability of our findings. 
+# 2) Using the slope_tests() function to generate the generalized linear regressions to see if tree size seem related to local competition.
+# We also store slope test (parametric) and Kendall's Tau (non-parametric) results with and without Bonferroni Corrections and generate histograms 
+# and descriptive summary statistics to view the distribution of p-values to check how robust the findings are. 
 
 #### Loading libraries and relevant data ####
 
@@ -34,65 +46,67 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
 
+# loading in the processed tree data 
+source("./analyses/Data_Processing_Script.R")
+# 
+# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# 
+# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# 
+# # creating the point shapefiles of the tree locations for each population in UTM 12 N
+# 
+# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+#                                           coords = c("long", "lat"), crs = 4326)
+# 
+# #creating a transformed point shapefile with UTM 12 N an equal area projection
+# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
+# 
+# #storing point shapefiles for the trees by population
+# 
+# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LM") %>%
+#   st_as_sf()
+# 
+# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LC") %>%
+#   st_as_sf()
+# 
+# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "SD") %>%
+#   st_as_sf()
+# 
+# #create dataframe with X and Y UTM coordinates
+# 
+# fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+#   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+# 
+# # creating a dataframe with the 5 average nearest neighbors (ANN) for each individual tree/row
+# fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordinates %>%  #creates a dataframe with the ANN of the closest 5 individual trees for each individual
+#   mutate(dist1 = nndist(X = X.1, Y= Y, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
+#   mutate(dist2 = nndist(X = X.1, Y= Y, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
+#   mutate(dist3 = nndist(X = X.1, Y= Y, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
+#   mutate(dist4 = nndist(X = X.1, Y= Y, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
+#   mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
+#   rowwise()%>% #so that in the next part we take the averages across rows
+#   mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5))) # %>% #creates a column of the average distances (1-5) of each individual
+# 
+# # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
+# 
+# LM_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+#   filter(Locality == "LM")
+# 
+# LC_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+#   filter(Locality == "LC")
+# 
+# SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
+#   filter(Locality == "SD")
 
-# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
-
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
-
-# creating the point shapefiles of the tree locations for each population in UTM 12 N
-
-#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                          coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
-
-#storing point shapefiles for the trees by population
-
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LM") %>%
-  st_as_sf()
-
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LC") %>%
-  st_as_sf()
-
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "SD") %>%
-  st_as_sf()
-
-#create dataframe with X and Y UTM coordinates
-
-fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
-  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
-
-# creating a dataframe with the 5 average nearest neighbors (ANN) for each individual tree/row
-fixed_field_data_processed_NN_UTM <- fixed_field_data_processed_sf_trans_coordinates %>%  #creates a dataframe with the ANN of the closest 5 individual trees for each individual
-  mutate(dist1 = nndist(X = X.1, Y= Y, k = 1))%>% #creates column for the distances of each tree to their 1st nearest neighbor
-  mutate(dist2 = nndist(X = X.1, Y= Y, k = 2)) %>% #creates column for the distances of each tree to their 2nd nearest neighbor
-  mutate(dist3 = nndist(X = X.1, Y= Y, k = 3)) %>% #creates column for the distances of each tree to their 3rd nearest neighbor
-  mutate(dist4 = nndist(X = X.1, Y= Y, k = 4)) %>% #creates column for the distances of each tree to their 4th nearest neighbor
-  mutate(dist5 = nndist(X = X.1, Y= Y, k = 5)) %>% #creates column for the distances of each tree to their 5th nearest neighbor
-  rowwise()%>% #so that in the next part we take the averages across rows
-  mutate(ANN = mean(c(dist1, dist2, dist3, dist4, dist5))) # %>% #creates a column of the average distances (1-5) of each individual
-
-# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
-
-LM_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
-  filter(Locality == "LM")
-
-LC_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
-  filter(Locality == "LC")
-
-SD_fixed_field_data_processed <- fixed_field_data_processed_NN_UTM %>%
-  filter(Locality == "SD")
 
 
-
-#### Linear Model ####
+#### Creating the Generalized Linear Model Functions ####
 
 # To see if trees that face more competition (they face closer and larger trees) are smaller, for each population,
 # 1) we create a bounding box around the points and then cropped the bounding box of the points by 20 m on all sides to avoid edge effects
@@ -260,7 +274,10 @@ focal_function <- function(population, seed_input){
               tree_grid_cropped, focal_tree_buffers, focal_tree_dataframe_with_competition))
 }
 
-
+# To test if the results of the slope tests for each population and soil metric are robust, 
+  # 1) we re-run the focal_function() 500 times with a different seed input to generate a new dataframe of new randomly
+        #selected focal trees and calculated competition metrics. 
+  # 2) for each iteration, we find the best fitting GLS model and store the slope test results and Kendall's Tau results for later use
 
 slope_tests <- function(population, variable) {
   
@@ -274,8 +291,6 @@ slope_tests <- function(population, variable) {
   
   # for loop generating permutations of the slopes and p-values for different randomly generated p-values
   for (i in 1:500){
-    
-    
     
     if (population == "LM") {
       #generating the focal tree and neighbor data
@@ -385,8 +400,9 @@ slope_tests <- function(population, variable) {
   return(list(slope_permutations, pvalue_permutations, tau_perm, tau_p_value_perm))
 }
 
+#### Creating the Generalized Linear Effects Models ####
 
-####LM ####
+### LM ###
 
 #SCA
 
@@ -777,7 +793,7 @@ sd(LM_DBH_tau_p_value_perm_results) #standard deviation
 range(LM_DBH_tau_p_value_perm_results) #range
 
 
-#### LC ####
+### LC ###
 
 #SCA
 
@@ -1166,7 +1182,7 @@ median(LC_DBH_tau_p_value_perm_results) #median
 sd(LC_DBH_tau_p_value_perm_results) #standard deviation
 range(LC_DBH_tau_p_value_perm_results) #range
 
-#### SD ####
+### SD ###
 
 #SCA
 

@@ -1236,3 +1236,260 @@ SD_fixed_field_data_processed_source_source_soils <- SD_fixed_field_data_process
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
+
+
+#### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
+
+#downloading the data containing the locations (lat/lon) of the 20 known populations
+all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPD coords for pops (12_2024).csv")
+
+#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+all_pop_locations.df_sf <- st_as_sf(all_pop_locations.df, 
+                                    coords = c("Classic.Longitude", "Classic.Latitude"), crs = 4326)
+
+#creating a transformed point shapefile with UTM 12 N an equal area projection
+all_pop_locations.df_sf_transformed <- st_transform(all_pop_locations.df_sf, crs = 26912)
+
+#create dataframe with X and Y UTM coordinates
+all_pop_locations.df_sf_trans_coords <- st_coordinates(all_pop_locations.df_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
+all_pop_locations.df_sf_trans_coordinates <- all_pop_locations.df_sf_transformed %>%
+  cbind(all_pop_locations.df_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
+# importing the Baja California Sur (BCS) shapefile data
+
+#turning the BCS polygon into a shapefile and visualize its outline
+BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+BCS_polygon <- st_as_sf(BCS_polygon) #making sure the BCS polygon is converted to a simple feature 
+BCS_polygon_UTM <- st_transform(BCS_polygon, crs = 26912) # transforming the BCS polygon to a UTM 12 N an equal area projection
+BCS_polygon_UTM <- st_as_sf(BCS_polygon_UTM) #making sure the transformed BCS polygon is converted to a simple feature 
+
+
+#cropping the BCS polygon to just be the southern region of where the 20 known populations are with a 7 km radius 
+
+# Creating a bounding box of the 20 known population points
+bbox_points <- st_bbox(all_pop_locations.df_sf_trans_coordinates)
+
+# Convert the bounding box to simple feature geometry list-column polygon
+bbox_poly <- st_as_sfc(bbox_points)
+
+# Buffering the BCS polygon by 7,000 meters (7 km)
+bbox_poly_buffered <- st_buffer(bbox_poly, dist = 7000)
+
+# Making the coordinate reference system matches of the buffered polygon matches the larger polygon
+bbox_poly_buffered <- st_transform(bbox_poly_buffered, st_crs(BCS_polygon_UTM))
+
+# Cropping (using intersection) the big polygon with buffered bounding box polygon
+BCS_polygon_box_sf_cropped <- st_intersection(BCS_polygon_UTM, bbox_poly_buffered)
+
+# Checking the cropped polygon boundaries changed (should be smaller than original bounding box of points)
+print(st_bbox(BCS_polygon_box_sf_cropped))
+
+#plotting the original extent of the BCS polygon, the buffered polygon, the cropped extent, and the 20 population points
+ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=bbox_poly_buffered)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
+#plotting the original extent of the cropped BCS polygon and the 20 population points
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
+#using the extent of the cropped river polygon to crop the raster for each soil texture layer
+#clay content 0-5 cm
+clay_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_05_clipped <- crop(clay_05_utm, clay_05_bbox_poly_buffered) # Crop the raster by the polygon
+clay_05_all_pop <- mask(clay_05_clipped, clay_05_bbox_poly_buffered) # Mask the raster to the polygon
+#clay content 100-200 cm
+clay_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_200_clipped <- crop(clay_200_utm, clay_200_bbox_poly_buffered) # Crop the raster by the polygon
+clay_200_all_pop <- mask(clay_200_clipped, clay_200_bbox_poly_buffered) # Mask the raster by the polygon
+#silt content 0-5 cm
+silt_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(silt_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+silt_05_clipped <- crop(silt_05_utm, silt_05_bbox_poly_buffered) # Crop the raster by the polygon
+silt_05_all_pop <- mask(silt_05_clipped, silt_05_bbox_poly_buffered) # Mask the raster by the polygon
+#silt content 100-200 cm
+silt_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(silt_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+silt_200_clipped <- crop(silt_200_utm, silt_200_bbox_poly_buffered) # Crop the raster by the polygon
+silt_200_all_pop <- mask(silt_200_clipped, silt_200_bbox_poly_buffered) # Mask the raster by the polygon
+#sand content 0-5 cm
+sand_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sand_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sand_05_clipped <- crop(sand_05_utm, sand_05_bbox_poly_buffered) # Crop the raster by the polygon
+sand_05_all_pop <- mask(sand_05_clipped, sand_05_bbox_poly_buffered) # Mask the raster by the polygon
+#sand content 100-200 cm
+sand_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sand_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sand_200_clipped <- crop(sand_200_utm, sand_200_bbox_poly_buffered) # Crop the raster by the polygon
+sand_200_all_pop <- mask(sand_200_clipped, sand_200_bbox_poly_buffered) # Mask the raster by the polygon
+#pH 0-5 cm
+ph_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_05_clipped <- crop(ph_05_utm, ph_05_bbox_poly_buffered) # Crop the raster by the polygon
+ph_05_all_pop <- mask(ph_05_clipped, ph_05_bbox_poly_buffered) # Mask the raster by the polygon
+#pH 100-200 cm
+ph_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ph_200_clipped <- crop(ph_200_utm, ph_200_bbox_poly_buffered) # Crop the raster by the polygon
+ph_200_all_pop <- mask(ph_200_clipped, ph_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Organic Carbon Content (OCD) 0-5 cm
+ocd_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ocd_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ocd_05_clipped <- crop(ocd_05_utm, ocd_05_bbox_poly_buffered) # Crop the raster by the polygon
+ocd_05_all_pop <- mask(ocd_05_clipped, ocd_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Organic Carbon Content (OCD) 100-200 cm
+ocd_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ocd_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+ocd_200_clipped <- crop(ocd_200_utm, ocd_200_bbox_poly_buffered) # Crop the raster by the polygon
+ocd_200_all_pop <- mask(ocd_200_clipped, ocd_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Coarse Fragment Content 0-5 cm
+coarse_frag_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(coarse_frag_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+coarse_frag_05_clipped <- crop(coarse_frag_05_utm, coarse_frag_05_bbox_poly_buffered) # Crop the raster by the polygon
+coarse_frag_05_all_pop <- mask(coarse_frag_05_clipped, coarse_frag_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Coarse Fragment Content 100-200 cm
+coarse_frag_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(coarse_frag_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+coarse_frag_200_clipped <- crop(coarse_frag_200_utm, coarse_frag_200_bbox_poly_buffered) # Crop the raster by the polygon
+coarse_frag_200_all_pop <- mask(coarse_frag_200_clipped, coarse_frag_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Cation Exchange Capacity 0-5 cm
+cat_ex_cap_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(cat_ex_cap_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+cat_ex_cap_05_clipped <- crop(cat_ex_cap_05_utm, cat_ex_cap_05_bbox_poly_buffered) # Crop the raster by the polygon
+cat_ex_cap_05_all_pop <- mask(cat_ex_cap_05_clipped, cat_ex_cap_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Cation Exchange Capacity 100-200 cm
+cat_ex_cap_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(cat_ex_cap_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+cat_ex_cap_200_clipped <- crop(cat_ex_cap_200_utm, cat_ex_cap_200_bbox_poly_buffered) # Crop the raster by the polygon
+cat_ex_cap_200_all_pop <- mask(cat_ex_cap_200_clipped, cat_ex_cap_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Bulk Density 0-5 cm
+bulk_dens_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(bulk_dens_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+bulk_dens_05_clipped <- crop(bulk_dens_05_utm, bulk_dens_05_bbox_poly_buffered) # Crop the raster by the polygon
+bulk_dens_05_all_pop <- mask(bulk_dens_05_clipped, bulk_dens_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Bulk Density 100-200 cm
+bulk_dens_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(bulk_dens_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+bulk_dens_200_clipped <- crop(bulk_dens_200_utm, bulk_dens_200_bbox_poly_buffered) # Crop the raster by the polygon
+bulk_dens_200_all_pop <- mask(bulk_dens_200_clipped, bulk_dens_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -10 kpa 0-5 cm
+vol_wat_10kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_10kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_10kpa_05_clipped <- crop(vol_wat_10kpa_05_utm, vol_wat_10kpa_05_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_10kpa_05_all_pop <- mask(vol_wat_10kpa_05_clipped, vol_wat_10kpa_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -10 kpa 100-200 cm
+vol_wat_10kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_10kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_10kpa_200_clipped <- crop(vol_wat_10kpa_200_utm, vol_wat_10kpa_200_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_10kpa_200_all_pop <- mask(vol_wat_10kpa_200_clipped, vol_wat_10kpa_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -33 kpa 0-5 cm
+vol_wat_33kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_33kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_33kpa_05_clipped <- crop(vol_wat_33kpa_05_utm, vol_wat_33kpa_05_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_33kpa_05_all_pop <- mask(vol_wat_33kpa_05_clipped, vol_wat_33kpa_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -33 kpa 100-200 cm
+vol_wat_33kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_33kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_33kpa_200_clipped <- crop(vol_wat_33kpa_200_utm, vol_wat_33kpa_200_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_33kpa_200_all_pop <- mask(vol_wat_33kpa_200_clipped, vol_wat_33kpa_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -1500 kpa 0-5 cm
+vol_wat_1500kpa_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_1500kpa_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_1500kpa_05_clipped <- crop(vol_wat_1500kpa_05_utm, vol_wat_1500kpa_05_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_1500kpa_05_all_pop <- mask(vol_wat_1500kpa_05_clipped, vol_wat_1500kpa_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Volume of Water Content at -1500 kpa 100-200 cm
+vol_wat_1500kpa_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(vol_wat_1500kpa_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+vol_wat_1500kpa_200_clipped <- crop(vol_wat_1500kpa_200_utm, vol_wat_1500kpa_200_bbox_poly_buffered) # Crop the raster by the polygon
+vol_wat_1500kpa_200_all_pop <- mask(vol_wat_1500kpa_200_clipped, vol_wat_1500kpa_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Nitrogen Content 0-5 cm
+nitrogen_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(nitrogen_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+nitrogen_05_clipped <- crop(nitrogen_05_utm, nitrogen_05_bbox_poly_buffered) # Crop the raster by the polygon
+nitrogen_05_all_pop <- mask(nitrogen_05_clipped, nitrogen_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Nitrogen Content 100-200 cm
+nitrogen_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(nitrogen_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+nitrogen_200_clipped <- crop(nitrogen_200_utm, nitrogen_200_bbox_poly_buffered) # Crop the raster by the polygon
+nitrogen_200_all_pop <- mask(nitrogen_200_clipped, nitrogen_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Soil Organic Carbon 0-5 cm
+Soil_Organic_Carbon_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(Soil_Organic_Carbon_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+Soil_Organic_Carbon_05_clipped <- crop(Soil_Organic_Carbon_05_utm, Soil_Organic_Carbon_05_bbox_poly_buffered) # Crop the raster by the polygon
+Soil_Organic_Carbon_05_all_pop <- mask(Soil_Organic_Carbon_05_clipped, Soil_Organic_Carbon_05_bbox_poly_buffered) # Mask the raster by the polygon
+#Soil Organic Carbon 100-200 cm
+Soil_Organic_Carbon_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(Soil_Organic_Carbon_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+Soil_Organic_Carbon_200_clipped <- crop(Soil_Organic_Carbon_200_utm, Soil_Organic_Carbon_200_bbox_poly_buffered) # Crop the raster by the polygon
+Soil_Organic_Carbon_200_all_pop <- mask(Soil_Organic_Carbon_200_clipped, Soil_Organic_Carbon_200_bbox_poly_buffered) # Mask the raster by the polygon
+#Sand Available Water Content 0-5 cm
+sandy_avail_water_0.5_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sandy_avail_water_0.5_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sandy_avail_water_0.5_clipped <- crop(sandy_avail_water_0.5_utm, sandy_avail_water_0.5_bbox_poly_buffered) # Crop the raster by the polygon
+sandy_avail_water_0.5_all_pop <- mask(sandy_avail_water_0.5_clipped, sandy_avail_water_0.5_bbox_poly_buffered) # Mask the raster by the polygon
+#Sand Available Water Content 100-200 cm
+sandy_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(sandy_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+sandy_avail_water_100.200_clipped <- crop(sandy_avail_water_100.200_utm, sandy_avail_water_100.200_bbox_poly_buffered) # Crop the raster by the polygon
+sandy_avail_water_100.200_all_pop <- mask(sandy_avail_water_100.200_clipped, sandy_avail_water_100.200_bbox_poly_buffered) # Mask the raster by the polygon
+# Clay/Loam Available Water Content 0-5 cm
+clay_loam_avail_water_0.5_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_0.5_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_loam_avail_water_0.5_clipped <- crop(clay_loam_avail_water_0.5_utm, clay_loam_avail_water_0.5_bbox_poly_buffered) # Crop the raster by the polygon
+clay_loam_avail_water_0.5_all_pop <- mask(clay_loam_avail_water_0.5_clipped, clay_loam_avail_water_0.5_bbox_poly_buffered) # Mask the raster by the polygon
+# Clay/Loam Available Water Content 100-200 cm
+clay_loam_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_loam_avail_water_100.200_clipped <- crop(clay_loam_avail_water_100.200_utm, clay_loam_avail_water_100.200_bbox_poly_buffered) # Crop the raster by the polygon
+clay_loam_avail_water_100.200_all_pop <- mask(clay_loam_avail_water_100.200_clipped, clay_loam_avail_water_100.200_bbox_poly_buffered) # Mask the raster by the polygon
+
+#Plotting a confirmation that we properly cropped the rasters by plotting the clay rasters (blue) with the cropped polygon (green) around it
+ggplot()+
+  geom_raster(data = as.data.frame(clay_05_utm, xy=T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  scale_fill_gradientn(colours=c("yellow","red"), name = "clay_05_utm")+
+  # Add new fill scale
+  ggnewscale::new_scale_fill() +
+  geom_raster(data = as.data.frame(clay_05_all_pop, xy=T), aes(x=x, y=y, fill = clay.content.0.5)) +
+  scale_fill_gradientn(colours=c("lightblue","darkblue"), name = "clay_05_all_pop") +
+  geom_sf(data = BCS_polygon_box_sf_cropped, fill = NA, color = "green")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
+#creating raster stacks of the 0-5 and 100-200 cm raster layers for each soil metric for later cell data extraction
+soil_stack_clay <- stack(clay_05_all_pop, clay_200_all_pop) #stacked clay
+soil_stack_silt <- stack(silt_05_all_pop, silt_200_all_pop) #stacked silt
+soil_stack_sand <- stack(sand_05_all_pop, sand_200_all_pop) #stacked sand
+soil_stack_ph <- stack(ph_05_all_pop, ph_200_all_pop) #stacked ph
+soil_stack_ocd <- stack(ocd_05_all_pop, ocd_200_all_pop)  #stacked ocd
+soil_stack_coarse_frag <- stack(coarse_frag_05_all_pop, coarse_frag_200_all_pop)  #stacked coarse fragment
+soil_stack_cat_ex <- stack(cat_ex_cap_05_all_pop, cat_ex_cap_200_all_pop)  #stacked cation exchange capacity
+soil_stack_bulk_dens <- stack(bulk_dens_05_all_pop, bulk_dens_200_all_pop)  #stacked bulk density
+soil_stack_vol_wat_10kpa <- stack(vol_wat_10kpa_05_all_pop, vol_wat_10kpa_200_all_pop)  #stacked volume water content at -10 kpa
+soil_stack_vol_wat_33kpa <- stack(vol_wat_33kpa_05_all_pop, vol_wat_33kpa_200_all_pop)  #stacked volume water content at -33 kpa
+soil_stack_vol_wat_1500kpa <- stack(vol_wat_1500kpa_05_all_pop, vol_wat_1500kpa_200_all_pop) #stacked volume water content at -1500 kpa
+soil_stack_nitrogen <- stack(nitrogen_05_all_pop, nitrogen_200_all_pop)  #stacked nitrogen
+soil_stack_soc <- stack(Soil_Organic_Carbon_05_all_pop, Soil_Organic_Carbon_200_all_pop)  #stacked soil organic carbon
+soil_stack_sandy_water <- stack(sandy_avail_water_0.5_all_pop, sandy_avail_water_100.200_all_pop) #stacked sandy available water
+soil_stack_clay_loam_water <- stack(clay_loam_avail_water_0.5_all_pop, clay_loam_avail_water_100.200_all_pop) #stacked clay/loam available water
+
+#plotting a stacked raster, example with clay content at 0-5 and 100-200 cm
+plot(soil_stack_clay) #version with soil textures
+plot(soil_stack_clay, zlim = c(0, 350)) #version where the plots have the same scale
+
+#extracting and storing the soil data for each known population point for each soil metric
+all_known_pop_soil_clay <- raster::extract(soil_stack_clay, all_pop_locations.df_sf_trans_coordinates) #extracting clay
+all_known_pop_soil_silt <- raster::extract(soil_stack_silt, all_pop_locations.df_sf_trans_coordinates) #extracting silt
+all_known_pop_soil_sand <- raster::extract(soil_stack_sand, all_pop_locations.df_sf_trans_coordinates) #extracting sand
+all_known_pop_soil_ph <- raster::extract(soil_stack_ph, all_pop_locations.df_sf_trans_coordinates) #extracting ph
+all_known_pop_soil_ocd <- raster::extract(soil_stack_ocd, all_pop_locations.df_sf_trans_coordinates) #extracting ocd
+all_known_pop_soil_coarse_frag <- raster::extract(soil_stack_coarse_frag, all_pop_locations.df_sf_trans_coordinates) #extracting coarse fragment
+all_known_pop_soil_cat_ex <- raster::extract(soil_stack_cat_ex, all_pop_locations.df_sf_trans_coordinates) #extracting cation exchange capacity
+all_known_pop_soil_bulk_dens <- raster::extract(soil_stack_bulk_dens, all_pop_locations.df_sf_trans_coordinates) #extracting bulk density
+all_known_pop_soil_vol_wat_10kpa <- raster::extract(soil_stack_vol_wat_10kpa, all_pop_locations.df_sf_trans_coordinates) # extracting volume water content at -10 kpa
+all_known_pop_soil_vol_wat_33kpa <- raster::extract(soil_stack_vol_wat_33kpa, all_pop_locations.df_sf_trans_coordinates) # extracting volume water content at -33 kpa
+all_known_pop_soil_vol_wat_1500kpa <- raster::extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates) # extracting volume water content at -1500 kpa
+all_known_pop_soil_nitrogen <- raster::extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates) # extracting nitrogen
+all_known_pop_soil_soc <- raster::extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates) # extracting soil organic carbon
+all_known_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, all_pop_locations.df_sf_trans_coordinates) # extracting 
+all_known_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, all_pop_locations.df_sf_trans_coordinates) # extracting 
+
+#combine all of the extracted population soil textures data across all soil metrics
+all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #adding clay to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_silt) #adding silt to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sand) #adding sand to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_ph) #adding ph to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_ocd) #adding organic carbon density content to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_cat_ex) #adding cation exchange capacity to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_bulk_dens) #adding bulk density to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_10kpa) #adding volume water content at -10 kpa to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_33kpa) #adding volume water content at -33 kpa to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_1500kpa) #adding volume water content at -1500 kpa to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_nitrogen) #adding nitrogen to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_soc) #adding soil organic carbon to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sandy_water) #adding sandy available water to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_clay_loam_water) #adding clay/loam available water to the dataframe
+
+#correcting column names for clarity
+all_known_pop_soils <- all_known_pop_soils %>%
+  mutate(sandy_avail_water_0.5 = layer.1) %>%
+  mutate(sandy_avail_water_100.200 = layer.2) %>% 
+  mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
+  mutate(clay_loam_avail_water_100.200 = layer.2.1) 
+
+
+

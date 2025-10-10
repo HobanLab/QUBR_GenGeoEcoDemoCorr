@@ -7,14 +7,16 @@
 
 #The script is broken up into these sections:
 
-  # 1) loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
-            #San Dionisio, and La Cobriza populations and loading in the river outline shapefiles
-  # 2) Processing the elevation column to fix unit issues and NAs
-  # 3) Loading and processing in the environmental characteristics (elevation, slope, aspect)
-  # 4) Descriptive summary of the variables 
-  # 5) Comparing size of the trees to their elevation to look for a relationship using single linear regression
-  # 6) Comparing size of the trees to their slope to look for a relationship using single linear regression
-  # 7) Comparing size of the trees to their aspect to look for a relationship using Kruskall-Wallis Tests
+  # 1) Loading and processing the packages and processed data for the trees, topography, and soil metrics in the Las Matancitas,
+#San Dionisio, and La Cobriza populations. The processed data includes:
+          # Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
+#generating river and point buffers and bounding boxes,
+          # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
+          # Extracting the distance to the river of each tree for each population,
+    # Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
+  # 2) Comparing size of the trees to their elevation to look for a relationship using single linear regression
+  # 3) Comparing size of the trees to their slope to look for a relationship using single linear regression
+  # 4) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
 
 #### Loading libraries and relevant data ####
 
@@ -31,156 +33,159 @@ library(car) #to create added variable plots and to run levene's test for checki
 library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 
-# loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# loading in the processed tree data 
+source("./analyses/Data_Processing_Script.R")
 
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
+# 
+# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+# 
+# #adding a sequential column, "X," to number each tree
+# 
+# fixed_field_data_processed <- fixed_field_data_processed %>%
+#   mutate(X = row_number())
+# 
+# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
+# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+#                                           coords = c("long", "lat"), crs = 4326)
+# 
+# #creating a transformed point shapefile with UTM 12 N an equal area projection
+# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
+# 
+# #create dataframe with X and Y UTM coordinates
+# 
+# fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+#   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+# 
+# #creating shapefiles for each population, turning sf of all points into sfc
+# 
+# #La Matancitas (LM)
+# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LM") %>%
+#   st_as_sfc()
+# 
+# #La Cobriza (LC)
+# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "LC") %>%
+#   st_as_sfc()
+# 
+# #San Dionisio (SD)
+# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
+#   filter(Locality == "SD") %>%
+#   st_as_sfc()
+# 
+# #transformations of LM variables (log, square root) for linear models
+# 
+# #creating columns with transformations: logged all of the variables
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   mutate(Canopy_short_lg = log(Canopy_short))%>%
+#   mutate(Canopy_long_lg = log(Canopy_long))%>%
+#   mutate(Canopy_area_lg = log(Canopy_area))%>%
+#   mutate(Crown_spread_lg = log(Crown_spread))%>%
+#   mutate(DBH_ag_lg = log(DBH_ag))
+# 
+# #creating columns with transformations: square root all of the variables
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
+#   mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
+#   mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
+#   mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
+#   mutate(DBH_ag_sqrt = sqrt(DBH_ag))
+# 
 
-#adding a sequential column, "X," to number each tree
-
-fixed_field_data_processed <- fixed_field_data_processed %>%
-  mutate(X = row_number())
-
-#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-#sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-                                          coords = c("long", "lat"), crs = 4326)
-
-#creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
-
-#create dataframe with X and Y UTM coordinates
-
-fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
-  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
-
-#creating shapefiles for each population, turning sf of all points into sfc
-
-#La Matancitas (LM)
-LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LM") %>%
-  st_as_sfc()
-
-#La Cobriza (LC)
-LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "LC") %>%
-  st_as_sfc()
-
-#San Dionisio (SD)
-SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-  filter(Locality == "SD") %>%
-  st_as_sfc()
-
-#transformations of LM variables (log, square root) for linear models
-
-#creating columns with transformations: logged all of the variables
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Canopy_short_lg = log(Canopy_short))%>%
-  mutate(Canopy_long_lg = log(Canopy_long))%>%
-  mutate(Canopy_area_lg = log(Canopy_area))%>%
-  mutate(Crown_spread_lg = log(Crown_spread))%>%
-  mutate(DBH_ag_lg = log(DBH_ag))
-
-#creating columns with transformations: square root all of the variables
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
-  mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
-  mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
-  mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
-  mutate(DBH_ag_sqrt = sqrt(DBH_ag))
-
-#### Processing elevation for each population ####
-
-#setting elevation as a numeric value
-
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.)) # for all points
-
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.)) # for LM
-
-#creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
-fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
-                                        (Elevation..m. == 360) ~ NA, 
-                                        (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
-
-#filtering the cleaned elevation dataset for each population
-
-#LM
-LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LM")
-
-#LC
-LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LC")
-
-#SD
-SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "SD")
-
-#creating a new elevation column so the values that were mistakenly put in feet are in meters
-
-#LM
-LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
-                                        (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
-
-#LC
-LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
-                                        (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
-
-#creating a new elevation column so the values that were mistakenly put in feet are in meters 
-       #and setting the outlier elevation to NA
-SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
-                                        (Elevation..m. < 700) ~ Elevation..m.)) %>% #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA,  #change the elevation of 360 which appears to be a miswritten elevation to NA
-                                        (Elevation..m. != 360) ~ Elevation..m.))
-
-#plotting the tree points by elevation (m) for each population to confirm corrections
-
-#LM
-ggplot()+
-  geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
-  labs(color = "Elevation (m)")
-
-#LC
-ggplot()+
-  geom_sf(data = LC_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
-  labs(color = "Elevation (m)")
-
-#SD
-ggplot()+
-  geom_sf(data = SD_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
-  labs(color = "Elevation (m)")
+# 
+# #setting elevation as a numeric value
+# 
+# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   mutate(Elevation..m. = as.numeric(Elevation..m.)) # for all points
+# 
+# LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+#   mutate(Elevation..m. = as.numeric(Elevation..m.)) # for LM
+# 
+# #creating a new column in the whole dataset to get rid of  360 m outlier and turn the values in feet into meter
+# fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
+#                                         (Elevation..m. == 360) ~ NA, 
+#                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
+# 
+# #filtering the cleaned elevation dataset for each population
+# 
+# #LM
+# LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "LM")
+# 
+# #LC
+# LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "LC")
+# 
+# #SD
+# SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
+#   filter(Locality == "SD")
+# 
+# #creating a new elevation column so the values that were mistakenly put in feet are in meters
+# 
+# #LM
+# LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+#                                         (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
+# 
+# #LC
+# LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+#                                         (Elevation..m. < 700) ~ Elevation..m.)) #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
+# 
+# #creating a new elevation column so the values that were mistakenly put in feet are in meters 
+#        #and setting the outlier elevation to NA
+# SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, #converting elevations greater than 700 from ft into m to correct data input mistakes
+#                                         (Elevation..m. < 700) ~ Elevation..m.)) %>% #setting elevations smaller than 700 m to themselves because they do not need to be converted to meters
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA,  #change the elevation of 360 which appears to be a miswritten elevation to NA
+#                                         (Elevation..m. != 360) ~ Elevation..m.))
+# 
+# #plotting the tree points by elevation (m) for each population to confirm corrections
+# 
+# #LM
+# ggplot()+
+#   geom_sf(data = LM_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+#   labs(color = "Elevation (m)")
+# 
+# #LC
+# ggplot()+
+#   geom_sf(data = LC_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+#   labs(color = "Elevation (m)")
+# 
+# #SD
+# ggplot()+
+#   geom_sf(data = SD_fixed_field_data_processed, aes(color = Elevation..m.FIXED))+
+#   labs(color = "Elevation (m)")
+# 
+# 
+# #Upload ArcGIS river shapefile and filter out polygons for each population
+# 
+# #LM
+# river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+# river_LM  <- river_LM$geometry[1]
+# plot(river_LM)
+# 
+# #LC
+# river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+# river_LC  <- river_LC$geometry[1]
+# plot(river_LC)
+# 
+# #LM
+# river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+# river_SD <- river_SD$geometry[1]
+# plot(river_SD)
+# 
+# #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+# river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
+# river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
+# river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 
 
-#Upload ArcGIS river shapefile and filter out polygons for each population
 
-#LM
-river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
-river_LM  <- river_LM$geometry[1]
-plot(river_LM)
-
-#LC
-river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
-river_LC  <- river_LC$geometry[1]
-plot(river_LC)
-
-#LM
-river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
-river_SD <- river_SD$geometry[1]
-plot(river_SD)
-
-#changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-river_LM_trans <- st_as_sf(st_transform(river_LM, crs = 26912))
-river_LC_trans <- st_as_sf(st_transform(river_LC, crs = 26912))
-river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
-
-
-#### Creating the elevation, aspect, and slope rasters ####
 
 #elevation data from INEGI 15 m, so we can calculate slope and aspect
 
@@ -259,418 +264,418 @@ river_SD_trans <- st_as_sf(st_transform(river_SD, crs = 26912))
 # writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LC.tif')
 # writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
 
-#HERE IS THE IMPORTATION OF THE CROPPED RASTERS:
-
-#Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
-
-#LM
-CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
-terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-
-#LC
-CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
-terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-
-#SD
-CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
-terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
-
-#creating the all points raster by merging the LM, LC, and SD rasters
-CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
-
-#plotting all of the elevation rasters and tree points
-ggplot()+
-  geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = fixed_field_data_processed_sf_transformed)
-
-## Extracting the slope 
-
-#all points slopes
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degrees', neighbors = 8, 'slope')
-
-#plot the slope rasters
-ggplot()+
-  geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
-  scale_fill_viridis_c()
-
-#LM
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'slope')
-
-#plot the slope rasters
-ggplot()+
-  geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LM_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-  
-
-#LC
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'slope')
-
-#plot the slope rasters
-ggplot()+
-  geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LC_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-
-#SD
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'slope')
-
-#plot the slope rasters
-ggplot()+
-  geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = SD_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-
-## Extracting the aspect for each population
-
-#all points 
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-all_points_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degrees', neighbors = 8, 'aspect')
-
-#plot the aspect raster
-ggplot()+
-  geom_raster(data= as.data.frame(all_points_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
-  scale_fill_viridis_c()
-
-#LM
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'aspect')
-
-#plot the aspect raster
-ggplot()+
-  geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LM_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-
-#LC
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'aspect')
-
-#plot the aspect raster
-ggplot()+
-  geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LC_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-
-#SD
-
-#extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
-SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'aspect')
-
-#plot the aspect raster
-ggplot()+
-  geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = SD_fixed_field_data_processed)+
-  scale_fill_viridis_c()
-
-#creating dataframes for each population with columns for slope, aspect, and elevation by extracting the slope, elevation, and 
-         #aspect data from each cell for each point and combining the data into a single dataframe
-
-#all points
-
-all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point 
-all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point 
-all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #binding the aspect data for each point to the all points point dataframe
-all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #binding the slope data for each point to the all points point dataframe
-
-#LM
-
-LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point 
-LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point 
-LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point 
-LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #binding the aspect data for each point to the LM point dataframe
-LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #binding the slope data for each point to the LM point dataframe
-LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #binding the elevation data for each point to the LM point dataframe
-
-#LC
-
-LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point 
-LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point 
-LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point 
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #binding the aspect data for each point to the LC point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #binding the slope data for each point to the LC point dataframe
-LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #binding the elevation data for each point to the LC point dataframe
-
-#SD
-
-SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point 
-SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point 
-SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point 
-SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #binding the aspect data for each point to the SD point dataframe
-SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #binding the slope data for each point to the SD point dataframe
-SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #binding the elevation data for each point to the SD point dataframe
-
-## re-categorizing the aspect data into 4 (N,E,S,W) and 8 categories (N,NE,E,SE, etc.)
-
-#First, we set values of 360º to 0, since they are the same direction
-
-#all points data
-all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
-  mutate(all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (all_points_aspect_raster_15_data_pts != "360")~ all_points_aspect_raster_15_data_pts))
-  
-#LM
-LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == 360) ~  0,
-                                                  (LM_aspect_raster_15_data_pts != 360)~ LM_aspect_raster_15_data_pts))
-
-#LC
-LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == 360) ~  0, 
-                                                  (LC_aspect_raster_15_data_pts != 360) ~ LC_aspect_raster_15_data_pts))
-
-#SD
-SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == 360) ~  0,
-                                                  (SD_aspect_raster_15_data_pts != 360)~ SD_aspect_raster_15_data_pts))
-
-#Second, we re categorize the aspect degrees to cardinal directions
-
-# all points
-
-# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
-
-# the directions are a range of 45 degrees 
-all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
-  mutate(all_points_aspect_raster_15_data_pts_8_categorical = case_when((all_points_aspect_raster_15_data_pts > 0 & all_points_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 337.5 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", 
-                                                                (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 67.5 & all_points_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 112.5 & all_points_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5
-                                                                (all_points_aspect_raster_15_data_pts >= 157.5 & all_points_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5
-                                                                (all_points_aspect_raster_15_data_pts >= 202.5 & all_points_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
-                                                                (all_points_aspect_raster_15_data_pts >= 247.5 & all_points_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 292.5 & all_points_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-# 4 categories: North, East, South, West
-
-# the directions are a range of 90 degrees 
-all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
-  mutate(all_points_aspect_raster_15_data_pts_4_categorical = case_when((all_points_aspect_raster_15_data_pts >= 0 & all_points_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 315 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                                (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 135 & all_points_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
-                                                                (all_points_aspect_raster_15_data_pts >= 225 & all_points_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
-
-# LM
-
-# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
-
-# the directions are a range of 45 degrees 
-LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(LM_aspect_raster_15_data_pts_8_categorical = case_when((LM_aspect_raster_15_data_pts > 0 & LM_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 337.5 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                              (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 67.5 & LM_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 112.5 & LM_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 157.5 & LM_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 202.5 & LM_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 247.5 & LM_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 292.5 & LM_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-
-# 4 categories: North, East, South, West
-
-# the directions are a range of 90 degrees 
-LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(LM_aspect_raster_15_data_pts_4_categorical = case_when((LM_aspect_raster_15_data_pts >= 0 & LM_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 315 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                              (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
-                                                              (LM_aspect_raster_15_data_pts >= 135 & LM_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
-                                                              (LM_aspect_raster_15_data_pts >= 225 & LM_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
-
-# LC
-
-# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
-
-# the directions are a range of 45 degrees 
-LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts_8_categorical = case_when((LC_aspect_raster_15_data_pts > 0 & LC_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 337.5 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                                (LC_aspect_raster_15_data_pts >= 22.5 & LC_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 67.5 & LC_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 112.5 & LC_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 157.5 & LC_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 202.5 & LC_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 247.5 & LC_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 292.5 & LC_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-
-# 4 categories: North, East, South, West
-
-# the directions are a range of 90 degrees 
-LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts_4_categorical = case_when((LC_aspect_raster_15_data_pts >= 0 & LC_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 315 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                                (LC_aspect_raster_15_data_pts >= 45 & LC_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
-                                                                (LC_aspect_raster_15_data_pts >= 135 & LC_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
-                                                                (LC_aspect_raster_15_data_pts >= 225 & LC_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
-
-
-#SD
-
-# 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
-
-# the directions are a range of 45 degrees 
-SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(SD_aspect_raster_15_data_pts_8_categorical = case_when((SD_aspect_raster_15_data_pts > 0 & SD_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
-                                                                (SD_aspect_raster_15_data_pts >= 337.5 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                                (SD_aspect_raster_15_data_pts >= 22.5 & SD_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
-                                                                (SD_aspect_raster_15_data_pts >= 67.5 & SD_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
-                                                                (SD_aspect_raster_15_data_pts >= 112.5 & SD_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5
-                                                                (SD_aspect_raster_15_data_pts >= 157.5 & SD_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5
-                                                                (SD_aspect_raster_15_data_pts >= 202.5 & SD_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
-                                                                (SD_aspect_raster_15_data_pts >= 247.5 & SD_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
-                                                                (SD_aspect_raster_15_data_pts >= 292.5 & SD_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
-
-# 4 categories: North, East, South, West
-
-# the directions are a range of 90 degrees 
-SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(SD_aspect_raster_15_data_pts_4_categorical = case_when((SD_aspect_raster_15_data_pts >= 0 & SD_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
-                                                                (SD_aspect_raster_15_data_pts >= 315 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
-                                                                (SD_aspect_raster_15_data_pts >= 45 & SD_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
-                                                                (SD_aspect_raster_15_data_pts >= 135 & SD_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
-                                                                (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
-
-#### Descriptive Summary ####
-
-#histograms
-
-#SCA
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = Canopy_short))+
-  xlab("Short Canopy Axis")+
-  ylab("Frequency")
-
-#LCA
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = Canopy_long))+
-  xlab("Long Canopy Axis")+
-  ylab("Frequency")
-
-#CS
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = Crown_spread))+
-  xlab("Canopy Spread")+
-  ylab("Frequency")
-
-#CA
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = Canopy_area))+
-  xlab("Canopy Area")+
-  ylab("Frequency")
-
-#DBH
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = DBH_ag))+
-  xlab("Aggregated DBH")+
-  ylab("Frequency")
-
-#Elevation before corrections
-ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
-  geom_histogram(aes(x = Elevation..m.))+
-  xlab("Elevation")+
-  ylab("Frequency")
-
-#LM Elevation
-ggplot(LM_fixed_field_data_processed) + 
-  geom_histogram(aes(x = Elevation..m.FIXED))+
-  xlab("Elevation (m)")+
-  ylab("Frequency")
-
-#LC Elevation
-ggplot(LC_fixed_field_data_processed) + 
-  geom_histogram(aes(x = Elevation..m.))+
-  xlab("Elevation (m)")+
-  ylab("Frequency")
-
-#SD Elevation
-ggplot(SD_fixed_field_data_processed) + 
-  geom_histogram(aes(x = Elevation..m.))+
-  xlab("Elevation (m)")+
-  ylab("Frequency")
-
-#histograms for slope
-
-#LM
-ggplot(LM_fixed_field_data_processed_terrain) + 
-  geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
-  xlab("Slope (degrees)")+
-  ylab("Frequency")
-
-#LC
-ggplot(LC_fixed_field_data_processed_terrain) + 
-  geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
-  xlab("Slope (degrees)")+
-  ylab("Frequency")
-
-#SD
-ggplot(SD_fixed_field_data_processed_terrain) + 
-  geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
-  xlab("Slope (degrees)")+
-  ylab("Frequency")
-
-#barcharts for aspect
-
-# 8 categories of direction
-
-#LM
-ggplot(LM_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-#LC
-ggplot(LC_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-#SD
-ggplot(SD_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-# 4 categories of direction
-
-#LM
-ggplot(LM_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-#LC
-ggplot(LC_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-#SD
-ggplot(SD_fixed_field_data_processed_terrain) + 
-  geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
-  xlab("Direction")+
-  ylab("Frequency")
-
-
-#descriptive summaries statistics
-
-# Created a dataframe which contains the "classical" univariate descriptive statistics of each of the important variables
-field_data_summarized <- fixed_field_data_processed %>%
-  dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
-  summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd))) 
-View(field_data_summarized)
+# #HERE IS THE IMPORTATION OF THE CROPPED RASTERS:
+# 
+# #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
+# 
+# #LM
+# CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+# terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+# 
+# #LC
+# CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+# terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+# 
+# #SD
+# CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+# terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912") #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
+# 
+# #creating the all points raster by merging the LM, LC, and SD rasters
+# CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
+# 
+# #plotting all of the elevation rasters and tree points
+# ggplot()+
+#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
+#   geom_sf(data = fixed_field_data_processed_sf_transformed)
+# 
+# ## Extracting the slope 
+# 
+# #all points slopes
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degrees', neighbors = 8, 'slope')
+# 
+# #plot the slope rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+#   scale_fill_viridis_c()
+# 
+# #LM
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'slope')
+# 
+# #plot the slope rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
+#   geom_sf(data = LM_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+#   
+# 
+# #LC
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'slope')
+# 
+# #plot the slope rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
+#   geom_sf(data = LC_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+# 
+# #SD
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'slope')
+# 
+# #plot the slope rasters
+# ggplot()+
+#   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
+#   geom_sf(data = SD_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+# 
+# ## Extracting the aspect for each population
+# 
+# #all points 
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# all_points_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degrees', neighbors = 8, 'aspect')
+# 
+# #plot the aspect raster
+# ggplot()+
+#   geom_raster(data= as.data.frame(all_points_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
+#   scale_fill_viridis_c()
+# 
+# #LM
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors = 8, 'aspect')
+# 
+# #plot the aspect raster
+# ggplot()+
+#   geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+#   geom_sf(data = LM_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+# 
+# #LC
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors = 8, 'aspect')
+# 
+# #plot the aspect raster
+# ggplot()+
+#   geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+#   geom_sf(data = LC_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+# 
+# #SD
+# 
+# #extracting the slope in degrees, using the queens method, meaning all adjacent cells to the center cell (neighbor = 8)
+# SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors = 8, 'aspect')
+# 
+# #plot the aspect raster
+# ggplot()+
+#   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+#   geom_sf(data = SD_fixed_field_data_processed)+
+#   scale_fill_viridis_c()
+# 
+# #creating dataframes for each population with columns for slope, aspect, and elevation by extracting the slope, elevation, and 
+#          #aspect data from each cell for each point and combining the data into a single dataframe
+# 
+# #all points
+# 
+# all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point 
+# all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point 
+# all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #binding the aspect data for each point to the all points point dataframe
+# all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #binding the slope data for each point to the all points point dataframe
+# 
+# #LM
+# 
+# LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point 
+# LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point 
+# LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point 
+# LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #binding the aspect data for each point to the LM point dataframe
+# LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #binding the slope data for each point to the LM point dataframe
+# LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #binding the elevation data for each point to the LM point dataframe
+# 
+# #LC
+# 
+# LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point 
+# LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point 
+# LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point 
+# LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #binding the aspect data for each point to the LC point dataframe
+# LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #binding the slope data for each point to the LC point dataframe
+# LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #binding the elevation data for each point to the LC point dataframe
+# 
+# #SD
+# 
+# SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point 
+# SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point 
+# SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point 
+# SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #binding the aspect data for each point to the SD point dataframe
+# SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #binding the slope data for each point to the SD point dataframe
+# SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #binding the elevation data for each point to the SD point dataframe
+# 
+# ## re-categorizing the aspect data into 4 (N,E,S,W) and 8 categories (N,NE,E,SE, etc.)
+# 
+# #First, we set values of 360º to 0, since they are the same direction
+# 
+# #all points data
+# all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+#   mutate(all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
+#                                                   (all_points_aspect_raster_15_data_pts != "360")~ all_points_aspect_raster_15_data_pts))
+#   
+# #LM
+# LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+#   mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == 360) ~  0,
+#                                                   (LM_aspect_raster_15_data_pts != 360)~ LM_aspect_raster_15_data_pts))
+# 
+# #LC
+# LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+#   mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == 360) ~  0, 
+#                                                   (LC_aspect_raster_15_data_pts != 360) ~ LC_aspect_raster_15_data_pts))
+# 
+# #SD
+# SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+#   mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == 360) ~  0,
+#                                                   (SD_aspect_raster_15_data_pts != 360)~ SD_aspect_raster_15_data_pts))
+# 
+# #Second, we re categorize the aspect degrees to cardinal directions
+# 
+# # all points
+# 
+# # 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 
+# # the directions are a range of 45 degrees 
+# all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+#   mutate(all_points_aspect_raster_15_data_pts_8_categorical = case_when((all_points_aspect_raster_15_data_pts > 0 & all_points_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 337.5 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", 
+#                                                                 (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 67.5 & all_points_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 112.5 & all_points_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5
+#                                                                 (all_points_aspect_raster_15_data_pts >= 157.5 & all_points_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5
+#                                                                 (all_points_aspect_raster_15_data_pts >= 202.5 & all_points_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
+#                                                                 (all_points_aspect_raster_15_data_pts >= 247.5 & all_points_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 292.5 & all_points_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
+# # 4 categories: North, East, South, West
+# 
+# # the directions are a range of 90 degrees 
+# all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
+#   mutate(all_points_aspect_raster_15_data_pts_4_categorical = case_when((all_points_aspect_raster_15_data_pts >= 0 & all_points_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 315 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                                 (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 135 & all_points_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
+#                                                                 (all_points_aspect_raster_15_data_pts >= 225 & all_points_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
+# 
+# # LM
+# 
+# # 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 
+# # the directions are a range of 45 degrees 
+# LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+#   mutate(LM_aspect_raster_15_data_pts_8_categorical = case_when((LM_aspect_raster_15_data_pts > 0 & LM_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 337.5 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                               (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 67.5 & LM_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 112.5 & LM_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 157.5 & LM_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 202.5 & LM_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 247.5 & LM_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 292.5 & LM_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
+# 
+# # 4 categories: North, East, South, West
+# 
+# # the directions are a range of 90 degrees 
+# LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+#   mutate(LM_aspect_raster_15_data_pts_4_categorical = case_when((LM_aspect_raster_15_data_pts >= 0 & LM_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 315 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                               (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 135 & LM_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
+#                                                               (LM_aspect_raster_15_data_pts >= 225 & LM_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
+# 
+# # LC
+# 
+# # 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 
+# # the directions are a range of 45 degrees 
+# LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+#   mutate(LC_aspect_raster_15_data_pts_8_categorical = case_when((LC_aspect_raster_15_data_pts > 0 & LC_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 337.5 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                                 (LC_aspect_raster_15_data_pts >= 22.5 & LC_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 67.5 & LC_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 112.5 & LC_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 157.5 & LC_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 202.5 & LC_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 247.5 & LC_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 292.5 & LC_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
+# 
+# # 4 categories: North, East, South, West
+# 
+# # the directions are a range of 90 degrees 
+# LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+#   mutate(LC_aspect_raster_15_data_pts_4_categorical = case_when((LC_aspect_raster_15_data_pts >= 0 & LC_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 315 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                                 (LC_aspect_raster_15_data_pts >= 45 & LC_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 135 & LC_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
+#                                                                 (LC_aspect_raster_15_data_pts >= 225 & LC_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
+# 
+# 
+# #SD
+# 
+# # 8 categories: North, Northeast, East, Southeast, South, Southwest, West, Northwest
+# 
+# # the directions are a range of 45 degrees 
+# SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+#   mutate(SD_aspect_raster_15_data_pts_8_categorical = case_when((SD_aspect_raster_15_data_pts > 0 & SD_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
+#                                                                 (SD_aspect_raster_15_data_pts >= 337.5 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                                 (SD_aspect_raster_15_data_pts >= 22.5 & SD_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
+#                                                                 (SD_aspect_raster_15_data_pts >= 67.5 & SD_aspect_raster_15_data_pts < 112.5) ~ "E", #east is between 67.5 and 112.5 degrees
+#                                                                 (SD_aspect_raster_15_data_pts >= 112.5 & SD_aspect_raster_15_data_pts < 157.5) ~ "SE", #southeast is between 122.5 and 157.5
+#                                                                 (SD_aspect_raster_15_data_pts >= 157.5 & SD_aspect_raster_15_data_pts < 202.5) ~ "S", #south is between 157.5 and 202.5
+#                                                                 (SD_aspect_raster_15_data_pts >= 202.5 & SD_aspect_raster_15_data_pts < 247.5) ~ "SW", #southwest is between 202.5 and 246.5
+#                                                                 (SD_aspect_raster_15_data_pts >= 247.5 & SD_aspect_raster_15_data_pts < 292.5) ~ "W", #west is between 247.5 and 292.5 degrees
+#                                                                 (SD_aspect_raster_15_data_pts >= 292.5 & SD_aspect_raster_15_data_pts < 337.5) ~ "NW")) #northwest is between 292.5 and 337.5 degrees
+# 
+# # 4 categories: North, East, South, West
+# 
+# # the directions are a range of 90 degrees 
+# SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+#   mutate(SD_aspect_raster_15_data_pts_4_categorical = case_when((SD_aspect_raster_15_data_pts >= 0 & SD_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
+#                                                                 (SD_aspect_raster_15_data_pts >= 315 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
+#                                                                 (SD_aspect_raster_15_data_pts >= 45 & SD_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
+#                                                                 (SD_aspect_raster_15_data_pts >= 135 & SD_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
+#                                                                 (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315 degrees
+# 
+# 
+# 
+# #histograms
+# 
+# #SCA
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = Canopy_short))+
+#   xlab("Short Canopy Axis")+
+#   ylab("Frequency")
+# 
+# #LCA
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = Canopy_long))+
+#   xlab("Long Canopy Axis")+
+#   ylab("Frequency")
+# 
+# #CS
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = Crown_spread))+
+#   xlab("Canopy Spread")+
+#   ylab("Frequency")
+# 
+# #CA
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = Canopy_area))+
+#   xlab("Canopy Area")+
+#   ylab("Frequency")
+# 
+# #DBH
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = DBH_ag))+
+#   xlab("Aggregated DBH")+
+#   ylab("Frequency")
+# 
+# #Elevation before corrections
+# ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
+#   geom_histogram(aes(x = Elevation..m.))+
+#   xlab("Elevation")+
+#   ylab("Frequency")
+# 
+# #LM Elevation
+# ggplot(LM_fixed_field_data_processed) + 
+#   geom_histogram(aes(x = Elevation..m.FIXED))+
+#   xlab("Elevation (m)")+
+#   ylab("Frequency")
+# 
+# #LC Elevation
+# ggplot(LC_fixed_field_data_processed) + 
+#   geom_histogram(aes(x = Elevation..m.))+
+#   xlab("Elevation (m)")+
+#   ylab("Frequency")
+# 
+# #SD Elevation
+# ggplot(SD_fixed_field_data_processed) + 
+#   geom_histogram(aes(x = Elevation..m.))+
+#   xlab("Elevation (m)")+
+#   ylab("Frequency")
+# 
+# #histograms for slope
+# 
+# #LM
+# ggplot(LM_fixed_field_data_processed_terrain) + 
+#   geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
+#   xlab("Slope (degrees)")+
+#   ylab("Frequency")
+# 
+# #LC
+# ggplot(LC_fixed_field_data_processed_terrain) + 
+#   geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
+#   xlab("Slope (degrees)")+
+#   ylab("Frequency")
+# 
+# #SD
+# ggplot(SD_fixed_field_data_processed_terrain) + 
+#   geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
+#   xlab("Slope (degrees)")+
+#   ylab("Frequency")
+# 
+# #barcharts for aspect
+# 
+# # 8 categories of direction
+# 
+# #LM
+# ggplot(LM_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# #LC
+# ggplot(LC_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# #SD
+# ggplot(SD_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# # 4 categories of direction
+# 
+# #LM
+# ggplot(LM_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# #LC
+# ggplot(LC_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# #SD
+# ggplot(SD_fixed_field_data_processed_terrain) + 
+#   geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
+#   xlab("Direction")+
+#   ylab("Frequency")
+# 
+# 
+# #descriptive summaries statistics
+# 
+# # Created a dataframe which contains the "classical" univariate descriptive statistics of each of the important variables
+# field_data_summarized <- fixed_field_data_processed %>%
+#   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
+#   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd))) 
+# View(field_data_summarized)
 
 
 #### Sizes vs. Elevation ####
@@ -694,7 +699,7 @@ View(field_data_summarized)
 # For all trees
 
 # removing NAs
-fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
   drop_na(Elevation..m.FIXED) #removing NAs in elevation 
 
 #SCA
@@ -1149,7 +1154,7 @@ ggplot() +
 # LM 
 
 #removing NAs in elevation
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed_source_source %>%
   drop_na(Elevation..m.FIXED)
 
 #short canopy axis

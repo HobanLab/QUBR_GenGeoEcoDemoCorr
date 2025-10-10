@@ -12,10 +12,17 @@
 # relationship between how much competition the trees face (based on the 
 # size of the neighbors over their distance to the focal trees) and the size of the focal trees.
 
+
+# We create a focal_function() to generate focal trees and calculate the competition metrics
+# for each tree and for each population.
+
 # The script is broken into sections of 
 # 1) loading and processing the packages and spatial/size/shape data for the trees in the Las Matancitas,
-#San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
-# 2) using linear regression to see if tree size seem related to local competition  
+#San Dionisio, and La Cobriza populations and loading in the river outline shapefiles,
+# 2) Creating the focal_function() to generate focal trees and calculate the competition metrics
+#for each tree and for each population
+# 3) Using the focal_function to create the generalized linear regressions to see if tree size seems related to local competition  
+# for each population (LM, LC, and SD)
 
 
 #### Loading libraries and relevant data ####
@@ -103,25 +110,24 @@ source("./analyses/Data_Processing_Script.R")
 # 3) filtering out trees to just the focal points and finding the trees that are within a buffer of the 
 #focal tree with a radius of 40 times the mean population DBH
 # 4) filtering and storing the focal trees without any neighbors
-# 5) iterating over a every focal tree in a loop and calculating the sum of the shape/size metrics of the neighbors for each focal tree (compeititon metric for each tree)
+# 5) iterating over a every focal tree in a loop and calculating the sum of the shape/size metrics of the neighbors for each focal tree (competition metric for each tree)
 # 6) calculating and use histograms descriptive statistics for the competition metrics 
 # 7) created generalized linear models look at the response variable vs. the sum of the response variable divided by the distance of the focal tree for each focal tree
-# a) Optional: looked for influential points (Points with Cook's D > 3 times the Cook's D) and remove them 
-# b) create different versions of generalized least squares regression (uncorrelated, exponential, 
-#spatial, spherical, linear, and ratio quadratics spatial correlations) and find the best 
-#predictive model by comparing the Akaike's Information Criterion
-# c) check the conditions (linearity, normal residuals, simple random sample). We used scatterplots to check linearity. 
-#We used a Shapiro test/qqnorm/histogram to look at normality of residuals. 
-#For a GLS, the errors are allowed to be correlated and/or unequal variances (heterodescadisticty)
-# d) use a normalized semi-variogram to check whether we controlled for spatial autocorrelation with our GLS model 
-#should hover around 1 if the model is effective
-# e) if conditions are met and the spatial autocorrelation is relatively controlled for, we can look at the model summary
-#and the slope test to see if there is significant impact of competition/facilitation on the growth of the trees.
-# A significant positive slope indicates facilitation.
-# A significant negative slope indicates competition.
-# f) use a non-parametric Kendall's Tau Test to see if there is a significant correlation between the competition metric
-#and the size of the focal trees for the data with no outliers
-
+      # a) Optional: looked for influential points (Points with Cook's D > 3 times the Cook's D) and remove them 
+      # b) create different versions of generalized least squares regression (uncorrelated, exponential, 
+            #spatial, spherical, linear, and ratio quadratics spatial correlations) and find the best 
+            #predictive model by comparing the Akaike's Information Criterion
+      # c) check the conditions (linearity, normal residuals, simple random sample). We used scatterplots to check linearity. 
+            #We used a Shapiro test/qqnorm/histogram to look at normality of residuals. 
+            #For a GLS, the errors are allowed to be correlated and/or unequal variances (heterodescadisticty)
+      # d) use a normalized semi-variogram to check whether we controlled for spatial autocorrelation with our GLS model 
+            #should hover around 1 if the model is effective
+      # e) if conditions are met and the spatial autocorrelation is relatively controlled for, we can look at the model summary
+            #and the slope test to see if there is significant impact of competition/facilitation on the growth of the trees.
+                # A significant positive slope indicates facilitation.
+               # A significant negative slope indicates competition.
+      # f) use a non-parametric Kendall's Tau Test to see if there is a significant correlation between the competition metric
+            #and the size of the focal trees for the data with no outliers
 
 focal_function <- function(population){
   
@@ -262,7 +268,9 @@ focal_function <- function(population){
               tree_grid_cropped, focal_tree_buffers, focal_tree_dataframe_with_competition))
 }
 
-####LM ####
+#### Creating the Generalized Linear Effects Models ####
+
+### LM ###
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
 focal_results <- focal_function("LM")
@@ -335,8 +343,6 @@ LM_field_data_focal_summarized_focal <- LM_focal_tree_dataframe %>%
   dplyr::select(SCA_over_distance, LCA_over_distance, CS_over_distance, CA_over_distance, DBH_over_distance) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(LM_field_data_focal_summarized_focal)
-
-#### creating the generalized linear effects model ####
 
 #conditions are lINES: linearity, independence, normal distribution of residuals, equal variance, simple random sample
 
@@ -752,7 +758,7 @@ ggplot() +
   theme_minimal()
 
 
-#### LC ####
+### LC ###
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
 LC_focal_results <- focal_function("LC")
@@ -1286,7 +1292,7 @@ ggplot() +
   theme_minimal()
 
 
-#### SD ####
+### SD ###
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
 SD_focal_results <- focal_function("SD")
