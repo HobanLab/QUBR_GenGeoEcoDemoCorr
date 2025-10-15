@@ -489,21 +489,33 @@ slopes_simulations <- function () {
      #assigning the population based on the current tree
      if (Populations[i] == "LM"){  #LM trees
        Population = "LM"
-       dataframe_soils = LM_fixed_field_data_processed_soils #assigning the LM tree/soils dataframe
+       dataframe_soils = LM_fixed_field_data_processed_source_source_soils #assigning the LM tree/soils dataframe
      } else if (Populations[i] == "LC"){ #LC trees
        Population = "LC"
-       dataframe_soils = LC_fixed_field_data_processed_soils #assigning the LC tree/soils dataframe
+       dataframe_soils = LC_fixed_field_data_processed_source_source_soils #assigning the LC tree/soils dataframe
      } else if (Populations[i] == "SD"){ #SD trees
        Population = "SD"
-       dataframe_soils = SD_fixed_field_data_processed_soils #assigning the SD tree/soils dataframe
+       dataframe_soils = SD_fixed_field_data_processed_source_source_soils #assigning the SD tree/soils dataframe
      }
 
     #creating a dataframe of just the soil characteristics
     fixed_field_data_processed_soils.condensed <-  st_drop_geometry(dataframe_soils) #dropping the spatial geometry to easily remove columns
-    fixed_field_data_processed_soils.condensed <- fixed_field_data_processed_soils.condensed[, c(33:40, 49:62)] #dropping all columns except the relevant soil metrics
+    fixed_field_data_processed_soils.condensed <- fixed_field_data_processed_soils.condensed[, c(c("clay.content.0.5", "clay.content.100.200", "silt.0.5", "silt.100.200", "sand.0.5", "sand.100.200",
+                                                                                                   "ph_0.5", "ph_100.200",  "vol_water_.10_0.5",
+                                                                                                   "vol_water_.10_100.200", "vol_water_0.5",
+                                                                                                   "vol_water_100.200", "vol_water_.1500kPa_0.5", 
+                                                                                                   "vol_water_.1500_100.200", 
+                                                                                                   "nitrogen.0.5", "nitrogen.100.200", 
+                                                                                                   "SOC.0.5", "SOC.100.200",
+                                                                                                   "sandy_avail_water_0.5", "sandy_avail_water_100.200",
+                                                                                                   "clay_loam_avail_water_0.5", "clay_loam_avail_water_100.200"))] #dropping all columns except the relevant soil metrics
+   
+    
     #creating a dataframe of just the size variables
     fixed_field_data_processed_size_variables <- st_drop_geometry(dataframe_soils) #dropping the spatial geometry to easily remove columns
-    fixed_field_data_processed_size_variables <- fixed_field_data_processed_size_variables[, c(22:23, 29, 24, 20)] #dropping all columns except the relevant size metrics
+    fixed_field_data_processed_size_variables <- fixed_field_data_processed_size_variables[, c("Canopy_short", "Canopy_long",
+                                                                                               "Canopy_area","Crown_spread", 
+                                                                                               "DBH_ag")] #dropping all columns except the relevant size metrics
     
     #iterating over the number of soil variables
     for (j in 1:(ncol(fixed_field_data_processed_soils.condensed))){ 

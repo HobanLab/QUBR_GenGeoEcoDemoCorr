@@ -16,10 +16,7 @@
 #generating river and point buffers and bounding boxes,
         # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
         # Extracting the distance to the river of each tree for each population,
-# 2) Creating the distance to river columns for the tree dataframes,
-# 3) Creating the elevation, aspect, and slope columns in the tree dataframes,
-# 4) Combining the elevation, aspect, slope, and distance columns all in the tree dataframes,
-# 5) Creating Generalized Additive Models to look at the relationships between the shape/size of trees and their aspect, elevation, slope, and distance to river
+# 2) Creating Generalized Additive Models to look at the relationships between the shape/size of trees and their aspect, elevation, slope, and distance to river
 
 #### Loading libraries and relevant data ####
 
@@ -666,7 +663,7 @@ source("./analyses/Data_Processing_Script.R")
 ### LM ###
 
 # removing the NAs from the explanatory and response variables to avoid issues while making the GAMs
-LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processed_terrain_dist %>% 
+LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processed_source_source_terrain_dist %>% 
   filter(!is.na(d)) %>% #distance NAs removed
   filter(!is.na(Elevation..m.FIXED)) %>% #Elevation NAs removed
   filter(!is.na(LM_slope_raster_15_data_pts)) %>%  #slope NAs removed

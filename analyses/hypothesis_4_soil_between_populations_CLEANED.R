@@ -525,15 +525,7 @@ LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_sourc
 ggplot()+
   geom_sf(data = LC_tree_grid_cropped)+
   geom_sf(data= LC_fixed_field_data_processed_sf)+
-  geom_sf(data = LC_fixed_field_data_processed_trees_soils, color = "red")+
-  geom_text(
-    data = LC_fixed_field_data_processed_trees_soils %>%
-      mutate(label = X),  #create numeric labels
-    aes(label = label, geometry = geometry), stat = "sf_coordinates",
-    nudge_y = 10,            # adjust position so labels don’t overlap points
-    size = 5,
-    color = "blue"
-  )
+  geom_sf(data = LC_fixed_field_data_processed_trees_soils, color = "red")
 
 #SD
 
@@ -618,7 +610,7 @@ fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_
   # h) the chosen Difference in Means Test Post-Hoc Test results,
   # i) a print of the difference in means tests chosen,
   # j) Kruskal-Wallis Test results,
-  # k) andPost-Hoc Wilcoxon Rank Sum Test results.
+  # k) and Post-Hoc Wilcoxon Rank Sum Test results.
 
 mean_soil_function <- function(soil_group, data = fixed_field_data_processed_trees_soils, Populations = "Locality") {
   
@@ -676,7 +668,7 @@ mean_soil_function <- function(soil_group, data = fixed_field_data_processed_tre
       #storing the tests used
       test_type = "ANOVA + Tukey's HSD"
       #printing out which test was used
-      print(paste("ANOVA Test with a Post-Hoc Pairwise T-Test Test"))
+      print(paste("ANOVA Test with a Post-Hoc Tukey's HSD"))
     }
   }
   
