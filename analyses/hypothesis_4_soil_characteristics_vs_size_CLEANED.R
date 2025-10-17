@@ -489,13 +489,13 @@ slopes_simulations <- function () {
      #assigning the population based on the current tree
      if (Populations[i] == "LM"){  #LM trees
        Population = "LM"
-       dataframe_soils = LM_fixed_field_data_processed_source_source_soils #assigning the LM tree/soils dataframe
+       dataframe_soils = LM_fixed_field_data_processed_soils #assigning the LM tree/soils dataframe
      } else if (Populations[i] == "LC"){ #LC trees
        Population = "LC"
-       dataframe_soils = LC_fixed_field_data_processed_source_source_soils #assigning the LC tree/soils dataframe
+       dataframe_soils = LC_fixed_field_data_processed_soils #assigning the LC tree/soils dataframe
      } else if (Populations[i] == "SD"){ #SD trees
        Population = "SD"
-       dataframe_soils = SD_fixed_field_data_processed_source_source_soils #assigning the SD tree/soils dataframe
+       dataframe_soils = SD_fixed_field_data_processed_soils #assigning the SD tree/soils dataframe
      }
 
     #creating a dataframe of just the soil characteristics

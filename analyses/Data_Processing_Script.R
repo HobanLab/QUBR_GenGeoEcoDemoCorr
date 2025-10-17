@@ -22,47 +22,47 @@ library(visreg) # to be able to plot Aspect/categorical variables with GAM
 
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
 
-fixed_field_data_processed_source <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
 
 #adding a sequential column, "X," to number each tree
 
-fixed_field_data_processed_source <- fixed_field_data_processed_source %>%
+fixed_field_data_processed <- fixed_field_data_processed %>%
   mutate(X = row_number())
 
 # creating the point shapefiles of the tree locations for each population in UTM 12 N
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_source_sf <- st_as_sf(fixed_field_data_processed_source, 
+fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
                                           coords = c("long", "lat"), crs = 4326)
 
 #creating a transformed point shapefile with UTM 12 N an equal area projection
-fixed_field_data_processed_source_sf_transformed_source <- st_transform(fixed_field_data_processed_source_sf, crs = 26912)
+fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
 
 #storing point shapefiles for the trees by population
 
-LM_fixed_field_data_processed_source_source_sf_source <- fixed_field_data_processed_source_sf_transformed_source %>%
+LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LM") %>%
   st_as_sf()
 
-LC_fixed_field_data_processed_source_source_sf_source <- fixed_field_data_processed_source_sf_transformed_source %>%
+LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LC") %>%
   st_as_sf()
 
-SD_fixed_field_data_processed_source_source_sf_source <- fixed_field_data_processed_source_sf_transformed_source %>%
+SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "SD") %>%
   st_as_sf()
 
 #create dataframe with X and Y UTM coordinates
 
-fixed_field_data_processed_source_sf_trans_coords_source <- st_coordinates(fixed_field_data_processed_source_sf_transformed_source) #creates a dataframe with separate x and y columns from the UTM 12N transformation
-fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_data_processed_source_sf_transformed_source %>%
-  cbind(fixed_field_data_processed_source_sf_trans_coords_source) #combines the x and y coordinate data frame with the transformed sf dataframe
+fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
+  cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
 #### transformations of tree size/shape variables (log and square root) for linear models ####
 
 #creating columns with transformations: logged all of the size/shape variables
-fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_lg = log(Canopy_short))%>%
   mutate(Canopy_long_lg = log(Canopy_long))%>%
   mutate(Canopy_area_lg = log(Canopy_area))%>%
@@ -70,7 +70,7 @@ fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_dat
   mutate(DBH_ag_lg = log(DBH_ag))
 
 #creating columns with transformations: square root all of the size/shape variables
-fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Canopy_short_sqrt = sqrt(Canopy_short))%>%
   mutate(Canopy_long_sqrt = sqrt(Canopy_long))%>%
   mutate(Canopy_area_sqrt = sqrt(Canopy_area))%>%
@@ -78,131 +78,131 @@ fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_dat
   mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
 #setting elevation as a numeric value
-fixed_field_data_processed_source_sf_trans_coordinates_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.))
 
-# Creating fixed_field_data_processed_source dataframes for each population with the nearest neighbor columns
+# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
 
-LM_fixed_field_data_processed_source_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LM")
 
-LC_fixed_field_data_processed_source_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "LC")
 
-SD_fixed_field_data_processed_source_source <- fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
   filter(Locality == "SD")
 
 #### Fixing errors with the elevation data ####
 
 #creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
-fixed_field_data_processed_source_sf_trans_coordinates_source <-  fixed_field_data_processed_source_sf_trans_coordinates_source %>%
+fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
                                         (Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
 
 #creating a new elevation column so the values that were mistakenly put in feet are in meters
-LM_fixed_field_data_processed_source_source <-  LM_fixed_field_data_processed_source_source %>%
+LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
                                         (Elevation..m. < 700) ~ Elevation..m.))
 
 #creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
-LC_fixed_field_data_processed_source_source <-  LC_fixed_field_data_processed_source_source %>%
+LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
                                         (Elevation..m. < 700) ~ Elevation..m.))
 
 #plotting all of the tree points by elevation (m) to check the range of values 
 ggplot()+
-  geom_sf(data = fixed_field_data_processed_source_sf_trans_coordinates_source, aes(color = Elevation..m.FIXED))
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates, aes(color = Elevation..m.FIXED))
 
 #creating a new elevation column so that a 360 m outlier is 460
-SD_fixed_field_data_processed_source_source <-  SD_fixed_field_data_processed_source_source %>%
+SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
                                         (Elevation..m. != 360) ~ Elevation..m.))
 
 #### Loading in ArcGIS river and Baja California Sur shapefile and storing out polygons for each population ####
 
 #Las Matancitas (LM)
-river_LM_source <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
-river_LM_source  <- river_LM_source$geometry[1]
-plot(river_LM_source)
+river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+river_LM  <- river_LM$geometry[1]
+plot(river_LM)
 
 #La Cobriza (LC)
-river_LC_source  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
-river_LC_source  <- river_LC_source$geometry[1]
-plot(river_LC_source)
+river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+river_LC  <- river_LC$geometry[1]
+plot(river_LC)
 
 #San Dionisio (SD)
-river_SD_source <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
-river_SD_source <- river_SD_source$geometry[1]
-plot(river_SD_source)
+river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+river_SD <- river_SD$geometry[1]
+plot(river_SD)
 
 #changing the coordinate reference system of the river polygons to be equal area projection (UTM 12N), uses meters as distance measurement 
 #uses meters as distance measurement
-river_LM_trans_source <- st_transform(river_LM_source, crs = 26912) 
-river_LC_trans_source <- st_transform(river_LC_source, crs = 26912)
-river_SD_trans_source <- st_transform(river_SD_source, crs = 26912)
+river_LM_trans <- st_transform(river_LM, crs = 26912) 
+river_LC_trans <- st_transform(river_LC, crs = 26912)
+river_SD_trans <- st_transform(river_SD, crs = 26912)
 
 #ensuring the river outlines are shapefiles for the distance measurements
-river_LM_trans_source <- st_sf(geometry = river_LM_trans_source)
-river_LC_trans_source <- st_sf(geometry = river_LC_trans_source)
-river_SD_trans_source <- st_sf(geometry = river_SD_trans_source)
+river_LM_trans <- st_sf(geometry = river_LM_trans)
+river_LC_trans <- st_sf(geometry = river_LC_trans)
+river_SD_trans <- st_sf(geometry = river_SD_trans)
 
 # Importing BCS and River Shapefiles 
 
 #turning the Baja California Sur polygon into a shapefile, to be able to visualize the point locations
-BCS_polygon_source <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
-BCS_polygon_source <- st_as_sf(BCS_polygon_source) #ensures foreign will be an sf object (in this case a multipolygon)
+BCS_polygon <- read_sf("./data/Shapefiles/BCS_Shapefile/bcs_entidad.shp")
+BCS_polygon <- st_as_sf(BCS_polygon) #ensures foreign will be an sf object (in this case a multipolygon)
 
 #### Creating buffers and boundaries around the rivers ####
 
 #creating buffers around the rivers
 
 #LM
-river_buffer_LM_source <- st_buffer(river_LM_trans_source, 100) #100 m buffer
+river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
 ggplot()+  #plotting the river shapefile, the buffer, and the tree points
-  geom_sf(data = river_buffer_LM_source)+
-  geom_sf(data = river_LM_trans_source)+
-  geom_sf(data = LM_fixed_field_data_processed_source_source_sf_source)
+  geom_sf(data = river_buffer_LM)+
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
 
 #LC
-river_buffer_LC_source <- st_buffer(river_LC_trans_source, 100) #230 m buffer
+river_buffer_LC <- st_buffer(river_LC_trans, 100) #230 m buffer
 ggplot()+ #plotting the river shapefile, the buffer, and the tree points
-  geom_sf(data = river_buffer_LC_source)+
-  geom_sf(data = river_LC_trans_source)+
-  geom_sf(data = LC_fixed_field_data_processed_source_source_sf_source)
+  geom_sf(data = river_buffer_LC)+
+  geom_sf(data = river_LC_trans)+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
 
 #SD
-river_buffer_SD_source <- st_buffer(river_SD_trans_source, 70) #70 m buffer
+river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer
 ggplot()+ #plotting the river shapefile, the buffer, and the tree points
-  geom_sf(data = river_buffer_SD_source)+
-  geom_sf(data = river_SD_trans_source)+
-  geom_sf(data = SD_fixed_field_data_processed_source_source_sf_source)
+  geom_sf(data = river_buffer_SD)+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
 
 #creating bounding boxes for each population
 
 #creating a boundary box for LM with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
-LM_fixed_field_data_processed_source_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
+LM_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LM") %>%
   st_bbox %>%
   st_as_sfc()
 
 #creating a boundary box for LC with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
-LC_fixed_field_data_processed_source_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
+LC_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "LC") %>%
   st_bbox %>%
   st_as_sfc()
 
 #creating a boundary box for SD with the UTM 12 N min and max lat lon values and then turning it into a simple feature geometry
-SD_fixed_field_data_processed_source_source_box <- fixed_field_data_processed_source_sf_transformed_source %>%
+SD_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %>%
   filter(Locality == "SD") %>%
   st_bbox %>%
   st_as_sfc()
 
 #creating bounding boxes for all of the river shapefiles for each population
-LM_box <- st_bbox(river_LM_trans_source)
-LC_box <- st_bbox(river_LC_trans_source)
-SD_box <- st_bbox(river_SD_trans_source)
+LM_box <- st_bbox(river_LM_trans)
+LC_box <- st_bbox(river_LC_trans)
+SD_box <- st_bbox(river_SD_trans)
 
 #### Creating the elevation, aspect, and slope columns in the dataframe ####
 
@@ -238,7 +238,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the all points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = fixed_field_data_processed_source_sf_trans_coordinates_source)
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
 # 
 # #LM
 # 
@@ -248,7 +248,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LM_fixed_field_data_processed_source_source)
+#   geom_sf(data = LM_fixed_field_data_processed)
 # 
 # #LC
 # 
@@ -258,7 +258,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LC_fixed_field_data_processed_source_source)
+#   geom_sf(data = LC_fixed_field_data_processed)
 # 
 # #SD
 # 
@@ -268,7 +268,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = SD_fixed_field_data_processed_source_source)
+#   geom_sf(data = SD_fixed_field_data_processed)
 
 # #exporting this cropped rasters as a tif
 # writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
@@ -299,7 +299,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the all points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = fixed_field_data_processed_source_sf_trans_coordinates_source)
+#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
 # 
 # #LM
 # 
@@ -309,7 +309,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LM_fixed_field_data_processed_source_source)
+#   geom_sf(data = LM_fixed_field_data_processed)
 # 
 # #LC
 # 
@@ -319,7 +319,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LC_fixed_field_data_processed_source_source)
+#   geom_sf(data = LC_fixed_field_data_processed)
 # 
 # #SD
 # 
@@ -329,7 +329,7 @@ SD_box <- st_bbox(river_SD_trans_source)
 # #plotting the LM elevation raster with the LM points
 # ggplot()+
 #   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = SD_fixed_field_data_processed_source_source)
+#   geom_sf(data = SD_fixed_field_data_processed)
 
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
@@ -348,7 +348,7 @@ CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_
 #plotting all of the elevation rasters and tree points
 ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
-  geom_sf(data = fixed_field_data_processed_source_sf_transformed_source)
+  geom_sf(data = fixed_field_data_processed_sf_transformed)
 
 ## Extracting the slope 
 
@@ -360,7 +360,7 @@ all_points_slope_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'degr
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = fixed_field_data_processed_source_sf_trans_coordinates_source)+
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
   scale_fill_viridis_c()
 
 
@@ -372,7 +372,7 @@ LM_slope_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors 
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LM_fixed_field_data_processed_source_source)+
+  geom_sf(data = LM_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 #LC
@@ -383,7 +383,7 @@ LC_slope_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors 
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = LC_fixed_field_data_processed_source_source)+
+  geom_sf(data = LC_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 #SD
@@ -394,7 +394,7 @@ SD_slope_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors 
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
-  geom_sf(data = SD_fixed_field_data_processed_source_source)+
+  geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 ## Extracting the aspect 
@@ -407,7 +407,7 @@ all_points_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_points, unit = 'deg
 #plot the slopes
 ggplot()+
   geom_raster(data= as.data.frame(all_points_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = fixed_field_data_processed_source_sf_trans_coordinates_source)+
+  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)+
   scale_fill_viridis_c()
 
 
@@ -419,7 +419,7 @@ LM_aspect_raster_15 <- terra::terrain(CEM_15_utm_LM, unit = 'degrees', neighbors
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LM_fixed_field_data_processed_source_source)+
+  geom_sf(data = LM_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 #LC
@@ -430,7 +430,7 @@ LC_aspect_raster_15 <- terra::terrain(CEM_15_utm_LC, unit = 'degrees', neighbors
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = LC_fixed_field_data_processed_source_source)+
+  geom_sf(data = LC_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 #SD
@@ -442,7 +442,7 @@ SD_aspect_raster_15 <- terra::terrain(CEM_15_utm_SD, unit = 'degrees', neighbors
 #plot of the slopes
 ggplot()+
   geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
-  geom_sf(data = SD_fixed_field_data_processed_source_source)+
+  geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
 
 
@@ -451,61 +451,61 @@ ggplot()+
 
 #all points
 
-all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_source_sf_trans_coordinates_source) #extracting aspect for each point value
-all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_source_sf_trans_coordinates_source) #extracting slope for each point value
-all_points_fixed_field_data_processed_source_terrain <- cbind(fixed_field_data_processed_source_sf_trans_coordinates_source, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the all point dataframe
-all_points_fixed_field_data_processed_source_terrain <- cbind(all_points_fixed_field_data_processed_source_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the all point dataframe
+all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
+all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point value
+all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the all point dataframe
+all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the all point dataframe
 
 #LM
 
-LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed_source_source) #extracting aspect for each point value
-LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed_source_source) #extracting slope for each point value
-LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed_source_source) #extracting the elevation for each point value
-LM_fixed_field_data_processed_source_source_terrain <- cbind(LM_fixed_field_data_processed_source_source, LM_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
-LM_fixed_field_data_processed_source_source_terrain <- cbind(LM_fixed_field_data_processed_source_source_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
-LM_fixed_field_data_processed_source_source_terrain <- cbind(LM_fixed_field_data_processed_source_source_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
+LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
+LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point value
+LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point value
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
 #LC
 
-LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed_source_source) #extracting aspect for each point value
-LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed_source_source) #extracting slope for each point value
-LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed_source_source) #extracting the elevation for each point value
-LC_fixed_field_data_processed_source_source_terrain <- cbind(LC_fixed_field_data_processed_source_source, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the LC point dataframe
-LC_fixed_field_data_processed_source_source_terrain <- cbind(LC_fixed_field_data_processed_source_source_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the LC point dataframe
-LC_fixed_field_data_processed_source_source_terrain <- cbind(LC_fixed_field_data_processed_source_source_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LC point dataframe
+LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
+LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
+LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the LC point dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LC point dataframe
 
 #SD
 
-SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed_source_source) #extracting aspect for each point value
-SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed_source_source) #extracting slope for each point value
-SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed_source_source) #extracting the elevation for each point value
-SD_fixed_field_data_processed_source_source_terrain <- cbind(SD_fixed_field_data_processed_source_source, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
-SD_fixed_field_data_processed_source_source_terrain <- cbind(SD_fixed_field_data_processed_source_source_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
-SD_fixed_field_data_processed_source_source_terrain <- cbind(SD_fixed_field_data_processed_source_source_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the SD point dataframe
+SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
+SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
+SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the SD point dataframe
 
 #re-categorizing the aspect data (using either the 4 or 8 cardinal directions)
 
 #setting values of 360 to 0
 
 #all points
-all_points_fixed_field_data_processed_source_terrain <- all_points_fixed_field_data_processed_source_terrain %>%
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
                                                           (all_points_aspect_raster_15_data_pts != "360")~ all_points_aspect_raster_15_data_pts))
 
 #LM
-LM_fixed_field_data_processed_source_source_terrain <- LM_fixed_field_data_processed_source_source_terrain %>%
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
                                                   (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_15_data_pts))
 #LC
 
-LC_fixed_field_data_processed_source_source_terrain <- LC_fixed_field_data_processed_source_source_terrain %>%
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
                                                   (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_15_data_pts))
 
 
 #SD
 
-SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_processed_source_source_terrain %>%
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
                                                   (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_15_data_pts))
 
@@ -515,7 +515,7 @@ SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_proce
 # Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are by a range of 45 degrees 
-all_points_fixed_field_data_processed_source_terrain <- all_points_fixed_field_data_processed_source_terrain %>%
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts_8_categorical = case_when((all_points_aspect_raster_15_data_pts > 0 & all_points_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                         (all_points_aspect_raster_15_data_pts >= 337.5 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", #359.99999
                                                                         (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
@@ -529,7 +529,7 @@ all_points_fixed_field_data_processed_source_terrain <- all_points_fixed_field_d
 # Using the 4 cardinal directions: North, East, South, West
 
 # the directions are by a range of 90 degrees 
-all_points_fixed_field_data_processed_source_terrain <- all_points_fixed_field_data_processed_source_terrain %>%
+all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
   mutate(all_points_aspect_raster_15_data_pts_4_categorical = case_when((all_points_aspect_raster_15_data_pts >= 0 & all_points_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                         (all_points_aspect_raster_15_data_pts >= 315 & all_points_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                         (all_points_aspect_raster_15_data_pts >= 22.5 & all_points_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
@@ -541,7 +541,7 @@ all_points_fixed_field_data_processed_source_terrain <- all_points_fixed_field_d
 # Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are by a range of 45 degrees 
-LM_fixed_field_data_processed_source_source_terrain <- LM_fixed_field_data_processed_source_source_terrain %>%
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts_8_categorical = case_when((LM_aspect_raster_15_data_pts > 0 & LM_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (LM_aspect_raster_15_data_pts >= 337.5 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                 (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
@@ -555,7 +555,7 @@ LM_fixed_field_data_processed_source_source_terrain <- LM_fixed_field_data_proce
 # Using the 4 cardinal directions: North, East, South, West
 
 # the directions are by a range of 90 degrees 
-LM_fixed_field_data_processed_source_source_terrain <- LM_fixed_field_data_processed_source_source_terrain %>%
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
   mutate(LM_aspect_raster_15_data_pts_4_categorical = case_when((LM_aspect_raster_15_data_pts >= 0 & LM_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (LM_aspect_raster_15_data_pts >= 315 & LM_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                 (LM_aspect_raster_15_data_pts >= 22.5 & LM_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
@@ -568,7 +568,7 @@ LM_fixed_field_data_processed_source_source_terrain <- LM_fixed_field_data_proce
 # Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are by a range of 45 degrees 
-LC_fixed_field_data_processed_source_source_terrain <- LC_fixed_field_data_processed_source_source_terrain %>%
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts_8_categorical = case_when((LC_aspect_raster_15_data_pts > 0 & LC_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (LC_aspect_raster_15_data_pts >= 337.5 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N", 
                                                                 (LC_aspect_raster_15_data_pts >= 22.5 & LC_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
@@ -583,7 +583,7 @@ LC_fixed_field_data_processed_source_source_terrain <- LC_fixed_field_data_proce
 # Using the 4 cardinal directions: North, East, South, West
 
 # the directions are by a range of 90 degrees 
-LC_fixed_field_data_processed_source_source_terrain <- LC_fixed_field_data_processed_source_source_terrain %>%
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
   mutate(LC_aspect_raster_15_data_pts_4_categorical = case_when((LC_aspect_raster_15_data_pts >= 0 & LC_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (LC_aspect_raster_15_data_pts >= 315 & LC_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                 (LC_aspect_raster_15_data_pts >= 45 & LC_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
@@ -594,7 +594,7 @@ LC_fixed_field_data_processed_source_source_terrain <- LC_fixed_field_data_proce
 # Using the 8 cardinal directions: North, Northeast, East, Southeast, South, Southwest, West, Northwest
 
 # the directions are by a range of 45 degrees 
-SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_processed_source_source_terrain %>%
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts_8_categorical = case_when((SD_aspect_raster_15_data_pts > 0 & SD_aspect_raster_15_data_pts < 22.5) ~ "N",  #north is between 337.5 and 22.5
                                                                 (SD_aspect_raster_15_data_pts >= 337.5 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                 (SD_aspect_raster_15_data_pts >= 22.5 & SD_aspect_raster_15_data_pts < 67.5) ~ "NE", #northeast is between 22.5 and 67.5 degrees
@@ -608,7 +608,7 @@ SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_proce
 # Using the 4 cardinal directions: North, East, South, West
 
 # the directions are by a range of 90 degrees 
-SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_processed_source_source_terrain %>%
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
   mutate(SD_aspect_raster_15_data_pts_4_categorical = case_when((SD_aspect_raster_15_data_pts >= 0 & SD_aspect_raster_15_data_pts < 45) ~ "N",  #north is between 315 and 22.5
                                                                 (SD_aspect_raster_15_data_pts >= 315 & SD_aspect_raster_15_data_pts < 359.999999999999999) ~ "N",
                                                                 (SD_aspect_raster_15_data_pts >= 45 & SD_aspect_raster_15_data_pts < 135) ~ "E", #northeast is between 22.5 and 135  degrees
@@ -620,12 +620,12 @@ SD_fixed_field_data_processed_source_source_terrain <- SD_fixed_field_data_proce
 #LM
 
 #turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_LM_trans_points <- st_cast(river_LM_trans_source, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turning the polyline of the river into a linestring object
 river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #creating a raster out of the river linestring object
 plot(river_LM_trans_point_raster) #plotting the river linestring object
 
 #turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_LM_buffer_trans_outline <- st_cast(river_buffer_LM_source, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turning the polygon of the river buffer into a linestring object
 river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #creating a raster of river buffer linestring object
 plot(river_buffer_LM_point_raster) #plotting the river buffer linestring object
 
@@ -637,12 +637,12 @@ plot(dist_near_river_buffer_LM) #plotting the distance to river raster
 #LC
 
 #turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_LC_trans_points <- st_cast(river_LC_trans_source, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turning the polyline of the river into a linestring object
 river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #creating a raster out of the river linestring object
 plot(river_LC_trans_point_raster)
 
 #turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_buffer_LC_points <- st_cast(river_buffer_LC_source, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turning the polygon of the river buffer into a linestring object
 river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #creating a raster of river buffer linestring object
 plot(river_buffer_LC_point_raster) #plotting the river buffer linestring object
 
@@ -654,12 +654,12 @@ plot(dist_near_river_buffer_LC) #not using inverse distance
 #SD
 
 #turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_SD_trans_points <- st_cast(river_SD_trans_source, "LINESTRING") #turning the polyline of the river into a linestring object
+river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turning the polyline of the river into a linestring object
 river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #creating a raster out of the river linestring object
 plot(river_SD_trans_point_raster)
 
 #turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_buffer_SD_points <- st_cast(river_buffer_SD_source, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turning the polygon of the river buffer into a linestring object
 river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #creating a raster of river buffer linestring object
 plot(river_buffer_SD_point_raster) #plotting the river buffer linestring object
 
@@ -674,66 +674,66 @@ plot(dist_near_river_buffer_SD) #plotting the distance to river raster
 #LM
 
 #Assigning points within and overlapping with the river to be "true"
-LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed_source_source, river_LM_trans_source, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
-LM_fixed_field_data_processed_source_source_intersects_river <- cbind(LM_fixed_field_data_processed_source_source, LM_points_intersects_river) #binding the list of true or falses with the point data
+LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
+LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
-  geom_sf(data=river_LM_trans_source)+
-  geom_sf(data=LM_fixed_field_data_processed_source_source)+
-  geom_sf(data=LM_fixed_field_data_processed_source_source_intersects_river, aes(color = LM_points_intersects_river))
+  geom_sf(data=river_LM_trans)+
+  geom_sf(data=LM_fixed_field_data_processed)+
+  geom_sf(data=LM_fixed_field_data_processed_intersects_river, aes(color = LM_points_intersects_river))
 
 #LC 
 
 #Assigning points within and overlapping with the river to be "true"
-LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed_source_source, river_LC_trans_source, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-LC_fixed_field_data_processed_source_source_intersects_river <- cbind(LC_fixed_field_data_processed_source_source, LC_points_intersects_river) #binding the list of true or falses with the point data
+LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed, river_LC_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
+LC_fixed_field_data_processed_intersects_river <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
-  geom_sf(data=river_LC_trans_source)+
-  geom_sf(data=LC_fixed_field_data_processed_source_source)+
-  geom_sf(data=LC_fixed_field_data_processed_source_source_intersects_river, aes(color = LC_points_intersects_river))
+  geom_sf(data=river_LC_trans)+
+  geom_sf(data=LC_fixed_field_data_processed)+
+  geom_sf(data=LC_fixed_field_data_processed_intersects_river, aes(color = LC_points_intersects_river))
 
 #SD
 
 #Assigning points within and overlapping with the river to be "true"
-SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed_source_source, river_SD_trans_source, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-SD_fixed_field_data_processed_source_source_intersects_river <- cbind(SD_fixed_field_data_processed_source_source, SD_points_intersects_river) #binding the list of true or falses with the point data
+SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed, river_SD_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
+SD_fixed_field_data_processed_intersects_river <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
-  geom_sf(data=river_SD_trans_source)+
-  geom_sf(data=SD_fixed_field_data_processed_source_source)+
-  geom_sf(data=SD_fixed_field_data_processed_source_source_intersects_river, aes(color = SD_points_intersects_river))
+  geom_sf(data=river_SD_trans)+
+  geom_sf(data=SD_fixed_field_data_processed)+
+  geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
 
 ## Extracting distance to river for each tree using the distance to river raster
 
 #LM
-LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed_source_source) #extracting distance to river for each tree
-LM_fixed_field_data_processed_source_source_distance  <- cbind(LM_fixed_field_data_processed_source_source, LM_distance_data_pts) #binding the distance to river data for each point to the LM point dataframe
+LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting distance to river for each tree
+LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #binding the distance to river data for each point to the LM point dataframe
 
 
 #LC
-LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed_source_source) #extracting distance to river for each tree
-LC_fixed_field_data_processed_source_source_distance  <- cbind(LC_fixed_field_data_processed_source_source, LC_distance_data_pts) #binding the distance to river data for each tree to the LC point dataframe
+LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting distance to river for each tree
+LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #binding the distance to river data for each tree to the LC point dataframe
 
 
 #SD
-SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed_source_source) #extracting distance to river for each tree
-SD_fixed_field_data_processed_source_source_distance  <- cbind(SD_fixed_field_data_processed_source_source, SD_distance_data_pts) #binding the distance to river data for each point to the SD point dataframe
+SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting distance to river for each tree
+SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #binding the distance to river data for each point to the SD point dataframe
 
 ## Assigning all points within/overlapping river to distances of 0
 
 #LM
-LM_fixed_field_data_processed_source_source_distance <- LM_fixed_field_data_processed_source_source_distance %>% 
+LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>% 
   mutate(d = case_when((LM_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (LM_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
 
 #LC
-LC_fixed_field_data_processed_source_source_distance <- LC_fixed_field_data_processed_source_source_distance %>%
+LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
   mutate(d = case_when((LC_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (LC_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
 
 #SD
-SD_fixed_field_data_processed_source_source_distance <- SD_fixed_field_data_processed_source_source_distance %>%
+SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
   mutate(d = case_when((SD_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
                        (SD_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value
 
@@ -741,120 +741,120 @@ SD_fixed_field_data_processed_source_source_distance <- SD_fixed_field_data_proc
 #### Combining the elevation, slope, aspect, and distance data into one dataframe ####
 
 #LM
-LM_fixed_field_data_processed_source_source_terrain_dist <- cbind(LM_fixed_field_data_processed_source_source_terrain, LM_fixed_field_data_processed_source_source_distance)
+LM_fixed_field_data_processed_terrain_dist <- cbind(LM_fixed_field_data_processed_terrain, LM_fixed_field_data_processed_distance)
 
 #LC
-LC_fixed_field_data_processed_source_source_terrain_dist <- cbind(LC_fixed_field_data_processed_source_source_terrain, LC_fixed_field_data_processed_source_source_distance)
+LC_fixed_field_data_processed_terrain_dist <- cbind(LC_fixed_field_data_processed_terrain, LC_fixed_field_data_processed_distance)
 
 #SD
-SD_fixed_field_data_processed_source_source_terrain_dist <- cbind(SD_fixed_field_data_processed_source_source_terrain, SD_fixed_field_data_processed_source_source_distance)
+SD_fixed_field_data_processed_terrain_dist <- cbind(SD_fixed_field_data_processed_terrain, SD_fixed_field_data_processed_distance)
 
 
 #### Descriptive Summary ####
 
 #histograms
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + # Short Canopy Axis
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + # Long Canopy Axis
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + # Crown Spread
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + # Canopy Area
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
 
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + # DBH
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #LM
 
-ggplot(LM_fixed_field_data_processed_source_source) + # Short Canopy Axis
+ggplot(LM_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_source_source) + # Long Canopy Axis
+ggplot(LM_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_source_source) + # Crown Spread
+ggplot(LM_fixed_field_data_processed) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_source_source) + # Canopy Area
+ggplot(LM_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(LM_fixed_field_data_processed_source_source) + # DBH
+ggplot(LM_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #LC
 
-ggplot(LC_fixed_field_data_processed_source_source) + # Short Canopy Axis
+ggplot(LC_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_source_source) + # Long Canopy Axis
+ggplot(LC_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_source_source) + # Crown Spread
+ggplot(LC_fixed_field_data_processed) + # Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_source_source) + # Canopy Area
+ggplot(LC_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(LC_fixed_field_data_processed_source_source) + # DBH
+ggplot(LC_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_source_source) + # Short Canopy Axis
+ggplot(SD_fixed_field_data_processed) + # Short Canopy Axis
   geom_histogram(aes(x = Canopy_short))+
   xlab("Short Canopy Axis")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_source_source) + # Long Canopy Axis
+ggplot(SD_fixed_field_data_processed) + # Long Canopy Axis
   geom_histogram(aes(x = Canopy_long))+
   xlab("Long Canopy Axis")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_source_source) + #  Crown Spread
+ggplot(SD_fixed_field_data_processed) + #  Crown Spread
   geom_histogram(aes(x = Crown_spread))+
   xlab("Canopy Spread")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_source_source) + # Canopy Area
+ggplot(SD_fixed_field_data_processed) + # Canopy Area
   geom_histogram(aes(x = Canopy_area))+
   xlab("Canopy Area")+
   ylab("Frequency")
 
-ggplot(SD_fixed_field_data_processed_source_source) + # DBH
+ggplot(SD_fixed_field_data_processed) + # DBH
   geom_histogram(aes(x = DBH_ag))+
   xlab("Aggregated DBH")+
   ylab("Frequency")
@@ -863,25 +863,25 @@ ggplot(SD_fixed_field_data_processed_source_source) + # DBH
 # Elevation histograms to look at the spread of the data
 
 # all points
-ggplot(fixed_field_data_processed_source_sf_trans_coordinates_source) + 
+ggplot(fixed_field_data_processed_sf_trans_coordinates) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation")+
   ylab("Frequency")
 
 # LM
-ggplot(LM_fixed_field_data_processed_source_source) + 
+ggplot(LM_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.FIXED))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_source_source) + 
+ggplot(LC_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_source_source) + 
+ggplot(SD_fixed_field_data_processed) + 
   geom_histogram(aes(x = Elevation..m.))+
   xlab("Elevation (m)")+
   ylab("Frequency")
@@ -889,19 +889,19 @@ ggplot(SD_fixed_field_data_processed_source_source) +
 #histograms for slope
 
 #LM
-ggplot(LM_fixed_field_data_processed_source_source_terrain) + 
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LM_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_source_source_terrain) + 
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = LC_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_source_source_terrain) + 
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_histogram(aes(x = SD_slope_raster_15_data_pts))+
   xlab("Slope (degrees)")+
   ylab("Frequency")
@@ -911,19 +911,19 @@ ggplot(SD_fixed_field_data_processed_source_source_terrain) +
 # 8 categories of direction
 
 #LM
-ggplot(LM_fixed_field_data_processed_source_source_terrain) + 
+ggplot(LM_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_source_source_terrain) + 
+ggplot(LC_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_source_source_terrain) + 
+ggplot(SD_fixed_field_data_processed_terrain) + 
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_8_categorical))+
   xlab("Direction")+
   ylab("Frequency")
@@ -931,19 +931,19 @@ ggplot(SD_fixed_field_data_processed_source_source_terrain) +
 # 4 categories of direction
 
 #LM
-ggplot(LM_fixed_field_data_processed_source_source_terrain) + #generate the base plot
+ggplot(LM_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LM_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #LC
-ggplot(LC_fixed_field_data_processed_source_source_terrain) + #generate the base plot
+ggplot(LC_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = LC_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
 
 #SD
-ggplot(SD_fixed_field_data_processed_source_source_terrain) + #generate the base plot
+ggplot(SD_fixed_field_data_processed_terrain) + #generate the base plot
   geom_bar(aes(x = SD_aspect_raster_15_data_pts_4_categorical))+
   xlab("Direction")+
   ylab("Frequency")
@@ -951,7 +951,7 @@ ggplot(SD_fixed_field_data_processed_source_source_terrain) + #generate the base
 
 #Summary Statistics
 # Create a df which contains the "classical" univariate dist'n stats of each of the important variables
-field_data_summarized <- fixed_field_data_processed_source %>%
+field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
@@ -1016,6 +1016,11 @@ nitrogen_05_utm <- projectRaster(nitrogen_05, crs=26912)
 nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
 Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
 Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
+sandy_avail_water_0.5_utm <- vol_wat_33kpa_05_utm - vol_wat_1500kpa_05_utm # Sand Available Water 0-5 cm
+sandy_avail_water_100.200_utm <- vol_wat_33kpa_200_utm - vol_wat_1500kpa_200_utm # Sand Available Water 100-200 cm
+clay_loam_avail_water_0.5_utm <- vol_wat_10kpa_05_utm - vol_wat_1500kpa_05_utm # Clay/Loam Available Water 0-5 cm
+clay_loam_avail_water_100.200_utm <- vol_wat_10kpa_200_utm - vol_wat_1500kpa_200_utm # Clay/Loam Available Water 100-200 cm
+
 
 ## cropping the soil metrics to bounding boxes around each population ##
 
@@ -1053,8 +1058,8 @@ Soil_Organic_Carbon_200_LM <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]
 # plotting an example soil metric raster with river shapefile and tree points  
 ggplot()+
   geom_raster(data = as.data.frame(Soil_Organic_Carbon_05_LM, xy=T), aes(x=x, y=y, fill = SOC.0.5))+
-  geom_sf(data = river_LM_trans_source)+
-  geom_sf(data = LM_fixed_field_data_processed_source_source)
+  geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed)
 
 #creating stacks of the soil raster layers (using multiple for visualization purposes)
 soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
@@ -1171,42 +1176,42 @@ plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the s
 #creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
 
 #creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
-LM_fixed_field_data_processed_source_source <- LM_fixed_field_data_processed_source_source %>%
-  mutate(X_sequential = 1:nrow(LM_fixed_field_data_processed_source_source))
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(LM_fixed_field_data_processed))
 
 #creating an x_sequential column that is 1 through the number of LC points, which will make it easier to randomly choose one point
-LC_fixed_field_data_processed_source_source <- LC_fixed_field_data_processed_source_source %>%
-  mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed_source_source))
+LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed))
 
 #creating an x_sequential column that is 1 through the number of SD points, which will make it easier to randomly choose one point
-SD_fixed_field_data_processed_source_source <- SD_fixed_field_data_processed_source_source %>%
-  mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed_source_source))
+SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
+  mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed))
 
 ## Extracting the soil data to the tree points 
 
 #LM
-LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed_source_source) #extracting soil textures for each point value
-LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed_source_source) #extracting the other soil variables for each point value
-LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed_source_source) #extracting the extra soil variables for each point value
-LM_fixed_field_data_processed_source_source_soils <- cbind(LM_fixed_field_data_processed_source_source, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
-LM_fixed_field_data_processed_source_source_soils <- cbind(LM_fixed_field_data_processed_source_source_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
-LM_fixed_field_data_processed_source_source_soils <- cbind(LM_fixed_field_data_processed_source_source_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
+LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
+LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
+LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
 
 #LC
-LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed_source_source) #extracting soil textures for each point value
-LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed_source_source) #extracting the other soil variables for each point value
-LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed_source_source) #extracting the extra soil variables for each point value
-LC_fixed_field_data_processed_source_source_soils <- cbind(LC_fixed_field_data_processed_source_source, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
-LC_fixed_field_data_processed_source_source_soils <- cbind(LC_fixed_field_data_processed_source_source_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
-LC_fixed_field_data_processed_source_source_soils <- cbind(LC_fixed_field_data_processed_source_source_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
+LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
+LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
+LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 #SD
-SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed_source_source) #extracting soil textures for each point value
-SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed_source_source) #extracting the other soil variables for each point value
-SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed_source_source) #extracting the extra soil variables for each point value
-SD_fixed_field_data_processed_source_source_soils <- cbind(SD_fixed_field_data_processed_source_source, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
-SD_fixed_field_data_processed_source_source_soils <- cbind(SD_fixed_field_data_processed_source_source_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
-SD_fixed_field_data_processed_source_source_soils <- cbind(SD_fixed_field_data_processed_source_source_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
+SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
+SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
+SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 
 #### Creating Sandy and Clay/Loamy Available Water Columns ####
@@ -1215,7 +1220,7 @@ SD_fixed_field_data_processed_source_source_soils <- cbind(SD_fixed_field_data_p
 
 # LM
 
-LM_fixed_field_data_processed_source_source_soils <- LM_fixed_field_data_processed_source_source_soils %>%
+LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>% # Sand Available Water 0-5 cm
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
@@ -1223,7 +1228,7 @@ LM_fixed_field_data_processed_source_source_soils <- LM_fixed_field_data_process
 
 # LC
 
-LC_fixed_field_data_processed_source_source_soils <- LC_fixed_field_data_processed_source_source_soils %>%
+LC_fixed_field_data_processed_soils <- LC_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>%
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
@@ -1231,7 +1236,7 @@ LC_fixed_field_data_processed_source_source_soils <- LC_fixed_field_data_process
 
 # SD
 
-SD_fixed_field_data_processed_source_source_soils <- SD_fixed_field_data_processed_source_source_soils %>%
+SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_0.5 = vol_water_0.5 - vol_water_.1500kPa_0.5) %>% # Sand Available Water 0-5 cm
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
@@ -1465,8 +1470,8 @@ all_known_pop_soil_vol_wat_33kpa <- raster::extract(soil_stack_vol_wat_33kpa, al
 all_known_pop_soil_vol_wat_1500kpa <- raster::extract(soil_stack_vol_wat_1500kpa, all_pop_locations.df_sf_trans_coordinates) # extracting volume water content at -1500 kpa
 all_known_pop_soil_nitrogen <- raster::extract(soil_stack_nitrogen, all_pop_locations.df_sf_trans_coordinates) # extracting nitrogen
 all_known_pop_soil_soc <- raster::extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates) # extracting soil organic carbon
-all_known_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, all_pop_locations.df_sf_trans_coordinates) # extracting 
-all_known_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, all_pop_locations.df_sf_trans_coordinates) # extracting 
+all_known_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, all_pop_locations.df_sf_trans_coordinates) # extracting
 
 #combine all of the extracted population soil textures data across all soil metrics
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #adding clay to the dataframe

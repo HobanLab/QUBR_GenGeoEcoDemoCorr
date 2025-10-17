@@ -472,7 +472,7 @@ LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>%
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
 #filtering out point data to be just the trees within the grids
-LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_source_source_soils %>%
+LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
   filter(X %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
 
 #plotting the points, grid, and randomly selected points from each grid
@@ -518,7 +518,7 @@ LC_list_grids_and_trees_fixed <- LC_list_grids_and_point_trees_df %>%
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
 #filtering out point data to be just the focal points
-LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_source_source_soils %>%
+LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_soils %>%
   filter(X_sequential %in% LC_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
 
 #plotting the points, grid, and randomly selected points from each grid
@@ -563,7 +563,7 @@ SD_list_grids_and_trees_fixed <- SD_list_grids_and_point_trees_df %>%
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
 #filtering out point data to be just the focal points
-SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_source_source_soils %>%
+SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_soils %>%
   filter(X_sequential %in% SD_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with row numbers that match between the overall tree points dataframe and the focal tree points dataframe
 
 #plotting the points, grid, and randomly selected points from each grid

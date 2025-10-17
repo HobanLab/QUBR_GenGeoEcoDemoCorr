@@ -35,8 +35,8 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
 #export the csv of the UTM 12N points for using the file in ArcGIS to make new shapefiles
-fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
-View(fixed_field_data_processed_sf_transformed)
+#fixed_field_data_processed_sf_trans_coordinates_download <- write.csv(fixed_field_data_processed_sf_trans_coordinates, "/Users/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/fixed_field_data_processed_sf_trans_coordinates.csv", row.names = F)
+#View(fixed_field_data_processed_sf_transformed)
 
 #creating shapefiles for each population, turning sf of all points into sfc
 

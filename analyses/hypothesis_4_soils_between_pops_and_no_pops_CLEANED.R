@@ -432,8 +432,8 @@ source("./analyses/Data_Processing_Script.R")
 
 #combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell
 
-fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_source_source_soils, LC_fixed_field_data_processed_source_source_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_source_source_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_soils, LC_fixed_field_data_processed_soils) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
 # 
 # ###Generating the 20 QUBR Population Soil and Spatial Dataframe ##
@@ -921,14 +921,14 @@ random_pop.df <- random_pop.df %>%
 
 
 #heat map of Bonferonni corrected P-values with labeled p-values
-ggplot(aes(x = fct_reorder(Soil.metrics, P_values_bonf_corrected), y = Significance, fill = P_values_bonf_corrected), data = random_pop.df) +
+ggplot(aes(x = fct_reorder(Soil.metrics, p_bonf_corrected), y = Significance, fill = p_bonf_corrected), data = random_pop.df) +
   geom_tile() + 
   labs(y = "Significant P-Value", x  = "Soil Characteristic", 
        fill = "P-Value",  
        title = "Association Between Soil Metrics and Population Locations",
        subtitle = "P-Values Below 0.5 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_values_bonf_corrected < 0.05, round(P_values_bonf_corrected, 4), NA)), col = "white") +
+  geom_text(aes(label = ifelse(p_bonf_corrected < 0.05, round(p_bonf_corrected, 4), NA)), col = "white") +
   coord_flip() +
   theme_classic() +
   theme(axis.text = element_text(size = 13),
