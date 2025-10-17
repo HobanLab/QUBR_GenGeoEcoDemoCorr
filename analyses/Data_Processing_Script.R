@@ -77,6 +77,14 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_sqrt = sqrt(Crown_spread))%>%
   mutate(DBH_ag_sqrt = sqrt(DBH_ag))
 
+#creating columns with transformations: inverse all of the variables
+fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
+  mutate(Canopy_short_inv = (1/Canopy_short))%>%
+  mutate(Canopy_long_inv = (1/Canopy_long))%>%
+  mutate(Canopy_area_inv = (1/Canopy_area)) %>%
+  mutate(Crown_spread_inv = (1/Crown_spread))%>%
+  mutate(DBH_ag_inv = (1/DBH_ag))
+
 #setting elevation as a numeric value
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
   mutate(Elevation..m. = as.numeric(Elevation..m.))
