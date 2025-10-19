@@ -437,9 +437,6 @@ LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_ter
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
 
-View(LM_fixed_field_data_processed_terrain)
-
-
 #LC
 LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
 LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
@@ -447,10 +444,6 @@ LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_pr
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
-
-
-View(LC_fixed_field_data_processed_terrain)
-
 
 #SD
 SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
@@ -460,7 +453,6 @@ SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
-View(SD_fixed_field_data_processed_terrain)
 
 #recategorizing the aspect data
 
@@ -797,7 +789,7 @@ field_data_summarized <- fixed_field_data_processed %>%
 View(field_data_summarized)
 
 
-#### Multiple Linear Regression ####
+#### Multiple Linear Regressions ####
 
 #using only the 8 categories
 
@@ -816,8 +808,6 @@ all_points_fixed_field_data_processed_terrain_no_NA <- all_points_fixed_field_da
   filter(is.na(all_points_slope_raster_15_data_pts) == F) %>%
   filter(is.na(Elevation..m.FIXED) == F) %>%
   filter(is.na(all_points_aspect_raster_15_data_pts_8_categorical) == F)
-
-View(all_points_fixed_field_data_processed_terrain_no_NA)
 
 # SCA
 
@@ -862,7 +852,7 @@ lm_check_no_elevation_VIF_multi_num <- (1 / (1-lm_check_no_elevation_summary$r.s
 lm_check_no_elevation_vif > lm_check_no_elevation_VIF_multi_num
 
 
-#determinging our main effects model with two methods: backward's regression and the dredge function 
+#determining our main effects model with two methods: backward's regression and the dredge function 
 step(all_points_multiple_lm_SCA) #using backwards regression, where last model produced is the best fit
 
 options(na.action = "na.fail") #have to set na.action to na.fail to be able to run dredge
@@ -1123,12 +1113,6 @@ ggplot() +
   labs(title = "Generalized Additive Model (GAM) Fit for mpg vs. hp", 
        x = "Horsepower", y = "Miles per Gallon") +
   theme_minimal()
-
-
-
-
-
-
 
 
 
