@@ -1,5 +1,5 @@
 #because hypothesis 3 was becoming a long script of code, 
-#I decided to separate out the multiple linear regression code
+#I decided to separate out the multiple linear regression code into this script
 
 #### Loading libraries and relevant data ####
 
@@ -1721,8 +1721,8 @@ LM_fixed_field_data_processed_terrain_no_NA <- LM_fixed_field_data_processed_ter
 #Cook's D
 LM_mlm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA)
 LM_mlm_SCA_cooks <- cooks.distance(LM_mlm_SCA) #calculating the cook.s D for each point
-plot(LM_lm_focal_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
-influential <- LM_lm_focal_SCA_cooks[(LM_lm_focal_SCA_cooks > (3 * mean(LM_lm_focal_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
+plot(LM_mlm_SCA_cooks, type = 'h') #checking to see which cook's D are unsually high
+influential <- LM_mlm_SCA_cooks[(LM_mlm_SCA_cooks > (3 * mean(LM_mlm_SCA_cooks, na.rm = TRUE)))] #remove points with cooks D that are bigger than 3 times the mean cook's D
 influential
 
 #removing outliers based on which points were deemed influential
@@ -1731,11 +1731,11 @@ LM_fixed_field_data_processed_terrain_no_NA_No_outliers <- LM_fixed_field_data_p
 
 # SCA
 
-plot(LM_multiple_lm_SCA)
-
 #multiple linear regression base model with all variables, and using the no NA dataset to be able to use the backwards regression
 LM_multiple_lm_SCA <- lm(Canopy_short ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 LM_multiple_lm_SCA_summary <- summary(LM_multiple_lm_SCA)
+
+plot(LM_multiple_lm_SCA)
 
 #checking to see which variables might be the most useful
 avPlots(LM_multiple_lm_SCA) #added variable plots, looking to see which variables might be most useful in exlaining the size/shape variables 
@@ -1789,16 +1789,16 @@ summary(LM_multiple_lm_SCA_interacts_simplified) #best model, but still only 5% 
 anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_interacts) #results are not signficant, meaning there is no compelling evidence to support the larger model and we should stick with the smaller one
 
 #nested F test to compare simplified interactions model to simplified model without interactions
-anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_simplified) #results are signficant, meaning there is compelling evidence to support the smaller model than the larger one
+anova(LM_multiple_lm_SCA_interacts_simplified, LM_multiple_lm_SCA_simplified) #results are signficant, meaning there is compelling evidence to support the larger model than the smaller one
 
 # our results indicate that we should: use the multiple linear regression that is simplified over the full model and the models that include interactions
 
-# Best Model: LM_multiple_lm_SCA_simplified
+# Best Model: LM_multiple_lm_SCA_interacts_simplified
 
 #the model must satisfy LINES (linearity, independence, normality of residuals, equal variance of residuals, and simple random sample)
 
 #checking linearity with elevation
-ggplot(data = LM_multiple_lm_SCA_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
+ggplot(data = LM_multiple_lm_SCA_interacts_simplified, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
@@ -1823,23 +1823,23 @@ ggplot(data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers, (aes(x=LM
   facet_wrap(~ LM_aspect_raster_15_data_pts_8_categorical) 
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_multiple_lm_SCA_simplified, aes(x= LM_multiple_lm_SCA_simplified$residuals))+
+ggplot(LM_multiple_lm_SCA_interacts_simplified, aes(x= LM_multiple_lm_SCA_interacts_simplified$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation + Slope + Aspect")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qqnorm plot
-ggplot(LM_multiple_lm_SCA_simplified, aes(sample = LM_multiple_lm_SCA_simplified$residuals))+
+ggplot(LM_multiple_lm_SCA_interacts_simplified, aes(sample = LM_multiple_lm_SCA_interacts_simplified$residuals))+
   geom_qq()
 
-shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+shapiro.test(LM_multiple_lm_SCA_interacts_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
 
 #shapiro-wilk test is significant, so we will use a model where canopy area is transformed
 LM_multiple_lm_SCA_simplified_lg <- lm(Canopy_short_lg ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 LM_multiple_lm_SCA_simplified_sqrt <- lm(Canopy_area_sqrt ~ Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, data = LM_fixed_field_data_processed_terrain_no_NA_No_outliers)
 
-shapiro.test(LM_multiple_lm_SCA_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
+shapiro.test(LM_multiple_lm_SCA_interacts_simplified$residuals) #shapiro welk test for normality, if significant, then the residuals are not likely normally distributed
 #based on the all_points_multiple_lm_SCA_simplified_lg  Shapiro-Wilk test we need to use a non-parametric test to look at slope, but we could use log to look at the 
 
 

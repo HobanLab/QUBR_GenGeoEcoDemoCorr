@@ -40,58 +40,6 @@ options(scipen = 0)
 # loading in the processed tree data 
 source("./analyses/Data_Processing_Script.R")
 
-# # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
-# 
-# fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
-# 
-# #adding a sequential column, "X," to number each tree
-# 
-# fixed_field_data_processed <- fixed_field_data_processed %>%
-#   mutate(X = row_number())
-# 
-# # creating the point shapefiles of the tree locations for each population in UTM 12 N
-# 
-# #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
-# #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-# fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
-#                                           coords = c("long", "lat"), crs = 4326)
-# 
-# #creating a transformed point shapefile with UTM 12 N an equal area projection
-# fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912) 
-# 
-# #storing point shapefiles for the trees by population
-# 
-# LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-#   filter(Locality == "LM") %>%
-#   st_as_sf()
-# 
-# LC_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-#   filter(Locality == "LC") %>%
-#   st_as_sf()
-# 
-# SD_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
-#   filter(Locality == "SD") %>%
-#   st_as_sf()
-# 
-# #create dataframe with X and Y UTM coordinates
-# 
-# fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_processed_sf_transformed) #creates a dataframe with separate x and y columns from the UTM 12N transformation
-# fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
-#   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
-# 
-# # Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
-# 
-# LM_fixed_field_data_processed <- fixed_field_data_processed %>%
-#   filter(Locality == "LM")
-# 
-# LC_fixed_field_data_processed <- fixed_field_data_processed %>%
-#   filter(Locality == "LC")
-# 
-# SD_fixed_field_data_processed <- fixed_field_data_processed %>%
-#   filter(Locality == "SD")
-
-
-
 #### Linear Model ####
 
 # To see if trees that face more competition (they face closer and larger trees) are smaller, for each population,
