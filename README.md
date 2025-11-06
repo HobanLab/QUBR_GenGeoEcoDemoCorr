@@ -11,16 +11,16 @@ Looking for correlations in the genetics, geography, ecology, and demographics o
  The [analyses](./analyses) folder contains all the R scripts split by unique analysis type used in this project (all done in R version 2025.05.1+513). The folder contains scripts that are well-commented and cleaned.
 The **Unrefined and unused scripts are stored in [Old_Scripts](./analyses/Old_Scripts)**
 
-* [analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R) is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
+**[analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R)** is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
 
-* [Data_Processing_Script.R](./analyses/Data_Processing_Script.R) is a well-commented script for processing/cleaning the
+**[Data_Processing_Script.R](./analyses/Data_Processing_Script.R)** is a well-commented script for processing/cleaning the
 tree spatial, topographic (slope, aspect, and elevation), distance to rivers, and soil metric data. All spatial data/shapefiles were transformed to
 UTM 12 N. Shapefiles were created of river buffers (100 m for LM and LC and 70 m for SD), the BCS boundary, and bounding boxes around the individual tree locations
-or each population. Field-collected elevation data was corrected for errors. We used INEGI 15 m resolution rasters to generate elevation/slope/aspect rasters. 
-Aspect was recategorized for 4 cardinal directions (N,E,S,W) and 8 directions (N,NE,etc.). We used 250 m resolution soil rasters from Soil Grids to extract the soil metrics. 
-We included 22 soil metrics from soil grids at 0-5 and 100-200 cm (clay, silt, and sand content, pH, Organic Carbon Density, Cation Exchange Capacity, bulk density, sand/silt field capacity (volume of water at -10 kPa),
+or each population. Field-collected elevation data was corrected for errors. We used INEGI 15 m resolution rasters to generate a finer-resolution elevation column and slope and aspect columns. 
+Aspect was recategorized for 4 cardinal directions (N,E,S,W) and 8 directions (N,NE,etc.). We used 250 m resolution soil rasters from [Soil Grids](https://soilgrids.org/) to extract the soil metrics. 
+We included 22 soil metrics at 0-5 and 100-200 cm (clay, silt, and sand content, pH, organic carbon density, cation exchange capacity, bulk density, sand/silt field capacity (volume of water at -10 kPa),
 clay/loam field capacity (volume of water at -33 kPa), permanent wilting point (volume of water at -1500 kPa), soil organic carbon). We also added four soil metrics: sand available water
-and clay/loam available water at 0-5 and 100-200 cm each. Available water columns are produced by subtracting field capacity by permanent wilting point metrics.
+and clay/loam available water at 0-5 and 100-200 cm. Available water columns are produced by subtracting field capacity by permanent wilting point.
 
 Finally, we processed the spatial, size/shape, and soil data of the 20 known QUBR population locations. We transformed the data to UTM 12 N. We generated a
 7,000 km buffer shapefile around the population points in which we cropped the soil metric rasters and extracted the population soil metrics. 
