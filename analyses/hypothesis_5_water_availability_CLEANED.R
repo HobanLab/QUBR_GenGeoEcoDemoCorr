@@ -21,6 +21,8 @@
 # that meet the conditions for SLRs
 # 4) Running the function and storing the outputs
 
+# NOTE: Uncomment and run line 45, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
@@ -39,7 +41,8 @@ library(tmaptools)
 library(lmtest) #to use the Breuch-Pagan Test
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 45, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Creating the Simple Linear Regression function ####
 

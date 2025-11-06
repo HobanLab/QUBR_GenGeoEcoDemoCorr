@@ -14,8 +14,29 @@ The **Unrefined and unused scripts are stored in [Old_Scripts](./analyses/Old_Sc
 * [analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R) is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
 
 * [Data_Processing_Script.R](./analyses/Data_Processing_Script.R) is a well-commented script for processing/cleaning the
-tree spatial, topographic (slope, aspect, and elevation), distance to rivers, and soil metric data. 
-We used INEGI 15 m elevation/slope/aspect rasters. We used 250 m resolution soil rasters from Soil Grids to extract the soil metrics. 
+tree spatial, topographic (slope, aspect, and elevation), distance to rivers, and soil metric data. All spatial data/shapefiles were transformed to
+UTM 12 N. Shapefiles were created of river buffers (100 m for LM and LC and 70 m for SD), the BCS boundary, and bounding boxes around the individual tree locations
+or each population. Field-collected elevation data was corrected for errors. We used INEGI 15 m resolution rasters to generate elevation/slope/aspect rasters. 
+Aspect was recategorized for 4 cardinal directions (N,E,S,W) and 8 directions (N,NE,etc.). We used 250 m resolution soil rasters from Soil Grids to extract the soil metrics. 
+We included 22 soil metrics from soil grids at 0-5 and 100-200 cm (clay, silt, and sand content, pH, Organic Carbon Density, Cation Exchange Capacity, bulk density, sand/silt field capacity (volume of water at -10 kPa),
+clay/loam field capacity (volume of water at -33 kPa), permanent wilting point (volume of water at -1500 kPa), soil organic carbon). We also added four soil metrics: sand available water
+and clay/loam available water at 0-5 and 100-200 cm each. Available water columns are produced by subtracting field capacity by permanent wilting point metrics.
+
+Finally, we processed the spatial, size/shape, and soil data of the 20 known QUBR population locations. We transformed the data to UTM 12 N. We generated a
+7,000 km buffer shapefile around the population points in which we cropped the soil metric rasters and extracted the population soil metrics. 
+
+**There are 5 main types of dataframes created in this script:**
+
+1) *fixed_field_data_processed_sf_trans_coordinates* (the processed spatial/size/shape data for individual trees)
+        This dataframe was then filtered for each population, i.e. LM_fixed_field_data_processed
+2) *all_points_fixed_field_data_processed_terrain* (the processed spatial, tree size/shape, ELEVATION, SLOPE, and ASPECT for individual trees)
+        This dataframe was then filtered for each population, i.e. LM_fixed_field_data_processed_terrain
+3) *LM_fixed_field_data_processed_terrain_dist* (the processed spatial, tree size/shape, elevation, slope, aspect, and DISTANCE TO RIVER for individual trees)
+        There is only the three dataframes filtered for each population, i.e. LM_fixed_field_data_processed_terrain_dist
+4) *LM_fixed_field_data_processed_soils* (the processed spatial, tree size/shape, elevation, slope, aspect, distance to river, and SOIL METRICS for individual trees)
+        There is only the three dataframes filtered for each population, i.e. LM_fixed_field_data_processed_soils
+5) *all_known_pop_soils* (the processed spatial and soil metrics for the 20 known QUBR population points)
+
 
 **For the following hypotheses, all of the scripts depend on a data processing script ("Data_Processing_Script.R") being run using the source() function. If the
 script was sourced already, it does not need to be run again unless the environment becomes cleared.** 

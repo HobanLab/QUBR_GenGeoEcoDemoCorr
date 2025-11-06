@@ -29,6 +29,8 @@
 # We also store slope test (parametric) and Kendall's Tau (non-parametric) results with and without Bonferroni Corrections and generate histograms 
 # and descriptive summary statistics to view the distribution of p-values to check how robust the findings are. 
 
+# NOTE: Uncomment and run line 53, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
@@ -47,7 +49,8 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 `%notin%` <- Negate(`%in%`) 
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 53, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Creating the Generalized Linear Model Functions ####
 

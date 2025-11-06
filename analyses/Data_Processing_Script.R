@@ -1,3 +1,55 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%Processing the QUBR Tree Data for Later Analysis%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# The purpose of this script is to process the data (dataframes, polygons, etc.) used in the hypothesis 1-4 analyses. 
+
+# We create multiple dataframes for the individual tree data at Las Matancitas, La Cobriza, 
+# and San Dionisio for use in the hypothesis 1-4 analyses.
+
+# We also create a dataframe of spatial, tree size/shape, and soil metrics for the 20 known QUBR populations
+
+# The script is broken into sections of 
+# 1) loading and processing the appropriate packages, 
+# 2) loading and processing the spatial/size/shape data for the trees in the Las Matancitas, San Dionisio, and 
+#La Cobriza populations:
+    # we transformed the data into UTM 12 N, stored it as shapefiles, created transformed tree size/shape columns (log, inverse, square root), 
+          #and fixed errors in the elevation data
+# 3) loading and processing the river and Baja California Sur shapefiles:
+    # we transformed the data into UTM 12 N and stored it as shapefiles
+# 4) creating buffers and bounding boxes:
+    # we created buffer shapefiles around the rivers (100 m for LM and LC and 70 m for SD)
+    # we also created bounding boxes aroud the individual tree point data for each population
+# 5) loading and processing the elevation, slope, and aspect data:
+    # slope and aspect data were created from the elevation data 
+    # we recategorized aspect to be in either the 4 cardinal directions (N, E, S, W) or the 8 directions (N, NE, E, etc.)
+    # the columns were then added to spatial and size/shape data
+# 6) creating the distance to river columns:
+    # extracting distances for each individual tree from generated distance to river rasters for each population
+# 7) loading and processing soil rasters:
+    # loading in, cropping, and extracting soil metric values for individual trees using rasters
+# 8) creating and storing sand and clay soil available water columns:
+    # creating these columns by subtracting field capacity by permanent wilting point and adding this column to the tree dataframes 
+# 9) loading and processing the spatial, size/shape, and soil data of the 20 known QUBR population locations,
+    # we loaded in the spatial and size/shape of 20 QUBR populations and BCS polygon, then transformed and stored them as shapefiles,
+    # we created a 7,000 km buffer around the 20 populations,
+    # we then used the buffer and soil metric rasters to extract the soil metrics for each population point location and added the soil data
+          #to the 20 QUBR population spatial and size/shape dataframe,
+
+# There are 5 main types of dataframes created in this script:
+
+# 1) "fixed_field_data_processed_sf_trans_coordinates" (the processed spatial/size/shape data for individual trees)
+        # this dataframe was then filtered for each population, i.e. LM_fixed_field_data_processed
+# 2) "all_points_fixed_field_data_processed_terrain" (the processed spatial, tree size/shape, ELEVATION, SLOPE, and ASPECT for individual trees)
+        # this dataframe was then filtered for each population, i.e. LM_fixed_field_data_processed_terrain
+# 3) "LM_fixed_field_data_processed_terrain_dist" (the processed spatial, tree size/shape, elevation, slope, aspect, and DISTANCE TO RIVER for individual trees)
+        # there is only the three dataframes filtered for each population, i.e. LM_fixed_field_data_processed_terrain_dist
+# 4) "LM_fixed_field_data_processed_soils" (the processed spatial, tree size/shape, elevation, slope, aspect, distance to river, and SOIL METRICS for individual trees)
+        # there is only the three dataframes filtered for each population, i.e. LM_fixed_field_data_processed_soils
+# 5) "all_known_pop_soils" (the processed spatial and soil metrics for the 20 known QUBR population points)
+
+# NOTE: Uncomment and run line 273-349, generating the 15m elevation rasters, if they are no longer available, ex: "./data/15 m Elevation Raster/CEM_15_utm_LM.tif" is no longer available or needs to be updated
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse) 
@@ -59,7 +111,7 @@ fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_pr
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
-#### transformations of tree size/shape variables (log and square root) for linear models ####
+#### Transformations of tree size/shape variables (log and square root) for linear models ####
 
 #creating columns with transformations: logged all of the size/shape variables
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
@@ -216,6 +268,7 @@ SD_box <- st_bbox(river_SD_trans)
 
 # elevation data is from INEGI 15 m and allows us to calculate slope and aspect
 
+# NOTE: Uncomment and run line 273-349, generating the 15m elevation rasters, if they are no longer available, ex: "./data/15 m Elevation Raster/CEM_15_utm_LM.tif" is no longer available or needs to be updated
 
 #BECAUSE THE ELEVATION RASTERS WERE TOO BIG TO DOWNLOAD DIRECTLY, FROM GOOGLE DRIVE, OR OPEN FROM A ZIP, 
 #AFTER LOADING IN THE ORIGINAL DATA, WE CROPPED IT TO FIT OUR POPULATIONS, EXPORTED THOSE FILES, AND THEN DOWNLOADED THOSE
@@ -294,51 +347,6 @@ SD_box <- st_bbox(river_SD_trans)
 # CEM_15_utm <- raster(paste0("./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif"))
 # 
 # plot(CEM_15_utm)
-
-#HERE IS THE IMPORTATION OF THE CROPPED RASTERS
-
-#cropping the rasters for each population
-
-#all points
-# 
-# #mapping cropped 
-# CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the all points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
-# 
-# #LM
-# 
-# #mapping cropped 
-# CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LM_fixed_field_data_processed)
-# 
-# #LC
-# 
-# #mapping cropped 
-# CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LC_fixed_field_data_processed)
-# 
-# #SD
-# 
-# #mapping cropped 
-# CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
@@ -623,141 +631,6 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 135 & SD_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
                                                                 (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
 
-#### Creating the distance to river columns ####
-
-#LM
-
-#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turning the polyline of the river into a linestring object
-river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #creating a raster out of the river linestring object
-plot(river_LM_trans_point_raster) #plotting the river linestring object
-
-#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turning the polygon of the river buffer into a linestring object
-river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #creating a raster of river buffer linestring object
-plot(river_buffer_LM_point_raster) #plotting the river buffer linestring object
-
-#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
-river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the cell that are not the river buffer linestring raster have a 0 value
-dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
-plot(dist_near_river_buffer_LM) #plotting the distance to river raster
-
-#LC
-
-#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turning the polyline of the river into a linestring object
-river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #creating a raster out of the river linestring object
-plot(river_LC_trans_point_raster)
-
-#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turning the polygon of the river buffer into a linestring object
-river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #creating a raster of river buffer linestring object
-plot(river_buffer_LC_point_raster) #plotting the river buffer linestring object
-
-#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
-river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
-dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
-plot(dist_near_river_buffer_LC) #not using inverse distance
-
-#SD
-
-#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
-river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turning the polyline of the river into a linestring object
-river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #creating a raster out of the river linestring object
-plot(river_SD_trans_point_raster)
-
-#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
-river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turning the polygon of the river buffer into a linestring object
-river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #creating a raster of river buffer linestring object
-plot(river_buffer_SD_point_raster) #plotting the river buffer linestring object
-
-#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
-river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
-dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
-plot(dist_near_river_buffer_SD) #plotting the distance to river raster
-
-
-## Making it so the cells in the distance raster within or overlapping with the river raster are assigned 1 
-
-#LM
-
-#Assigning points within and overlapping with the river to be "true"
-LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
-LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
-#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
-ggplot()+
-  geom_sf(data=river_LM_trans)+
-  geom_sf(data=LM_fixed_field_data_processed)+
-  geom_sf(data=LM_fixed_field_data_processed_intersects_river, aes(color = LM_points_intersects_river))
-
-#LC 
-
-#Assigning points within and overlapping with the river to be "true"
-LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed, river_LC_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-LC_fixed_field_data_processed_intersects_river <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
-#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
-ggplot()+
-  geom_sf(data=river_LC_trans)+
-  geom_sf(data=LC_fixed_field_data_processed)+
-  geom_sf(data=LC_fixed_field_data_processed_intersects_river, aes(color = LC_points_intersects_river))
-
-#SD
-
-#Assigning points within and overlapping with the river to be "true"
-SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed, river_SD_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-SD_fixed_field_data_processed_intersects_river <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
-#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
-ggplot()+
-  geom_sf(data=river_SD_trans)+
-  geom_sf(data=SD_fixed_field_data_processed)+
-  geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
-
-## Extracting distance to river for each tree using the distance to river raster
-
-#LM
-LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting distance to river for each tree
-LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #binding the distance to river data for each point to the LM point dataframe
-
-
-#LC
-LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting distance to river for each tree
-LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #binding the distance to river data for each tree to the LC point dataframe
-
-
-#SD
-SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting distance to river for each tree
-SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #binding the distance to river data for each point to the SD point dataframe
-
-## Assigning all points within/overlapping river to distances of 0
-
-#LM
-LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>% 
-  mutate(d = case_when((LM_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
-                       (LM_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
-
-#LC
-LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
-  mutate(d = case_when((LC_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
-                       (LC_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
-
-#SD
-SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
-  mutate(d = case_when((SD_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
-                       (SD_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value
-
-
-#### Combining the elevation, slope, aspect, and distance data into one dataframe ####
-
-#LM
-LM_fixed_field_data_processed_terrain_dist <- cbind(LM_fixed_field_data_processed_terrain, LM_fixed_field_data_processed_distance)
-
-#LC
-LC_fixed_field_data_processed_terrain_dist <- cbind(LC_fixed_field_data_processed_terrain, LC_fixed_field_data_processed_distance)
-
-#SD
-SD_fixed_field_data_processed_terrain_dist <- cbind(SD_fixed_field_data_processed_terrain, SD_fixed_field_data_processed_distance)
-
-
 #### Descriptive Summary ####
 
 #histograms
@@ -963,6 +836,138 @@ field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
+
+#### Creating the distance to river columns ####
+
+#LM
+
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_LM_trans_points <- st_cast(river_LM_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LM_trans_point_raster <- st_rasterize(river_LM_trans_points) #creating a raster out of the river linestring object
+plot(river_LM_trans_point_raster) #plotting the river linestring object
+
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #creating a raster of river buffer linestring object
+plot(river_buffer_LM_point_raster) #plotting the river buffer linestring object
+
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the cell that are not the river buffer linestring raster have a 0 value
+dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, river_LM_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_LM) #plotting the distance to river raster
+
+#LC
+
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_LC_trans_points <- st_cast(river_LC_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_LC_trans_point_raster <- st_rasterize(river_LC_trans_points) #creating a raster out of the river linestring object
+plot(river_LC_trans_point_raster)
+
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_buffer_LC_points <- st_cast(river_buffer_LC, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_LC_point_raster <- st_rasterize(river_buffer_LC_points) #creating a raster of river buffer linestring object
+plot(river_buffer_LC_point_raster) #plotting the river buffer linestring object
+
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_LC_point_raster[is.na(river_buffer_LC_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
+dist_near_river_buffer_LC <- dist_to_nearest(river_buffer_LC_point_raster, river_LC_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_LC) #not using inverse distance
+
+#SD
+
+#turning the river polygon into a linestring object and then into a raster, to be able to later calculate the distances
+river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turning the polyline of the river into a linestring object
+river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #creating a raster out of the river linestring object
+plot(river_SD_trans_point_raster)
+
+#turning the river buffer polygon into a linestring object and then into a raster to be able to later calculate the distances
+river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turning the polygon of the river buffer into a linestring object
+river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #creating a raster of river buffer linestring object
+plot(river_buffer_SD_point_raster) #plotting the river buffer linestring object
+
+#generating a distance to river raster with the distances of each cell in the buffer raster from the river edge points, whereby the river raster cells are set to a distance of 0 m
+river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the cells that are not part of the the river buffer raster have a 0 value
+dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the linestring object of the river polygon, this can take a while to run
+plot(dist_near_river_buffer_SD) #plotting the distance to river raster
+
+
+## Making it so the cells in the distance raster within or overlapping with the river raster are assigned 1 
+
+#LM
+
+#Assigning points within and overlapping with the river to be "true"
+LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
+LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
+ggplot()+
+  geom_sf(data=river_LM_trans)+
+  geom_sf(data=LM_fixed_field_data_processed)+
+  geom_sf(data=LM_fixed_field_data_processed_intersects_river, aes(color = LM_points_intersects_river))
+
+#LC 
+
+#Assigning points within and overlapping with the river to be "true"
+LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed, river_LC_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
+LC_fixed_field_data_processed_intersects_river <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
+ggplot()+
+  geom_sf(data=river_LC_trans)+
+  geom_sf(data=LC_fixed_field_data_processed)+
+  geom_sf(data=LC_fixed_field_data_processed_intersects_river, aes(color = LC_points_intersects_river))
+
+#SD
+
+#Assigning points within and overlapping with the river to be "true"
+SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed, river_SD_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
+SD_fixed_field_data_processed_intersects_river <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
+#printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
+ggplot()+
+  geom_sf(data=river_SD_trans)+
+  geom_sf(data=SD_fixed_field_data_processed)+
+  geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
+
+## Extracting distance to river for each tree using the distance to river raster
+
+#LM
+LM_distance_data_pts <- st_extract(dist_near_river_buffer_LM, LM_fixed_field_data_processed) #extracting distance to river for each tree
+LM_fixed_field_data_processed_distance  <- cbind(LM_fixed_field_data_processed, LM_distance_data_pts) #binding the distance to river data for each point to the LM point dataframe
+
+#LC
+LC_distance_data_pts <- st_extract(dist_near_river_buffer_LC, LC_fixed_field_data_processed) #extracting distance to river for each tree
+LC_fixed_field_data_processed_distance  <- cbind(LC_fixed_field_data_processed, LC_distance_data_pts) #binding the distance to river data for each tree to the LC point dataframe
+
+#SD
+SD_distance_data_pts <- st_extract(dist_near_river_buffer_SD, SD_fixed_field_data_processed) #extracting distance to river for each tree
+SD_fixed_field_data_processed_distance  <- cbind(SD_fixed_field_data_processed, SD_distance_data_pts) #binding the distance to river data for each point to the SD point dataframe
+
+## Assigning all points within/overlapping river to distances of 0
+
+#LM
+LM_fixed_field_data_processed_distance <- LM_fixed_field_data_processed_distance %>% 
+  mutate(d = case_when((LM_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
+                       (LM_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
+
+#LC
+LC_fixed_field_data_processed_distance <- LC_fixed_field_data_processed_distance %>%
+  mutate(d = case_when((LC_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
+                       (LC_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value 
+
+#SD
+SD_fixed_field_data_processed_distance <- SD_fixed_field_data_processed_distance %>%
+  mutate(d = case_when((SD_points_intersects_river == T) ~ 0,  #assigns 0 to points within river
+                       (SD_points_intersects_river == F) ~ d)) #to points outside of river, it leaves the original distance value
+
+
+#### Combining the elevation, slope, aspect, and distance data into one dataframe ####
+
+#LM
+LM_fixed_field_data_processed_terrain_dist <- cbind(LM_fixed_field_data_processed_terrain, LM_fixed_field_data_processed_distance)
+
+#LC
+LC_fixed_field_data_processed_terrain_dist <- cbind(LC_fixed_field_data_processed_terrain, LC_fixed_field_data_processed_distance)
+
+#SD
+SD_fixed_field_data_processed_terrain_dist <- cbind(SD_fixed_field_data_processed_terrain, SD_fixed_field_data_processed_distance)
 
 
 #### Load in Soil Metric Data ####
@@ -1181,7 +1186,7 @@ plot(soil_stack_SD_other, zlim = c(45, 360)) #version where the plots have the s
 plot(soil_stack_SD_extra)
 plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the same scale
 
-#creating X sequential columns in LC and SD point data which will make it easier to select random points from each grid later
+#creating X sequential columns in point data which will make it easier to select random points from each grid later
 
 #creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
 LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%

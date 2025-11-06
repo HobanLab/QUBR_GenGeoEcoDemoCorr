@@ -18,6 +18,8 @@
   # 3) Comparing size of the trees to their slope to look for a relationship using single linear regression
   # 4) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
 
+# NOTE: Uncomment and run line 40, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and relevant data ####
 
 library(googledrive) #to download files from google drive
@@ -34,7 +36,8 @@ library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 40, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Sizes vs. Elevation ####
 

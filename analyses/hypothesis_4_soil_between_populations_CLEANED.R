@@ -27,6 +27,8 @@
 # 4) Running the function and storing the outputs for each soil metric
 # 5) Presenting the results as a heat map
 
+# NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and Relevant Data ####
 
 library(tidyverse) # for graphing and data organization
@@ -42,7 +44,8 @@ library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run the line below, line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Choosing a Random Tree per Grid Cell ####
 

@@ -12,7 +12,6 @@
 # relationship between how much competition the trees face (based on the 
 # size of the neighbors over their distance to the focal trees) and the size of the focal trees.
 
-
 # We create a focal_function() to generate focal trees and calculate the competition metrics
 # for each tree and for each population.
 
@@ -24,6 +23,7 @@
 # 3) Using the focal_function to create the generalized linear regressions to see if tree size seems related to local competition  
 # for each population (LM, LC, and SD)
 
+# NOTE: Uncomment and run line 44, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -39,8 +39,9 @@ library(MuMIn) #to be able to use model.sel for fitting linear models with spati
 library(geoR) # to be able to use variograms with the lme, requires XQuartz from 
 library(Kendall)# to use the Kendall's Tau test to look for non-parametric correlations in the data
 
-# loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# loading in the processed tree data
+# NOTE: uncomment and run line 44, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 

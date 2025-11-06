@@ -27,6 +27,7 @@
 # 3) Running the function and storing the output, graphing the histograms/slopes, turning the results into a dataframe
 # 4) Using a heat map to summarize the results (the mean soil metrics and their significances)
 
+# NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -43,7 +44,8 @@ library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 ## Finalizing the tree soil metric dataframe
 

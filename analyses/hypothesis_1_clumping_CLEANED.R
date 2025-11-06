@@ -28,6 +28,7 @@
 #3) running the Average Nearest Neighber (ANN) analysis,
 #4) running the Poisson Point Model Analysis. 
 
+# NOTE: Uncomment and run line 51, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -46,7 +47,8 @@ library(geostatsp) # To successfully use as.im
 library(tmaptools)
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: uncomment and run line 51, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #ensuring there is a column from latitude and longitude in the populations transformed dataframe because those columns are needed in "hypothesis_1_clumping_CLEANED.R" 
 

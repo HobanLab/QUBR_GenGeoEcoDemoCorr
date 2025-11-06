@@ -20,6 +20,7 @@
 #variable (SCA, LCA, CA, CS, DBH),
 # 4) Running the global and local Moran's I analyses, 
 
+# NOTE: Uncomment and run line 41, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -36,7 +37,8 @@ library(geoR) # to be able to use variograms with the lme, requires XQuartz from
 library(Kendall)# to use the Kendall's Tau test to look for non-parametric correlations in the data
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 41, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 # Make a function that is the opposite of the %in% function
 `%notin%` <- Negate(`%in%`) 
@@ -87,7 +89,7 @@ morans_I <- function(population, variable){
   lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_sf_trans_coordinates, type="idw", style="W", 
                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
   
-  #creating lags for each tree, which computes the average neighboring short canopy axis for each tree
+  #creating lags for each tree, which computes the average neighboring size metric for each tree
   dataframe$lag.metric <- lag.listw(lw.dist, dataframe[[metric]])
   
   # Create a regression model of the lagged response variable (average amongst closest trees) vs. the known response variable 

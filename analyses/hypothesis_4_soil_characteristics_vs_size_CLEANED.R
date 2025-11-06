@@ -26,6 +26,8 @@
 # 3) Running the function and storing the output, graphing the histograms/slopes, turning the results into a dataframe
 # 4) Using tables and heat maps to summarize the results (the slopes and their significances)
 
+# NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and Relevant Data ####
 
 library(tidyverse)
@@ -41,7 +43,8 @@ library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Creating the Function Comparing the soil vs. size values ####
 

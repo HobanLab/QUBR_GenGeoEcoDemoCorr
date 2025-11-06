@@ -17,6 +17,8 @@
       # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
 # 2) Creating Generalized Additive Models to look at the relationships between the shape/size of trees and their aspect, elevation, and slope
 
+# NOTE: Uncomment and run line 49, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
@@ -43,7 +45,8 @@ library(mgcViz) #3d plotting
 library(rgl) #3d plotting
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 49, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Generalized Additive Models ####
 

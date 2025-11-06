@@ -16,6 +16,7 @@
 #San Dionisio, and La Cobriza populations and loading in the river outline shapefiles, 
 # 2) using linear regression to see if tree size seem related to local competition  
 
+# NOTE: Uncomment and run line 43, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -38,7 +39,8 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 options(scipen = 0)
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: uncomment run line 43, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R") 
 
 #### Linear Model ####
 

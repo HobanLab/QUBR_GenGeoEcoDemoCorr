@@ -18,6 +18,8 @@
         # Extracting the distance to the river of each tree for each population,
 # 2) Creating Generalized Additive Models to look at the relationships between the shape/size of trees and their aspect, elevation, slope, and distance to river
 
+# NOTE: Uncomment and run line 45, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
 #### Loading libraries and relevant data ####
 
 library(tidyverse)
@@ -39,7 +41,8 @@ library(MuMIn) #to be able to use dredge
 library(visreg) # to be able to plot Aspect/categorical variables with GAM
 
 # loading in the processed tree data 
-source("./analyses/Data_Processing_Script.R")
+# NOTE: Uncomment and run line 45, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+#source("./analyses/Data_Processing_Script.R")
 
 #### Generalized Additive Models ####
 
