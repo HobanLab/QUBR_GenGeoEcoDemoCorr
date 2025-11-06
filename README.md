@@ -20,12 +20,10 @@ or each population. Field-collected elevation data was corrected for errors. We 
 Aspect was recategorized for 4 cardinal directions (N,E,S,W) and 8 directions (N,NE,etc.). We used 250 m resolution soil rasters from [Soil Grids](https://soilgrids.org/) to extract the soil metrics. 
 We included 22 soil metrics at 0-5 and 100-200 cm (clay, silt, and sand content, pH, organic carbon density, cation exchange capacity, bulk density, sand/silt field capacity (volume of water at -10 kPa),
 clay/loam field capacity (volume of water at -33 kPa), permanent wilting point (volume of water at -1500 kPa), soil organic carbon). We also added four soil metrics: sand available water
-and clay/loam available water at 0-5 and 100-200 cm. Available water columns are produced by subtracting field capacity by permanent wilting point.
-
-Finally, we processed the spatial, size/shape, and soil data of the 20 known QUBR population locations. We transformed the data to UTM 12 N. We generated a
+and clay/loam available water at 0-5 and 100-200 cm. Available water columns are produced by subtracting field capacity by permanent wilting point. Finally, we processed the spatial, size/shape, and soil data of the 20 known QUBR population locations. We transformed the data to UTM 12 N. We generated a
 7,000 km buffer shapefile around the population points in which we cropped the soil metric rasters and extracted the population soil metrics. 
 
-**There are 5 main types of dataframes created in this script:**
+**There are 5 main types of dataframes created in [Data_Processing_Script.R](./analyses/Data_Processing_Script.R) script for the use of the subsequent hypothesis scripts:**
 
 1) *fixed_field_data_processed_sf_trans_coordinates* (the processed spatial/size/shape data for individual trees)
         This dataframe was then filtered for each population, i.e. LM_fixed_field_data_processed
@@ -38,10 +36,10 @@ Finally, we processed the spatial, size/shape, and soil data of the 20 known QUB
 5) *all_known_pop_soils* (the processed spatial and soil metrics for the 20 known QUBR population points)
 
 
-**For the following hypotheses, all of the scripts depend on a data processing script ("Data_Processing_Script.R") being run using the source() function. If the
+**For the following hypotheses, all of the scripts depend on the data processing script ("Data_Processing_Script.R") being run using the source() function. If the
 script was sourced already, it does not need to be run again unless the environment becomes cleared.** 
 
-**Hypothesis 1:** Quercus brandegeei seeds are predominantly distributed either by heavy rainfall or gravity, 
+**Hypothesis 1:** *Quercus brandegeei* seeds are predominantly distributed either by heavy rainfall or gravity, 
 which may impact both the spatial distribution and the genetic structure of a given population. If they were distributed by 
 heavy rainfall, we would expect the trees to be more dispersed than at random. If they were distributed by gravity, we would expect more clumping 
 of trees than at random. 
@@ -60,7 +58,7 @@ distributed at random. We observed significant clustering of trees and significa
 
 **Hypothesis 2:** The size and shape of *Quercus brandegeei* individuals across all sites is impacted by distance to other individuals of the 
 same species either due to competition or facilitation.  The size and shape 
-of Quercus brandegeei individuals across all sites is impacted by distance to other individuals of the same species either due to 
+of *Q. brandegeei* individuals across all sites is impacted by distance to other individuals of the same species either due to 
 competition or facilitation. If they are impacted by facilitation, we would expect closer trees would be bigger. If they are impacted 
 by competition, we would expect closer trees to be smaller. This hypothesis is explored by four scripts:  
 
@@ -90,7 +88,7 @@ uses the same methodologies as for [hypothesis_2_linear_model_no_outliers_CLEANE
 to test how robust are the slope test/Kruskal-Wallis test results. We observed that across all of the combinations of size and shape metrics had mean slopes demonstrating competition,
 but only San Dionisio's short canopy axis and long canopy axis median p-values showed significant competition.   
 
-**Hypothesis 3:** The size and shape of Quercus brandegeei individuals is affected by the frequency of high wind and hurricane events which can be proxied by elevation, aspect, and slope. For trees facing more exposure, higher elevations, 
+**Hypothesis 3:** The size and shape of *Quercus brandegeei* individuals is affected by the frequency of high wind and hurricane events which can be proxied by elevation, aspect, and slope. For trees facing more exposure, higher elevations, 
 steeper slopes, and south and east facing slopes, we expected them to be smaller. On the other hand, we expected trees facing less exposure, lower 
 elevation, flatter slopes, and north and west facing aspects to be larger.
 This hypothesis is explored by three scripts:  
@@ -108,8 +106,8 @@ aspect with the size/shape of trees, in general, we observed the north and north
 * [hypothesis_3_GAM_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_GAM_size_and_exposure_CLEANED.R) is a well-commented R script to test hypothesis 3 using **Generalized Additive Models (GAMs)**
 as a non-parametric and more flexible method to explore relationships between elevation, slope, and aspect and size characteristics (SCA, LCA, CS, CA, DBH), allowing for non-linear relationships. 
 
-**Hypothesis 4:** Quercus brandegeei persist in a similar, narrow niche breadth of soil characteristics. The 20 known populations have more similar soil characteristics (texture, moisture, Ph, etc.) than 
-areas where we know there are no Q. brandegeei populations. For this we performed three analyses. The first was a comparison of the mean soil values between our three populations: La Cobriza, 
+**Hypothesis 4:** *Quercus brandegeei* persist in a similar, narrow niche breadth of soil characteristics. The 20 known populations have more similar soil characteristics (texture, moisture, Ph, etc.) than 
+areas where we know there are no *Q. brandegeei* populations. For this we performed three analyses. The first was a comparison of the mean soil values between our three populations: La Cobriza, 
 San Dionisio, and Las Matancitas using ANOVA and non-parametric ANOVA subsitute tests. The second was to compare the 
 slopes of size values vs. soil characteristics for each population to the slopes of the same comparison but size values 
 were shuffled and randomized (reflected in histogram of slopes). Finally, we compared the mean soil values for our known 
@@ -127,7 +125,7 @@ the populations showed significant differences in mean soil metrics except for c
 These results suggest water availability may explain why the trees are found across these particular locations. 
 
 * [hypothesis_4_soil_characteristics_vs_size_CLEANED.R](./analyses/hypothesis_4_soil_characteristics_vs_size_CLEANED.R) is a well-commented 
-R script to test hypothesis 4 by using **Single Linear Regressions (SLRs)* to investigate if there are significant linear relationships between each combination of 
+R script to test hypothesis 4 by using **Single Linear Regressions (SLRs)** to investigate if there are significant linear relationships between each combination of 
 soil metric (soil texture, pH, carbon, water, nitrogen, etc.) and size metrics (Short Canopy Axis, Long Canopy Axis, Canopy Area, Crown Spread, 
 and DBH) for each population (Las Mantacitas, La Cobriza, and San Dionisio). To test the validity of our results, we compared the observed SLR slopes
 to slopes where the size variables were randomly shuffled across the trees (1000 permutations). We observed that, in general, water availability and soil texture
@@ -139,8 +137,8 @@ if the populations were randomly distributed in a 7000 m buffer zone around the 
 had significantly higher clay/loam field capacity (0-5 and 100-200 cm) and sand available water (0-5 cm), suggesting water availability may 
 influence the distinct locations of the populations. 
 
-**Hypothesis 5:** Q. brandegeei is predominantly restricted by water availability (proxied by distance to river, aspect, slope, and elevation). 
-Quercus brandegeei will exhibit larger sizes with higher soil moisture content. 
+**Hypothesis 5:** *Quercus brandegeei* is predominantly restricted by water availability (proxied by distance to river, aspect, slope, and elevation). 
+*Q. brandegeei* will exhibit larger sizes with higher soil moisture content. 
 This hypothesis is explored by two scripts:
 
 * [hypothesis_5_water_availability_CLEANED.R](./analyses/hypothesis_5_water_availability_CLEANED.R) is a well-commented R 
@@ -154,5 +152,5 @@ between distance to river, slope, aspect, and elevation (water availability prox
 any interactions. We observed, in general, significant, non-linear relationships between elevation and size/shape metrics for Las Matancias, and significant
 non-linear relationships between slopes and size/shape metrics for San Dionisio. La Cobriza tree sizes did not show much significant influences from water availability proxies. 
 
-The results are summarized in this google spreadsheet [General_Test_Results_Wanger_REEF_2025](https://docs.google.com/spreadsheets/d/1BemVj7ev1UcTnCs2zXe8JUpJoGbSO78u0YJfAZuehLs/edit?gid=0#gid=0) 
+The results are summarized in this google spreadsheet: [General_Test_Results_Wanger_REEF_2025](https://docs.google.com/spreadsheets/d/1BemVj7ev1UcTnCs2zXe8JUpJoGbSO78u0YJfAZuehLs/edit?gid=0#gid=0) 
 
