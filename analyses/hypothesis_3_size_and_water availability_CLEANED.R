@@ -23,9 +23,9 @@
   # 4) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
   # 5) Making a function for creating the distance to river single linear regressions, finding the best models (with transformations and removal of outliers or not) 
           # that meet the conditions for SLRs
-  # 6) Running the distance to river SLR function and storing the outputs
+  # 6) Running the function and storing the outputs
 
-# NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+# NOTE: Uncomment and run line 40, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
 #### Loading libraries and relevant data ####
 
@@ -43,7 +43,7 @@ library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
 
 # loading in the processed tree data 
-# NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+# NOTE: Uncomment and run line 40, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 #source("./analyses/Data_Processing_Script.R")
 
 #### Sizes vs. Elevation ####

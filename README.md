@@ -88,23 +88,28 @@ uses the same methodologies as for [hypothesis_2_linear_model_no_outliers_CLEANE
 to test how robust are the slope test/Kruskal-Wallis test results. We observed that across all of the combinations of size and shape metrics had mean slopes demonstrating competition,
 but only San Dionisio's short canopy axis and long canopy axis median p-values showed significant competition.   
 
-**Hypothesis 3:** The size and shape of *Quercus brandegeei* individuals is affected by the frequency of high wind and hurricane events which can be proxied by elevation, aspect, and slope. For trees facing more exposure, higher elevations, 
-steeper slopes, and south and east facing slopes, we expected them to be smaller. On the other hand, we expected trees facing less exposure, lower 
-elevation, flatter slopes, and north and west facing aspects to be larger.
-This hypothesis is explored by three scripts:  
- 
+**Hypothesis 3:** *Quercus brandegeei* is predominantly restricted by water availability (proxied by distance to river, aspect, slope, and elevation). 
+*Q. brandegeei* will exhibit larger sizes with higher soil moisture content. 
+This hypothesis is explored by two scripts: 
 
 * [hypothesis_3_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_size_and_exposure_CLEANED.R) is a well commented R script to test hypothesis 3. To test it, we explored using **Single Linear Regressions (SLRs)**
-to see if there was a relationship between size characteristics (SCA, LCA, CS, CA, DBH) and elevation. We performed a similar linear model see if the size of trees were affected by their 
+to see if there was a relationship between size characteristics (SCA, LCA, CS, CA, DBH) and each of the quantiative explanatory variables (elevation, slope, and distance to river)
 slope. Finally, we compared the average size values to their aspect (for both N,E,S,W and for N, NW, W, SW, S, SE, E, NE) with ANOVAs/Kruskal-Wallis 
-Models. We used 15 m elevation/slope/aspect rasters. We observed that for elevation vs. size/shape metrics, Las Matancitas showed significant positive relationships between short canopy axis,
+Models. We used 15 m elevation/slope/aspect/distance to river rasters. We observed that for elevation vs. size/shape metrics, Las Matancitas showed significant positive relationships between short canopy axis,
 long canopy axis, canopy area, and crown spread and elevation, La Cobriza showed a significant negative relationship between DBH and elevation, San Dionisio showed significant negative relationships between SCA, CA, CS,
 and DBH and elevation, and across all populations, there was a significant positive relationship between DBH and elevation. As for slope vs. size/shape metrics, Las Matancitas showed a significant negative relationship between LCA and slope,
-San Dionisio showed significant negative relationships between SCA, LCA, CA, and CS and slope, and across all populations, LCA, CA, and CS had significant negative relationships with slope. As for comparing the 8 and 4 categories of 
+San Dionisio showed significant negative relationships between SCA, LCA, CA, and CS and slope, and across all populations, LCA, CA, and CS had significant negative relationships with slope. We observed that distance to river never had a significant relationship with the size and shape of the trees, possibly 
+because of how close the trees are to water access already. As for comparing the 8 and 4 categories of 
 aspect with the size/shape of trees, in general, we observed the north and northeast facing aspects tending to have larger mean sizes compared to more southern and western facing aspects. 
 
 * [hypothesis_3_GAM_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_GAM_size_and_exposure_CLEANED.R) is a well-commented R script to test hypothesis 3 using **Generalized Additive Models (GAMs)**
 as a non-parametric and more flexible method to explore relationships between elevation, slope, and aspect and size characteristics (SCA, LCA, CS, CA, DBH), allowing for non-linear relationships. 
+
+* [hypothesis_3_GAM_water_availability_CLEANED.R](./analyses/hypothesis_5_GAM_water_availability_CLEANED.R) is a well-commented
+R script to test hypothesis 5 in which we used **Generalized Additive Models (GAMs)** to find any linear or non-linear relationships
+between distance to river, slope, aspect, and elevation (water availability proxies) and the size/shape of the trees. We also explored for 
+any interactions. We observed, in general, significant, non-linear relationships between elevation and size/shape metrics for Las Matancias, and significant
+non-linear relationships between slopes and size/shape metrics for San Dionisio. La Cobriza tree sizes did not show much significant influences from water availability proxies. 
 
 **Hypothesis 4:** *Quercus brandegeei* persist in a similar, narrow niche breadth of soil characteristics. The 20 known populations have more similar soil characteristics (texture, moisture, Ph, etc.) than 
 areas where we know there are no *Q. brandegeei* populations. For this we performed three analyses. The first was a comparison of the mean soil values between our three populations: La Cobriza, 
@@ -136,21 +141,6 @@ to test hypothesis 4 by using a **Spatial Null Model Analysis** comparing the me
 if the populations were randomly distributed in a 7000 m buffer zone around the known populations (1000 permutations). We observed that our known populations
 had significantly higher clay/loam field capacity (0-5 and 100-200 cm) and sand available water (0-5 cm), suggesting water availability may 
 influence the distinct locations of the populations. 
-
-**Hypothesis 5:** *Quercus brandegeei* is predominantly restricted by water availability (proxied by distance to river, aspect, slope, and elevation). 
-*Q. brandegeei* will exhibit larger sizes with higher soil moisture content. 
-This hypothesis is explored by two scripts:
-
-* [hypothesis_5_water_availability_CLEANED.R](./analyses/hypothesis_5_water_availability_CLEANED.R) is a well-commented R 
-script to test hypothesis 5 in which we used **Single Linear Regressions (SLRs)** to see if the trees distance to the river had a relationship with 
-their size. We observed that distance to river never had a significant relationship with the size and shape of the trees, possibly 
-because of how close the trees are to water acces already. 
-
-* [hypothesis_5_GAM_water_availability_CLEANED.R](./analyses/hypothesis_5_GAM_water_availability_CLEANED.R) is a well-commented
-R script to test hypothesis 5 in which we used **Generalized Additive Models (GAMs)** to find any linear or non-linear relationships
-between distance to river, slope, aspect, and elevation (water availability proxies) and the size/shape of the trees. We also explored for 
-any interactions. We observed, in general, significant, non-linear relationships between elevation and size/shape metrics for Las Matancias, and significant
-non-linear relationships between slopes and size/shape metrics for San Dionisio. La Cobriza tree sizes did not show much significant influences from water availability proxies. 
 
 The results are summarized in this google spreadsheet: [General_Test_Results_Wanger_REEF_2025](https://docs.google.com/spreadsheets/d/1BemVj7ev1UcTnCs2zXe8JUpJoGbSO78u0YJfAZuehLs/edit?gid=0#gid=0) 
 
