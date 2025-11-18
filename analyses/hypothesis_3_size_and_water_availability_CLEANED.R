@@ -18,12 +18,11 @@
           # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
           # Extracting the distance to the river of each tree for each population,
     # Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
-  # 2) Comparing size of the trees to their elevation to look for a relationship using single linear regression
-  # 3) Comparing size of the trees to their slope to look for a relationship using single linear regression
-  # 4) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
-  # 5) Making a function for creating the distance to river single linear regressions, finding the best models (with transformations and removal of outliers or not) 
-          # that meet the conditions for SLRs
-  # 6) Running the distance to river SLR function and storing the outputs
+  # 2) Comparing size of the trees to their elevation to look for any relationshipss using single linear regression
+  # 3) Comparing size of the trees to their slope to look for any relationships using single linear regression
+  # 4) Comparing size of the trees to their distance to a river to look for any relationships using single linear regression
+  # 5) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
+
 
 # NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 
