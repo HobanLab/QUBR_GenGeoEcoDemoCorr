@@ -110,49 +110,6 @@ morans_I <- function(population, variable){
   print(paste0("Global Moran's I: ", global.moran.I$I))
   print(paste0("Global Moran's I Monte Carlo P-value: ", MC.LM.metric$p.value))
   
-  
-  #SCA
-  
-  #running the simple linear regression function
-  simple_linear_regressions_LM_SCA_elevation <- simple_linear_regressions("LM", "SCA", "Elevation")
-  simple_linear_regressions_LM_SCA_elevation
-  
-  #checking linearity 
-  
-  #plotting the scatterplot and linear model in ggplot
-  ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_short))))+ 
-    geom_smooth(method='lm')+
-    geom_point()+
-    xlab("Elevation (m)")+
-    ylab("Square Root of Short Canopy Axis (m)")
-  
-  #looking at the normality of residuals with a histogram and qqnorm plot
-  
-  #histogram
-  ggplot(simple_linear_regressions_LM_SCA_elevation$chosen_model, aes(x= simple_linear_regressions_LM_SCA_elevation$chosen_model$residuals))+
-    geom_histogram()+
-    labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Elevation")+
-    xlab("Residuals")+
-    ylab("Frequency")
-  
-  #qqnorm plot
-  ggplot(simple_linear_regressions_LM_SCA_elevation$chosen_model, aes(sample = simple_linear_regressions_LM_SCA_elevation$chosen_model$residual))+
-    geom_qq()
-  
-  #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-  ggplot(data = simple_linear_regressions_LM_SCA_elevation$chosen_model, aes(x = simple_linear_regressions_LM_SCA_elevation$chosen_model$fitted.values, y = simple_linear_regressions_LM_SCA_elevation$chosen_model$residual))+
-    geom_point()+
-    geom_abline(intercept = 0, slope = 0)+
-    xlab("Fitted Values")+
-    ylab("Residuals")+
-    labs(title = "Residuals vs. Fitted Values for SCA and Elevation")
-  
-  
-  
-  
-  
-  
-  
   ## Local Moran's I
   
   #setting a seed for all of the results from using the morans_I() function because localmoran_perm() uses random permutations

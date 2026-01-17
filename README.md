@@ -11,7 +11,7 @@ Looking for correlations in the genetics, geography, ecology, and demographics o
  The [analyses](./analyses) folder contains all the R scripts split by unique analysis type used in this project (all done in R version 2025.05.1+513). The folder contains scripts that are well-commented and cleaned.
 The **Unrefined and unused scripts are stored in [Old_Scripts](./analyses/Old_Scripts)**
 
-**[analyzing_moprho_data_cleaned.R](./data/analyzing_moprho_data_cleaned.R)** is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
+**[analyzing_moprho_data_cleaned.R](./analyses/analyzing_moprho_data_cleaned.R)** is a well-commented R script which has been modified only slightly from the code Ash wrote for their morphometrics project in the Winter of 2024
 
 **[Data_Processing_Script.R](./analyses/Data_Processing_Script.R)** is a well-commented script for processing/cleaning the
 tree spatial, topographic (slope, aspect, and elevation), distance to rivers, and soil metric data. All spatial data/shapefiles were transformed to
