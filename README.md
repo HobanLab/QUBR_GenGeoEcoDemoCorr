@@ -92,7 +92,7 @@ but only San Dionisio's short canopy axis and long canopy axis median p-values s
 *Q. brandegeei* will exhibit larger sizes with higher soil moisture content. 
 This hypothesis is explored by two scripts: 
 
-* [hypothesis_3_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_size_and_exposure_CLEANED.R) is a well commented R script to test hypothesis 3. To test it, we explored using **Single Linear Regressions (SLRs)**
+* [hypothesis_3_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_size_and_water_availability_CLEANED.R) is a well commented R script to test hypothesis 3. To test it, we explored using **Single Linear Regressions (SLRs)**
 to see if there was a relationship between size characteristics (SCA, LCA, CS, CA, DBH) and each of the quantiative explanatory variables (elevation, slope, and distance to river)
 slope. Finally, we compared the average size values to their aspect (for both N,E,S,W and for N, NW, W, SW, S, SE, E, NE) with ANOVAs/Kruskal-Wallis 
 Models. We used 15 m elevation/slope/aspect/distance to river rasters. We observed that for elevation vs. size/shape metrics, Las Matancitas showed significant positive relationships between short canopy axis,
@@ -105,7 +105,7 @@ aspect with the size/shape of trees, in general, we observed the north and north
 * [hypothesis_3_GAM_size_and_exposure_CLEANED.R](./analyses/hypothesis_3_GAM_size_and_exposure_CLEANED.R) is a well-commented R script to test hypothesis 3 using **Generalized Additive Models (GAMs)**
 as a non-parametric and more flexible method to explore relationships between elevation, slope, and aspect and size characteristics (SCA, LCA, CS, CA, DBH), allowing for non-linear relationships. 
 
-* [hypothesis_3_GAM_water_availability_CLEANED.R](./analyses/hypothesis_5_GAM_water_availability_CLEANED.R) is a well-commented
+* [hypothesis_3_GAM_water_availability_CLEANED.R](./analyses/hypothesis_3_GAM_water_availability_CLEANED.R) is a well-commented
 R script to test hypothesis 5 in which we used **Generalized Additive Models (GAMs)** to find any linear or non-linear relationships
 between distance to river, slope, aspect, and elevation (water availability proxies) and the size/shape of the trees. We also explored for 
 any interactions. We observed, in general, significant, non-linear relationships between elevation and size/shape metrics for Las Matancias, and significant
