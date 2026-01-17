@@ -83,7 +83,7 @@ as for [hypothesis_2_linear_model_CLEANED.R](./analyses/hypothesis_2_linear_mode
 values are greater than three times the mean Cook's D value. Removing the outliers allows the models to better meet the conditions but sacrifices potentially informative trends in the data.
 We observed that only San Dionisio's short canopy axis, long canopy axis, canopy area, and crown spread showed significant competition between trees. 
 
-* [hypothesis_2_linear_models_permutations_CLEANED.R](./analyses/hypothesis_2_linear_models_permutations_CLEANED) is well-commented R script to test hypothesis 2 with **Generalized Linear Regressions (GLRs)** that 
+* [hypothesis_2_linear_models_permutations_CLEANED.R](./analyses/hypothesis_2_linear_models_permutations_CLEANED.R) is well-commented R script to test hypothesis 2 with **Generalized Linear Regressions (GLRs)** that 
 uses the same methodologies as for [hypothesis_2_linear_model_no_outliers_CLEANED.R](./analyses/hypothesis_2_linear_model_no_outliers_CLEANED.R), except we permutate the randomly selected focal trees (500 times)
 to test how robust are the slope test/Kruskal-Wallis test results. We observed that across all of the combinations of size and shape metrics had mean slopes demonstrating competition,
 but only San Dionisio's short canopy axis and long canopy axis median p-values showed significant competition.   
