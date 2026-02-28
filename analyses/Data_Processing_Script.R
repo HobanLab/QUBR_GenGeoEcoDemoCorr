@@ -74,13 +74,17 @@ library(visreg) # to be able to plot Aspect/categorical variables with GAM
 
 # loading in the tree data (size, elevation, lat/lon, ID, size/shape)
 
-fixed_field_data_processed <- read.csv("./analyses/fixed_field_data_processed.csv") #imports the csv created from analyzing_morpho_data_cleaned.R
+fixed_field_data_processed <- read.csv("./data/all_data_merged.csv") #imports the csv created from the 2025 data merged with the data processed in analyzing_morpho_data_cleaned.R
 
-#adding a sequential column, "X," to number each tree
-
+#adding a sequential column, "X," to number each tree and editing column names to make sure they align with the code 
 fixed_field_data_processed <- fixed_field_data_processed %>%
-  mutate(X = row_number())
-
+  mutate(X = row_number()) %>%
+  mutate(locality = case_when(QUBR_ID == "LM_310" ~ "LM", #FIXING TYPO IN NEW DATA
+                              QUBR_ID == "LM_322" ~ "LM",
+                              TRUE ~ locality)) %>%
+  mutate(Locality = locality) %>% #FIXING TYPO IN NEW DATA
+  mutate(Elevation..m. = altitude) #FIXING TYPO IN NEW DATA
+  
 # creating the point shapefiles of the tree locations for each population in UTM 12 N
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
@@ -137,48 +141,51 @@ fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf
   mutate(Crown_spread_inv = (1/Crown_spread))%>%
   mutate(DBH_ag_inv = (1/DBH_ag))
 
-#setting elevation as a numeric value
+#setting elevation as a numeric value and creating an elevation column with a new name to match the code
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.))
+  mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
+  mutate(Elevation..m.FIXED = as.numeric(Elevation..m.)) 
 
-# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns
+# Creating fixed_field_data_processed dataframes for each population with the nearest neighbor columns 
 
 LM_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LM")
+  filter(Locality == "LM") 
 
 LC_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "LC")
+  filter(Locality == "LC") 
 
 SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates %>%
-  filter(Locality == "SD")
+  filter(Locality == "SD") 
 
 #### Fixing errors with the elevation data ####
 
-#creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
-fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
-                                        (Elevation..m. == 360) ~ NA, 
-                                        (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
+# Code to convert elevation data from feet to meters 
 
-#creating a new elevation column so the values that were mistakenly put in feet are in meters
-LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-  mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
-
-#creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
-LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-                                        (Elevation..m. < 700) ~ Elevation..m.))
+# #creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
+# fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
+#                                         (Elevation..m. == 360) ~ NA, 
+#                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
+# 
+# #creating a new elevation column so the values that were mistakenly put in feet are in meters
+# LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+#   mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
+#                                         (Elevation..m. < 700) ~ Elevation..m.))
+# 
+# #creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
+# LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
+#                                         (Elevation..m. < 700) ~ Elevation..m.))
+# #creating a new elevation column so that a 360 m outlier is 460
+# SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
+#   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
+#                                         (Elevation..m. != 360) ~ Elevation..m.))
 
 #plotting all of the tree points by elevation (m) to check the range of values 
 ggplot()+
   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates, aes(color = Elevation..m.FIXED))
 
-#creating a new elevation column so that a 360 m outlier is 460
-SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
-                                        (Elevation..m. != 360) ~ Elevation..m.))
 
 #### Loading in ArcGIS river and Baja California Sur shapefile and storing out polygons for each population ####
 
@@ -350,13 +357,13 @@ SD_box <- st_bbox(river_SD_trans)
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
 CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
-terra::crs(CEM_15_utm_LM) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_LM) <- CRS("EPSG:26912")
 
 CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
-terra::crs(CEM_15_utm_LC) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_LC) <- CRS("EPSG:26912")
 
 CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
-terra::crs(CEM_15_utm_SD) <- CRS("+init=epsg:26912")
+terra::crs(CEM_15_utm_SD) <- CRS("EPSG:26912")
 
 #creating the all points raster by merging the LM, LC, and SD rasters
 CEM_15_utm_all_points <- raster::merge(CEM_15_utm_LM, CEM_15_utm_LC, CEM_15_utm_SD)
@@ -412,6 +419,7 @@ ggplot()+
   geom_raster(data= as.data.frame(SD_slope_raster_15, xy = T), aes(x=x, y=y, fill = slope))+
   geom_sf(data = SD_fixed_field_data_processed)+
   scale_fill_viridis_c()
+
 
 ## Extracting the aspect 
 
@@ -836,6 +844,8 @@ field_data_summarized <- fixed_field_data_processed %>%
   dplyr::select(DBH_ag, Canopy_short, Canopy_long, Crown_spread, Canopy_area, eccentricity, DBH_ag) %>%  # Keep only the columns we are interested in getting summary values of
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
+
+#### RESUME ####
 
 #### Creating the distance to river columns ####
 
