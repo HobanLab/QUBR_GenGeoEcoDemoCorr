@@ -237,7 +237,7 @@ ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = LC_fixed_field_data_processed_sf)
 
 #SD
-river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer
+river_buffer_SD <- st_buffer(river_SD_trans, 130) #130 m buffer
 ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_SD)+
   geom_sf(data = river_SD_trans)+

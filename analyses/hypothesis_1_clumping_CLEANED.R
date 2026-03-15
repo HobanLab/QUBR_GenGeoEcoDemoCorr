@@ -7,8 +7,8 @@
 #If they were dispersed by heavy rainfall, we would expect more dispersal than at random. 
 #If they were dispersed by gravity, we would expect more clumping of trees than at random. 
 #To test this, we used a Ripley's K and compared the known tree locations to randomly generated locations
-#produced in convex hulls, the river shapefiles, and buffers around the river 
-#(all three were attempted seperately and compared) to determine whether the 
+#produced in either convex hulls, the river shapefiles, and buffers around the river 
+#(all three were attempted separately and compared) to determine whether the 
 #tree points were more clustered or dispersed than we would expect at random. 
 #We then used an Average Nearest Neighbor Analysis (ANN) to support with p-values whether the points 
 #seem more clustered or dispersed than at random. 
@@ -16,7 +16,7 @@
 #distance to the river of the points has on the placement of the trees better explains the distribution of 
 #the points than if they were distributed at random.
 
-# The Ripley's K and ANN both test whether the trees are more clumped or dispersed than at random, whereby 
+# The Ripley's K and ANN analyses both test whether the trees are more clumped or dispersed than at random, whereby 
 #the ANN is the only test of the two that provides a p-value of the two. 
 #The PPM test is the only test of the three that sees whether the river itself has an influence on the 
 #points distribution.
@@ -48,7 +48,7 @@ library(tmaptools)
 
 # loading in the processed tree data 
 # NOTE: uncomment and run line 51, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
-#source("./analyses/Data_Processing_Script.R")
+# source("./analyses/Data_Processing_Script.R")
 
 #ensuring there is a column from latitude and longitude in the populations transformed dataframe because those columns are needed in "hypothesis_1_clumping_CLEANED.R" 
 
