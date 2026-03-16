@@ -115,6 +115,7 @@ fixed_field_data_processed_sf_trans_coords <- st_coordinates(fixed_field_data_pr
 fixed_field_data_processed_sf_trans_coordinates <- fixed_field_data_processed_sf_transformed %>%
   cbind(fixed_field_data_processed_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
 
+
 #### Transformations of tree size/shape variables (log and square root) for linear models ####
 
 #creating columns with transformations: logged all of the size/shape variables
@@ -182,25 +183,21 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
 #   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
 #                                         (Elevation..m. != 360) ~ Elevation..m.))
 
-#plotting all of the tree points by elevation (m) to check the range of values 
-ggplot()+
-  geom_sf(data = fixed_field_data_processed_sf_trans_coordinates, aes(color = Elevation..m.FIXED))
-
 
 #### Loading in ArcGIS river and Baja California Sur shapefile and storing out polygons for each population ####
 
 #Las Matancitas (LM)
-river_LM <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LM River/LM_Rivers_Final.shp")
+river_LM <- st_read("./data/Shapefiles/Ash's River Shapefiles ArcGIS 2026/LM_polygon/LM_polygon.shp")
 river_LM  <- river_LM$geometry[1]
 plot(river_LM)
 
 #La Cobriza (LC)
-river_LC  <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/LC River/LC_Rivers_Final.shp")
+river_LC  <- st_read("./data/Shapefiles/Ash's River Shapefiles ArcGIS 2026/LC_polygon/LC_polygon.shp")
 river_LC  <- river_LC$geometry[1]
 plot(river_LC)
 
 #San Dionisio (SD)
-river_SD <- st_read("./data/Shapefiles/FINAL River Shapefiles ArcGIS/SD River/SD_Rivers_Final.shp")
+river_SD <- st_read("./data/Shapefiles/Ash's River Shapefiles ArcGIS 2026/SD_polygon/SD_polygon.shp")
 river_SD <- river_SD$geometry[1]
 plot(river_SD)
 
@@ -240,7 +237,7 @@ ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = LC_fixed_field_data_processed_sf)
 
 #SD
-river_buffer_SD <- st_buffer(river_SD_trans, 70) #70 m buffer
+river_buffer_SD <- st_buffer(river_SD_trans, 130) #130 m buffer
 ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_SD)+
   geom_sf(data = river_SD_trans)+
@@ -845,6 +842,23 @@ field_data_summarized <- fixed_field_data_processed %>%
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
 
+#comparing the hand-held collected GPS elevation data to the raster derived elevation data
+
+#finding the linear regression between them
+elevation_model <- lm(LM_elevation_raster_15_data_pts ~ Elevation..m.,
+            data = LM_fixed_field_data_processed_terrain)
+coef(elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(LM_fixed_field_data_processed_terrain$Elevation..m., LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m., y =LM_elevation_raster_15_data_pts, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m., y = LM_elevation_raster_15_data_pts), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 500, y = 500, label = "y == 1.079193*x - 11.714779", parse = TRUE)+
+  annotate("text", x = 500, y = 495, label = "r == 0.9736062", parse = TRUE)
+
 #### RESUME ####
 
 #### Creating the distance to river columns ####
@@ -1265,11 +1279,10 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
-
 #### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
 
 #downloading the data containing the locations (lat/lon) of the 20 known populations
-all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPD coords for pops (12_2024).csv")
+all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPS coords for pops (12_2025).csv")
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
@@ -1518,6 +1531,4 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
-
-
 
