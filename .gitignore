@@ -2,3 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
+data/.DS_Store
+data/Shapefiles/.DS_Store
+data/Shapefiles/Ash's River Shapefiles ArcGIS 2026/.DS_Store
+data/Shapefiles/Rebecca's River Shapefiles ArcGIS 2025/.DS_Store
