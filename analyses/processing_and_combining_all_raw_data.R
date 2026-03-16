@@ -5,7 +5,7 @@ library(sf)
 `%notin%` <- Negate(`%in%`) # Make a function that is the opposite of the %in% function
 
 # Read in the raw data from 2023 sampling trip
-field_data_raw <- read.csv("./data/Field_datasheets_filled_before_KA_check_copy.csv", na.strings = c("NA", "")) 
+field_data_raw <- read.csv("./data/Field_datasheets_filled_before_KA_check.csv", na.strings = c("NA", "")) 
 
 # Read in the csv with Daniels pt data
 daniel_data_raw <- read.csv("./data/2021Data_populations_metal_labels.csv", na.strings = "") 
@@ -184,7 +184,7 @@ cleaned_LC_weird_data <- LC_weird_data %>%
          Locality = "LC") # add locality info since all data from this layer is from LC 
 
 #check if we have any of the same trees in the weird LC data and the better data from 2025
-tmp <- LC_weird_data_cleaned %>%
+tmp <- cleaned_LC_weird_data %>%
   filter(Metal_ID %in%  cleaned_2025_data$Metal_ID)
 #we do not!
 
@@ -243,6 +243,7 @@ cleaned_all_2025_data_final <- cleaned_all_2025_data %>%
 ####Merging with the data from Daniel/2023####
 
 cleaned_2023_data_final <- fixed_field_data_processed %>%
+  rename(altitude_2023= Elevation..m.) %>%
   select(!c(Stick, Tree_pic, Env_pic, Recorder, Date, Page, Transcriber, Checked.)) %>%
   mutate(Metal_ID = as.character(Metal_ID))
 
@@ -291,7 +292,7 @@ cleaned_all_data_final <- cleaned_all_data %>%
                           .default = Long)) %>%
   rename(notes_new_data = notes,
          notes_old_data = Comments) %>%
-  select(c(Metal_ID, QUBR_ID, locality, lat, long, altitude, fruiting, DBH_ag, multistemmed, height, Canopy_short, Canopy_long,  notes_new_data, notes_old_data, horiz_accuracy_m, vert_accuracy_m, Crown_spread, eccentricity, Canopy_area, positionsourcetype, fixtype, numsats))
+  select(c(Metal_ID, QUBR_ID, locality, lat, long, altitude, altitude_2023, fruiting, DBH_ag, multistemmed, height, Canopy_short, Canopy_long,  notes_new_data, notes_old_data, horiz_accuracy_m, vert_accuracy_m, Crown_spread, eccentricity, Canopy_area, positionsourcetype, fixtype, numsats))
 write_csv(cleaned_all_data_final, "./data/all_data_merged.csv")
 
 ###Final sanity checks####
