@@ -223,14 +223,14 @@ BCS_polygon <- st_as_sf(BCS_polygon) #ensures foreign will be an sf object (in t
 #creating buffers around the rivers
 
 #LM
-river_buffer_LM <- st_buffer(river_LM_trans, 100) #100 m buffer
+river_buffer_LM <- st_buffer(river_LM_trans, 80) #80 m buffer
 ggplot()+  #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_LM)+
   geom_sf(data = river_LM_trans)+
   geom_sf(data = LM_fixed_field_data_processed_sf)
 
 #LC
-river_buffer_LC <- st_buffer(river_LC_trans, 100) #230 m buffer
+river_buffer_LC <- st_buffer(river_LC_trans, 50) #50 m buffer
 ggplot()+ #plotting the river shapefile, the buffer, and the tree points
   geom_sf(data = river_buffer_LC)+
   geom_sf(data = river_LC_trans)+

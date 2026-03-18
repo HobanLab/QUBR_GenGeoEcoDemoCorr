@@ -425,7 +425,7 @@ plot(dist_near_river_buffer_LC_inverse)
 #creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_LC_inverse <- dist_near_river_buffer_LC %>% #creating a new stars object with new defined values for distance
   st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 20 ~ 1, 
+  mutate(d = case_when(d <= 50 ~ 1, 
                        d > 1 ~ 1/d)) %>% #assigning cells less than 20 m away from rivers edge with value of 1 and taking 1/distance for all other cells
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_LC_inverse)
@@ -449,10 +449,10 @@ plot(dist_near_river_buffer_LC_inverse)
 dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD 
 plot(dist_near_river_buffer_SD_inverse)
 
-#creating a raster with assigned values of 1 to cells within 50 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
+#creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
 dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a new stars object with new defined values for distance
   st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 50 ~ 1, 
+  mutate(d = case_when(d <= 70 ~ 1, 
                        d > 1 ~ 1/d)) %>% #assigning cells less than 50 m away from rivers edge with value of 1 and taking 1/distance for all other cells
   st_rasterize() #convert the shapefile into a raster
 plot(dist_near_river_buffer_SD_inverse)

@@ -78,6 +78,11 @@ morans_I <- function(population, variable){
   
   ## Global Moran's I
   
+  #removing NAs in DBH (needed to compute nearest neighbor and the metric of focus) ADDED AFTER ADDITION OF NEW DATA IN 2026
+  dataframe <- dataframe %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(.data[[metric]]))
+  
   #creating a matrix of the tree locations
   tree.coord.matrix <- as.matrix(cbind(dataframe$X.1, 
                                        dataframe$Y))
@@ -134,7 +139,7 @@ morans_I <- function(population, variable){
     filter(pval_sig == T)
   
   return(list(dataframe$lag.metric, lm, MC.LM.metric,
-              MC_local.df, sig.tree, dataframe_sign, dataframe$p.metric.adjusted, global.moran.I))
+              MC_local.df, sig.tree, dataframe_sign, dataframe$p.metric.adjusted, global.moran.I, dataframe))
   
 }
 
@@ -159,15 +164,18 @@ LM_SCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LM_SCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LM_SCA_dataframe <- LM_SCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.canopy.short <- LM_SCA_Morans_I[[1]]
+LM_SCA_dataframe$lag.canopy.short <- LM_SCA_Morans_I[[1]] #LM_fixed_field_data_processed
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.short))+
+ggplot(data=LM_SCA_dataframe, aes(x=Canopy_short, y=lag.canopy.short))+
   geom_point()+
-  geom_smooth(method = lm, col="blue")+
+  geom_smooth(method = "lm", col="blue")+
   xlab("Short Canopy Axis")+
   ylab("Lagged Short Canopy Axis")
 
@@ -183,7 +191,7 @@ LM_SCA_Morans_I[[5]]
 LM_fixed_field_data_processed_sign <- LM_SCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LM_fixed_field_data_processed$p.canopy.short.adjusted <- LM_SCA_Morans_I[[7]]
+LM_SCA_dataframe$p.canopy.short.adjusted <- LM_SCA_Morans_I[[7]]
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -196,7 +204,7 @@ ggplot(data=MC_local.LM.canopy.short.df)+
 #plotting the local Moran's I 
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.short.adjusted)) +
+  geom_sf(data =LM_SCA_dataframe, aes(color = p.canopy.short.adjusted)) +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for SCA")
@@ -204,8 +212,8 @@ ggplot() +
 #attempting to zoom on the sizes of the significant point
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(size = Canopy_short)) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.short.adjusted))+
+  geom_sf(data =LM_SCA_dataframe, aes(size = Canopy_short)) +
+  geom_sf(data =LM_SCA_dataframe, aes(color = p.canopy.short.adjusted))+
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   xlim(c(585700.6, 585903.6))+
   ylim(c(2654803,2654983))
