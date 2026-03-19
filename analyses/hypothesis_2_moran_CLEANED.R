@@ -91,7 +91,7 @@ morans_I <- function(population, variable){
   knn.dist <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(dataframe$DBH_ag)))
   
   #inverse distance weighting with raw distance-based weights without applying any normalization
-  lw.dist <- nb2listwdist(knn.dist, fixed_field_data_processed_sf_trans_coordinates, type="idw", style="W", 
+  lw.dist <- nb2listwdist(knn.dist, dataframe, type="idw", style="W", #fixed_field_data_processed_sf_trans_coordinates
                           alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T) # had to set zero.policy to true because of empty neighbor sets
   
   #creating lags for each tree, which computes the average neighboring size metric for each tree
@@ -167,6 +167,7 @@ LM_SCA_Morans_I[[3]]
 #storing the dataframe used for the Moran's Is with the NAs removed
 LM_SCA_dataframe <- LM_SCA_Morans_I[[9]]
 
+
 #creating a column for the lagged size metric
 LM_SCA_dataframe$lag.canopy.short <- LM_SCA_Morans_I[[1]] #LM_fixed_field_data_processed
 
@@ -232,13 +233,16 @@ LM_LCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LM_LCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LM_LCA_dataframe <- LM_LCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.canopy.long <- LM_LCA_Morans_I[[1]]
+LM_LCA_dataframe$lag.canopy.long <- LM_LCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long))+
+ggplot(data=LM_LCA_dataframe, aes(x=Canopy_long, y=lag.canopy.long))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Long Canopy Axis")+
@@ -257,7 +261,7 @@ LM_LCA_Morans_I[[5]]
 LM_fixed_field_data_processed_sign <- LM_LCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LM_fixed_field_data_processed$p.canopy.long.adjusted <- LM_LCA_Morans_I[[7]]
+LM_LCA_dataframe$p.canopy.long.adjusted <- LM_LCA_Morans_I[[7]]
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -270,7 +274,7 @@ ggplot(data=MC_local.LM.canopy.long.df)+
 #plotting the local Moran's I 
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.long.adjusted)) +
+  geom_sf(data =LM_LCA_dataframe, aes(color = p.canopy.long.adjusted)) +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for LCA")
@@ -288,13 +292,16 @@ LM_CS_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LM_CS_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LM_CS_dataframe <- LM_CS_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.crown.spread <- LM_CS_Morans_I[[1]]
+LM_CS_dataframe$lag.crown.spread <- LM_CS_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LM_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.spread))+
+ggplot(data=LM_CS_dataframe, aes(x=Crown_spread, y=lag.crown.spread))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Crown Spread")+
@@ -312,7 +319,7 @@ LM_CS_Morans_I[[5]]
 LM_fixed_field_data_processed_sign <- LM_CS_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LM_fixed_field_data_processed$p.crown.spread.adjusted <- LM_CS_Morans_I[[7]]
+LM_CS_dataframe$p.crown.spread.adjusted <- LM_CS_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local Moran's I values vs. the expected
@@ -325,7 +332,7 @@ ggplot(data=MC_local.LM.crown.spread.df)+
 #plotting the local Moran's I
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.crown.spread.adjusted)) +
+  geom_sf(data =LM_CS_dataframe, aes(color = p.crown.spread.adjusted)) +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for CS")
@@ -343,13 +350,16 @@ LM_CA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LM_CA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LM_CA_dataframe <- LM_CA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.canopy.area <- LM_CA_Morans_I[[1]]
+LM_CA_dataframe$lag.canopy.area <- LM_CA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LM_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area))+
+ggplot(data=LM_CA_dataframe, aes(x=Canopy_area, y=lag.canopy.area))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Canopy Area")+
@@ -367,7 +377,7 @@ LM_CA_Morans_I[[5]]
 LM_fixed_field_data_processed_sign <- LM_CA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LM_fixed_field_data_processed$p.canopy.area.adjusted <- LM_CA_Morans_I[[7]]
+LM_CA_dataframe$p.canopy.area.adjusted <- LM_CA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -380,7 +390,7 @@ ggplot(data=MC_local.LM.canopy.area.df)+
 #plotting local Moran's I
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.canopy.area.adjusted)) +
+  geom_sf(data =LM_CA_dataframe, aes(color = p.canopy.area.adjusted)) +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for CA")
@@ -398,13 +408,16 @@ LM_DBH_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LM_DBH_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LM_DBH_dataframe <- LM_DBH_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LM_fixed_field_data_processed$lag.dbh.ag <- LM_DBH_Morans_I[[1]]
+LM_DBH_dataframe$lag.dbh.ag <- LM_DBH_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LM_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
+ggplot(data=LM_DBH_dataframe, aes(x=DBH_ag, y=lag.dbh.ag))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("DBH")+
@@ -422,7 +435,7 @@ LM_DBH_Morans_I[[5]]
 LM_fixed_field_data_processed_sign <- LM_DBH_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LM_fixed_field_data_processed$p.dbh.ag.adjusted <- LM_DBH_Morans_I[[7]]
+LM_DBH_dataframe$p.dbh.ag.adjusted <- LM_DBH_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -435,7 +448,7 @@ ggplot(data=MC_local.LM.dbh.ag.df)+
 #plotting local Moran's I
 ggplot() +
   geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = p.dbh.ag.adjusted)) +
+  geom_sf(data =LM_DBH_dataframe, aes(color = p.dbh.ag.adjusted)) +
   geom_sf(data = LM_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LM_box[1], LM_box[3]), ylim = c(LM_box[2], LM_box[4]))+
   labs(color = "Adjusted P Value for DBH")
@@ -461,13 +474,16 @@ LC_SCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LC_SCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LC_SCA_dataframe <- LC_SCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LC_fixed_field_data_processed$lag.canopy.short <- LC_SCA_Morans_I[[1]]
+LC_SCA_dataframe$lag.canopy.short <- LC_SCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.short))+
+ggplot(data=LC_SCA_dataframe, aes(x=Canopy_short, y=lag.canopy.short))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Short Canopy Axis")+
@@ -485,7 +501,7 @@ LC_SCA_Morans_I[[5]]
 LC_fixed_field_data_processed_sign <- LC_SCA_Morans_I[[6]]
  
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LC_fixed_field_data_processed$p.canopy.short.adjusted <- LC_SCA_Morans_I[[7]]
+LC_SCA_dataframe$p.canopy.short.adjusted <- LC_SCA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -498,7 +514,7 @@ ggplot(data=MC_local.LC.canopy.short.df)+
 #plotting local Moran's I
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = p.canopy.short.adjusted)) +
+  geom_sf(data =LC_SCA_dataframe, aes(color = p.canopy.short.adjusted)) +
   geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LC_box[1], LC_box[3]), ylim = c(LC_box[2], LC_box[4]))+
   labs(color = "Adjusted P Value for SCA")
@@ -516,13 +532,16 @@ LC_LCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LC_LCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LC_LCA_dataframe <- LC_LCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LC_fixed_field_data_processed$lag.canopy.long <- LC_LCA_Morans_I[[1]]
+LC_LCA_dataframe$lag.canopy.long <- LC_LCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long))+
+ggplot(data=LC_LCA_dataframe, aes(x=Canopy_long, y=lag.canopy.long))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Long Canopy Axis")+
@@ -540,7 +559,7 @@ LC_LCA_Morans_I[[5]]
 LC_fixed_field_data_processed_sign <- LC_LCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LC_fixed_field_data_processed$p.canopy.long.adjusted <- LC_LCA_Morans_I[[7]]
+LC_LCA_dataframe$p.canopy.long.adjusted <- LC_LCA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -553,7 +572,7 @@ ggplot(data=MC_local.LC.canopy.long.df)+
 #plotting local Moran's I
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = p.canopy.long.adjusted)) +
+  geom_sf(data =LC_LCA_dataframe, aes(color = p.canopy.long.adjusted)) +
   geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LC_box[1], LC_box[3]), ylim = c(LC_box[2], LC_box[4]))+
   labs(color = "Adjusted P Value for LCA")
@@ -571,13 +590,16 @@ LC_CS_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LC_CS_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LC_CS_dataframe <- LC_CS_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LC_fixed_field_data_processed$lag.crown.spread <- LC_CS_Morans_I[[1]]
+LC_CS_dataframe$lag.crown.spread <- LC_CS_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LC_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.spread))+
+ggplot(data=LC_CS_dataframe, aes(x=Crown_spread, y=lag.crown.spread))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Crown Spread")+
@@ -595,7 +617,7 @@ LC_CS_Morans_I[[5]]
 LC_fixed_field_data_processed_sign <- LC_CS_Morans_I[[6]]
  
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LC_fixed_field_data_processed$p.crown.spread.adjusted <- LC_CS_Morans_I[[7]]
+LC_CS_dataframe$p.crown.spread.adjusted <- LC_CS_Morans_I[[7]]
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -608,7 +630,7 @@ ggplot(data=MC_local.LC.crown.spread.df)+
 #plotting the Local Moran's I
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = p.crown.spread.adjusted)) +
+  geom_sf(data =LC_CS_dataframe, aes(color = p.crown.spread.adjusted)) +
   geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LC_box[1], LC_box[3]), ylim = c(LC_box[2], LC_box[4]))+
   labs(color = "Adjusted P Value for CS")
@@ -626,13 +648,16 @@ LC_CA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LC_CA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LC_CA_dataframe <- LC_CA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LC_fixed_field_data_processed$lag.canopy.area <- LC_CA_Morans_I[[1]]
+LC_CA_dataframe$lag.canopy.area <- LC_CA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LC_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area))+
+ggplot(data=LC_CA_dataframe, aes(x=Canopy_area, y=lag.canopy.area))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Canopy Area")+
@@ -650,7 +675,7 @@ LC_CA_Morans_I[[5]]
 LC_fixed_field_data_processed_sign <- LC_CA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LC_fixed_field_data_processed$p.canopy.area.adjusted <- LC_CA_Morans_I[[7]]
+LC_CA_dataframe$p.canopy.area.adjusted <- LC_CA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -663,7 +688,7 @@ ggplot(data=MC_local.LC.canopy.area.df)+
 #plotting Local Moran's I
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = p.canopy.area.adjusted)) +
+  geom_sf(data =LC_CA_dataframe, aes(color = p.canopy.area.adjusted)) +
   geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LC_box[1], LC_box[3]), ylim = c(LC_box[2], LC_box[4]))+
   labs(color = "Adjusted P Value for CA")
@@ -681,13 +706,16 @@ LC_DBH_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 LC_DBH_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+LC_DBH_dataframe <- LC_DBH_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-LC_fixed_field_data_processed$lag.dbh.ag <- LC_DBH_Morans_I[[1]]
+LC_DBH_dataframe$lag.dbh.ag <- LC_DBH_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=LC_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
+ggplot(data=LC_DBH_dataframe, aes(x=DBH_ag, y=lag.dbh.ag))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("DBH")+
@@ -705,7 +733,7 @@ LC_DBH_Morans_I[[5]]
 LC_fixed_field_data_processed_sign <- LC_DBH_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-LC_fixed_field_data_processed$p.dbh.ag.adjusted <- LC_DBH_Morans_I[[7]]
+LC_DBH_dataframe$p.dbh.ag.adjusted <- LC_DBH_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -718,7 +746,7 @@ ggplot(data=MC_local.LC.dbh.ag.df)+
 #plotting local Moran's I
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = p.dbh.ag.adjusted)) +
+  geom_sf(data =LC_DBH_dataframe, aes(color = p.dbh.ag.adjusted)) +
   geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(LC_box[1], LC_box[3]), ylim = c(LC_box[2], LC_box[4]))+
   labs(color = "Adjusted P Value for CA")
@@ -743,13 +771,16 @@ SD_SCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 SD_SCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+SD_SCA_dataframe <- SD_SCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-SD_fixed_field_data_processed$lag.canopy.short <- SD_SCA_Morans_I[[1]]
+SD_SCA_dataframe$lag.canopy.short <- SD_SCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_short, y=lag.canopy.short))+
+ggplot(data=SD_SCA_dataframe, aes(x=Canopy_short, y=lag.canopy.short))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Short Canopy Axis")+
@@ -767,7 +798,7 @@ SD_SCA_Morans_I[[5]]
 SD_fixed_field_data_processed_sign <- SD_SCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-SD_fixed_field_data_processed$p.canopy.short.adjusted <- SD_SCA_Morans_I[[7]]
+SD_SCA_dataframe$p.canopy.short.adjusted <- SD_SCA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local moran's I values vs. the expected
@@ -780,7 +811,7 @@ ggplot(data=MC_local.SD.canopy.short.df)+
 #plotting Local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.canopy.short.adjusted)) +
+  geom_sf(data =SD_SCA_dataframe, aes(color = p.canopy.short.adjusted)) +
   geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(SD_box[1], SD_box[3]), ylim = c(SD_box[2], SD_box[4]))+
   labs(color = "Adjusted P Value for SCA")
@@ -798,13 +829,16 @@ SD_LCA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 SD_LCA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+SD_LCA_dataframe <- SD_LCA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-SD_fixed_field_data_processed$lag.canopy.long <- SD_LCA_Morans_I[[1]]
+SD_LCA_dataframe$lag.canopy.long <- SD_LCA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_long, y=lag.canopy.long))+
+ggplot(data=SD_LCA_dataframe, aes(x=Canopy_long, y=lag.canopy.long))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Long Canopy Axis")+
@@ -822,7 +856,7 @@ SD_LCA_Morans_I[[5]]
 SD_fixed_field_data_processed_sign <- SD_LCA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-SD_fixed_field_data_processed$p.canopy.long.adjusted <- SD_LCA_Morans_I[[7]]
+SD_LCA_dataframe$p.canopy.long.adjusted <- SD_LCA_Morans_I[[7]]
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -835,8 +869,8 @@ ggplot(data=MC_local.SD.canopy.long.df)+
 #plotting Local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.canopy.long.adjusted)) +
-  geom_sf(data = LC_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
+  geom_sf(data =SD_LCA_dataframe, aes(color = p.canopy.long.adjusted)) +
+  geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(SD_box[1], SD_box[3]), ylim = c(SD_box[2], SD_box[4]))+
   labs(color = "Adjusted P Value for LCA")
 
@@ -853,13 +887,16 @@ SD_CS_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 SD_CS_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+SD_CS_dataframe <- SD_CS_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-SD_fixed_field_data_processed$lag.crown.spread <- SD_CS_Morans_I[[1]]
+SD_CS_dataframe$lag.crown.spread <- SD_CS_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=SD_fixed_field_data_processed, aes(x=Crown_spread, y=lag.crown.spread))+
+ggplot(data=SD_CS_dataframe, aes(x=Crown_spread, y=lag.crown.spread))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Crown Spread")+
@@ -878,7 +915,7 @@ SD_CS_Morans_I[[5]]
 SD_fixed_field_data_processed_sign <- SD_CS_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-SD_fixed_field_data_processed$p.crown.spread.adjusted <- SD_CS_Morans_I[[7]]
+SD_CS_dataframe$p.crown.spread.adjusted <- SD_CS_Morans_I[[7]]
 
 ##Ii is local moran statistic, E.Ii is expected local moran statistic, Vari.Ii is variance of local moran statistic, Z. Ii standard deviation of local moran statistic  
 #plotting the local moran's I values vs. the expected
@@ -891,7 +928,7 @@ ggplot(data=MC_local.SD.crown.spread.df)+
 #plotting the local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.crown.spread.adjusted)) +
+  geom_sf(data =SD_CS_dataframe, aes(color = p.crown.spread.adjusted)) +
   geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(SD_box[1], SD_box[3]), ylim = c(SD_box[2], SD_box[4]))+
   labs(color = "Adjusted P Value for CS")
@@ -909,13 +946,16 @@ SD_CA_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 SD_CA_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+SD_CA_dataframe <- SD_CA_Morans_I[[9]]
+
 #creating a column for the lagged size metric
-SD_fixed_field_data_processed$lag.canopy.area <- SD_CA_Morans_I[[1]]
+SD_CA_dataframe$lag.canopy.area <- SD_CA_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=SD_fixed_field_data_processed, aes(x=Canopy_area, y=lag.canopy.area))+
+ggplot(data=SD_CA_dataframe, aes(x=Canopy_area, y=lag.canopy.area))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("Canopy Area")+
@@ -933,7 +973,7 @@ SD_CA_Morans_I[[5]]
 SD_fixed_field_data_processed_sign <- SD_CA_Morans_I[[6]]
 
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-SD_fixed_field_data_processed$p.canopy.area.adjusted <- SD_CA_Morans_I[[7]]
+SD_CA_dataframe$p.canopy.area.adjusted <- SD_CA_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local Moran's I values vs. the expected
@@ -946,7 +986,7 @@ ggplot(data=MC_local.SD.canopy.area.df)+
 #plotting the local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.canopy.area.adjusted)) +
+  geom_sf(data =SD_CA_dataframe, aes(color = p.canopy.area.adjusted)) +
   geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(SD_box[1], SD_box[3]), ylim = c(SD_box[2], SD_box[4]))+
   labs(color = "Adjusted P Value for CA")
@@ -964,15 +1004,18 @@ SD_DBH_Morans_I[[2]]
 #Monte Carlo Simulation for Global Moran's I
 SD_DBH_Morans_I[[3]]
 
+#storing the dataframe used for the Moran's Is with the NAs removed
+SD_DBH_dataframe <- SD_DBH_Morans_I[[9]]
+
 plot(SD_DBH_Morans_I[[3]], col = "red", xlab = "DBH")
 
 #creating a column for the lagged size metric
-SD_fixed_field_data_processed$lag.dbh.ag <- SD_DBH_Morans_I[[1]]
+SD_DBH_dataframe$lag.dbh.ag <- SD_DBH_Morans_I[[1]]
 
 # Plot the lagged response variable (average amongst closest trees) vs. the variable 
 # positive slope, positive spatial autocorrelation, bigger trees are closer together and smaller trees are closer together
 # negative slope, negative spatial autocorrelation, variation in size of trees close together
-ggplot(data=SD_fixed_field_data_processed, aes(x=DBH_ag, y=lag.dbh.ag))+
+ggplot(data=SD_DBH_dataframe, aes(x=DBH_ag, y=lag.dbh.ag))+
   geom_point()+
   geom_smooth(method = lm, col="blue")+
   xlab("DBH")+
@@ -990,7 +1033,7 @@ SD_DBH_Morans_I[[5]]
 SD_fixed_field_data_processed_sign <- SD_DBH_Morans_I[[6]]
  
 #assigning the p-values of the adjusted local Moran's I to a dataframe
-SD_fixed_field_data_processed$p.dbh.ag.adjusted <- SD_DBH_Morans_I[[7]]
+SD_DBH_dataframe$p.dbh.ag.adjusted <- SD_DBH_Morans_I[[7]]
 
 ##Ii is local Moran's I statistic, E.Ii is expected local Moran's I statistic, Vari.Ii is variance of local Moran's I statistic, Z. Ii standard deviation of local Moran's I statistic  
 #plotting the local Moran's I values vs. the expected
@@ -1003,7 +1046,7 @@ ggplot(data=MC_local.SD.dbh.ag.df)+
 #plotting the local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.dbh.ag.adjusted)) +
+  geom_sf(data =SD_DBH_dataframe, aes(color = p.dbh.ag.adjusted)) +
   geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   coord_sf(xlim = c(SD_box[1], SD_box[3]), ylim = c(SD_box[2], SD_box[4]))+
   labs(color = "Adjusted P Value for DBH", fill = "Significant P-Value") 
@@ -1011,9 +1054,9 @@ ggplot() +
 #plotting the local Moran's I
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = p.dbh.ag.adjusted)) +
+  geom_sf(data =SD_DBH_dataframe, aes(color = p.dbh.ag.adjusted)) +
   geom_sf(data = SD_fixed_field_data_processed_sign, color = "red", aes(fill = "red")) +
   labs(color = "Adjusted P Value for DBH", fill = "Significant P-Value") +
-  coord_sf(xlim = c(SD_fixed_field_data_processed_sign$X.1-50, SD_fixed_field_data_processed_sign$X.1+50), 
-           ylim = c(SD_fixed_field_data_processed_sign$Y-50, SD_fixed_field_data_processed_sign$Y+50)) 
+  coord_sf(xlim = c(min(SD_fixed_field_data_processed_sign$X.1)-50, max(SD_fixed_field_data_processed_sign$X.1)-100), 
+           ylim = c(min(SD_fixed_field_data_processed_sign$Y)+300, max(SD_fixed_field_data_processed_sign$Y))) 
   
