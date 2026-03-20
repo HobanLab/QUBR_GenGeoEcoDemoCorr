@@ -82,6 +82,20 @@ focal_function <- function(population){
     dataframe <- SD_fixed_field_data_processed
     dataframe_sf <- SD_fixed_field_data_processed_sf
   }
+
+  #removing NAs in DBH to be able cells to select focal points and because I can't compare competition using these metrics if they have NAs ADDED AFTER ADDITION OF NEW DATA IN 2026
+  dataframe <- dataframe %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area)) 
+  dataframe_sf <- dataframe_sf %>%
+    filter(!is.na(DBH_ag))%>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area))
   
   # creating a bounding box based on the point locations
   box <- st_bbox(dataframe_sf)
@@ -111,6 +125,7 @@ focal_function <- function(population){
   
   #randomly selecting a focal point from each grid cell with trees within them
   list_grids_and_points <- st_contains(tree_grid_cropped, dataframe_sf, sparse =T) #find which points are within which grid cells, make sure row number in the data frame of grid cells corresponds to the order of the points dataframe within st_contains
+
 
   list_grids_and_focal_trees <- lapply(list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
     if(length(cell) > 1){ #for each grid cell, if there is more than one tree in each cell
@@ -143,6 +158,7 @@ focal_function <- function(population){
     st_as_sf() %>%
     mutate(focal_tree_row = row_number()) #create a column with row numbers
    
+  
   #this loop iterates over each focal tree and calculates the sum for all of the neighbors of each size metric divided by the distance to the focal tree generating the competition values for each metric for each tree
   
   focal_tree_dataframe_with_competition <- tibble() #creating the empty tibble
@@ -162,7 +178,7 @@ focal_function <- function(population){
     
     #obtain the row of the focal tree in dataframe_sf 
     focal_tree_X_sequential <- focal_tree_dataframe[focal_tree,]$X_sequential
-    
+   
     #create a dataframe with only the focal tree 
     focal_tree_in_buffer <- focal_tree_dataframe %>%
       filter(X_sequential %in% focal_tree_X_sequential) 
@@ -207,6 +223,7 @@ focal_function <- function(population){
               tree_grid_cropped, focal_tree_buffers, focal_tree_dataframe_with_competition))
 }
 
+
 ####LM ####
 
 #running the function to determine the focal trees, neighbors, and calculate the competition metrics for each focal tree
@@ -225,7 +242,7 @@ LM_focal_tree_dataframe <- as.data.frame(LM_focal_tree_dataframe_sf)  #focal tre
 ggplot()+
   geom_sf(data=LM_box_sf)+ #old box
   geom_sf(data=LM_box_sf_cropped)+ #cropped box
-  geom_sf(data=LM_fixed_field_data_processed_sf)+ #original points
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = is.na(DBH_ag)))+ #original points
   geom_sf(data=LM_fixed_field_data_processed_sf_cropped, color = "red") #old points
 
 #graphing the selected focal trees, the buffers, the grid, colored by sequential ID number
@@ -238,7 +255,7 @@ ggplot()+
 ggplot()+
   geom_sf(data = LM_tree_grid_cropped) +
   geom_sf(data=LM_focal_tree_buffers, aes(color = focal_tree_row))+
-  geom_sf(data=LM_focal_tree_dataframe_sf, aes(color = focal_tree_row))
+  geom_sf(data=LM_focal_tree_dataframe_sf, aes(color = focal_tree_row,  shape = is.na(altitude_2023)))
 
 #plotting the points with buffers with neighbors in it and without neighbors, "isolated focal trees"
 ggplot()+
@@ -285,7 +302,7 @@ LM_gls_focal_SCA_ratio <- gls(Canopy_short ~ SCA_over_distance, correlation = co
 LM_AIC_test <- model.sel(LM_gls_focal_SCA, LM_gls_focal_SCA_exp, LM_gls_focal_SCA_gaus, LM_gls_focal_SCA_spher, LM_gls_focal_SCA_ratio) #LM_gls_focal_SCA_lin
 LM_AIC_test
 
-# While LM_gls_focal_SCA_lin has the lowest AIC, but we have had trouble with it, so we are using the second best option LM_gls_focal_SCA 
+#  LM_gls_focal_SCA has the lowest AIC, so it is the strongest predictive model
 
 #checking normality of residuals with a histogram and qqnorm plot
 ggplot(LM_focal_tree_dataframe, aes(x= LM_gls_focal_SCA$residuals))+
@@ -379,7 +396,7 @@ LM_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLi
 LM_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LM_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LM_AIC_test_LCA <- model.sel(LM_gls_focal_LCA, LM_gls_focal_LCA_exp, LM_gls_focal_LCA_gaus, LM_gls_focal_LCA_spher, LM_gls_focal_LCA_lin, LM_gls_focal_LCA_ratio)
+LM_AIC_test_LCA <- model.sel(LM_gls_focal_LCA, LM_gls_focal_LCA_exp, LM_gls_focal_LCA_gaus, LM_gls_focal_LCA_spher, LM_gls_focal_LCA_ratio) #LM_gls_focal_LCA_lin
 LM_AIC_test_LCA
 
 #LM_gls_focal_LCA has lowest AIC
@@ -467,24 +484,24 @@ LM_gls_focal_CA_ratio <- gls(Canopy_short ~ CA_over_distance, correlation = corR
 
 #ordering models by which ones have the lowest Akaike information criterion
 LM_AIC_test_CA <- model.sel(LM_gls_focal_CA, LM_gls_focal_CA_exp, LM_gls_focal_CA_gaus, LM_gls_focal_CA_spher, LM_gls_focal_CA_ratio) #LM_gls_focal_CA_lin
-LM_AIC_test_CA
+LM_gls_focal_CA_gaus
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe, aes(x= LM_gls_focal_CA$residuals))+
+ggplot(LM_focal_tree_dataframe, aes(x= LM_gls_focal_CA_gaus$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LM_focal_tree_dataframe, aes(sample = LM_gls_focal_CA$residuals))+
+ggplot(LM_focal_tree_dataframe, aes(sample = LM_gls_focal_CA_gaus$residuals))+
   geom_qq()
 
 # shapiro-wilk, not sign so the residuals are normally distributed
-shapiro.test(LM_gls_focal_CA$residuals) 
+shapiro.test(LM_gls_focal_CA_gaus$residuals) 
 
 #checking equal variance
-ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CA$fitted, y = LM_gls_focal_CA$residuals))+
+ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CA_gaus$fitted, y = LM_gls_focal_CA_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -493,16 +510,16 @@ ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CA$fitted, y = LM_g
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_CA_spher, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LM_gls_focal_CA_gaus, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LM_gls_focal_CA)
+summary(LM_gls_focal_CA_gaus)
 
 #getting coefficients
-LM_gls_focal_CA_summary <- summary(LM_gls_focal_CA)
+LM_gls_focal_CA_summary <- summary(LM_gls_focal_CA_gaus)
 LM_gls_focal_CA_summary$coefficients
 
 #non parametric Kendall's Tau Test for the version without outliers
@@ -550,24 +567,24 @@ LM_gls_focal_CS_ratio <- gls(Canopy_short ~ CS_over_distance, correlation = corR
 
 #ordering models by which ones have the lowest Akaike information criterion
 LM_AIC_test_CS <- model.sel(LM_gls_focal_CS, LM_gls_focal_CS_exp, LM_gls_focal_CS_gaus, LM_gls_focal_CS_spher, LM_gls_focal_CS_ratio) #without linear correlation LM_gls_focal_CS_lin
-LM_AIC_test_CS
+LM_gls_focal_CS_gaus
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LM_focal_tree_dataframe, aes(x= LM_gls_focal_CS$residuals))+
+ggplot(LM_focal_tree_dataframe, aes(x= LM_gls_focal_CS_gaus$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LM_focal_tree_dataframe, aes(sample = LM_gls_focal_CS$residuals))+
+ggplot(LM_focal_tree_dataframe, aes(sample = LM_gls_focal_CS_gaus$residuals))+
   geom_qq()
 
 # shapiro-wilk, not sign so residuals are normally distributed
-shapiro.test(LM_gls_focal_CA$residuals) 
+shapiro.test(LM_gls_focal_CS_gaus$residuals) 
 
 #checking equal variance
-ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CS$fitted, y = LM_gls_focal_CS$residuals))+
+ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CS_gaus$fitted, y = LM_gls_focal_CS_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -576,16 +593,16 @@ ggplot(data = LM_focal_tree_dataframe , aes(x = LM_gls_focal_CS$fitted, y = LM_g
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LM_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LM_gls_focal_CS_gaus, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LM_gls_focal_CS)
+summary(LM_gls_focal_CS_gaus)
 
 #getting coefficients
-LM_gls_focal_CS_summary <- summary(LM_gls_focal_CS)
+LM_gls_focal_CS_summary <- summary(LM_gls_focal_CS_gaus)
 LM_gls_focal_CS_summary$coefficients
 
 #non parametric Kendall's Tau Test for the version without outliers
@@ -783,7 +800,6 @@ ggplot(data = LC_focal_tree_dataframe, (aes(x=SCA_over_distance, y=Canopy_short)
   xlab("SCA over Distance")+
   ylab("Short Canopy Axis")
 
-
 #Cook's D
 LC_lm_focal_SCA <- lm(Canopy_short ~ LCA_over_distance, data = LC_focal_tree_dataframe)
 LC_lm_focal_SCA_cooks <- cooks.distance(LC_lm_focal_SCA) #calculating the cook.s D for each point
@@ -803,25 +819,25 @@ LC_gls_focal_SCA_lin <- gls(Canopy_short ~ SCA_over_distance, correlation = corL
 LC_gls_focal_SCA_ratio <- gls(Canopy_short ~ SCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test <- model.sel(LC_gls_focal_SCA, LC_gls_focal_SCA_exp, LC_gls_focal_SCA_gaus, LC_gls_focal_SCA_spher, LC_gls_focal_SCA_lin, LC_gls_focal_SCA_ratio)
+LC_AIC_test <- model.sel(LC_gls_focal_SCA, LC_gls_focal_SCA_exp, LC_gls_focal_SCA_gaus, LC_gls_focal_SCA_spher, LC_gls_focal_SCA_ratio) #LC_gls_focal_SCA_lin
 LC_AIC_test
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_SCA$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_SCA_gaus$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Short Canopy Axis vs. SCA over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_SCA$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_SCA_gaus$residuals))+
   geom_qq()
 
 #shapiro-wilk test, not sign so normal residuals
-shapiro.test(LC_gls_focal_SCA$residuals) 
+shapiro.test(LC_gls_focal_SCA_gaus$residuals) 
 
 #checking equal variance
-ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_SCA$fitted, y = LC_gls_focal_SCA$residuals))+
+ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_SCA_gaus$fitted, y = LC_gls_focal_SCA_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -830,16 +846,16 @@ ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_SCA$fitted, y = LC_
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram( LC_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram( LC_gls_focal_SCA_gaus, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_SCA)
+summary(LC_gls_focal_SCA_gaus)
 
 #getting coefficients
-LC_gls_focal_SCA_summary <- summary(LC_gls_focal_SCA)
+LC_gls_focal_SCA_summary <- summary(LC_gls_focal_SCA_gaus)
 LC_gls_focal_SCA_summary$coefficients
 
 #non parametric Kendall's Tau Test for the version without outliers
@@ -888,11 +904,11 @@ LC_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLi
 LC_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_LCA <- model.sel(LC_gls_focal_LCA, LC_gls_focal_LCA_exp, LC_gls_focal_LCA_gaus, LC_gls_focal_LCA_spher) #LC_gls_focal_LCA_ratio
+LC_AIC_test_LCA <- model.sel(LC_gls_focal_LCA, LC_gls_focal_LCA_exp, LC_gls_focal_LCA_lin, LC_gls_focal_LCA_gaus, LC_gls_focal_LCA_spher, LC_gls_focal_LCA_ratio) #
 LC_AIC_test_LCA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_LCA_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_LCA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance",
        subtitle = "Using Gaussian Control for Spatial Autocorrelation")+
@@ -900,14 +916,14 @@ ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_LCA_gaus$residuals))+
   ylab("Frequency")
 
 #qq norm
-ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_LCA_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_LCA$residuals))+
   geom_qq()
 
 #shapiro-wilk test, significant so non-normal residuals
-shapiro.test(LC_gls_focal_LCA_gaus$residuals) 
+shapiro.test(LC_gls_focal_LCA$residuals) 
 
 #checking equal variance
-ggplot(data = LC_focal_tree_dataframe, aes(x = LC_gls_focal_LCA_gaus$fitted, y = LC_gls_focal_LCA_gaus$residuals))+
+ggplot(data = LC_focal_tree_dataframe, aes(x = LC_gls_focal_LCA$fitted, y = LC_gls_focal_LCA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -916,13 +932,13 @@ ggplot(data = LC_focal_tree_dataframe, aes(x = LC_gls_focal_LCA_gaus$fitted, y =
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_LCA_gaus, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_LCA, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_LCA_gaus)
+summary(LC_gls_focal_LCA)
 
 #getting coefficients
 LC_gls_focal_LCA_gaus_summary <- summary(LC_gls_focal_LCA_gaus)
@@ -989,21 +1005,21 @@ LC_AIC_test_CA <- model.sel(LC_gls_focal_CA, LC_gls_focal_CA_exp, LC_gls_focal_C
 LC_AIC_test_CA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_CA$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_CA_lin$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_CA$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_CA_lin$residuals))+
   geom_qq()
 
 # shapiro-wilk, sign for when residuals so we are using a Kendall's Tau Correlation Test non-parametric data
-shapiro.test(LC_gls_focal_CA$residuals) 
+shapiro.test(LC_gls_focal_CA_lin$residuals) 
 
 #checking equal variance
-ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CA$fitted, y = LC_gls_focal_CA$residuals))+
+ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CA_lin$fitted, y = LC_gls_focal_CA_lin$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1012,13 +1028,13 @@ ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CA$fitted, y = LC_g
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CA, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_CA_lin, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_CA)
+summary(LC_gls_focal_CA_lin)
 
 #getting coefficients
 LC_gls_focal_CA_summary <- summary(LC_gls_focal_CA)
@@ -1080,25 +1096,25 @@ LC_gls_focal_CS_lin <- gls(Crown_spread ~ CS_over_distance, correlation = corLin
 LC_gls_focal_CS_ratio <- gls(Crown_spread ~ CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_CS <- model.sel(LC_gls_focal_CS, LC_gls_focal_CS_exp, LC_gls_focal_CS_gaus, LC_gls_focal_CS_ratio) #without linear correlation and without spherical
+LC_AIC_test_CS <- model.sel(LC_gls_focal_CS, LC_gls_focal_CS_exp,LC_gls_focal_CS_lin,  LC_gls_focal_CS_gaus, LC_gls_focal_CS_spher, LC_gls_focal_CS_ratio) #without linear correlation and without spherical
 LC_AIC_test_CS
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_CS_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_CS$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 # qq norm
-ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_CS_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_CS$residuals))+
   geom_qq()
 
 # shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau non-parametric test
-shapiro.test(LC_gls_focal_CA$residuals) # shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau Test non-parametric test
+shapiro.test(LC_gls_focal_CS$residuals) # shapiro-wilk, n sign for both versions with and without outliers so used Kendall's Tau Test non-parametric test
 
 #checking equal variance
-ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CS_gaus$fitted, y = LC_gls_focal_CS_gaus$residuals))+
+ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CS$fitted, y = LC_gls_focal_CS_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1107,13 +1123,13 @@ ggplot(data = LC_focal_tree_dataframe , aes(x = LC_gls_focal_CS_gaus$fitted, y =
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_CS_gaus, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_CS_gaus)
+summary(LC_gls_focal_CS)
 
 #getting coefficients
 LC_gls_focal_CS_gaus_summary <- summary(LC_gls_focal_CS_gaus)
@@ -1174,22 +1190,22 @@ LC_gls_focal_DBH_lin <- gls(DBH_ag ~ DBH_over_distance, correlation = corLin(for
 LC_gls_focal_DBH_ratio <- gls(DBH_ag ~ DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = LC_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-LC_AIC_test_DHB <- model.sel(LC_gls_focal_DBH, LC_gls_focal_DBH_exp, LC_gls_focal_DBH_gaus, LC_gls_focal_DBH_spher, LC_gls_focal_DBH_ratio) #without linear correlation
+LC_AIC_test_DHB <- model.sel(LC_gls_focal_DBH, LC_gls_focal_DBH_exp, LC_gls_focal_DBH_lin, LC_gls_focal_DBH_gaus, LC_gls_focal_DBH_spher, LC_gls_focal_DBH_ratio) #without linear correlation
 LC_AIC_test_DHB
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_DBH_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(x= LC_gls_focal_DBH$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm plot
-ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_DBH_gaus$residuals))+
+ggplot(LC_focal_tree_dataframe, aes(sample = LC_gls_focal_DBH$residuals))+
   geom_qq()
 
 # shapiro-wilk, not significant so normal residuals
-shapiro.test(LC_gls_focal_DBH_gaus$residuals)
+shapiro.test(LC_gls_focal_DBH$residuals)
 
 #checking equal variance
 ggplot(data = LC_focal_tree_dataframe, aes(x = LC_gls_focal_DBH$fitted, y = LC_gls_focal_DBH$residuals))+
@@ -1201,13 +1217,13 @@ ggplot(data = LC_focal_tree_dataframe, aes(x = LC_gls_focal_DBH$fitted, y = LC_g
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(LC_gls_focal_DBH_gaus, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(LC_gls_focal_DBH, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(LC_gls_focal_DBH_gaus)
+summary(LC_gls_focal_DBH)
 
 #getting coefficients
 LC_gls_focal_DBH_gaus_summary <- summary(LC_gls_focal_DBH_gaus)
@@ -1363,14 +1379,14 @@ ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_SCA_exp$residuals))+
   ylab("Frequency")
 
 # qq nrom
-ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_SCA_exp$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_SCA$residuals))+
   geom_qq()
 
 #shapiro-welk test, not significant so normal residuals
-shapiro.test(SD_gls_focal_SCA_exp$residuals)
+shapiro.test(SD_gls_focal_SCA$residuals)
 
 #checking equal variance
-ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_SCA_exp$fitted, y = SD_gls_focal_SCA_exp$residuals))+
+ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_SCA$fitted, y = SD_gls_focal_SCA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1379,13 +1395,13 @@ ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_SCA_exp$fitted, y =
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_SCA_exp, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_SCA, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_SCA_exp)
+summary(SD_gls_focal_SCA)
 
 #getting coefficients
 SD_gls_focal_SCA_exp_summary <- summary(SD_gls_focal_SCA_exp)
@@ -1447,25 +1463,25 @@ SD_gls_focal_LCA_lin <- gls(Canopy_long ~ LCA_over_distance, correlation = corLi
 SD_gls_focal_LCA_ratio <- gls(Canopy_long ~ LCA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_LCA <- model.sel(SD_gls_focal_LCA, SD_gls_focal_LCA_exp, SD_gls_focal_LCA_gaus, SD_gls_focal_LCA_spher, SD_gls_focal_LCA_ratio) #without the linear correction model
+SD_AIC_test_LCA <- model.sel(SD_gls_focal_LCA, SD_gls_focal_LCA_exp,SD_gls_focal_LCA_lin, SD_gls_focal_LCA_gaus, SD_gls_focal_LCA_spher, SD_gls_focal_LCA_ratio) #without the linear correction model
 SD_AIC_test_LCA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_LCA_spher$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_LCA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Long Canopy Axis vs. LCA over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_LCA_spher$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_LCA$residuals))+
   geom_qq()
 
 #shapiro-wilk test, not sign so normal residuals
-shapiro.test(SD_gls_focal_LCA_spher$residuals) 
+shapiro.test(SD_gls_focal_LCA$residuals) 
 
 #checking equal variance
-ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_LCA_spher$fitted, y = SD_gls_focal_LCA_spher$residuals))+
+ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_LCA$fitted, y = SD_gls_focal_LCA$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1474,13 +1490,13 @@ ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_LCA_spher$fitted, y
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_LCA_spher, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_LCA, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_LCA_spher)
+summary(SD_gls_focal_LCA)
 
 #getting coefficients
 SD_gls_focal_LCA_spher_summary <- summary(SD_gls_focal_LCA_spher)
@@ -1539,25 +1555,25 @@ SD_gls_focal_CA_lin <- gls(Canopy_area ~ CA_over_distance, correlation = corLin(
 SD_gls_focal_CA_ratio <- gls(Canopy_area ~ CA_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_CA <- model.sel(SD_gls_focal_CA, SD_gls_focal_CA_exp, SD_gls_focal_CA_gaus, SD_gls_focal_CA_lin, SD_gls_focal_CA_ratio) #SD_gls_focal_CA_spher
+SD_AIC_test_CA <- model.sel(SD_gls_focal_CA, SD_gls_focal_CA_spher, SD_gls_focal_CA_exp, SD_gls_focal_CA_gaus, SD_gls_focal_CA_lin, SD_gls_focal_CA_ratio) #SD_gls_focal_CA_spher
 SD_AIC_test_CA
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_CA_lin$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_CA$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Canopy Area vs. Canopy Area over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_CA_lin$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_CA$residuals))+
   geom_qq()
 
 # shapiro-wilk, significant so residuals non-normal
-shapiro.test(SD_gls_focal_CA_lin$residuals) 
+shapiro.test(SD_gls_focal_CA$residuals) 
 
 #checking equal variance
-ggplot(data = SD_focal_tree_dataframe, aes(x = SD_gls_focal_CA_lin$fitted, y = SD_gls_focal_CA_lin$residuals))+
+ggplot(data = SD_focal_tree_dataframe, aes(x = SD_gls_focal_CA$fitted, y = SD_gls_focal_CA_lin$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1566,17 +1582,17 @@ ggplot(data = SD_focal_tree_dataframe, aes(x = SD_gls_focal_CA_lin$fitted, y = S
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_CA_lin, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_CA, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_CA_lin)
+summary(SD_gls_focal_CA)
 
 #getting coefficients
-SD_gls_focal_CA_lin_summary <- summary(SD_gls_focal_CA_lin)
-SD_gls_focal_CA_lin_summary$coefficients
+SD_gls_focal_CA_summary <- summary(SD_gls_focal_CA)
+SD_gls_focal_CA_summary$coefficients
 
 #non parametric Kendall's Tau Test
 SD_tau_result_CA <- cor.test(SD_focal_tree_dataframe$CA_over_distance, 
@@ -1639,25 +1655,25 @@ SD_gls_focal_CS_lin <- gls(Crown_spread ~ CS_over_distance, correlation = corLin
 SD_gls_focal_CS_ratio <- gls(Crown_spread ~ CS_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_CS <- model.sel(SD_gls_focal_CS, SD_gls_focal_CS_exp, SD_gls_focal_CS_gaus, SD_gls_focal_CS_spher, SD_gls_focal_CS_ratio) #without linear correlation
+SD_AIC_test_CS <- model.sel(SD_gls_focal_CS, SD_gls_focal_CS_lin, SD_gls_focal_CS_spher, SD_gls_focal_CS_exp, SD_gls_focal_CS_gaus, SD_gls_focal_CS_spher, SD_gls_focal_CS_ratio) #without linear correlation
 SD_AIC_test_CS
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_CS_exp$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_CS$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for Crown Spread vs. Crown Spread over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_CS_exp$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_CS$residuals))+
   geom_qq()
 
 # shapiro-wilk, not signficant, meaning not significantly different from normal
-shapiro.test(SD_gls_focal_CS_exp$residuals) 
+shapiro.test(SD_gls_focal_CS$residuals) 
 
 #checking equal variance
-ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_CS_exp$fitted, y = SD_gls_focal_CS_exp$residuals))+
+ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_CS$fitted, y = SD_gls_focal_CS$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1666,13 +1682,13 @@ ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_CS_exp$fitted, y = 
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_CS_exp, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_CS, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_CS_exp)
+summary(SD_gls_focal_CS)
 
 #getting coefficients
 SD_gls_focal_CS_exp_summary <- summary(SD_gls_focal_CS_exp)
@@ -1737,25 +1753,25 @@ SD_gls_focal_DBH_lin <- gls(DBH_ag ~ DBH_over_distance, correlation = corLin(for
 SD_gls_focal_DBH_ratio <- gls(DBH_ag ~ DBH_over_distance, correlation = corRatio(form = ~X.1 + Y), data = SD_focal_tree_dataframe)
 
 #ordering models by which ones have the lowest Akaike information criterion
-SD_AIC_test_DHB <- model.sel(SD_gls_focal_DBH, SD_gls_focal_DBH_lin, SD_gls_focal_DBH_exp, SD_gls_focal_DBH_lin, SD_gls_focal_DBH_gaus, SD_gls_focal_DBH_spher, SD_gls_focal_DBH_ratio) 
+SD_AIC_test_DHB <- model.sel(SD_gls_focal_DBH, SD_gls_focal_DBH_exp, SD_gls_focal_DBH_lin, SD_gls_focal_DBH_gaus, SD_gls_focal_DBH_spher, SD_gls_focal_DBH_ratio) 
 SD_AIC_test_DHB
 
 #checking normality of residuals with a histogram and qqnorm plot
-ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_DBH_gaus$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(x= SD_gls_focal_DBH$residuals))+
   geom_histogram()+
   labs(title = "Distribution of Residuals for DBH vs. DBH over Distance")+
   xlab("Residuals")+
   ylab("Frequency")
 
 #qq norm
-ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_DBH_gaus$residuals))+
+ggplot(SD_focal_tree_dataframe, aes(sample = SD_gls_focal_DBH$residuals))+
   geom_qq()
 
 # shapiro-wilk, not significant so normal
-shapiro.test(SD_gls_focal_DBH_gaus$residuals) 
+shapiro.test(SD_gls_focal_DBH$residuals) 
 
 #checking equal variance
-ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_DBH_gaus$fitted, y = SD_gls_focal_DBH_gaus$residuals))+
+ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_DBH$fitted, y = SD_gls_focal_DBH_gaus$residuals))+
   geom_point()+
   geom_abline(intercept = 0, slope = 0)+
   xlab("Fitted Values")+
@@ -1764,13 +1780,13 @@ ggplot(data = SD_focal_tree_dataframe , aes(x = SD_gls_focal_DBH_gaus$fitted, y 
 
 #plotting semivariogram, checking we have appropriately removed the spatial autocorrelation 
 #(hovering around 1 indicates model controlled for spatial autocorrelation)
-semivario <- Variogram(SD_gls_focal_DBH_gaus, form = ~X.1 + Y, resType = "normalized")
+semivario <- Variogram(SD_gls_focal_DBH, form = ~X.1 + Y, resType = "normalized")
 plot(semivario, smooth = TRUE)
 
 #Slope Test visible in summary of the lm, lack of significant of slope indicates lack of impact from competition
 #positive slope hints at facilitation
 #negative slope hints at competition
-summary(SD_gls_focal_DBH_gaus)
+summary(SD_gls_focal_DBH)
 
 #getting coefficients
 SD_gls_focal_DBH_gaus_summary <- summary(SD_gls_focal_DBH_gaus)
