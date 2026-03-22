@@ -95,7 +95,19 @@ focal_function <- function(population, seed_input){
     dataframe_sf <- SD_fixed_field_data_processed_sf
   }
   
-  
+  #removing NAs in DBH to be able cells to select focal points and because I can't compare competition using these metrics if they have NAs ADDED AFTER ADDITION OF NEW DATA IN 2026
+  dataframe <- dataframe %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area)) 
+  dataframe_sf <- dataframe_sf %>%
+    filter(!is.na(DBH_ag))%>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area))
   
   # creating a bounding box based on the point locations
   box <- st_bbox(dataframe_sf)
@@ -365,6 +377,18 @@ LM_SCA_tau_p_value_perm_results <- slope_tests_LM_SCA[[4]] #p-value statistic fo
 LM_SCA_pvalue_permutations_results_bonf <- p.adjust(LM_SCA_pvalue_permutations_results, method = "bonferroni") #p-values for the slope test
 LM_SCA_tau_p_value_perm_results_bonf <- p.adjust(LM_SCA_tau_p_value_perm_results, method = "bonferroni") #p-value statistic for the Kendall's Tau Test
 
+#use a Holm Correction to control for multiple testing error
+LM_SCA_pvalue_permutations_results_holm <- p.adjust(LM_SCA_pvalue_permutations_results, method = "holm") #p-values for the slope test
+LM_SCA_tau_p_value_perm_results_holm <- p.adjust(LM_SCA_tau_p_value_perm_results, method = "holm") #p-value statistic for the Kendall's Tau Test
+
+#use a Hochberg Correction to control for multiple testing error
+LM_SCA_pvalue_permutations_results_hoch <- p.adjust(LM_SCA_pvalue_permutations_results, method = "hochberg") #p-values for the slope test
+LM_SCA_tau_p_value_perm_results_hoch <- p.adjust(LM_SCA_tau_p_value_perm_results, method = "hochberg") #p-value statistic for the Kendall's Tau Test
+
+#use a FDR Correction to control for multiple testing error
+LM_SCA_pvalue_permutations_results_fdr <- p.adjust(LM_SCA_pvalue_permutations_results, method = "fdr") #p-values for the slope test
+LM_SCA_tau_p_value_perm_results_fdr <- p.adjust(LM_SCA_tau_p_value_perm_results, method = "fdr") #p-value statistic for the Kendall's Tau Test
+
 #Looking at the distribution and descriptive summary of the slope test statistics
 ggplot()+
   geom_histogram(aes(x = LM_SCA_slope_permutations_results)) +
@@ -384,6 +408,36 @@ mean(LM_SCA_pvalue_permutations_results_bonf) #mean
 median(LM_SCA_pvalue_permutations_results_bonf) #median 
 sd(LM_SCA_pvalue_permutations_results_bonf) #standard deviation
 range(LM_SCA_pvalue_permutations_results_bonf) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_pvalue_permutations_results_holm)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_pvalue_permutations_results_holm) #mean
+median(LM_SCA_pvalue_permutations_results_holm) #median 
+sd(LM_SCA_pvalue_permutations_results_holm) #standard deviation
+range(LM_SCA_pvalue_permutations_results_holm) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_pvalue_permutations_results_hoch)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_pvalue_permutations_results_hoch) #mean
+median(LM_SCA_pvalue_permutations_results_hoch) #median 
+sd(LM_SCA_pvalue_permutations_results_hoch) #standard deviation
+range(LM_SCA_pvalue_permutations_results_hoch) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_pvalue_permutations_results_fdr)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_pvalue_permutations_results_fdr) #mean
+median(LM_SCA_pvalue_permutations_results_fdr) #median 
+sd(LM_SCA_pvalue_permutations_results_fdr) #standard deviation
+range(LM_SCA_pvalue_permutations_results_fdr) #range
 
 #without Bonf correction
 #Looking at the distribution and descriptive summary of the p-values for the slope test 
@@ -415,6 +469,37 @@ mean(LM_SCA_tau_p_value_perm_results_bonf) #mean
 median(LM_SCA_tau_p_value_perm_results_bonf) #median 
 sd(LM_SCA_tau_p_value_perm_results_bonf) #standard deviation
 range(LM_SCA_tau_p_value_perm_results_bonf) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_p_value_perm_results_holm)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_tau_p_value_perm_results_holm) #mean
+median(LM_SCA_tau_p_value_perm_results_holm) #median 
+sd(LM_SCA_tau_p_value_perm_results_holm) #standard deviation
+range(LM_SCA_tau_p_value_perm_results_holm) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_p_value_perm_results_hoch)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_tau_p_value_perm_results_hoch) #mean
+median(LM_SCA_tau_p_value_perm_results_hoch) #median 
+sd(LM_SCA_tau_p_value_perm_results_hoch) #standard deviation
+range(LM_SCA_tau_p_value_perm_results_hoch) #range
+
+#Looking at the distribution and descriptive summary of the p-values for the slope test 
+ggplot()+
+  geom_histogram(aes(x = LM_SCA_tau_p_value_perm_results_fdr)) +
+  labs(x = "Slope Test P-Values")
+
+mean(LM_SCA_tau_p_value_perm_results_fdr) #mean
+median(LM_SCA_tau_p_value_perm_results_fdr) #median 
+sd(LM_SCA_tau_p_value_perm_results_fdr) #standard deviation
+range(LM_SCA_tau_p_value_perm_results_fdr) #range
+
 
 #without correction
 #Looking at the distribution and descriptive summary of the p-value statistic for the Kendall's Tau Test
@@ -894,7 +979,6 @@ mean(LC_LCA_tau_p_value_perm_results) #mean
 median(LC_LCA_tau_p_value_perm_results) #median 
 sd(LC_LCA_tau_p_value_perm_results) #standard deviation
 range(LC_LCA_tau_p_value_perm_results) #range
-
 
 #CA
 
