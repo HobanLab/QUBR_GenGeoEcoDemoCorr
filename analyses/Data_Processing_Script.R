@@ -83,8 +83,8 @@ fixed_field_data_processed <- fixed_field_data_processed %>%
                               QUBR_ID == "LM_322" ~ "LM",
                               TRUE ~ locality)) %>%
   mutate(Locality = locality) %>% #FIXING TYPO IN NEW DATA
-  mutate(Elevation..m. = altitude) #FIXING TYPO IN NEW DATA
-  
+  mutate(Elevation..m. = ifelse(is.na(altitude) == F, altitude, altitude_2023))  #FIXING TYPO IN NEW DATA
+
 # creating the point shapefiles of the tree locations for each population in UTM 12 N
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
@@ -162,26 +162,26 @@ SD_fixed_field_data_processed <- fixed_field_data_processed_sf_trans_coordinates
 
 # Code to convert elevation data from feet to meters 
 
-# #creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
-# fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
-#   mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
-#                                         (Elevation..m. == 360) ~ NA, 
-#                                         (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
-# 
-# #creating a new elevation column so the values that were mistakenly put in feet are in meters
-# LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
-#   mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
-#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-#                                         (Elevation..m. < 700) ~ Elevation..m.))
-# 
-# #creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
-# LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
-#   mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048, 
-#                                         (Elevation..m. < 700) ~ Elevation..m.))
-# #creating a new elevation column so that a 360 m outlier is 460
-# SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
-#   mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA, 
-#                                         (Elevation..m. != 360) ~ Elevation..m.))
+#creating a new column in the whole dataset to get rid of 360 m outlier and turn the values in feet into meter
+fixed_field_data_processed_sf_trans_coordinates <-  fixed_field_data_processed_sf_trans_coordinates %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. < 700 & Elevation..m. != 360) ~ Elevation..m.,
+                                        (Elevation..m. == 360) ~ NA,
+                                        (Elevation..m. > 700) ~ Elevation..m.*0.3048))  #because LM and LC do not have a 360 elevation and SD and LC do have values above 700, this should not effect them
+
+#creating a new elevation column so the values that were mistakenly put in feet are in meters
+LM_fixed_field_data_processed <-  LM_fixed_field_data_processed %>%
+  mutate(Elevation..m. = as.numeric(Elevation..m.)) %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048,
+                                        (Elevation..m. < 700) ~ Elevation..m.))
+
+#creating a new elevation column so LC, LM, and SD all have this same column, makes it easier for combining the population data frames
+LC_fixed_field_data_processed <-  LC_fixed_field_data_processed %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. > 700) ~ Elevation..m.*0.3048,
+                                        (Elevation..m. < 700) ~ Elevation..m.))
+#creating a new elevation column so that a 360 m outlier is 460
+SD_fixed_field_data_processed <-  SD_fixed_field_data_processed %>%
+  mutate(Elevation..m.FIXED = case_when((Elevation..m. == 360) ~ NA,
+                                        (Elevation..m. != 360) ~ Elevation..m.))
 
 
 #### Loading in ArcGIS river and Baja California Sur shapefile and storing out polygons for each population ####
@@ -336,9 +336,9 @@ SD_box <- st_bbox(river_SD_trans)
 #   geom_sf(data = SD_fixed_field_data_processed)
 
 # #exporting this cropped rasters as a tif
-# writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
-# writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_LC.tif')
-# writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15 m Elevation Raster/CEM_15_utm_SD.tif')
+# writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
+# writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LC.tif')
+# writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_SD.tif')
 
 # #projecting the INGEI 14 m continuous elevtion model into UTM 12N 
 # gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif", 
@@ -353,13 +353,13 @@ SD_box <- st_bbox(river_SD_trans)
 # plot(CEM_15_utm)
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
-CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+CEM_15_utm_LM <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif"))
 terra::crs(CEM_15_utm_LM) <- CRS("EPSG:26912")
 
-CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+CEM_15_utm_LC <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm_LC.tif"))
 terra::crs(CEM_15_utm_LC) <- CRS("EPSG:26912")
 
-CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+CEM_15_utm_SD <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm_SD.tif"))
 terra::crs(CEM_15_utm_SD) <- CRS("EPSG:26912")
 
 #creating the all points raster by merging the LM, LC, and SD rasters
@@ -842,24 +842,178 @@ field_data_summarized <- fixed_field_data_processed %>%
   summarise(across(everything(), list(mean = mean, median = median, var = var, sd = sd), na.rm=TRUE)) # Create columns which summarize the mean, median, variance, and standard deviation of each of the selected columns --> these will be used on the hisogram plots
 View(field_data_summarized)
 
-#comparing the hand-held collected GPS elevation data to the raster derived elevation data
+#### Comparing the hand-held collected GPS elevation data to the raster derived elevation data ####
+
+# comparing the variance of the vertical accuracy
+hist(LM_fixed_field_data_processed_terrain$vert_accuracy_m)
+hist(LC_fixed_field_data_processed_terrain$vert_accuracy_m)
+hist(SD_fixed_field_data_processed_terrain$vert_accuracy_m)
+
+# creating an elevation column where we use the updated GPS elevation values (altitude) and if there is no new GPS data it takes from the linear regression for new_elevation = a*DEM_elevation + b 
 
 #finding the linear regression between them
-elevation_model <- lm(LM_elevation_raster_15_data_pts ~ Elevation..m.,
-            data = LM_fixed_field_data_processed_terrain)
-coef(elevation_model) #extracting the linear regression equation
+LM_elevation_model <- lm(altitude ~ LM_elevation_raster_15_data_pts,
+                      data = LM_fixed_field_data_processed_terrain)
+coef(LM_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LM_fixed_field_data_processed_terrain$Elevation..m., LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+cor(LM_fixed_field_data_processed_terrain$altitude, LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+
+#creating the combination column
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = (LM_elevation_raster_15_data_pts*coef(LM_elevation_model)[[2]] + coef(LM_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 505, y = 500, label = "y == 0.8783499*x + 35.7047559", parse = TRUE)+
+  annotate("text", x = 505, y = 495, label = "r == 0.9736062", parse = TRUE) +
+  geom_errorbar(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+# LC
+
+#finding the linear regression between them
+LC_elevation_model <- lm(altitude ~ LC_elevation_raster_15_data_pts, 
+                         data = LC_fixed_field_data_processed_terrain)
+coef(LC_elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(LC_fixed_field_data_processed_terrain$altitude, LC_fixed_field_data_processed_terrain$LC_elevation_raster_15_data_pts, use = "complete.obs")
+
+#creating the combination column
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = (LC_elevation_raster_15_data_pts*coef(LC_elevation_model)[[2]] + coef(LC_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
 
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
-  geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m., y =LM_elevation_raster_15_data_pts, color = is.na(vert_accuracy_m)))+
-  geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m., y = LM_elevation_raster_15_data_pts), method = "lm", se = FALSE, show.legend = T) +
-  annotate("text", x = 500, y = 500, label = "y == 1.079193*x - 11.714779", parse = TRUE)+
-  annotate("text", x = 500, y = 495, label = "r == 0.9736062", parse = TRUE)
+  geom_point(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 470, y = 460, label = "y == 1.320958*x - 187.645928", parse = TRUE)+
+  annotate("text", x = 470, y = 455, label = "r == 0.9780811", parse = TRUE) +
+  geom_errorbar(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
 
-#### RESUME ####
+# SD
+
+#finding the linear regression between them
+SD_elevation_model <- lm(altitude ~ SD_elevation_raster_15_data_pts,
+                         data = SD_fixed_field_data_processed_terrain)
+coef(SD_elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(SD_fixed_field_data_processed_terrain$altitude, SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts, use = "complete.obs")
+
+#creating the combination column
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = (SD_elevation_raster_15_data_pts*coef(SD_elevation_model)[[2]] + coef(SD_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 425, y = 420, label = "y == 0.6418434*x + 125.4284431", parse = TRUE)+
+  annotate("text", x = 425, y = 415, label = "r == 0.8174634", parse = TRUE)  +
+  geom_errorbar(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+
+# Plotting the DEMs against the combination elevation (corrected DEM), all points should fall on the smae line
+
+#finding the linear regression between them
+elevation_model <- lm(Elevation..m.combo ~ LM_elevation_raster_15_data_pts, 
+                      data = LM_fixed_field_data_processed_terrain)
+coef(elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(LM_fixed_field_data_processed_terrain$Elevation..m.combo, LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 505, y = 500, label = "y == 0.8783499*x + 35.7047559", parse = TRUE)+
+  annotate("text", x = 505, y = 495, label = "r == 1", parse = TRUE)
+
+#finding the linear regression between them
+elevation_model <- lm(Elevation..m.combo ~ LC_elevation_raster_15_data_pts,
+                      data = LC_fixed_field_data_processed_terrain)
+coef(elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(LC_fixed_field_data_processed_terrain$Elevation..m.combo, LC_fixed_field_data_processed_terrain$LC_elevation_raster_15_data_pts, use = "complete.obs")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 470, y = 460, label = "y == 1.320958 *x - 187.645928", parse = TRUE)+
+  annotate("text", x = 470, y = 450, label = "r == 1", parse = TRUE)
+
+#finding the linear regression between them
+elevation_model <- lm(Elevation..m.combo ~ SD_elevation_raster_15_data_pts,
+                      data = SD_fixed_field_data_processed_terrain)
+coef(elevation_model) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(SD_fixed_field_data_processed_terrain$Elevation..m.combo, SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts, use = "complete.obs")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 420, y = 420, label = "y == 0.6418434*x + 125.4284431", parse = TRUE)+
+  annotate("text", x = 420, y = 415, label = "r == 1", parse = TRUE)
+
+#plotting the distributions of the original DEM elevations with the GPS elevations
+
+#LM
+ggplot()+
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts), color = "purple", alpha = 0.1) +
+  labs(title = "LM Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Green")
+#LC
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m)))  +
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts), color = "purple", alpha = 0.1) +
+  labs(title = "LC Elevation Distribution", subtitle = "DEM Elevations Overlaid in Purple")
+#SD
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts), color = "purple", alpha = 0.1) +
+  labs(title = "SD Elevation Distribution", subtitle = "DEM Elevations Overlaid in Purple")
+
+#plotting the distributions of the corrected DEM elevations with the GPS elevations
+
+#LM
+ggplot()+
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "LM Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
+#LC
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m)))  +
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "LC Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
+#SD
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "SD Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
+
+#### Setting the Fixed Elevation Column Equal to the New Altitudes when Available and the Corrected DEM variable when not available ####
+
+#LM
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.FIXED = case_when(is.na(altitude) == F ~ altitude,
+                                        is.na(altitude) == T ~ Elevation..m.combo))
+
+#LC
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.FIXED = case_when(is.na(altitude) == F ~ altitude,
+                                        is.na(altitude) == T ~ Elevation..m.combo))
+
+#SD
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.FIXED = case_when(is.na(altitude) == F ~ altitude,
+                                        is.na(altitude) == T ~ Elevation..m.combo))
+
 
 #### Creating the distance to river columns ####
 
@@ -1531,4 +1685,54 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
+
+#### Creating a Topographic Wetness Index Variable ####
+
+#one version 
+install.packages('dynatop')
+library(dynatop)
+
+install.packages('whitebox')
+library(whitebox)
+# Install the WhiteboxTools binary
+install_whitebox()
+
+CEM_15_utm_all_points
+
+# 1. Fill depressions in the DEM
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif")
+out_path <- normalizePath("./data/15m_Elevation_Raster", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled.tif"))
+# 2. Calculate TWI
+wbt_wetness_index(input = "CEM_15_utm.tif", output = "twi.tif")
+
+
+
+
+#Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
+CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
+terra::crs(CEM_15_utm_LM) <- CRS("EPSG:26912")
+
+CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
+terra::crs(CEM_15_utm_LC) <- CRS("EPSG:26912")
+
+CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
+terra::crs(CEM_15_utm_SD) <- CRS("EPSG:26912")
+
+#load needed R packages
+remove.packages("raster")
+install.packages("raster", dependencies = TRUE)
+remove.packages("gstat")
+install.packages("gstat", dependencies = TRUE)
+remove.packages(spacetime)
+library(gstat)
+library(RSAGA) #for creating DEM derivatives
+library(terra) #for working with geospatial data
+library(doParallel) #to enable parallel processing
+
+
+
+
+
+
 
