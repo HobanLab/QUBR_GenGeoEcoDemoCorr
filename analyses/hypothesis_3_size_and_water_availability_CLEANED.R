@@ -1,27 +1,29 @@
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%Looking to see if Q. brandegeei's size/shape is influenced by either elevation, slope, aspect, and/or distance to rivers%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%Looking to see if Q. brandegeei's size/shape is influenced by either elevation, slope, aspect, distance to rivers, and/or topographic wetness index %%%%%%%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #the purpose of the script is to determine how the elevation, slope, and distance to river each 
 #relate to size/shape of the trees using single linear regressions and how aspect relates to the size/shape
 #of the trees using difference in means tests/ANOVAs/Kruskal-Wallis Tests
 
-# A significant relationship could indicate how elevation, slope, aspect, and distance to river may influence the size and shape of the 
+# A significant relationship could indicate how elevation, slope, aspect, distance to river, and topographic wetness index may influence the size and shape of the 
 # trees and potentially help explain their distribution. 
 
 #The script is broken up into these sections:
 
-  # 1) Loading and processing the packages and processed data for the trees, topography, soil metrics, and distance to river in the Las Matancitas,
+# 1) Loading and processing the packages and processed data for the trees, topography, soil metrics, and distance to river in the Las Matancitas,
 #San Dionisio, and La Cobriza populations. The processed data used in this script includes:
-          # Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
-              #generating river and point buffers and bounding boxes,
-          # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
-          # Extracting the distance to the river of each tree for each population,
-    # Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
-  # 2) Comparing size of the trees to their elevation to look for any relationshipss using single linear regression
-  # 3) Comparing size of the trees to their slope to look for any relationships using single linear regression
-  # 4) Comparing size of the trees to their distance to a river to look for any relationships using single linear regression
-  # 5) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
+# Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
+#generating river and point buffers and bounding boxes,
+# Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
+# Extracting the topographic wetness index
+# Extracting the distance to the river of each tree for each population,
+# Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
+# 2) Comparing size of the trees to their elevation to look for any relationships using single linear regression
+# 3) Comparing size of the trees to their slope to look for any relationships using single linear regression
+# 4) Comparing size of the trees to their distance to a river to look for any relationships using single linear regression
+# 5) Comparing size of the trees to their aspect to look for a relationship using ANOVA / Kruskal-Wallis Tests
+# 6) Comparing size of the trees to their topographic wetness index to look for any relationships using single linear regression
 
 
 # NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
@@ -55,17 +57,17 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #a) creating the single variable linear regressions with the un-transformed response variable, logged variable, and 
 # square root of the variable, respectively, either with or without outliers
 #b) testing which model best satisfies the conditions for the analysis: LINES
-    # Linearity, Independence, Normality of residuals, Equal variance of residuals, and simple random sample 
-      # we tested Linearity by looking at the scatterplots,
-      # we tested Independence by thinking about the explanatory and response variables across the points,
-      # we tested Normality of Residuals using histograms, qq norm plots, and the Shapiro-Wilk's test,
-      # we tested Equal Variance of Residuals using a fitted vs. residuals plot and the Breusch-Pagan Test,
-      # we tested Simple Random Sample by thinkg about the data collection method.
+# Linearity, Independence, Normality of residuals, Equal variance of residuals, and simple random sample 
+# we tested Linearity by looking at the scatterplots,
+# we tested Independence by thinking about the explanatory and response variables across the points,
+# we tested Normality of Residuals using histograms, qq norm plots, and the Shapiro-Wilk's test,
+# we tested Equal Variance of Residuals using a fitted vs. residuals plot and the Breusch-Pagan Test,
+# we tested Simple Random Sample by thinkg about the data collection method.
 #c) We then looked for significant associations (slopes/correlations)
-    # 1) If the LINES conditions are met...
-            # we ran a slope test and a Pearson's correlation test to see if there is a significant association
-    # 2) If the LINES conditions are not met...
-            # we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
+# 1) If the LINES conditions are met...
+# we ran a slope test and a Pearson's correlation test to see if there is a significant association
+# 2) If the LINES conditions are not met...
+# we ran a Mann-Kendall test (non-parametric test) to look for a significant correlation/tau 
 
 
 
@@ -75,29 +77,42 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
-population = "LC"
+population = "LM"
 size_variable = "SCA"
-explanatory_var = "d"
-
+explanatory_var = "TWI_values"
 
 
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
+  
+  #removing NAs 
+  dataframe_metric <- dataframe_metric %>%
+    filter(!is.na(Elevation..m.FIXED)) %>%
+    filter(!is.na(TWI_values)) %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area)) 
   
   #assigning the population based on the inputted population
   if (population == "LM"){  #LM trees
     dataframe_metric = LM_fixed_field_data_processed_terrain_dist #assigning the LM tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$LM_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
+    dataframe_metric$TWI_values <- dataframe_metric$LM_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "LC"){ #LC trees
     dataframe_metric = LC_fixed_field_data_processed_terrain_dist #assigning the LC tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$LC_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
+    dataframe_metric$TWI_values <- dataframe_metric$LC_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "SD"){ #SD trees
     dataframe_metric = SD_fixed_field_data_processed_terrain_dist #assigning the SD tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$SD_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
+    dataframe_metric$TWI_values <- dataframe_metric$SD_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "All Points"){ #All trees across all populations
     dataframe_metric = all_points_fixed_field_data_processed_terrain #assigning the all points/population tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$all_points_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
+    
   }
-
+  
   #assigning the size/response variable based on the user input
   if (size_variable == "SCA"){  #Short Canopy Axis
     size_variable_name = "Canopy_short" #storing the name of the size variable we are using
@@ -126,16 +141,10 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   } else if (explanatory_var == "Distance to River"){ #Distance to River
     explanatory_var_name = "d" #storing the name of the explanatory variable we are using
     explanatory_var_metric = dataframe_metric$d #assigning the Distance to River variable to the explanatory variable
+  } else if (explanatory_var == "TWI_values"){ #topographic wetness index
+    explanatory_var_name = "TWI_values" #storing the name of the explanatory variable we are using
+    explanatory_var_metric = dataframe_metric$TWI_values #assigning the Distance to River variable to the explanatory variable
   } 
-  
-  #removing NAs 
-  dataframe_metric <- dataframe_metric %>%
-    filter(!is.na(Elevation..m.FIXED)) %>%
-    filter(!is.na(DBH_ag)) %>%
-    filter(!is.na(Canopy_short)) %>%
-    filter(!is.na(Canopy_long)) %>%
-    filter(!is.na(Crown_spread)) %>%
-    filter(!is.na(Canopy_area)) 
   
   #creating a dataframe with influential/outlier points removed 
   
@@ -152,7 +161,7 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   #creating the linear regressions
   
   #creating the base linear regression (no removal of outliers, no transformations)
- # slr_dist_base  <- lm(size_metric ~ explanatory_var_metric, data = dataframe_metric) #generating the linear regression 
+  # slr_dist_base  <- lm(size_metric ~ explanatory_var_metric, data = dataframe_metric) #generating the linear regression 
   slr_dist_base  <- lm(as.formula(paste0(size_variable_name, " ~ ", explanatory_var_name)), data = dataframe_metric) #generating the linear regression) #generating the linear regression 
   
   #linear regression with transformations
@@ -338,6 +347,7 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
               "tau_result" = tau_result)) #returning the non-parametric Mann-Kendall Test results
   
 }
+
 
 #### Sizes vs. Elevation ####
 
@@ -4618,6 +4628,601 @@ ggplot()+
   geom_sf(data = river_SD_trans)+
   geom_sf(data = SD_fixed_field_data_processed_terrain, aes(size = DBH_ag, color = SD_aspect_raster_15_data_pts_8_regrouped))
 
+
+
+
+#### Sizes vs. TWI ####
+
+# removing NAs
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+
+# LM
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_SCA_TWI_values <- simple_linear_regressions("LM", "SCA", "TWI_values")
+simple_linear_regressions_LM_SCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_TWI_values, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_SCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LM_SCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_SCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LM_SCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_SCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LM_SCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LM_SCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and TWI_values")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_LCA_TWI_values <- simple_linear_regressions("LM", "LCA", "TWI_values")
+simple_linear_regressions_LM_LCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_TWI_values, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_LCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LM_LCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_LCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LM_LCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_LCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LM_LCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LM_LCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and TWI_values")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CA_TWI_values <- simple_linear_regressions("LM", "CA", "TWI_values")
+simple_linear_regressions_LM_CA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_TWI_values, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LM_CA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LM_CA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LM_CA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LM_CA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and TWI_values")
+
+# Calculating the trend line for plotting
+LM_trend_line_CA_TWI_values <- predict(loess(LM_fixed_field_data_processed_terrain_dist$Canopy_area ~ LM_fixed_field_data_processed_terrain_dist$LM_TWI_values))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_TWI_values, y = (LM_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_TWI_values, y = LM_trend_line_CA_elevation), color = "red") +
+  labs(x = "LM_TWI_values", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CS_TWI_values <- simple_linear_regressions("LM", "CS", "TWI_values")
+simple_linear_regressions_LM_CS_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_TWI_values, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CS_TWI_values$chosen_model, aes(x= simple_linear_regressions_LM_CS_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CS_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LM_CS_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CS_TWI_values$chosen_model, aes(x = simple_linear_regressions_LM_CS_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LM_CS_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and TWI_values")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_TWI_values <- simple_linear_regressions("LM", "DBH", "TWI_values")
+simple_linear_regressions_LM_DBH_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=LM_TWI_values, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_DBH_TWI_values$chosen_model, aes(x= simple_linear_regressions_LM_DBH_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_DBH_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LM_DBH_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_DBH_TWI_values$chosen_model, aes(x = simple_linear_regressions_LM_DBH_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LM_DBH_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and TWI_values")
+
+
+# LC
+
+
+# removing NAs
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_SCA_TWI_values <- simple_linear_regressions("LC", "SCA", "TWI_values")
+simple_linear_regressions_LC_SCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y=log(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Logged Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_SCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_SCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_SCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LC_SCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_SCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LC_SCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LC_SCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and TWI_values")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_LCA_TWI_values <- simple_linear_regressions("LC", "LCA", "TWI_values")
+simple_linear_regressions_LC_LCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=LC_TWI_values, y=log(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values")+
+  ylab("Logged Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_LCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_LCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_LCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LC_LCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_LCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LC_LCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LC_LCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and TWI_values")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CA_TWI_values <- simple_linear_regressions("LC", "CA", "TWI_values")
+simple_linear_regressions_LC_CA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y=log(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("Logged Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CA_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_CA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LC_CA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CA_TWI_values$chosen_model, aes(x = simple_linear_regressions_LC_CA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LC_CA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and TWI_values")
+
+# Calculating the trend line for plotting
+LC_trend_line_CA_TWI_values <- predict(loess(LC_fixed_field_data_processed_terrain_dist$Canopy_area ~ LC_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED, y = (LC_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED, y = LC_trend_line_CA_TWI_values), color = "red") +
+  labs(x = "TWI_values", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CS_TWI_values <- simple_linear_regressions("LC", "CS", "TWI_values")
+simple_linear_regressions_LC_CS_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y= log(Crown_spread))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("Logged Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CS_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_CS_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CS_TWI_values$chosen_model, aes(sample = simple_linear_regressions_LC_CS_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CS_TWI_values$chosen_model, aes(x = simple_linear_regressions_LC_CS_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LC_CS_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and TWI_values")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_TWI_values <- simple_linear_regressions("LC", "DBH", "TWI_values")
+simple_linear_regressions_LC_DBH_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=TWI_values..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_DBH_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_DBH_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_DBH_TWI_values$chosen_model, aes(x= simple_linear_regressions_LC_DBH_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_DBH_TWI_values$chosen_model, aes(x = simple_linear_regressions_LC_DBH_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_LC_DBH_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and TWI_values")
+
+
+# SD
+
+# removing NAs
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  drop_na(TWI_values..m.FIXED) #removing NAs in TWI_values 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_SCA_TWI_values <- simple_linear_regressions("SD", "SCA", "TWI_values")
+simple_linear_regressions_SD_SCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=SD_TWI_values, y=sqrt(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values")+
+  ylab("Square Root of Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_SCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_SCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_SCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_SD_SCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_SCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_SD_SCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_SD_SCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and TWI_values")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_LCA_TWI_values <- simple_linear_regressions("SD", "LCA", "TWI_values")
+simple_linear_regressions_SD_LCA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y=sqrt(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("Square root of Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_LCA_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_LCA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_LCA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_SD_LCA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_LCA_TWI_values$chosen_model, aes(x = simple_linear_regressions_SD_LCA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_SD_LCA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and TWI_values")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CA_TWI_values <- simple_linear_regressions("SD", "CA", "TWI_values")
+simple_linear_regressions_SD_CA_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y=sqrt(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("Square root of Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CA_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_CA_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CA_TWI_values$chosen_model, aes(sample = simple_linear_regressions_SD_CA_TWI_values$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CA_TWI_values$chosen_model, aes(x = simple_linear_regressions_SD_CA_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_SD_CA_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and TWI_values")
+
+# Calculating the trend line for plotting
+SD_trend_line_CA_TWI_values <- predict(loess(SD_fixed_field_data_processed_terrain_dist$Canopy_area ~ SD_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = SD_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED, y = (SD_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = SD_fixed_field_data_processed_terrain_dist$TWI_values..m.FIXED, y = SD_trend_line_CA_TWI_values), color = "red") +
+  labs(x = "TWI_values", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CS_TWI_values <- simple_linear_regressions("SD", "CS", "TWI_values")
+simple_linear_regressions_SD_CS_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=TWI_values..m.FIXED, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("Square root of Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CS_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_CS_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. TWI_values")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CS_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_CS_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CS_TWI_values$chosen_model, aes(x = simple_linear_regressions_SD_CS_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_SD_CS_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and TWI_values")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_TWI_values <- simple_linear_regressions("SD", "DBH", "TWI_values")
+simple_linear_regressions_SD_DBH_TWI_values
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=TWI_values..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI_values (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_DBH_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_DBH_TWI_values$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_DBH_TWI_values$chosen_model, aes(x= simple_linear_regressions_SD_DBH_TWI_values$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_DBH_TWI_values$chosen_model, aes(x = simple_linear_regressions_SD_DBH_TWI_values$chosen_model$fitted.values, y = simple_linear_regressions_SD_DBH_TWI_values$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and TWI_values")
 
 
 
