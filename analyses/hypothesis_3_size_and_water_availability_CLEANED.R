@@ -36,10 +36,11 @@ library(smatr)
 library(ggpmisc)
 library(raster) #for working with the rast files
 library(terra) # for extracting the slope and aspect from the DEM elevation files
-library(perm.t.test) #permutation t test 
+library(perm.t.test) #permutation t test
 library(car) #to create added variable plots and to run levene's test for checking ANOVA conditions
 library(stars) # to convert raster into stars
 library(gdalUtilities) #to be able to use gdalwarp
+library(lmtest) #to be able to run the Breusch-Pagan Test
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
@@ -74,6 +75,12 @@ library(gdalUtilities) #to be able to use gdalwarp
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
+population = "LC"
+size_variable = "SCA"
+explanatory_var = "d"
+
+
+
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
   
   #assigning the population based on the inputted population
@@ -90,11 +97,7 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     dataframe_metric = all_points_fixed_field_data_processed_terrain #assigning the all points/population tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$all_points_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
   }
-  
-  # removing NAs
-  dataframe_metric <- dataframe_metric %>%
-    drop_na(Elevation..m.FIXED) #removing NAs in elevation 
-  
+
   #assigning the size/response variable based on the user input
   if (size_variable == "SCA"){  #Short Canopy Axis
     size_variable_name = "Canopy_short" #storing the name of the size variable we are using
@@ -125,6 +128,15 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     explanatory_var_metric = dataframe_metric$d #assigning the Distance to River variable to the explanatory variable
   } 
   
+  #removing NAs 
+  dataframe_metric <- dataframe_metric %>%
+    filter(!is.na(Elevation..m.FIXED)) %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area)) 
+  
   #creating a dataframe with influential/outlier points removed 
   
   #using Cook's D to check for highly influential points that may skew the linear model results
@@ -147,29 +159,29 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   
   #linear regression with a log transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_lg") #storing the name of the transformed variable
-  slr_dist_base_lg  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric) #generating the linear regression
+  slr_dist_base_lg  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric, subset = is.finite(dataframe_metric[[transformed_variable]])) #generating the linear regression
   
   #linear regression with a square root transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_sqrt") #storing the name of the transformed variable
-  slr_dist_base_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric) #generating the linear regression 
+  slr_dist_base_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric, subset = is.finite(dataframe_metric[[transformed_variable]])) #generating the linear regression 
   
   #linear regression with a inverse transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_inv") #storing the name of the transformed variable
-  slr_dist_base_inv  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric) #generating the linear regression 
+  slr_dist_base_inv  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric, subset = is.finite(dataframe_metric[[transformed_variable]])) #generating the linear regression 
   
   #linear regression with transformations and removal of outliers
   
   #linear regression with a log transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_lg") #storing the name of the transformed variable
-  slr_dist_no_out_lg  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers) #generating the linear regression 
+  slr_dist_no_out_lg  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers, subset = is.finite(dataframe_metric_no_outliers[[transformed_variable]])) #generating the linear regression 
   
   #linear regression with a square root transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_sqrt") #storing the name of the transformed variable
-  slr_dist_no_out_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers) #generating the linear regression 
+  slr_dist_no_out_sqrt  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers, subset = is.finite(dataframe_metric_no_outliers[[transformed_variable]])) #generating the linear regression 
   
   #linear regression with a inverse transformation of the response variable
   transformed_variable <- paste0(size_variable_name, "_inv") #storing the name of the transformed variable
-  slr_dist_no_out_inv  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers) #generating the linear regression 
+  slr_dist_no_out_inv  <- lm(as.formula(paste0(transformed_variable, " ~ ", explanatory_var_name)), data = dataframe_metric_no_outliers, subset = is.finite(dataframe_metric_no_outliers[[transformed_variable]])) #generating the linear regression 
   
   #finding and storing the results of the best performing model
   
@@ -344,18 +356,18 @@ simple_linear_regressions_LM_SCA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_short))))+ 
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square Root of Short Canopy Axis (m)")
+  ylab("Short Canopy Axis (m)")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
 #histogram
 ggplot(simple_linear_regressions_LM_SCA_elevation$chosen_model, aes(x= simple_linear_regressions_LM_SCA_elevation$chosen_model$residuals))+
   geom_histogram()+
-  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Elevation")+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Elevation")+
   xlab("Residuals")+
   ylab("Frequency")
 
@@ -380,11 +392,11 @@ simple_linear_regressions_LM_LCA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_long))))+ 
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=Canopy_long)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Long Canopy Axis (m)")
+  ylab("Long Canopy Axis (m)")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -416,11 +428,11 @@ simple_linear_regressions_LM_CA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_area))))+ 
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=Canopy_area)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Canopy Area")
+  ylab("Canopy Area")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -466,7 +478,7 @@ ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FI
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Crown Spread")
+  ylab("Crown Spread")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -478,7 +490,7 @@ ggplot(simple_linear_regressions_LM_CS_elevation$chosen_model, aes(x= simple_lin
   ylab("Frequency")
 
 #qqnorm plot
-ggplot(simple_linear_regressions_LM_CS_elevation$chosen_model, aes(x= simple_linear_regressions_LM_CS_elevation$chosen_model$residuals))+
+ggplot(simple_linear_regressions_LM_CS_elevation$chosen_model, aes(sample = simple_linear_regressions_LM_CS_elevation$chosen_model$residuals))+
   geom_qq()
 
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
@@ -514,7 +526,7 @@ ggplot(simple_linear_regressions_LM_DBH_elevation$chosen_model, aes(x= simple_li
   ylab("Frequency")
 
 #qqnorm plot
-ggplot(simple_linear_regressions_LM_DBH_elevation$chosen_model, aes(x= simple_linear_regressions_LM_DBH_elevation$chosen_model$residuals))+
+ggplot(simple_linear_regressions_LM_DBH_elevation$chosen_model, aes(sample = simple_linear_regressions_LM_DBH_elevation$chosen_model$residuals))+
   geom_qq()
 
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
@@ -542,11 +554,11 @@ simple_linear_regressions_LC_SCA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_short))))+ 
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=log(Canopy_short))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square Root of Short Canopy Axis (m)")
+  ylab("Logged Short Canopy Axis (m)")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -578,11 +590,11 @@ simple_linear_regressions_LC_LCA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_long))))+ 
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=log(Canopy_long))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Long Canopy Axis (m)")
+  ylab("Logged Long Canopy Axis (m)")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -614,11 +626,11 @@ simple_linear_regressions_LC_CA_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=sqrt(Canopy_area))))+ 
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=log(Canopy_area))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Canopy Area")
+  ylab("Logged Canopy Area")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -660,11 +672,11 @@ simple_linear_regressions_LC_CS_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=Crown_spread)))+ 
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y= log(Crown_spread))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
-  ylab("Square root of Crown Spread")
+  ylab("Logged Crown Spread")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -676,7 +688,7 @@ ggplot(simple_linear_regressions_LC_CS_elevation$chosen_model, aes(x= simple_lin
   ylab("Frequency")
 
 #qqnorm plot
-ggplot(simple_linear_regressions_LC_CS_elevation$chosen_model, aes(x= simple_linear_regressions_LC_CS_elevation$chosen_model$residuals))+
+ggplot(simple_linear_regressions_LC_CS_elevation$chosen_model, aes(sample = simple_linear_regressions_LC_CS_elevation$chosen_model$residuals))+
   geom_qq()
 
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
@@ -1912,17 +1924,17 @@ ggplot(data = simple_linear_regressions_All_DBH_slope$chosen_model, aes(x = simp
 #SCA
 
 #running the simple linear regression function
-simple_linear_regressions_LM_SCA_distance <- simple_linear_regressions("LM", "SCA", "d")
+simple_linear_regressions_LM_SCA_distance <- simple_linear_regressions("LM", "SCA", "Distance to River")
 simple_linear_regressions_LM_SCA_distance
 
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=sqrt(Canopy_short))))+ 
+ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=d, y=Canopy_short)))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Distance (m)")+
-  ylab("Square Root of Short Canopy Axis (m)")
+  ylab("Short Canopy Axis (m)")
 
 #looking at the normality of residuals with a histogram and qqnorm plot
 
@@ -1948,7 +1960,7 @@ ggplot(data = simple_linear_regressions_LM_SCA_distance$chosen_model, aes(x = si
 #LCA
 
 #running the simple linear regression function
-simple_linear_regressions_LM_LCA_distance <- simple_linear_regressions("LM", "LCA", "d")
+simple_linear_regressions_LM_LCA_distance <- simple_linear_regressions("LM", "LCA", "Distance to River")
 simple_linear_regressions_LM_LCA_distance
 
 #checking linearity 
@@ -1984,7 +1996,7 @@ ggplot(data = simple_linear_regressions_LM_LCA_distance$chosen_model, aes(x = si
 #CA
 
 #running the simple linear regression function
-simple_linear_regressions_LM_CA_distance <- simple_linear_regressions("LM", "CA", "d")
+simple_linear_regressions_LM_CA_distance <- simple_linear_regressions("LM", "CA", "Distance to River")
 simple_linear_regressions_LM_CA_distance 
 
 #checking linearity 
@@ -2020,7 +2032,7 @@ ggplot(data = simple_linear_regressions_LM_CA_distance$chosen_model, aes(x = sim
 #CS
 
 #running the simple linear regression function
-simple_linear_regressions_LM_CS_distance <- simple_linear_regressions("LM", "CS", "d")
+simple_linear_regressions_LM_CS_distance <- simple_linear_regressions("LM", "CS", "Distance to River")
 simple_linear_regressions_LM_CS_distance
 
 #checking linearity 
@@ -2056,7 +2068,7 @@ ggplot(data = simple_linear_regressions_LM_CS_distance$chosen_model, aes(x = sim
 #DBH
 
 #running the simple linear regression function
-simple_linear_regressions_LM_DBH_distance <- simple_linear_regressions("LM", "DBH", "d")
+simple_linear_regressions_LM_DBH_distance <- simple_linear_regressions("LM", "DBH", "Distance to River")
 simple_linear_regressions_LM_DBH_distance
 
 #checking linearity 
@@ -2094,7 +2106,7 @@ ggplot(data = simple_linear_regressions_LM_DBH_distance$chosen_model, aes(x = si
 #SCA
 
 #running the simple linear regression function
-simple_linear_regressions_LC_SCA_distance <- simple_linear_regressions("LC", "SCA", "d")
+simple_linear_regressions_LC_SCA_distance <- simple_linear_regressions("LC", "SCA", "Distance to River")
 simple_linear_regressions_LC_SCA_distance
 
 #checking linearity 
@@ -2130,7 +2142,7 @@ ggplot(data = simple_linear_regressions_LC_SCA_distance$chosen_model, aes(x = si
 #LCA
 
 #running the simple linear regression function
-simple_linear_regressions_LC_LCA_distance <- simple_linear_regressions("LC", "LCA", "d")
+simple_linear_regressions_LC_LCA_distance <- simple_linear_regressions("LC", "LCA", "Distance to River")
 simple_linear_regressions_LC_LCA_distance
 
 #checking linearity 
@@ -2166,7 +2178,7 @@ ggplot(data = simple_linear_regressions_LC_LCA_distance$chosen_model, aes(x = si
 #CA
 
 #running the simple linear regression function
-simple_linear_regressions_LC_CA_distance <- simple_linear_regressions("LC", "CA", "d")
+simple_linear_regressions_LC_CA_distance <- simple_linear_regressions("LC", "CA", "Distance to River")
 simple_linear_regressions_LC_CA_distance
 
 #checking linearity 
@@ -2205,7 +2217,7 @@ ggplot(data = simple_linear_regressions_LC_CA_distance$chosen_model, aes(x = sim
 #CS
 
 #running the simple linear regression function
-simple_linear_regressions_LC_CS_distance <- simple_linear_regressions("LC", "CS", "d")
+simple_linear_regressions_LC_CS_distance <- simple_linear_regressions("LC", "CS", "Distance to River")
 simple_linear_regressions_LC_CS_distance
 
 #checking linearity 
@@ -2241,7 +2253,7 @@ ggplot(data = simple_linear_regressions_LC_CS_distance$chosen_model, aes(x = sim
 #DBH
 
 #running the simple linear regression function
-simple_linear_regressions_LC_DBH_distance <- simple_linear_regressions("LC", "DBH", "d")
+simple_linear_regressions_LC_DBH_distance <- simple_linear_regressions("LC", "DBH", "Distance to River")
 simple_linear_regressions_LC_DBH_distance 
 
 #checking linearity 
@@ -2279,7 +2291,7 @@ ggplot(data = simple_linear_regressions_LC_DBH_distance$chosen_model, aes(x = si
 #SCA
 
 #running the simple linear regression function
-simple_linear_regressions_SD_SCA_distance <- simple_linear_regressions("SD", "SCA", "d")
+simple_linear_regressions_SD_SCA_distance <- simple_linear_regressions("SD", "SCA", "Distance to River")
 simple_linear_regressions_SD_SCA_distance
 
 #checking linearity 
@@ -2315,7 +2327,7 @@ ggplot(data = simple_linear_regressions_SD_SCA_distance$chosen_model, aes(x = si
 #LCA
 
 #running the simple linear regression function
-simple_linear_regressions_SD_LCA_distance <- simple_linear_regressions("SD", "LCA", "d")
+simple_linear_regressions_SD_LCA_distance <- simple_linear_regressions("SD", "LCA", "Distance to River")
 simple_linear_regressions_SD_LCA_distance
 
 #checking linearity 
@@ -2351,7 +2363,7 @@ ggplot(data = simple_linear_regressions_SD_LCA_distance$chosen_model, aes(x = si
 #CA
 
 #running the simple linear regression function
-simple_linear_regressions_SD_CA_distance <- simple_linear_regressions("SD", "CA", "d")
+simple_linear_regressions_SD_CA_distance <- simple_linear_regressions("SD", "CA", "Distance to River")
 simple_linear_regressions_SD_CA_distance
 
 #checking linearity 
@@ -2387,7 +2399,7 @@ ggplot(data = simple_linear_regressions_SD_CA_distance$chosen_model, aes(x = sim
 #CS
 
 #running the simple linear regression function
-simple_linear_regressions_SD_CS_distance <- simple_linear_regressions("SD", "CS", "d")
+simple_linear_regressions_SD_CS_distance <- simple_linear_regressions("SD", "CS", "Distance to River")
 simple_linear_regressions_SD_CS_distance
 
 #checking linearity 
@@ -2423,7 +2435,7 @@ ggplot(data = simple_linear_regressions_SD_CS_distance$chosen_model, aes(x = sim
 #DBH
 
 #running the simple linear regression function
-simple_linear_regressions_SD_DBH_distance <- simple_linear_regressions("SD", "DBH", "d")
+simple_linear_regressions_SD_DBH_distance <- simple_linear_regressions("SD", "DBH", "Distance to River")
 simple_linear_regressions_SD_DBH_distance
 
 #checking linearity 
@@ -2528,7 +2540,8 @@ leveneTest(all_points_fixed_field_data_processed_terrain$Canopy_short ~ all_poin
 #Rule of Thumb Test
 all_points_thumb_test_SCA <- tapply(all_points_fixed_field_data_processed_terrain$Canopy_short, 
                                     all_points_fixed_field_data_processed_terrain$all_points_aspect_raster_15_data_pts_8_categorical, sd) #calculating the standard deviation for the response variable across each cardinal direction #calculating the standard deviation for the response variable across each cardinal direction
-max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) # if the max sd divided by the min sd is greater than two, the test did not pass
+max(all_points_thumb_test_SCA, na.rm = T) / min(all_points_thumb_test_SCA, na.rm = T) 
+# if the max sd divided by the min sd is greater than two, the test did not pass
 
 #variances are equally distributed
 
@@ -3247,7 +3260,7 @@ SD_aov_SCA_aspect_8 <- aov(Canopy_short ~ SD_aspect_raster_15_data_pts_8_categor
 summary(SD_aov_SCA_aspect_8) #ANOVA summary
 
 #pairwise t-test to see significant differences between categories, using a bonferonni adjustment to control for multiple testing
-SD_aov_SCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
+SD_t_test_SCA_aspect_8 <- pairwise.t.test(SD_fixed_field_data_processed_terrain$Canopy_short, 
                                        SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts_8_categorical, p.adj = "bonf")
 
 # checking to see if residuals are normal

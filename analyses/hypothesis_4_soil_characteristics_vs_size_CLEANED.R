@@ -225,14 +225,23 @@ names(size.pop.slopes.df) <- c("Population", "Size.Variable", "Soil.Metric", "Sl
 
 # Bonferroni correction of the p-values because of multiple testing
 size.pop.slopes.df <- size.pop.slopes.df %>%
-  mutate(p_bonf_corrected = as.numeric(p.adjust(size.pop.slopes.df$P.value, method = "bonferroni")))
+  mutate(p_bonf_corrected = as.numeric(p.adjust(size.pop.slopes.df$P.value, method = "bonferroni"))) %>%
+  mutate(p_holm_corrected = as.numeric(p.adjust(size.pop.slopes.df$P.value, method = "holm"))) %>%
+  mutate(p_hoch_corrected = as.numeric(p.adjust(size.pop.slopes.df$P.value, method = "hoch"))) %>%
+  mutate(p_fdr_corrected = as.numeric(p.adjust(size.pop.slopes.df$P.value, method = "fdr"))) 
 
 #creating a column for whether the p values are significant or not
 size.pop.slopes.df <- size.pop.slopes.df %>%
   mutate(Significance.reg = case_when(P.value < 0.05 ~ "Y",
                                   P.value >= 0.05 ~ "N")) %>% #using uncorrected p-values
   mutate(Significance.bonf = case_when(p_bonf_corrected < 0.05 ~ "Y",
-                                       p_bonf_corrected >= 0.05 ~ "N")) #using Bonferonni corrected p-values
+                                       p_bonf_corrected >= 0.05 ~ "N")) %>% #using Bonferonni corrected p-values
+  mutate(Significance.holm = case_when(p_holm_corrected < 0.05 ~ "Y",
+                                       p_holm_corrected >= 0.05 ~ "N")) %>% #using Holm corrected p-values
+  mutate(Significance.hoch = case_when(p_hoch_corrected < 0.05 ~ "Y",
+                                       p_hoch_corrected >= 0.05 ~ "N")) %>% #using Hoch corrected p-values
+  mutate(Significance.fdr = case_when(p_fdr_corrected < 0.05 ~ "Y",
+                                       p_fdr_corrected >= 0.05 ~ "N")) #using FDR corrected p-values
 
 #ensuring the categorical variables have the desired order of levels
 size.pop.slopes.df$Population <- factor(size.pop.slopes.df$Population, levels = c("LM", "LC", "SD"))
@@ -249,6 +258,10 @@ size.pop.slopes.df$Soil.Metric <- factor(size.pop.slopes.df$Soil.Metric, levels 
 #rearranging the rows based on the specified levels for the categorical variables
 size.pop.slopes.df <- size.pop.slopes.df %>%
   arrange(Population, Size.Variable, Soil.Metric)
+
+#exporting the CSV of the slope table
+
+write.csv(size.pop.slopes.df, file = "~/Documents/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/size.pop.slopes.df.csv")
   
 #### Summarizing the results ####
 

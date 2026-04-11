@@ -236,7 +236,7 @@ random_pop_soils <- function(){
     # } #add number of values of in the random set of means values that are less than our mean ANN
     # random_p.value <- 1 - (total / length(random_soil_means)) #the proportion of random ANNs that are greater than our ANN
     
-    # using the significantly different alternative hypothesis 
+    # using the significantly different alternative hypothesis, two-sided test
     
     p_value_greater_than <- sum(random_soil_means >= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes higher than our real slope
     p_value_less_than <- sum(random_soil_means <= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes lower than our real slope
@@ -269,31 +269,56 @@ plot <- random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
 
 # Bonferroni correction for the p-values to protect against issues due to multiple testing
 p_bonf_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "bonferroni")
+
+# Holm correction for the p-values to protect against issues due to multiple testing
+p_holm_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "holm")
+
+# Hochberg correction for the p-values to protect against issues due to multiple testing
+p_hoch_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "hochberg")
+
+# FDR correction for the p-values to protect against issues due to multiple testing
+p_fdr_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "fdr")
   
 #making a dataframe from the function output
 random_pop.df <- data.frame("Soil.metrics" = Soil.metrics, 
+                            "Means" = random_pop_soils_function$known_soil_means,
                             "P_values" = random_pop_soils_function$random_soil_p_values, 
                             "P_values_bonf_corrected" = p_bonf_corrected,
-                            "Significance" = c(rep(NA, 22)))
+                            "p_holm_corrected" = p_holm_corrected,
+                            "p_hoch_corrected" = p_hoch_corrected,
+                            "p_fdr_corrected" = p_fdr_corrected,
+                            "Significance" = c(rep(NA, 22)),
+                            "Bonf_Significance" = c(rep(NA, 22)),
+                            "Holm_Significance" = c(rep(NA, 22)),
+                            "Hoch_Significance" = c(rep(NA, 22)),
+                            "FDR_Significance" = c(rep(NA, 22)))
 
 #creating the significance column for the p-values (p<0.05 is significant)
 random_pop.df <- random_pop.df %>%
-  mutate(Significance = case_when(p_bonf_corrected < 0.05 ~ "Y",
-                                  p_bonf_corrected >= 0.05 ~ "N"))
+  mutate(Significance = case_when(random_pop_soils_function$random_soil_p_values < 0.05 ~ "Y",
+                                  random_pop_soils_function$random_soil_p_values >= 0.05 ~ "N")) %>%
+  mutate(Bonf_Significance = case_when(p_bonf_corrected < 0.05 ~ "Y",
+                                  p_bonf_corrected >= 0.05 ~ "N")) %>%
+  mutate(Holm_Significance = case_when(p_holm_corrected < 0.05 ~ "Y",
+                                       p_holm_corrected >= 0.05 ~ "N")) %>%
+  mutate(Hoch_Significance = case_when(p_hoch_corrected < 0.05 ~ "Y",
+                                       p_hoch_corrected >= 0.05 ~ "N")) %>%
+  mutate(FDR_Significance = case_when(p_fdr_corrected < 0.05 ~ "Y",
+                                      p_fdr_corrected >= 0.05 ~ "N")) 
 
 
 #### Generating a Heat Map ####
 
 
 #heat map of Bonferonni corrected P-values with labeled p-values
-ggplot(aes(x = fct_reorder(Soil.metrics, p_bonf_corrected), y = Significance, fill = p_bonf_corrected), data = random_pop.df) +
+ggplot(aes(x = fct_reorder(Soil.metrics, p_bonf_corrected), y = Bonf_Significance, fill = p_bonf_corrected), data = random_pop.df) +
   geom_tile() + 
   labs(y = "Significant P-Value", x  = "Soil Characteristic", 
        fill = "P-Value",  
        title = "Association Between Soil Metrics and Population Locations",
        subtitle = "P-Values Below 0.5 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(p_bonf_corrected < 0.05, round(p_bonf_corrected, 4), NA)), col = "white") +
+  geom_text(aes(label = ifelse(p_bonf_corrected < 0.05, round(p_bonf_corrected, 4), NA), col = "white")) +
   coord_flip() +
   theme_classic() +
   theme(axis.text = element_text(size = 13),
@@ -301,6 +326,58 @@ ggplot(aes(x = fct_reorder(Soil.metrics, p_bonf_corrected), y = Significance, fi
         title = element_text(size = 13),
         legend.title = element_text(size = 13),
         plot.subtitle = element_text(size = 12))
+
+#heat map of Holm corrected P-values with labeled p-values
+ggplot(aes(x = fct_reorder(Soil.metrics, p_holm_corrected), y = Holm_Significance, fill = p_holm_corrected), data = random_pop.df) +
+  geom_tile() + 
+  labs(y = "Significant P-Value", x  = "Soil Characteristic", 
+       fill = "P-Value",  
+       title = "Association Between Soil Metrics and Population Locations",
+       subtitle = "Holm Correction, P-Values Below 0.5 Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(p_holm_corrected < 0.05, round(p_holm_corrected, 4), NA), col = "white")) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 13),
+        axis.title = element_text(size=13),
+        title = element_text(size = 13),
+        legend.title = element_text(size = 13),
+        plot.subtitle = element_text(size = 12))
+
+#heat map of Hochberg corrected P-values with labeled p-values
+ggplot(aes(x = fct_reorder(Soil.metrics, p_hoch_corrected), y = Hoch_Significance, fill = p_hoch_corrected), data = random_pop.df) +
+  geom_tile() + 
+  labs(y = "Significant P-Value", x  = "Soil Characteristic", 
+       fill = "P-Value",  
+       title = "Association Between Soil Metrics and Population Locations",
+       subtitle = "Hochberg Correction, P-Values Below 0.5 Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(p_hoch_corrected < 0.05, round(p_hoch_corrected, 4), NA), col = "white")) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 13),
+        axis.title = element_text(size=13),
+        title = element_text(size = 13),
+        legend.title = element_text(size = 13),
+        plot.subtitle = element_text(size = 12))
+
+#heat map of FDR corrected P-values with labeled p-values
+ggplot(aes(x = fct_reorder(Soil.metrics, p_fdr_corrected), y = FDR_Significance, fill = p_fdr_corrected), data = random_pop.df) +
+  geom_tile() + 
+  labs(y = "Significant P-Value", x  = "Soil Characteristic", 
+       fill = "P-Value",  
+       title = "Association Between Soil Metrics and Population Locations",
+       subtitle = "FDR Correction, P-Values Below 0.5 Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + 
+  geom_text(aes(label = ifelse(p_fdr_corrected < 0.05, round(p_fdr_corrected, 4), NA), col = "white")) +
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 13),
+        axis.title = element_text(size=13),
+        title = element_text(size = 13),
+        legend.title = element_text(size = 13),
+        plot.subtitle = element_text(size = 12))
+
 
 #heat map of P-values without correction with labeled p-values
 ggplot(aes(x = fct_reorder(Soil.metrics, P_values), y = Significance, fill = P_values), data = random_pop.df) +
@@ -310,7 +387,7 @@ ggplot(aes(x = fct_reorder(Soil.metrics, P_values), y = Significance, fill = P_v
        title = "Association Between Soil Metrics and Population Locations",
        subtitle = "P-Values Below 0.5 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
-  geom_text(aes(label = ifelse(P_values < 0.05, round(P_values, 4), NA)), col = "white") +
+  geom_text(aes(label = ifelse(P_values < 0.05, round(P_values, 4), round(P_values, 4))), col = "white") +
   coord_flip() +
   theme_classic() +
   theme(axis.text = element_text(size = 13),

@@ -1060,3 +1060,151 @@ ggplot() +
   coord_sf(xlim = c(min(SD_fixed_field_data_processed_sign$X.1)-50, max(SD_fixed_field_data_processed_sign$X.1)-100), 
            ylim = c(min(SD_fixed_field_data_processed_sign$Y)+300, max(SD_fixed_field_data_processed_sign$Y))) 
   
+
+#### Looking at Fruiting ####
+
+# Fruiting is a binary, categorical variable, so we cannot use Moran's I and instead to check for spatial autocorrelation
+# of fruiting we will use join count statistics. 
+
+# Join Count Statistic tests whether a binary map (categories A/B) shows spatial clustering
+
+###Test for LM###
+
+#removing the NAs and turning the fruiting variable into a factor
+LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+  filter(!is.na(DBH_ag)) %>%
+  filter(!is.na(fruiting)) %>%
+  mutate(fruiting = as.factor(fruiting))
+
+#creating a matrix of the tree locations
+tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed$X.1, 
+                                     LM_fixed_field_data_processed$Y))
+
+#creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
+knn.dist.LM <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
+
+#inverse distance weighting with raw distance-based weights without applying any normalization
+lw.dist.LM <- nb2listwdist(knn.dist.LM, LM_fixed_field_data_processed, type="idw", style="W", 
+             alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
+
+#running the joint count function
+joincount.test(fx = LM_fixed_field_data_processed$fruiting, listw = lw.dist.LM)
+
+#running the monte carlo, permutation test for join count statistics 
+set.seed(42) #need to set a seed first before the permutation test
+joincount.mc(fx = LM_fixed_field_data_processed$fruiting, listw = lw.dist.LM, nsim = 1000, zero.policy=T,
+             alternative="greater", spChk=NULL)
+
+#plotting the fruiting trees
+ggplot() +
+  geom_sf(data =river_LM_trans) +
+  geom_sf(data =LM_fixed_field_data_processed, aes(color = fruiting)) +
+  labs(color = "Fruiting")
+
+###Test for LC###
+
+#removing the NAs and turning the fruiting variable into a factor
+LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
+  filter(!is.na(DBH_ag)) %>%
+  filter(!is.na(fruiting)) %>%
+  mutate(fruiting = as.factor(fruiting))
+
+#creating a matrix of the tree locations
+tree.coord.matrix <- as.matrix(cbind(LC_fixed_field_data_processed$X.1, 
+                                     LC_fixed_field_data_processed$Y))
+
+#creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
+knn.dist.LC <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LC_fixed_field_data_processed$DBH_ag)))
+
+#inverse distance weighting with raw distance-based weights without applying any normalization
+lw.dist.LC <- nb2listwdist(knn.dist.LC, LC_fixed_field_data_processed, type="idw", style="W", 
+                        alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
+
+#running the joint count function
+joincount.test(fx = LC_fixed_field_data_processed$fruiting, listw = lw.dist.LC)
+
+#running the monte carlo, permutation test for join count statistics 
+set.seed(42) #need to set a seed first before the permutation test
+joincount.mc(fx = LC_fixed_field_data_processed$fruiting, listw = lw.dist.LC, nsim = 1000, zero.policy=T,
+             alternative="two.sided", spChk=NULL)
+
+#plotting the fruiting trees
+ggplot() +
+  geom_sf(data =river_LC_trans) +
+  geom_sf(data =LC_fixed_field_data_processed, aes(color = fruiting)) +
+  labs(color = "Fruiting")
+
+###Test for LM###
+
+#removing the NAs and turning the fruiting variable into a factor
+SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
+  filter(!is.na(DBH_ag)) %>%
+  filter(!is.na(fruiting)) %>%
+  mutate(fruiting = as.factor(fruiting))
+
+#creating a matrix of the tree locations
+tree.coord.matrix <- as.matrix(cbind(SD_fixed_field_data_processed$X.1, 
+                                     SD_fixed_field_data_processed$Y))
+
+#creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
+knn.dist.SD <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(SD_fixed_field_data_processed$DBH_ag)))
+
+#inverse distance weighting with raw distance-based weights without applying any normalization
+lw.dist.SD <- nb2listwdist(knn.dist.SD, SD_fixed_field_data_processed, type="idw", style="W", 
+                        alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
+
+#running the joint count function
+joincount.test(fx = SD_fixed_field_data_processed$fruiting, listw = lw.dist.SD)
+
+#running the monte carlo, permutation test for join count statistics 
+set.seed(42) #need to set a seed first before the permutation test
+joincount.mc(fx = SD_fixed_field_data_processed$fruiting, listw = lw.dist.SD, nsim = 1000, zero.policy=T,
+             alternative="two.sided", spChk=NULL)
+
+#plotting the fruiting trees
+ggplot() +
+  geom_sf(data =river_SD_trans) +
+  geom_sf(data =SD_fixed_field_data_processed, aes(color = fruiting)) +
+  labs(color = "Fruiting")
+
+
+#### Ch-square Test Comparing Fruiting Proportions ####
+
+
+#creating a contingency table
+cont_table <- fixed_field_data_processed_sf_transformed %>%
+  st_drop_geometry() %>%
+  group_by(locality) %>%
+  summarise(is_fruiting = sum(fruiting == "Y", na.rm = T),
+            not_fruiting = sum(fruiting == "N", na.rm = T)) %>%
+  mutate(total = is_fruiting + not_fruiting) 
+
+#turning the contingency table into a matrix suitable for the chi square testing function
+chi_matrix <- cont_table %>%
+  column_to_rownames(var = "locality") %>%
+  as.matrix()
+
+# Performing the Chi-Square Test
+chi_result <- chisq.test(chi_matrix)
+print(chi_result)
+
+# View expected frequencies (check if > 5)
+chi_result$expected
+
+# View observed frequencies
+chi_result$observed
+
+# Running post hoc test with Bonferroni correction
+library(chisq.posthoc.test)
+chisq.posthoc.test(chi_matrix, method = "bonferroni")
+
+ggplot(fixed_field_data_processed_sf_transformed) +
+  geom_bar(aes(x = locality, fill = fruiting), position = "fill")
+
+#looking at the pairwise differences
+chisq.test(chi_matrix[c(1, 2),], correct = FALSE)
+chisq.test(chi_matrix[c(1, 3),], correct = FALSE)
+chisq.test(chi_matrix[c(2, 3),], correct = FALSE)
+
+
+

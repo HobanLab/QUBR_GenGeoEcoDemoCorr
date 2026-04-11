@@ -12,10 +12,10 @@
 # The script is broken into sections of
 # 1) Loading and processing the packages and processed data for the trees, topography, and soil metrics in the Las Matancitas,
 #San Dionisio, and La Cobriza populations. The processed data used in this script includes:
-        # Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
+# Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
 #generating river and point buffers and bounding boxes,
-        # Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
-        # Extracting the distance to the river of each tree for each population,
+# Extracting and processing slope, elevation, and aspect (4 and 8 cardinal directions) data using 15 m res rasters,
+# Extracting the distance to the river of each tree for each population,
 # 2) Creating Generalized Additive Models to look at the relationships between the shape/size of trees and their aspect, elevation, slope, and distance to river
 
 # NOTE: Uncomment and run line 45, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
@@ -49,18 +49,18 @@ library(visreg) # to be able to plot Aspect/categorical variables with GAM
 # For each population/all populations and each size/shape metric we created
 #generalized additive models whereby...
 
-  # a) We removed NAs from the explanatory and response variables to be able to run the GAMs
-  # b) We then created a base GAM model with smoothing splines on all of the quantitative variables (slope, distance, and elevation)
-        #and not with aspect because categorical variables cannot be smoothed in GAMs.
-  # c) We then looked at the summary of the base model (looking at significant varibales) and used the dredge function to create subsequent models 
-        #using different combinations of significant variables and smoothing splines to compare the models with each other to see which one performs the best. 
-  # d) We compared the models by using ANOVA f-tests (only works if one models variables are entirely present in the other model)
-        #and by comparing the models' AIC values to see which one had the lowest, supporting which model fits the data the best
-  # e) Once we felt like we had narrowed down our choices to the best option, we checked if the conditions of the GAM were met well (normal distribution and equal variance 
-        #of the residuals since we are using a GAM with a Gaussian distribution)
-  # h) We then plotted the GAMs in 2D and 3D to be able to describe the relationship between the explanatory variables and the size/shape characteristics 
-  # i) We then looked for interactions and compared the interaction model to the previous best model and if we have a significant interaction term we have to consider
-  # j) We then plotted the interactions both to be able to describe the relationships
+# a) We removed NAs from the explanatory and response variables to be able to run the GAMs
+# b) We then created a base GAM model with smoothing splines on all of the quantitative variables (slope, distance, and elevation)
+#and not with aspect because categorical variables cannot be smoothed in GAMs.
+# c) We then looked at the summary of the base model (looking at significant varibales) and used the dredge function to create subsequent models 
+#using different combinations of significant variables and smoothing splines to compare the models with each other to see which one performs the best. 
+# d) We compared the models by using ANOVA f-tests (only works if one models variables are entirely present in the other model)
+#and by comparing the models' AIC values to see which one had the lowest, supporting which model fits the data the best
+# e) Once we felt like we had narrowed down our choices to the best option, we checked if the conditions of the GAM were met well (normal distribution and equal variance 
+#of the residuals since we are using a GAM with a Gaussian distribution)
+# h) We then plotted the GAMs in 2D and 3D to be able to describe the relationship between the explanatory variables and the size/shape characteristics 
+# i) We then looked for interactions and compared the interaction model to the previous best model and if we have a significant interaction term we have to consider
+# j) We then plotted the interactions both to be able to describe the relationships
 
 
 #We used only the 8 categories to get a more specific idea of how direction may be influencing size 
@@ -80,6 +80,7 @@ LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processe
   filter(!is.na(Crown_spread)) %>% #crown spread NAs removed
   filter(!is.na(DBH_ag)) #DBH NAs removed
 
+
 #checking for concurvity
 
 
@@ -93,6 +94,12 @@ LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) +
                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
+concurvity(LM_add.gam_SCA.terrain_dist, full = F)
+library(gratia)
+model_concurvity(LM_add.gam_SCA.terrain_dist)
+library(performance)
+check_concurvity(LM_add.gam_SCA.terrain_dist)
+
 #elevation has a significant non-linear function 
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -102,7 +109,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model 
 
 # Checking a GAM with just elevation smoothing splines s()
 LM_add.gam_SCA.terrain_dist.just.elevation.smooth <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist.just.elevation.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #none of the linear fits are significant
 
@@ -118,7 +125,7 @@ anova(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.just.elevation.sm
 
 # setting up the dredge GAM of the larger equation, with just quantitative variables
 LM_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #NA fail makes sure the later dredge does not have to worry about NAs
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #NA fail makes sure the later dredge does not have to worry about NAs
 
 #comparing model with smoothing with and without aspect
 AIC(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist)
@@ -127,7 +134,7 @@ summary(LM_add.gam_SCA.terrain_dist.dredge)
 
 #making a GAM with just elevation smoothed, no aspect
 LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_short ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth) #using the dredge model to narrow the models down to the best choice
@@ -136,7 +143,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model 
 
 #making a dredge model with just smooth elevation
 LM_add.gam_SCA.terrain_dist.dredge.just.elev <- gam(Canopy_short ~ s(Elevation..m.FIXED), 
-                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist.dredge.just.elev.smooth)
 #the linear fits for distance and slope were not significant
 
@@ -181,7 +188,7 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 LM_add.gam_SCA.inter <- gam(Canopy_short ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                     data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(LM_add.gam_SCA.inter)
 #there was no significant interaction term after checking combinations
 
@@ -213,7 +220,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LM_add.gam_LCA.terrain_dist.no.aspect <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
-                                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_LCA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -228,7 +235,7 @@ anova(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.no.aspect)  #ANOV
 
 #making a dredge model with just smooth elevation
 LM_add.gam_LCA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_long ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
-                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_LCA.terrain_dist.dredge.just.elev.smooth)
 
 #comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
@@ -293,7 +300,7 @@ AIC(LM_add.gam_LCA.inter, LM_add.gam_LCA.terrain_dist)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LM_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #elevation have significant non-linear function 
@@ -305,7 +312,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LM_add.gam_CA.terrain_dist.no.aspect <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
-                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -320,7 +327,7 @@ anova(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.no.aspect)  #ANOVA 
 
 #making a dredge model with just smooth elevation and no aspect
 LM_add.gam_CA.terrain_dist.dredge.just.elev.smooth <- gam(Canopy_area_lg ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts, 
-                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CA.terrain_dist.dredge.just.elev.smooth)
 #s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
 
@@ -365,7 +372,7 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 LM_add.gam_CA.inter <- gam(Canopy_area ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(LM_add.gam_CA.inter)
 #there was no significant interaction term after checking combinations
 
@@ -475,7 +482,7 @@ AIC(LM_add.gam_CS.inter, LM_add.gam_CS.terrain_dist.no.aspect)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LM_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #only elevation have significant non-linear function 
@@ -487,7 +494,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LM_add.gam_DBH.terrain_dist.no.aspect <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -502,13 +509,13 @@ anova(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.no.aspect)  #ANOV
 
 #making a dredge model with just smooth elevation and no aspect
 LM_add.gam_DBH.terrain_dist.dredge.just.elev.smooth <- gam(DBH_ag ~ d + s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.just.elev.smooth)
 #s(elevation) is marginally not significantly  non-linear, slope and distance are not significantly useful with the linear fit
 
 #making a model with no smoothing splines
 LM_add.gam_DBH.terrain_dist.dredge.no.smooth <- gam(DBH_ag ~ d + Elevation..m.FIXED + LM_slope_raster_15_data_pts + LM_aspect_raster_15_data_pts_8_categorical, 
-                                                           data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.no.smooth)
 #s(elevation) is marginally not significantly  non-linear, slope and distance are not significantly useful with the linear fit
 
@@ -554,7 +561,7 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 LM_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m.FIXED, d, LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
-                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(LM_add.gam_DBH.inter)
 #there was no significant interaction term after checking combinations
 
@@ -700,7 +707,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LC_add.gam_LCA.terrain_dist.no.aspect.slope <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED), 
-                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_LCA.terrain_dist.no.aspect.slope) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -715,7 +722,7 @@ anova(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.no.aspect.slope) 
 
 #making a dredge model with just smooth elevation
 LC_add.gam_LCA.terrain_dist.dredge.just.elev.d.smooth <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_LCA.terrain_dist.dredge.just.elev.d.smooth)
 
 #comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
@@ -792,7 +799,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without s(slope) but slope instead
 LC_add.gam_CA.terrain_dist.less.s <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + LC_slope_raster_15_data_pts + LC_aspect_raster_15_data_pts_8_categorical, 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist.less.s) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -807,7 +814,7 @@ anova(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.less.s)  #ANOVA F-T
 
 #making a dredge model with just smooth elevation and no aspect
 LC_add.gam_CA.terrain_dist.dredge.no.slope <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + LC_aspect_raster_15_data_pts_8_categorical, 
-                                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist.dredge.no.slope)
 #s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
 
@@ -975,7 +982,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LC_add.gam_DBH.terrain_dist.only.distance <- gam(DBH_ag ~ s(d), 
-                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                 data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.only.distance) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation is significant)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -1091,7 +1098,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM with no aspect
 SD_add.gam_SCA.terrain_dist.no.aspect <- gam(Canopy_short ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_SCA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #slope of the linear fits are significant
 
@@ -1107,7 +1114,7 @@ anova(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect)  #ANOV
 
 # setting up the dredge GAM with only slope being smoothed
 SD_add.gam_SCA.terrain_dist.slope.smooth <- gam(Canopy_short ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts), 
-                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
@@ -1115,7 +1122,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # setting up the dredge GAM with only slope being smoothed, no distance
 SD_add.gam_SCA.terrain_dist.slope.smooth.dredge <- gam(Canopy_short ~ Elevation..m. + s(SD_slope_raster_15_data_pts), 
-                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                       data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge)
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge) #using the dredge model to narrow the models down to the best choice
@@ -1194,7 +1201,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM with only slope smooth
 SD_add.gam_LCA.terrain_dist.slope.smooth <- gam(Canopy_long ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_LCA.terrain_dist.slope.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only west is significant
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -1204,7 +1211,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 #making a dredge model with just smooth elevation
 SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist <- gam(Canopy_long ~ s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                       data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
 #s(slope) and NE and SW are significant
 
@@ -1297,13 +1304,13 @@ anova(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect)  #ANOVA 
 
 #making a dredge model with just smooth elevation and slope and no aspect
 SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth <- gam(Canopy_area_lg ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth)
 #s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
 
 #making a dredge model with just smooth elevation and slope
 SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist <- gam(Canopy_area_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                                        data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist)
 #s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
 
@@ -1378,7 +1385,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without d smoothed
 SD_add.gam_CS.terrain_dist.no.dist.smooth <- gam(Crown_spread ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                 data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CS.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation and slope) are significant
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -1388,7 +1395,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 #making a dredge model with just smooth elevation and no aspect
 SD_add.gam_CS.terrain_dist.no.dist <- gam(Crown_spread ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CS.terrain_dist.no.dist)
 #s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
 
@@ -1465,7 +1472,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without smoothing distance 
 SD_add.gam_DBH.terrain_dist.no.dist.smooth <- gam(DBH_ag ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(slope) is significant
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -1475,7 +1482,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 #making a dredge model with just smooth elevation and no aspect
 SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                                 data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
 #s(slope) is significantly non-linear but not s(elevation), slope and distance are not significantly useful with the linear fit
 #using the dredge function to determine which explanatory variables allow for the best fitting model

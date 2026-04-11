@@ -82,14 +82,16 @@ LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #ite
 #creating a dataframe of all of the trees with their row number in the overall tree point dataframe and in which grid cell they are in
 LM_list_grids_and_point_trees_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
 colnames(LM_list_grids_and_point_trees_df) <- c("tree_row_num") #changes the column name
+
 #filters out grid cells that do not have trees within them
 LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>%
   mutate(cell_num = row_number()) %>% #assigns the cell number to each row/tree
+  mutate(data_row = LM_fixed_field_data_processed$X[tree_row_num]) %>% #adding a column that writes the real row number the focal tree is in the overall data
   filter(!is.na(tree_row_num)) #filters out the grids without trees inside of them
 
-#filtering out point data to be just the trees within the grids
+#filtering out point data to be just the focal points
 LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
-  filter(X %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+  filter(X_sequential %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
 
 #plotting the points, grid, and randomly selected points from each grid
 ggplot()+
@@ -203,7 +205,7 @@ fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_
 
 # Function that checks the conditions and then runs the appropriate difference in means test
     # If the residuals were not normal, we used a Kruskal-Wallis test and Post-Hoc Wilcoxon Rank Sum Test.
-        # We also performed this test for ever soil metric because it is a non-parametric test allowing for comparisons across the soil metrics. 
+        # We also performed this test for every soil metric because it is a non-parametric test allowing for comparisons across the soil metrics. 
     # If the residuals were normal but the variance was NOT equal, we used a Welch's ANOVA test and Post-Hoc Tamhane's T2 Test
     # If the residuals were normal and the variance was equal, we used a Traditional ANOVA test and Post-Hoc Pairwise T-test
 
@@ -319,7 +321,7 @@ mean_soil_function_clay_0.5 <- mean_soil_function("clay.content.0.5")
 #CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
 mean_soil_function_clay_0.5$final_test
 
-#post hoc test of Welch's ANOVA test: Tamhane's T2 Test
+#post hoc test of ANOVA test: Tamhane's Test
 mean_soil_function_clay_0.5$posthoc
 
 #Kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -375,10 +377,10 @@ hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of R
 #running the Difference in Means Analysis function
 mean_soil_function_silt_0.5 <- mean_soil_function("silt.0.5")
 
-#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+#CHOSEN TEST: ANOVA test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_silt_0.5$final_test
 
-#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+#kruskal-Wallis test post-hoc Tukey's HSD sum tests
 mean_soil_function_silt_0.5$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -407,7 +409,7 @@ mean_soil_function_silt_100.200 <- mean_soil_function("silt.100.200")
 #CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
 mean_soil_function_silt_100.200$final_test
 
-#post-hoc Pairwise T-Tests
+#post-hoc Pairwise Tukey's HSD
 mean_soil_function_silt_100.200$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -436,7 +438,7 @@ mean_soil_function_sand_0.5 <- mean_soil_function("sand.0.5")
 #CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
 mean_soil_function_sand_0.5$final_test
 
-#post-hoc Pairwise T-Tests
+#post-hoc Pairwise Tukey's HSD Tests
 mean_soil_function_sand_0.5$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -462,10 +464,10 @@ hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Resid
 #running the Difference in Means Analysis function
 mean_soil_function_sand_100.200 <- mean_soil_function("sand.100.200")
 
-#CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
+#CHOSEN TEST: Kruskal-Wallis
 mean_soil_function_sand_100.200$final_test
 
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
+#post hoc Kruskal-Wallis test: pairwise wilcoxon test, fdr adjustment
 mean_soil_function_sand_100.200$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -518,7 +520,7 @@ hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residua
 ##ph 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_ph_100_200 <- mean_soil_function("ph_0.5")
+mean_soil_function_ph_100_200 <- mean_soil_function("ph_100.200")
 
 #CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_ph_100_200$final_test
@@ -629,14 +631,6 @@ ggplot()+
 
 # checking to see if residuals are normal
 anova_vol_water_10_0.5 <- aov(vol_water_.10_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
-
-
-
-
-
-
-
-
 hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Volume of Water Content at -10 kpa at 0-5 cm vs. Population")
 
 #volume of water content at -10 kpa 100-200
@@ -644,10 +638,10 @@ hist(anova_vol_water_10_0.5$residuals, xlab = "Residuals", main = "Distribution 
 #running the Difference in Means Analysis function
 mean_soil_function_vol_water_10_100_200 <- mean_soil_function("vol_water_.10_100.200")
 
-#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+#CHOSEN TEST: ANOVA test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_vol_water_10_100_200$final_test
 
-#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+#ANOVA test post-hoc Tukey's HSD tests
 mean_soil_function_vol_water_10_100_200$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -673,10 +667,10 @@ hist(anova_vol_water_10_100.200$residuals, xlab = "Residuals", main = "Distribut
 #running the Difference in Means Analysis function
 mean_soil_function_vol_water_33_0_5 <- mean_soil_function("vol_water_0.5")
 
-#CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
+#CHOSEN TEST: kruskal-Wallis, does not assume equal variances 
 mean_soil_function_vol_water_33_0_5$final_test
 
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
+#post hoc kruskal-Wallis  test: Wilcoxon Rank Sum Test
 mean_soil_function_vol_water_33_0_5$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -731,10 +725,10 @@ hist(anova_vol_water_33_100.200$residuals, xlab = "Residuals", main = "Distribut
 #running the Difference in Means Analysis function
 mean_soil_function_vol_water_1500_0_5 <- mean_soil_function("vol_water_.1500kPa_0.5")
 
-#CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
+#CHOSEN TEST: kruskal-Wallis Test, does not assume equal variances 
 mean_soil_function_vol_water_1500_0_5$final_test
 
-#post hoc Welch's ANOVA test: Tamhane's T2 Test
+#post hoc kruskal-Wallis test: Wilcoxon Rank Sum Test
 mean_soil_function_vol_water_1500_0_5$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -876,10 +870,10 @@ hist(anova_sandy_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribu
 #running the Difference in Means Analysis function
 mean_soil_function_sandy_avail_water_100_200 <- mean_soil_function("sandy_avail_water_100.200")
 
-#CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+#CHOSEN TEST: Welch's ANOVA test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_sandy_avail_water_100_200$final_test
 
-#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+#Welch's ANOVA test post-hoc Tamhane's tests
 mean_soil_function_sandy_avail_water_100_200$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
@@ -934,10 +928,10 @@ hist(anova_clay_loam_avail_water_0.5$residuals, xlab = "Residuals", main = "Dist
 #running the Difference in Means Analysis function
 mean_soil_function_clay_loam_avail_water_100_200 <- mean_soil_function("clay_loam_avail_water_100.200")
 
-#CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
+#CHOSEN TEST: Kruskal Wallis test, assumes equal variance and normal residuals
 mean_soil_function_clay_loam_avail_water_100_200$final_test
 
-#post-hoc Pairwise T-Tests
+#post-hoc Wilcoxon Rank Sum Tests
 mean_soil_function_clay_loam_avail_water_100_200$posthoc
 
 #kruskal-Wallis test because it is non-parametric and comparable across soil metrics
