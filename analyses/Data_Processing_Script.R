@@ -1015,6 +1015,220 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                         is.na(altitude) == T ~ Elevation..m.combo))
 
 
+
+#### Creating a Topographic Wetness Index Variable ####
+
+# installing the WhiteboxTools binary tool
+whitebox::install_whitebox(force = TRUE) #if you run into issues with whitebox tools not working, first try re-installing it
+library(whitebox)
+
+## LM
+
+# 1. we fill in the depressions in the DEM
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif")
+out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_LM.tif"), )
+
+# 2. we want to create a slope raster using the filled DEM raster even though we already have slope rasters
+wbt_slope(dem = "./data/topographic_wetness_index/dem_filled_LM.tif", output = "./data/topographic_wetness_index/slope_LM.tif")
+
+# 3. we create the specific contributing area
+# we are using the deterministic 8 which factors in the eight immediate neighbors 
+wbt_d8_flow_accumulation(input = "./data/topographic_wetness_index/dem_filled_LM.tif", output = "./data/topographic_wetness_index/spec_catch_area_LM.tif", out_type = 'specific contributing area')
+
+# 4. we create the topographic wetness index raster
+wbt_wetness_index(sca = "./data/topographic_wetness_index/spec_catch_area_LM.tif", slope = "./data/topographic_wetness_index/slope_LM.tif", output = "./data/topographic_wetness_index/twi_LM.tif")
+
+#importing the rasters and setting the crs
+
+#filled DEM
+dem_filled_LM <- raster(paste0("./data/topographic_wetness_index/dem_filled_LM.tif"))
+terra::crs(dem_filled_LM) <- CRS("EPSG:26912")
+
+#slope
+slope_LM <- raster(paste0("./data/topographic_wetness_index/slope_LM.tif"))
+terra::crs(slope_LM) <- CRS("EPSG:26912")
+
+#specific catchment area
+spec_catch_area_LM <- raster(paste0("./data/topographic_wetness_index/spec_catch_area_LM.tif"))
+terra::crs(spec_catch_area_LM) <- CRS("EPSG:26912")
+
+#topographic wetness index
+twi_LM <- raster(paste0("./data/topographic_wetness_index/twi_LM.tif"))
+terra::crs(twi_LM) <- CRS("EPSG:26912")
+
+#plotting the LM elevation raster with the all points
+
+#original DEM
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#filled DEM
+ggplot()+
+  geom_raster(data= as.data.frame(dem_filled_LM, xy = T), aes(x=x, y=y, fill = dem_filled_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#slope
+ggplot()+
+  geom_raster(data= as.data.frame(slope_LM, xy = T), aes(x=x, y=y, fill = slope_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#specific catchment area
+ggplot()+
+  geom_raster(data= as.data.frame(spec_catch_area_LM, xy = T), aes(x=x, y=y, fill = spec_catch_area_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#topographic wetness index
+ggplot()+
+  geom_raster(data= as.data.frame(twi_LM, xy = T), aes(x=x, y=y, fill = twi_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#extracting the TWI metrics for each tree
+LM_TWI_values <- extract(twi_LM, LM_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_TWI_values) #bind the elevation data for each point to the LM point dataframe
+
+
+## LC
+
+# 1. we fill in the depressions in the DEM, if it does not work the first time try re-running it
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_LC.tif")
+out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_LC.tif"), )
+
+# 2. we want to create a slope raster using the filled DEM raster even though we already have slope rasters
+wbt_slope(dem = "./data/topographic_wetness_index/dem_filled_LC.tif", output = "./data/topographic_wetness_index/slope_LC.tif")
+
+# 3. we create the specific contributing area
+# we are using the deterministic 8 which factors in the eight immediate neighbors 
+wbt_d8_flow_accumulation(input = "./data/topographic_wetness_index/dem_filled_LC.tif", output = "./data/topographic_wetness_index/spec_catch_area_LC.tif", out_type = 'specific contributing area')
+
+# 4. we create the topographic wetness index raster
+wbt_wetness_index(sca = "./data/topographic_wetness_index/spec_catch_area_LC.tif", slope = "./data/topographic_wetness_index/slope_LC.tif", output = "./data/topographic_wetness_index/twi_LC.tif")
+
+#importing the rasters and setting the crs
+
+#filled DEM
+dem_filled_LC <- raster(paste0("./data/topographic_wetness_index/dem_filled_LC.tif"))
+terra::crs(dem_filled_LC) <- CRS("EPSG:26912")
+
+#slope
+slope_LC <- raster(paste0("./data/topographic_wetness_index/slope_LC.tif"))
+terra::crs(slope_LC) <- CRS("EPSG:26912")
+
+#specific catchment area
+spec_catch_area_LC <- raster(paste0("./data/topographic_wetness_index/spec_catch_area_LC.tif"))
+terra::crs(spec_catch_area_LC) <- CRS("EPSG:26912")
+
+#topographic wetness index
+twi_LC <- raster(paste0("./data/topographic_wetness_index/twi_LC.tif"))
+terra::crs(twi_LC) <- CRS("EPSG:26912")
+
+#plotting the LM elevation raster with the all points
+
+#original DEM
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm_LC))+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+#filled DEM
+ggplot()+
+  geom_raster(data= as.data.frame(dem_filled_LC, xy = T), aes(x=x, y=y, fill = dem_filled_LC))+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+#slope
+ggplot()+
+  geom_raster(data= as.data.frame(slope_LC, xy = T), aes(x=x, y=y, fill = slope_LC))+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+#specific catchment area
+ggplot()+
+  geom_raster(data= as.data.frame(spec_catch_area_LC, xy = T), aes(x=x, y=y, fill = spec_catch_area_LC))+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+#topographic wetness index
+ggplot()+
+  geom_raster(data= as.data.frame(twi_LC, xy = T), aes(x=x, y=y, fill = twi_LC))+
+  geom_sf(data = LC_fixed_field_data_processed_sf)
+
+#extracting the TWI metrics for each tree
+LC_TWI_values <- extract(twi_LC, LC_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_TWI_values) #bind the elevation data for each point to the LM point dataframe
+
+## SD
+
+
+# 1. we fill in the depressions in the DEM
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_SD.tif")
+out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_SD.tif"), )
+
+# 2. we want to create a slope raster using the filled DEM raster even though we already have slope rasters
+wbt_slope(dem = "./data/topographic_wetness_index/dem_filled_SD.tif", output = "./data/topographic_wetness_index/slope_SD.tif")
+
+# 3. we create the specific contributing area
+# we are using the deterministic 8 which factors in the eight immediate neighbors 
+wbt_d8_flow_accumulation(input = "./data/topographic_wetness_index/dem_filled_SD.tif", output = "./data/topographic_wetness_index/spec_catch_area_SD.tif", out_type = 'specific contributing area')
+
+# 4. we create the topographic wetness index raster
+wbt_wetness_index(sca = "./data/topographic_wetness_index/spec_catch_area_SD.tif", slope = "./data/topographic_wetness_index/slope_SD.tif", output = "./data/topographic_wetness_index/twi_SD.tif")
+
+#importing the rasters and setting the crs
+
+#filled DEM
+dem_filled_SD <- raster(paste0("./data/topographic_wetness_index/dem_filled_SD.tif"))
+terra::crs(dem_filled_SD) <- CRS("EPSG:26912")
+
+#slope
+slope_SD <- raster(paste0("./data/topographic_wetness_index/slope_SD.tif"))
+terra::crs(slope_SD) <- CRS("EPSG:26912")
+
+#specific catchment area
+spec_catch_area_SD <- raster(paste0("./data/topographic_wetness_index/spec_catch_area_SD.tif"))
+terra::crs(spec_catch_area_SD) <- CRS("EPSG:26912")
+
+#topographic wetness index
+twi_SD <- raster(paste0("./data/topographic_wetness_index/twi_SD.tif"))
+terra::crs(twi_SD) <- CRS("EPSG:26912")
+
+#plotting the LM elevation raster with the all points
+
+#original DEM
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm_SD))+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
+#filled DEM
+ggplot()+
+  geom_raster(data= as.data.frame(dem_filled_SD, xy = T), aes(x=x, y=y, fill = dem_filled_SD))+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
+#slope
+ggplot()+
+  geom_raster(data= as.data.frame(slope_SD, xy = T), aes(x=x, y=y, fill = slope_SD))+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
+#specific catchment area
+ggplot()+
+  geom_raster(data= as.data.frame(spec_catch_area_SD, xy = T), aes(x=x, y=y, fill = spec_catch_area_SD))+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
+#topographic wetness index
+ggplot()+
+  geom_raster(data= as.data.frame(twi_SD, xy = T), aes(x=x, y=y, fill = twi_SD))+
+  geom_sf(data = SD_fixed_field_data_processed_sf)
+
+#extracting the TWI metrics for each tree
+SD_TWI_values <- extract(twi_SD, SD_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_TWI_values) #bind the elevation data for each point to the LM point dataframe
+
+
 #### Creating the distance to river columns ####
 
 #LM
@@ -1685,54 +1899,3 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
-
-#### Creating a Topographic Wetness Index Variable ####
-
-#one version 
-install.packages('dynatop')
-library(dynatop)
-
-install.packages('whitebox')
-library(whitebox)
-# Install the WhiteboxTools binary
-install_whitebox()
-
-CEM_15_utm_all_points
-
-# 1. Fill depressions in the DEM
-dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif")
-out_path <- normalizePath("./data/15m_Elevation_Raster", mustWork = TRUE)
-wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled.tif"))
-# 2. Calculate TWI
-wbt_wetness_index(input = "CEM_15_utm.tif", output = "twi.tif")
-
-
-
-
-#Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
-CEM_15_utm_LM <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LM.tif"))
-terra::crs(CEM_15_utm_LM) <- CRS("EPSG:26912")
-
-CEM_15_utm_LC <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_LC.tif"))
-terra::crs(CEM_15_utm_LC) <- CRS("EPSG:26912")
-
-CEM_15_utm_SD <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm_SD.tif"))
-terra::crs(CEM_15_utm_SD) <- CRS("EPSG:26912")
-
-#load needed R packages
-remove.packages("raster")
-install.packages("raster", dependencies = TRUE)
-remove.packages("gstat")
-install.packages("gstat", dependencies = TRUE)
-remove.packages(spacetime)
-library(gstat)
-library(RSAGA) #for creating DEM derivatives
-library(terra) #for working with geospatial data
-library(doParallel) #to enable parallel processing
-
-
-
-
-
-
-
