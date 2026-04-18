@@ -636,6 +636,66 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
                                                                 (SD_aspect_raster_15_data_pts >= 135 & SD_aspect_raster_15_data_pts < 225) ~ "S", #south is between 135 and 225 degrees
                                                                 (SD_aspect_raster_15_data_pts >= 225 & SD_aspect_raster_15_data_pts < 315) ~ "W")) #west is between 225 and 315
 
+# creating the Eastness and Northness columns to use aspect as a quantitative variable
+
+# LM
+
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+  mutate(LM_aspect_raster_15_data_pts_radian = (LM_fixed_field_data_processed_terrain$LM_aspect_raster_15_data_pts * pi) / 180) %>% # creating a column that is the radians
+  mutate(LM_Eastness = sin(LM_aspect_raster_15_data_pts_radian)) %>% # creating the eastness column
+  mutate(LM_Northness = cos(LM_aspect_raster_15_data_pts_radian)) # creating the northness column
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LM_fixed_field_data_processed_terrain, aes(color = LM_Eastness))+
+  scale_fill_viridis_c()
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(LM_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LM_fixed_field_data_processed_terrain, aes(color = LM_Northness))+
+  scale_fill_viridis_c()
+
+# LC
+
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  mutate(LC_aspect_raster_15_data_pts_radian = (LC_fixed_field_data_processed_terrain$LC_aspect_raster_15_data_pts * pi) / 180) %>% # creating a column that is the radians
+  mutate(LC_Eastness = sin(LC_aspect_raster_15_data_pts_radian)) %>% # creating the eastness column
+  mutate(LC_Northness = cos(LC_aspect_raster_15_data_pts_radian)) # creating the northness column
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(color = LC_Eastness))+
+  scale_fill_viridis_c()
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(LC_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = LC_fixed_field_data_processed_terrain, aes(color = LC_Northness))+
+  scale_fill_viridis_c()
+
+# SD
+
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  mutate(SD_aspect_raster_15_data_pts_radian = (SD_fixed_field_data_processed_terrain$SD_aspect_raster_15_data_pts * pi) / 180) %>% # creating a column that is the radians
+  mutate(SD_Eastness = sin(SD_aspect_raster_15_data_pts_radian)) %>% # creating the eastness column
+  mutate(SD_Northness = cos(SD_aspect_raster_15_data_pts_radian)) # creating the northness column
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(color = SD_Eastness))+
+  scale_fill_viridis_c()
+
+#plot of aspect with eastness
+ggplot()+
+  geom_raster(data= as.data.frame(SD_aspect_raster_15, xy = T), aes(x=x, y=y, fill = aspect))+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(color = SD_Northness))+
+  scale_fill_viridis_c()
+
+
 #### Descriptive Summary ####
 
 #histograms
@@ -949,6 +1009,7 @@ ggplot()+
 #finding the linear regression between them
 elevation_model <- lm(Elevation..m.combo ~ SD_elevation_raster_15_data_pts,
                       data = SD_fixed_field_data_processed_terrain)
+
 coef(elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
@@ -1899,3 +1960,4 @@ all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1) 
+
