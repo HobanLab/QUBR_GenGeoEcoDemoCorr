@@ -74,14 +74,13 @@ LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processe
   filter(!is.na(Elevation..m.FIXED)) %>% #Elevation NAs removed
   filter(!is.na(LM_slope_raster_15_data_pts)) %>%  #slope NAs removed
   filter(!is.na(LM_aspect_raster_15_data_pts_8_categorical)) %>% #aspect NAs removed
+  filter(!is.na(LM_Eastness)) %>% #eastness NAs removed
+  filter(!is.na(LM_Northness)) %>% #northness NAs removed
   filter(!is.na(Canopy_short)) %>% #short canopy axis NAs removed
   filter(!is.na(Canopy_long)) %>% #long canopy axis NAs removed
   filter(!is.na(Canopy_area)) %>% #canopy area NAs removed
   filter(!is.na(Crown_spread)) %>% #crown spread NAs removed
   filter(!is.na(DBH_ag)) #DBH NAs removed
-
-#checking for concurvity
-
 
 ## SCA ##
 
@@ -89,7 +88,7 @@ LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processe
 LM_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(LM_fixed_field_data_processed_terrain_dist_no_NA)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + LM_aspect_raster_15_data_pts_8_categorical, 
+LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts), 
                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
