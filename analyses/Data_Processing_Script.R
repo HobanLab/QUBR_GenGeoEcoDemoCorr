@@ -69,6 +69,7 @@ library(mgcv) #to use GAM function
 library(plotly) #to 3d plot variables
 library(MuMIn) #to be able to use dredge
 library(visreg) # to be able to plot Aspect/categorical variables with GAM
+library(spatialEco) # for heat load index function
 
 #### Loading and processing relevant data ####
 
@@ -1288,6 +1289,93 @@ SD_TWI_values <- extract(twi_SD, SD_fixed_field_data_processed) #extracting TWI 
 
 # adding the extracted TWI values to the terrain dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_TWI_values) #bind the elevation data for each point to the LM point dataframe
+
+#### Creating a Heat Load Index Variable ####
+
+#this variable measures potential heat stress of an area, uses aspect, slope, and latitude, 
+#meaning we could potentially avoid those less informative variables in future analysis
+
+#the index is 0-1 (cold/northeast to 1 hot/southwest aspects)
+
+# LM
+
+#need to make sure the DEM is a spatraster for the heat load index function
+CEM_15_utm_LM <- as(CEM_15_utm_LM, "SpatRaster")
+
+#creating the heat load index raster
+heat.load.raster.LM <- hli(CEM_15_utm_LM, #our LM DEM 
+                           check = TRUE, #check for projection integrity and calculate central latitude for non-geographic projections
+                           force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
+
+#heat load index
+ggplot()+
+  geom_raster(data= as.data.frame(heat.load.raster.LM, xy = T), aes(x=x, y=y, fill = lyr.1))+
+  geom_sf(data = LM_fixed_field_data_processed_sf) + 
+  labs(fill = "Heat Load Index")+
+  scale_fill_viridis_c(option = "inferno")
+
+
+#extracting the TWI metrics for each tree
+LM_heat.load <- extract(heat.load.raster.LM, LM_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#renaming the column to be called "heat.load"
+LM_fixed_field_data_processed_terrain <- rename(LM_fixed_field_data_processed_terrain, heat.load = lyr.1)
+
+# LC
+
+#need to make sure the DEM is a spatraster for the heat load index function
+CEM_15_utm_LC <- as(CEM_15_utm_LC, "SpatRaster")
+
+#creating the heat load index raster
+heat.load.raster.LC <- hli(CEM_15_utm_LC, #our LM DEM 
+                           check = TRUE, #check for projection integrity and calculate central latitude for non-geographic projections
+                           force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
+
+#heat load index
+ggplot()+
+  geom_raster(data= as.data.frame(heat.load.raster.LC, xy = T), aes(x=x, y=y, fill = lyr.1))+
+  geom_sf(data = LC_fixed_field_data_processed_sf) + 
+  labs(fill = "Heat Load Index")+
+  scale_fill_viridis_c(option = "inferno")
+
+#extracting the TWI metrics for each tree
+LC_heat.load <- extract(heat.load.raster.LC, LC_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#renaming the column to be called "heat.load"
+LC_fixed_field_data_processed_terrain <- rename(LC_fixed_field_data_processed_terrain, heat.load = lyr.1)
+
+# LC
+
+#need to make sure the DEM is a spatraster for the heat load index function
+CEM_15_utm_SD <- as(CEM_15_utm_SD, "SpatRaster")
+
+#creating the heat load index raster
+heat.load.raster.SD <- hli(CEM_15_utm_SD, #our LM DEM 
+                           check = TRUE, #check for projection integrity and calculate central latitude for non-geographic projections
+                           force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
+
+#heat load index
+ggplot()+
+  geom_raster(data= as.data.frame(heat.load.raster.SD, xy = T), aes(x=x, y=y, fill = lyr.1))+
+  geom_sf(data = SD_fixed_field_data_processed_sf) + 
+  labs(fill = "Heat Load Index")+
+  scale_fill_viridis_c(option = "inferno")
+
+#extracting the TWI metrics for each tree
+SD_heat.load <- extract(heat.load.raster.SD, SD_fixed_field_data_processed) #extracting TWI for each point value
+
+# adding the extracted TWI values to the terrain dataframe
+SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#renaming the column to be called "heat.load"
+SD_fixed_field_data_processed_terrain <- rename(SD_fixed_field_data_processed_terrain, heat.load = lyr.1)
+
 
 
 #### Creating the distance to river columns ####

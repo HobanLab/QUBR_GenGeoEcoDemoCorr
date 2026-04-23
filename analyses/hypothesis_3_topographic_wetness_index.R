@@ -80,7 +80,17 @@ LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processe
   filter(!is.na(Canopy_long)) %>% #long canopy axis NAs removed
   filter(!is.na(Canopy_area)) %>% #canopy area NAs removed
   filter(!is.na(Crown_spread)) %>% #crown spread NAs removed
-  filter(!is.na(DBH_ag)) #DBH NAs removed
+  filter(!is.na(DBH_ag)) %>% #DBH NAs removed
+  filter(!is.na(Canopy_short_lg)) %>% #short canopy axis NAs removed
+  filter(!is.na(Canopy_long_lg)) %>% #long canopy axis NAs removed
+  filter(!is.na(Canopy_area_lg)) %>% #canopy area NAs removed
+  filter(!is.na(Crown_spread_lg)) %>% #crown spread NAs removed
+  filter(!is.na(DBH_ag_lg)) %>% #DBH NAs removed
+  filter(!is.na(Canopy_short_inv)) %>% #short canopy axis NAs removed
+  filter(!is.na(Canopy_long_inv)) %>% #long canopy axis NAs removed
+  filter(!is.na(Canopy_area_inv)) %>% #canopy area NAs removed
+  filter(!is.na(Crown_spread_inv)) %>% #crown spread NAs removed
+  filter(!is.na(DBH_ag_inv)) #DBH NAs removed
 
 ## SCA ##
 
@@ -89,10 +99,15 @@ hist(LM_fixed_field_data_processed_terrain_dist_no_NA$LM_aspect_raster_15_data_p
 #removing the spatial geometry to be able to use the GAM function
 LM_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(LM_fixed_field_data_processed_terrain_dist_no_NA)
 
+# I am using the logged transformation of canopy area to get more normal residuals and less heteroscedasticity to better meet the conditions for the GAMs
+LM_fixed_field_data_processed_terrain_dist_no_NA$Canopy_short_lg <- log1p(LM_fixed_field_data_processed_terrain_dist_no_NA$Canopy_short) #removes the infinites allowing us to run the GAM
+
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable and that we added a control for spatial autocorrelation with the s(x.1, y.1)
-LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1),   
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + 
+                                     s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1),   
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#northness has significant non-linear fit and TWI is borderline
 
 #checking for concurvity (equivalent to co-linearity but for models with non-linear functions)
 concurvity(LM_add.gam_SCA.terrain_dist, full = T)
@@ -100,7 +115,7 @@ concurvity(LM_add.gam_SCA.terrain_dist, full = T)
 library(performance)
 check_concurvity(LM_add.gam_SCA.terrain_dist)
 
-#elevation has a significant non-linear function 
+#high concurvity with all terms currently
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LM_add.gam_SCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
@@ -108,10 +123,11 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model 
 # the dredge selected s(elevation), s(northness), s(slope), s(TWI) as allowing for the best model
 
 # Checking a GAM with dredged variables
-LM_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + 
+                                            s(LM_Northness) + s(LM_TWI_values), 
+                                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_SCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#none of the linear fits are significant
+#elevation has significant non-linear fit and northness and TWI are borderline
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LM_add.gam_SCA.terrain_dist.dredge) #using the dredge model to narrow the models down to the best choice
@@ -121,93 +137,100 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.dredge) # AICs
 anova(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.dredge)  #ANOVA F-Test
-#the less complex model is prefrered,  not significant ANOVA
+#the less complex model is preferred, the dredge model, not significant ANOVA
 
 check_concurvity(LM_add.gam_SCA.terrain_dist.dredge)
 
-# Checking a GAM with significant smooth terms maintained
-LM_add.gam_SCA.terrain_dist.dredge.2 <- gam(Canopy_short ~ s(Elevation..m.FIXED) + LM_slope_raster_15_data_pts + LM_Northness + LM_TWI_values, 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#none of the linear fits are significant
+#elevation and TWI have high concurvity, need to remove ones
 
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LM_add.gam_SCA.terrain_dist.dredge.2) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model model, rule of thumb is that a difference of 2 is a significant difference
-# it wants only s(elevation) variables
+# checking GAM with just elevation
+LM_add.gam_SCA.terrain_dist.dredge.2 <- gam(Canopy_short ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + 
+                                              s(LM_Northness), 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation and northness are significantly non-linear
+
+# checking GAM with just TWI
+LM_add.gam_SCA.terrain_dist.dredge.3 <- gam(Canopy_short ~ s(LM_TWI_values) + s(LM_slope_raster_15_data_pts) + 
+                                              s(LM_Northness), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_SCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#northness has borderline significance for non-linearity
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.2) # AICs
+AIC(LM_add.gam_SCA.terrain_dist, LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.2, LM_add.gam_SCA.terrain_dist.dredge.3) # AICs
 anova(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.2)  #ANOVA F-Test
 #the more complex model is preferred, significant ANOVA
 
-#making a dredge model with just smooth elevation
-LM_add.gam_SCA.terrain_dist.dredge.just.elev <- gam(Canopy_short ~ s(Elevation..m.FIXED), 
-                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.just.elev)
-#the linear fits for distance and slope were not significant
+#LM_add.gam_SCA.terrain_dist.dredge has the lowest AIC, but we can't keep TWI and Elevation
 
-#comparing the models with smoothed distance, elevation, and slope to one with just smoothed elevation and the other variables, and one with only s(elevation)
-AIC(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.just.elev)
-anova(LM_add.gam_SCA.terrain_dist.dredge, LM_add.gam_SCA.terrain_dist.dredge.just.elev)
-#the more complex model is preferred, significant ANOVA
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LM_add.gam_SCA.terrain_dist.dredge.2) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 15)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#LM_add.gam_CA.terrain_dist controls for spatial autocorrelation
+#LM_add.gam_CA.terrain_dist.dredge controls for spatial autocorrelation
+#LM_add.gam_SCA.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LM_add.gam_SCA.terrain_dist.dredge.3 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LM_add.gam_SCA.terrain_dist.dredge.3)
+
+#LM_add.gam_SCA.terrain_dist high concurvity across all terms
+#LM_add.gam_SCA.terrain_dist.dredge elevation and TWI have high concurvity
+#LM_add.gam_SCA.terrain_dist.dredge.2 low concurvity across all terms
+#LM_add.gam_SCA.terrain_dist.dredge.3 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LM_add.gam_SCA.terrain_dist.dredge.3$residuals)
+
+#LM_add.gam_SCA.terrain_dist not normal
+#LM_add.gam_SCA.terrain_dist.dredge not normal
+#LM_add.gam_SCA.terrain_dist.dredge.2 not normal, but the least not normal
+#LM_add.gam_SCA.terrain_dist.dredge.3 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_SCA.terrain_dist.dredge.2 is the best supported model
+
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_SCA.terrain_dist.dredge 
-summary(LM_add.gam_SCA.terrain_dist.dredge)
-check_concurvity(LM_add.gam_SCA.terrain_dist.dredge)
-#but a model with just s(Elevation) seems like it can do similarly as well and is simpler, so it could be an alternative choice
-
-#making a dredge model with just smooth elevation
-LM_add.gam_SCA.terrain_dist.dredge.3 <- gam(Canopy_short ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(Elevation..m.FIXED), 
-                                                    data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.3)
-#the linear fits for distance and slope were not significant
-
-#making a dredge model with just smooth elevation
-LM_add.gam_SCA.terrain_dist.dredge.4 <- gam(Canopy_short ~  LM_slope_raster_15_data_pts + s(LM_Northness) + s(Elevation..m.FIXED), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.4)
-#the linear fits for distance and slope were not significant
-
-AIC(LM_add.gam_SCA.terrain_dist.dredge.3, LM_add.gam_SCA.terrain_dist.dredge.4)
-AIC(LM_add.gam_SCA.terrain_dist.dredge.3, LM_add.gam_SCA.terrain_dist.dredge)
+summary(LM_add.gam_SCA.terrain_dist.dredge.2)
+check_concurvity(LM_add.gam_SCA.terrain_dist.dredge.2)
+#elevation and northness are significant
 
 #while the original dredge model has the lowest AIC the dredge 3 model has the lowest AIC without concurvity
 
-# model without TWI
-LM_add.gam_SCA.terrain_dist.dredge.3 <- gam(Canopy_short ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(Elevation..m.FIXED), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.3)
-#the linear fits for distance and slope were not significant
-
-# model without elevation
-LM_add.gam_SCA.terrain_dist.dredge.no_elev <- gam(Canopy_short ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_SCA.terrain_dist.dredge.no_elev)
-#the linear fits for distance and slope were not significant
-
-
-#comparing the model with TWI vs. with elevation 
-AIC(LM_add.gam_SCA.terrain_dist.dredge.3, LM_add.gam_SCA.terrain_dist.dredge.no_elev)
-#the model elevation is preferred
-
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_SCA.terrain_dist.dredge.3) #pretty normal residuals and no Heteroscedasticity 
+gam.check(LM_add.gam_SCA.terrain_dist.dredge.2) #pretty normal residuals and no Heteroscedasticity 
+shapiro.test(LM_add.gam_SCA.terrain_dist.dredge.2$residuals)
 
 #looking at significance
-summary(LM_add.gam_SCA.terrain_dist.dredge.3)
+summary(LM_add.gam_SCA.terrain_dist.dredge.2)
 
 #Chosen model: LM_add.gam_SCA.terrain_dist.dredge.3
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_SCA.terrain_dist.dredge.3, select=1, 
+plot.gam(LM_add.gam_SCA.terrain_dist.dredge.2, select=2, 
          all.terms=T, xlab = 'Slope (º)', ylab = expression(f[1]*'Slope (º)'))
-plot.gam(LM_add.gam_SCA.terrain_dist.dredge.3, select=2, 
+plot.gam(LM_add.gam_SCA.terrain_dist.dredge.2, select=3, 
          all.terms=T, xlab = "LM_Northness", 
          ylab = expression(f[1]*'(LM_Northness)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_SCA.terrain_dist.dredge.3, select=3, 
+plot.gam(LM_add.gam_SCA.terrain_dist.dredge.2, select=1, 
          all.terms=T, xlab = "Elevation (m)", ylab = expression(f[1]*'Elevation (m)'), 
          se = TRUE , col = "black")
 
@@ -240,100 +263,126 @@ AIC(LM_add.gam_SCA.inter, LM_add.gam_SCA.terrain_dist.dredge)
 
 ## LCA ##
 
-# Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-LM_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1),   
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+# I am using the logged transformation of canopy area to get more normal residuals and less heteroscedasticity to better meet the conditions for the GAMs
+LM_fixed_field_data_processed_terrain_dist_no_NA$Canopy_short_lg <- log1p(LM_fixed_field_data_processed_terrain_dist_no_NA$Canopy_short) #removes the infinites allowing us to run the GAM
 
+# Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
+LM_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + 
+                                     s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1),   
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #TWI and elevations showing significant smoothness
 
 #checking for concurvity (equivalent to co-linearity but for models with non-linear functions)
-concurvity(LM_add.gam_LCA.terrain_dist, full = T)
-
-library(performance)
 check_concurvity(LM_add.gam_LCA.terrain_dist)
+
+#high concurvity across all terms
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LM_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # the dredge selected s(elevation), s(Northness), s(slope), s(TWI) as allowing for the best model
 
-# Checking a GAM without aspect
-LM_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LM_Northness) + s(LM_slope_raster_15_data_pts) + s(LM_TWI_values), 
-                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+# Checking a GAM after dredge
+LM_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LM_Northness) + 
+                                            s(LM_slope_raster_15_data_pts) + s(LM_TWI_values), 
+                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_LCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#s(elevation) and s(TWI) are significant
+#s(elevation) and s(TWI) are significant, northness is borderline
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.dredge) # AICs
 anova(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.dredge)  #ANOVA F-Test
 #the dredge model is preferred
 
-#checking for concurvity (equivalent to co-linearity but for models with non-linear functions)
-concurvity(LM_add.gam_LCA.terrain_dist.dredge, full = T)
+# checking concurvity
+check_concurvity(LM_add.gam_LCA.terrain_dist.dredge) #high concurvity between elevation and TWI
 
-check_concurvity(LM_add.gam_LCA.terrain_dist.dredge)
-
-#elevation and TWI show high concurvity
-
-# model without TWI
-LM_add.gam_LCA.terrain_dist.dredge.no.twi <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LM_Northness) + s(LM_slope_raster_15_data_pts), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_LCA.terrain_dist.dredge.no.twi) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#s(elevation) and s(northness) are significant
-
-# model without elevation
-LM_add.gam_LCA.terrain_dist.dredge.no.elev <- gam(Canopy_long ~ s(LM_Northness) + s(LM_slope_raster_15_data_pts) + s(LM_TWI_values), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_LCA.terrain_dist.dredge.no.elev) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#s(northness) and s(TWI) are significant
-
-#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LM_add.gam_LCA.terrain_dist.dredge.no.twi, LM_add.gam_LCA.terrain_dist.dredge.no.elev) # AICs
-
-#there is not a significant difference between the model with elevation or with twi
-
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LM_add.gam_LCA.terrain_dist.dredge.no.elev) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# the dredge selected s(d), s(elevation), s(slope) as allowing for the best model
-
-# model without elevation
-LM_add.gam_LCA.terrain_dist.dredge.2 <- gam(Canopy_long ~ s(LM_Northness) + s(LM_TWI_values), 
-                                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+# Checking a GAM without TWI
+LM_add.gam_LCA.terrain_dist.dredge.2 <- gam(Canopy_long ~ s(Elevation..m.FIXED) + s(LM_Northness) + 
+                                            s(LM_slope_raster_15_data_pts),
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_LCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#s(northness) and s(TWI) are significant
+#s(elevation) and s(northness) are significant, northness is borderline
 
-#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LM_add.gam_LCA.terrain_dist.dredge.no.elev, LM_add.gam_LCA.terrain_dist.dredge.2) # AICs
-anova(LM_add.gam_LCA.terrain_dist.dredge.no.elev, LM_add.gam_LCA.terrain_dist.dredge.2)  #ANOVA F-Test
-#the more complex model is not preferred, dredge model is preferred, but not significantly
+# Checking a GAM without Elevation
+LM_add.gam_LCA.terrain_dist.dredge.3 <- gam(Canopy_long ~ s(LM_Northness) + 
+                                            s(LM_slope_raster_15_data_pts) + s(LM_TWI_values), 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_LCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#s(northness) and s(TWI) are significant, northness is borderline
 
-#checking concurvity
-check_concurvity(LM_add.gam_LCA.terrain_dist.dredge.no.elev) #low concurvity
-check_concurvity(LM_add.gam_LCA.terrain_dist.dredge.2)  #low concurvity
+#checking AIC for these models
+AIC(LM_add.gam_LCA.terrain_dist, LM_add.gam_LCA.terrain_dist.dredge, LM_add.gam_LCA.terrain_dist.dredge.2, LM_add.gam_LCA.terrain_dist.dredge.3)
+#LM_add.gam_LCA.terrain_dist has the lowest AIC
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LM_add.gam_LCA.terrain_dist.dredge.3) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 15)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#LM_add.gam_LCA.terrain_dist controls for spatial autocorrelation
+#LM_add.gam_LCA.terrain_dist.dredge controls for spatial autocorrelation
+#LM_add.gam_LCA.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LM_add.gam_LCA.terrain_dist.dredge.3 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LM_add.gam_LCA.terrain_dist.dredge.3)
+
+#LM_add.gam_LCA.terrain_dist high concurvity across all terms
+#LM_add.gam_LCA.terrain_dist.dredge elevation and TWI have high concurvity
+#LM_add.gam_LCA.terrain_dist.dredge.2 low concurvity across all terms
+#LM_add.gam_LCA.terrain_dist.dredge.3 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LM_add.gam_LCA.terrain_dist.dredge.3$residuals)
+
+#LM_add.gam_LCA.terrain_dist not normal
+#LM_add.gam_LCA.terrain_dist.dredge not normal
+#LM_add.gam_LCA.terrain_dist.dredge.2 not normal, but the least not normal
+#LM_add.gam_LCA.terrain_dist.dredge.3 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_LCA.terrain_dist.dredge.3 is the best supported model
+
+#checking if the model without location meets spatial autocorrelation 
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_LCA.terrain_dist.dredge.3 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_LCA.terrain_dist.dredge 
-summary(LM_add.gam_LCA.terrain_dist.dredge.no.elev)
+summary(LM_add.gam_LCA.terrain_dist.dredge.3)
 #but a model with aspect seems like it can do similarly as well and is simpler
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_LCA.terrain_dist.dredge.no.elev) #pretty normal residuals and no heteroscedasticity 
+gam.check(LM_add.gam_LCA.terrain_dist.dredge.3) #pretty normal residuals and no heteroscedasticity 
 
 #looking at significance
-summary(LM_add.gam_LCA.terrain_dist.dredge.no.elev)
+summary(LM_add.gam_LCA.terrain_dist.dredge.3)
 
 #Chosen model: LM_add.gam_LCA.terrain_dist
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_LCA.terrain_dist.dredge.no.elev, select=2, 
+plot.gam(LM_add.gam_LCA.terrain_dist.dredge.3, select=2, 
          all.terms=T, xlab = 'Slope (º)', ylab = expression(f[1]*'Slope (º)'))
-plot.gam(LM_add.gam_LCA.terrain_dist.dredge.no.elev, select=1, 
+plot.gam(LM_add.gam_LCA.terrain_dist.dredge.3, select=1, 
          all.terms=T, xlab = "LM_Northness", 
          ylab = expression(f[1]*'(LM_Northness)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_LCA.terrain_dist.dredge.no.elev, select=3, 
+plot.gam(LM_add.gam_LCA.terrain_dist.dredge.3, select=3, 
          all.terms=T, xlab = "TWI", ylab = expression(f[1]*'TWI'), 
          se = TRUE , col = "black")
 
@@ -369,9 +418,8 @@ LM_fixed_field_data_processed_terrain_dist_no_NA$Canopy_area_lg <- log1p(LM_fixe
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LM_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1), 
-                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-
 #elevation, eastness, and TWI showing potential for significant non-linear function 
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
@@ -380,15 +428,16 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(elevation), s(northness), s(slope), s(TWI)
 
 # Checking a GAM without aspect
-LM_add.gam_CA.terrain_dist.dredge <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_CA.terrain_dist.dredge <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + 
+                                           s(LM_Northness) + s(LM_TWI_values), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation), s(northness), and somewhat s(TWI) have significant non-linear functions
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.dredge) # AICs
 anova(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.dredge)  #ANOVA F-Test
-#the dredged model is preffered
+#the dredged model is preferred
 
 #checking concurvity
 check_concurvity(LM_add.gam_CA.terrain_dist.dredge) #low concurvity
@@ -396,48 +445,83 @@ check_concurvity(LM_add.gam_CA.terrain_dist.dredge) #low concurvity
 #elevation and twi have high concurvity
 
 # model without TWI
-LM_add.gam_CA.terrain_dist.no.twi <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness), 
-                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_CA.terrain_dist.no.twi) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+LM_add.gam_CA.terrain_dist.dredge.2 <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness), 
+                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation) and somewhat s(northness) have significant non-linear functions
 
 # model without elevation
-LM_add.gam_CA.terrain_dist.no.elev <- gam(Canopy_area_lg ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_CA.terrain_dist.no.elev) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+LM_add.gam_CA.terrain_dist.dredge.3 <- gam(Canopy_area_lg ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
+                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(northness) has significant non-linear functions
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LM_add.gam_CA.terrain_dist.no.elev, LM_add.gam_CA.terrain_dist.no.twi) # AICs
+AIC(LM_add.gam_CA.terrain_dist, LM_add.gam_CA.terrain_dist.dredge, LM_add.gam_CA.terrain_dist.dredge.2, LM_add.gam_CA.terrain_dist.dredge.3) # AICs
 
-# The model with elevation instead of TWI is significantly stronger
+#checking if the model without location meets spatial autocorrelation 
 
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LM_add.gam_CA.terrain_dist.no.twi) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants all of the variables
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LM_add.gam_CA.terrain_dist.dredge.3) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 15)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
 
-#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CA.terrain_dist.no.twi 
-summary(LM_add.gam_CA.terrain_dist.no.twi)
+#LM_add.gam_CA.terrain_dist controls for spatial autocorrelation
+#LM_add.gam_CA.terrain_dist.dredge controls for spatial autocorrelation
+#LM_add.gam_CA.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LM_add.gam_CA.terrain_dist.dredge.3 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LM_add.gam_CA.terrain_dist.dredge.3)
+
+#LM_add.gam_CA.terrain_dist high concurvity across all terms
+#LM_add.gam_CA.terrain_dist.dredge elevation and TWI have high concurvity
+#LM_add.gam_CA.terrain_dist.dredge.2 low concurvity across all terms
+#LM_add.gam_CA.terrain_dist.dredge.3 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LM_add.gam_CA.terrain_dist.dredge.3$residuals)
+
+#LM_add.gam_CA.terrain_dist not normal
+#LM_add.gam_CA.terrain_dist.dredge not normal
+#LM_add.gam_CA.terrain_dist.dredge.2 not normal, but the least not normal
+#LM_add.gam_CA.terrain_dist.dredge.3 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_CA.terrain_dist.dredge.2 is the best supported model
+
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CA.terrain_dist.dredge.2 
+summary(LM_add.gam_CA.terrain_dist.dredge.2)
 #but all models seem to do similarly well
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_CA.terrain_dist.no.twi) #pretty normal residuals and no Heteroscedasticity 
+gam.check(LM_add.gam_CA.terrain_dist.dredge.2) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(LM_add.gam_CA.terrain_dist.no.twi)
+summary(LM_add.gam_CA.terrain_dist.dredge.2)
 
 #Chosen model: LM_add.gam_CA.terrain_dist.no.twi
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_CA.terrain_dist.no.twi, select=2, 
+plot.gam(LM_add.gam_CA.terrain_dist.dredge.2, select=2, 
          all.terms=T, xlab = 'Slope (º)', ylab = expression(f[1]*'Slope (º)'))
-plot.gam(LM_add.gam_CA.terrain_dist.no.twi, select=3, 
+plot.gam(LM_add.gam_CA.terrain_dist.dredge.2, select=3, 
          all.terms=T, xlab = "LM_Northness", 
          ylab = expression(f[1]*'(LM_Northness)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_CA.terrain_dist.no.twi, select=1, 
+plot.gam(LM_add.gam_CA.terrain_dist.dredge.2, select=1, 
          all.terms=T, xlab = "Elevation (m)", ylab = expression(f[1]*'Elevation (m)'), 
          se = TRUE , col = "black")
 
@@ -470,7 +554,7 @@ AIC(LM_add.gam_CA.inter, LM_add.gam_CA.terrain_dist.no.aspect)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LM_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1), 
-                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                  data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #northness and TWI showing signs of significant non-linear function 
 
@@ -480,8 +564,9 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(d), s(elevation), s(slope)
 
 # Checking a GAM after the dredge
-LM_add.gam_CS.terrain_dist.dredge <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_CS.terrain_dist.dredge <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + 
+                                           s(LM_Northness) + s(LM_TWI_values), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_CS.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation) is significant, signs that northness and twi are close to significant
 
@@ -495,34 +580,71 @@ check_concurvity(LM_add.gam_CS.terrain_dist.dredge)
 #elevation and TWI have high concurvity
 
 # model without TWI
-LM_add.gam_CS.terrain_dist.no.twi <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness), 
-                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_CS.terrain_dist.no.twi) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+LM_add.gam_CS.terrain_dist.dredge.2 <- gam(Crown_spread ~ s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness), 
+                                         data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CS.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(elevation) and s(northness) have significant non-linear functions
 
 # model without elevation
-LM_add.gam_CS.terrain_dist.no.elev <- gam(Crown_spread ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_CS.terrain_dist.no.elev) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+LM_add.gam_CS.terrain_dist.dredge.3 <- gam(Crown_spread ~ s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_TWI_values), 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_CS.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #s(northness) and s(TWI) have significant non-linear functions
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LM_add.gam_CS.terrain_dist.no.twi, LM_add.gam_CS.terrain_dist.no.elev) # AICs
-#the model without twi is significantly better
+AIC(LM_add.gam_CS.terrain_dist, LM_add.gam_CS.terrain_dist.dredge, LM_add.gam_CS.terrain_dist.dredge.2, LM_add.gam_CS.terrain_dist.dredge.3) # AICs
 
-#checking concurvity
-check_concurvity(LM_add.gam_CS.terrain_dist.no.twi) #low concurvity
+#checking if the model without location meets spatial autocorrelation 
 
-#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CS.terrain_dist.no.twi 
-summary(LM_add.gam_CS.terrain_dist.no.twi)
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LM_add.gam_CS.terrain_dist.dredge.3) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 15)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#LM_add.gam_CS.terrain_dist controls for spatial autocorrelation
+#LM_add.gam_CS.terrain_dist.dredge controls for spatial autocorrelation
+#LM_add.gam_CS.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LM_add.gam_CS.terrain_dist.dredge.3 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LM_add.gam_CS.terrain_dist.dredge.3)
+
+#LM_add.gam_CS.terrain_dist high concurvity across all terms
+#LM_add.gam_CS.terrain_dist.dredge elevation and TWI have high concurvity
+#LM_add.gam_CS.terrain_dist.dredge.2 low concurvity across all terms
+#LM_add.gam_CS.terrain_dist.dredge.3 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LM_add.gam_CS.terrain_dist.dredge.3$residuals)
+
+#LM_add.gam_CS.terrain_dist not normal
+#LM_add.gam_CS.terrain_dist.dredge not normal
+#LM_add.gam_CS.terrain_dist.dredge.2 not normal, but the least not normal
+#LM_add.gam_CS.terrain_dist.dredge.3 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_CS.terrain_dist.dredge.2 is the best supported model
+
+#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_CA.terrain_dist.dredge.2 
+summary(LM_add.gam_CS.terrain_dist.dredge.2)
 #but all models seem to do similarly well
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_CS.terrain_dist.no.twi) #pretty normal residuals and no Heteroscedasticity
+gam.check(LM_add.gam_CS.terrain_dist.dredge.2) #pretty normal residuals and no Heteroscedasticity
 
 #looking at significance
-summary(LM_add.gam_CS.terrain_dist.no.twi)
+summary(LM_add.gam_CS.terrain_dist.dredge.2)
 
 #Chosen model: LM_add.gam_CS.terrain_dist.no.aspect
 
@@ -547,7 +669,7 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 LM_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m.FIXED, LM_Northness, LM_slope_raster_15_data_pts), 
-                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                           data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail, method = "REML")
 summary(LM_add.gam_CS.inter)
 #there was no significant interaction term after checking combinations
 
@@ -564,14 +686,12 @@ AIC(LM_add.gam_CS.inter, LM_add.gam_CS.terrain_dist.no.aspect)
 
 ## DBH ##
 
-
 # I am using the logged transformation of canopy area to get more normal residuals and less heteroscedasticity to better meet the conditions for the GAMs
 LM_fixed_field_data_processed_terrain_dist_no_NA$DBH_ag_lg <- log1p(LM_fixed_field_data_processed_terrain_dist_no_NA$DBH_ag) #removes the infinites allowing us to run the GAM
 
-
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LM_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + s(LM_Eastness) + s(LM_TWI_values) + s(X.1, Y.1), 
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only elevation is showing signs of significant non-linear function 
 
@@ -580,64 +700,97 @@ dredge <- dredge(LM_add.gam_DBH.terrain_dist) #using the dredge model to narrow 
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # it wants s(eastness), s(twi)
 
-# Checking a GAM without aspect
-LM_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + s(LM_TWI_values), 
-                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(LM_Eastness) +
+                                            s(LM_TWI_values), 
+                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#eastness and twi showing somehwat significance
+#eastness and twi showing somewhat significance
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.dredge) # AICs
 anova(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.dredge)  #ANOVA F-Test
-#the more complicated model is significantly stronger
+#the more complex, original model is preferred
 
-# Checking a GAM without aspect
-LM_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~  s(LM_slope_raster_15_data_pts) + s(LM_Eastness) + s(LM_TWI_values), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#eastness and twi showing somehwat significance
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(LM_Eastness) + s(Elevation..m.FIXED) + s(LM_TWI_values), 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#twi showing somewhat significance
 
-# without twi
-LM_add.gam_DBH.terrain_dist.dredge.no.twi <- gam(DBH_ag_lg ~  s(LM_slope_raster_15_data_pts) + s(LM_Eastness) + s(Elevation..m.FIXED), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_DBH.terrain_dist.dredge.no.twi) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#eastness and twi showing somehwat significance
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + 
+                                            s(LM_TWI_values), 
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#eastness showing somewhat significance, twi is borderline
 
-# without elevation
-LM_add.gam_DBH.terrain_dist.dredge.no.elev <- gam(DBH_ag_lg ~  s(LM_slope_raster_15_data_pts) + s(LM_Eastness) + s(LM_TWI_values), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LM_add.gam_DBH.terrain_dist.dredge.no.elev) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#eastness and twi showing somehwat significance
+#comparing AIC values
+AIC(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.dredge, LM_add.gam_DBH.terrain_dist.dredge.2, LM_add.gam_DBH.terrain_dist.dredge.3)
+#the second and third dredge models are preferred
 
-AIC(LM_add.gam_DBH.terrain_dist.dredge.no.twi, LM_add.gam_DBH.terrain_dist.dredge.no.elev)
-#the one with TWI is preferred over the one with elevation
+#checking if the model without location meets spatial autocorrelation 
 
-#checking concurvity
-check_concurvity(LM_add.gam_DBH.terrain_dist.dredge) #low concurvity
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LM_add.gam_DBH.terrain_dist.dredge.3) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 15)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
 
-# while this model is not significantly stronger than the original model, it has low concurvity so I will choose it
+#LM_add.gam_DBH.terrain_dist controls for spatial autocorrelation
+#LM_add.gam_DBH.terrain_dist.dredge controls for spatial autocorrelation
+#LM_add.gam_DBH.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LM_add.gam_DBH.terrain_dist.dredge.3 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LM_add.gam_DBH.terrain_dist)
+
+#LM_add.gam_DBH.terrain_dist high concurvity across all terms
+#LM_add.gam_DBH.terrain_dist.dredge eastness and TWI have high concurvity
+#LM_add.gam_DBH.terrain_dist.dredge.2 elevation and TWI have high concurvity
+#LM_add.gam_DBH.terrain_dist.dredge.3 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LM_add.gam_DBH.terrain_dist$residuals)
+
+#LM_add.gam_DBH.terrain_dist not normal
+#LM_add.gam_DBH.terrain_dist.dredge not normal
+#LM_add.gam_DBH.terrain_dist.dredge.2 not normal
+#LM_add.gam_DBH.terrain_dist.dredge.3 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LM_add.gam_DBH.terrain_dist.dredge.3 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_DBH.terrain_dist.dredge.no.smooth 
-summary(LM_add.gam_DBH.terrain_dist.dredge)
+summary(LM_add.gam_DBH.terrain_dist.dredge.3)
 #the linear model seems to do the best, the GAM model with all smoothing is close behind
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_DBH.terrain_dist.dredge) #pretty normal residuals and no Heteroscedasticity 
+gam.check(LM_add.gam_DBH.terrain_dist.dredge.3) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(LM_add.gam_DBH.terrain_dist.dredge)
+summary(LM_add.gam_DBH.terrain_dist.dredge.3)
 
 #Chosen model: LM_add.gam_DBH.terrain_dist.no.aspect
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge, select=2, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=1, 
          all.terms=T, xlab = 'Eastness', ylab = expression(f[1]*'(Eastness)'))
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge, select=3, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=3, 
          all.terms=T, xlab = "TWI", 
          ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge, select=1, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=2, 
          all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
          se = TRUE , col = "black")
 
@@ -694,7 +847,7 @@ LC_fixed_field_data_processed_terrain_dist_no_NA$Canopy_short_lg <- log1p(LC_fix
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LC_add.gam_SCA.terrain_dist <- gam(Canopy_short_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #location has a significant non-linear function 
@@ -706,7 +859,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM with just elevation smoothing splines s()
 LC_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short_lg ~ s(d) + s(LC_Eastness) + s(X.1, Y.1), 
-                                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_SCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #location has a significant non-linear fit
 
@@ -721,31 +874,77 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants all three variables
 
 #checking concurvity
-check_concurvity(LC_add.gam_SCA.terrain_dist.dredge.2) #low concurvity
+check_concurvity(LC_add.gam_SCA.terrain_dist.dredge) #low concurvity
 
-
-# Checking a GAM with just elevation smoothing splines s()
-LC_add.gam_SCA.terrain_dist.dredge.2 <- gam(Canopy_short_lg ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + s(LC_TWI_values), 
-                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+# Checking a GAM after dredge
+LC_add.gam_SCA.terrain_dist.dredge.2 <- gam(Canopy_short_lg ~ s(d) + s(LC_Eastness), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_SCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#eastness has a significant non-linear fit
+
+# Checking a GAM after dredge
+LC_add.gam_SCA.terrain_dist.dredge.3 <- gam(Canopy_short_lg ~ s(d) + s(LC_slope_raster_15_data_pts) + s(X.1,Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_SCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #location has a significant non-linear fit
 
-#checking the significant differences between models 
-AIC(LC_add.gam_SCA.terrain_dist.dredge, LC_add.gam_SCA.terrain_dist.dredge.2)
-
-# Checking a GAM with just elevation smoothing splines s()
-LC_add.gam_SCA.terrain_dist.dredge.4 <- gam(Canopy_short_lg ~ s(d) + s(LC_Eastness) + s(LC_TWI_values) + s(LC_slope_raster_15_data_pts) , 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+# Checking a GAM after dredge
+LC_add.gam_SCA.terrain_dist.dredge.4 <- gam(Canopy_short_lg ~ s(d) + s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_SCA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#location has a significant non-linear fit
-check_concurvity(LC_add.gam_SCA.terrain_dist.dredge.4)
+#distance and slope have significant non-linear fits
 
 #checking the AICs
-AIC(LC_add.gam_SCA.terrain_dist.dredge, LC_add.gam_SCA.terrain_dist.dredge.2, LC_add.gam_SCA.terrain_dist.dredge.4) # AICs
+AIC(LC_add.gam_SCA.terrain_dist, LC_add.gam_SCA.terrain_dist.dredge, LC_add.gam_SCA.terrain_dist.dredge.2, 
+    LC_add.gam_SCA.terrain_dist.dredge.3, LC_add.gam_SCA.terrain_dist.dredge.4) # AICs
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LC_add.gam_SCA.terrain_dist) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LC_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LC_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 10)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#LC_add.gam_SCA.terrain_dist controls for spatial autocorrelation
+#LC_add.gam_SCA.terrain_dist.dredge controls for spatial autocorrelation
+#LC_add.gam_SCA.terrain_dist.dredge.2 does not control for spatial autocorrelation
+#LC_add.gam_SCA.terrain_dist.dredge.3 controls for spatial autocorrelation
+#LC_add.gam_SCA.terrain_dist.dredge.4 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LC_add.gam_SCA.terrain_dist)
+
+#LC_add.gam_SCA.terrain_dist high concurvity across all terms
+#LC_add.gam_SCA.terrain_dist.dredge low concurvity across all terms
+#LC_add.gam_SCA.terrain_dist.dredge.2 low concurvity across all terms
+#LC_add.gam_SCA.terrain_dist.dredge.3 high concurvity with slope and location
+#LC_add.gam_SCA.terrain_dist.dredge.4 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LC_add.gam_SCA.terrain_dist$residuals)
+
+#LC_add.gam_SCA.terrain_dist normal
+#LC_add.gam_SCA.terrain_dist.dredge normal
+#LC_add.gam_SCA.terrain_dist.dredge.2 normal
+#LC_add.gam_SCA.terrain_dist.dredge.3 normal
+#LC_add.gam_SCA.terrain_dist.dredge.4 normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+# LC_add.gam_SCA.terrain_dist.dredge is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_SCA.terrain_dist.dredge 
 summary(LC_add.gam_SCA.terrain_dist.dredge)
-#but a model with just s(Elevation) seems like it can do similarly as well and is simpler
+#just location is significant
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
@@ -759,12 +958,12 @@ summary(LC_add.gam_SCA.terrain_dist.dredge)
 
 #plotting all of the variables for observation
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LC_add.gam_SCA.terrain_dist.dredge.3, select=2, 
+plot.gam(LC_add.gam_SCA.terrain_dist.dredge, select=2, 
          all.terms=T, xlab = 'Eastness', ylab = expression(f[1]*'Eastness'))
-plot.gam(LC_add.gam_SCA.terrain_dist.dredge.3, select=1, 
+plot.gam(LC_add.gam_SCA.terrain_dist.dredge, select=1, 
          all.terms=T, xlab = "distance to river", 
          ylab = expression(f[1]*'(distance to river)'), se = TRUE , col = "black")
-plot.gam(LC_add.gam_SCA.terrain_dist.dredge.3, select=3, 
+plot.gam(LC_add.gam_SCA.terrain_dist.dredge, select=3, 
          all.terms=T, xlab = "Location", ylab = expression(f[1]*'Location'), 
          se = TRUE , col = "black")
 
@@ -779,7 +978,7 @@ plot_ly(x=LC_fixed_field_data_processed_terrain_dist_no_NA$LC_Eastness,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 LC_add.gam_SCA.inter <- gam(Canopy_short ~ ti(d, LC_Eastness, X.1, Y.1), 
-                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail, method = "REML")
 summary(LC_add.gam_SCA.inter)
 #there was a significant interaction term 
 
@@ -798,10 +997,10 @@ AIC(LC_add.gam_SCA.inter, LC_add.gam_SCA.terrain_dist.dredge.3)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LC_add.gam_LCA.terrain_dist <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#distance, elevation, and slope do not have significant non-linear function, aspect is significant linearly for W
+#location has borderline significance 
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LC_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
@@ -809,66 +1008,117 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(d), s(elevation)
 
 # Checking a GAM without aspect
-LC_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_Eastness) + s(LC_Northness), 
-                                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long_lg ~ s(d) + 
+                                            s(LC_Eastness) + s(X.1,Y.1), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_LCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#elevation and eastness is significant
+#location is significant, distance is borderline
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.dredge) # AICs
 anova(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.dredge)  #ANOVA F-Test
 #the dredge model is preferred
 
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LC_add.gam_LCA.terrain_dist.dredge) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants all four variables
+# Checking a GAM without aspect
+LC_add.gam_LCA.terrain_dist.dredge.2 <- gam(Canopy_long_lg ~ s(d) + 
+                                            s(LC_Eastness), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#eastness is significant, distance is borderling
 
-#check concurvity
-check_concurvity(LC_add.gam_LCA.terrain_dist.dredge)
-# eachness and northness have high concurvity
+# Checking a GAM without aspect
+LC_add.gam_LCA.terrain_dist.dredge.3 <- gam(Canopy_long_lg ~ s(d) + 
+                                            s(LC_Eastness) + s(Elevation..m.FIXED) + s(LC_Northness), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation and eastness is significant, northness is borderline
 
-# with eastness
-LC_add.gam_LCA.terrain_dist.dredge.east <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_Eastness), 
-                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_LCA.terrain_dist.dredge.east) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#elevation and eastness is significant
+# Checking a GAM with eastness
+LC_add.gam_LCA.terrain_dist.dredge.4 <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_Northness), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation is significant, northness is borderline
 
-# with northness
-LC_add.gam_LCA.terrain_dist.dredge.north <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_Northness), 
-                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_LCA.terrain_dist.dredge.north) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#elevation and eastness is significant
+# Checking a GAM without northness
+LC_add.gam_LCA.terrain_dist.dredge.5 <- gam(Canopy_long_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_Eastness), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_LCA.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation and eastness are significant
 
-#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
-AIC(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.dredge, LC_add.gam_LCA.terrain_dist.dredge.east, LC_add.gam_LCA.terrain_dist.dredge.north)
-#LC_add.gam_LCA.terrain_dist.dredge.east has the lowest AIC values and no concurivty
+#checking AIC
+AIC(LC_add.gam_LCA.terrain_dist, LC_add.gam_LCA.terrain_dist.dredge, LC_add.gam_LCA.terrain_dist.dredge.2,
+    LC_add.gam_LCA.terrain_dist.dredge.3, LC_add.gam_LCA.terrain_dist.dredge.4, LC_add.gam_LCA.terrain_dist.dredge.5)
 
-#checking concurvity
-check_concurvity(LC_add.gam_LCA.terrain_dist.dredge.east) #low concurvity
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(LC_add.gam_LCA.terrain_dist) #storing the residuals of the GAM
+coords <- data.frame(
+  x = LC_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = LC_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 10)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#LC_add.gam_LCA.terrain_dist controls for spatial autocorrelation
+#LC_add.gam_LCA.terrain_dist.dredge controls for spatial autocorrelation
+#LC_add.gam_LCA.terrain_dist.dredge.2 does not control for spatial autocorrelation
+#LC_add.gam_LCA.terrain_dist.dredge.3 controls for spatial autocorrelation
+#LC_add.gam_LCA.terrain_dist.dredge.4 controls for spatial autocorrelation
+#LC_add.gam_LCA.terrain_dist.dredge.5 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LC_add.gam_LCA.terrain_dist.dredge.2)
+
+#LC_add.gam_LCA.terrain_dist high concurvity across all terms
+#LC_add.gam_LCA.terrain_dist.dredge low concurvity across all terms
+#LC_add.gam_LCA.terrain_dist.dredge.2 low concurvity across all terms
+#LC_add.gam_LCA.terrain_dist.dredge.3 high concurvity with eastness and northness
+#LC_add.gam_LCA.terrain_dist.dredge.4 low concurvity across all terms
+#LC_add.gam_LCA.terrain_dist.dredge.5 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LC_add.gam_LCA.terrain_dist$residuals)
+
+#LC_add.gam_LCA.terrain_dist normal
+#LC_add.gam_LCA.terrain_dist.dredge normal
+#LC_add.gam_LCA.terrain_dist.dredge.2 normal
+#LC_add.gam_LCA.terrain_dist.dredge.3 normal
+#LC_add.gam_LCA.terrain_dist.dredge.4 normal
+#LC_add.gam_LCA.terrain_dist.dredge.5 normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although LC_add.gam_LCA.terrain_dist.dredge has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# LC_add.gam_LCA.terrain_dist.dredge.5 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_LCA.terrain_dist.dredge 
-summary(LC_add.gam_LCA.terrain_dist.dredge.east)
+summary(LC_add.gam_LCA.terrain_dist.dredge.5)
 #but a model with aspect seems like it can do similarly as well and is simpler
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LC_add.gam_LCA.terrain_dist.dredge.east) #pretty normal residuals and no Heteroscedasticity 
-shapiro.test(LC_add.gam_LCA.terrain_dist.dredge.east$residuals)
+gam.check(LC_add.gam_LCA.terrain_dist.dredge.5) #pretty normal residuals and no Heteroscedasticity 
+shapiro.test(LC_add.gam_LCA.terrain_dist.dredge.5$residuals)
 
 #looking at significance
-summary(LC_add.gam_LCA.terrain_dist.dredge.east)
+summary(LC_add.gam_LCA.terrain_dist.dredge.5)
 
-#Chosen model: LC_add.gam_LCA.terrain_dist.dredge.east
+#Chosen model: LC_add.gam_LCA.terrain_dist.dredge.5
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LC_add.gam_LCA.terrain_dist.dredge.east, select=1, 
+plot.gam(LC_add.gam_LCA.terrain_dist.dredge.5, select=1, 
          all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(LC_add.gam_LCA.terrain_dist.dredge.east, select=2, 
+plot.gam(LC_add.gam_LCA.terrain_dist.dredge.5, select=2, 
          all.terms=T, xlab = "Elevation (m)", 
          ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(LC_add.gam_LCA.terrain_dist.dredge.east, select=3, 
+plot.gam(LC_add.gam_LCA.terrain_dist.dredge.5, select=3, 
          all.terms=T, xlab = "Eastness", ylab = expression(f[1]*'Eastness'), 
          se = TRUE , col = "black")
 
@@ -894,9 +1144,9 @@ plot.gam(LC_add.gam_LCA.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(LC_add.gam_LCA.inter, LC_add.gam_LCA.terrain_dist)
+AIC(LC_add.gam_LCA.inter, LC_add.gam_LCA.terrain_dist.dredge.5)
 
-#overall best model: LC_add.gam_LCA.terrain_dist
+#overall best model: LC_add.gam_LCA.terrain_dist.dredge.5
 
 ## CA ##
 
@@ -904,7 +1154,7 @@ AIC(LC_add.gam_LCA.inter, LC_add.gam_LCA.terrain_dist)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LC_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #location has significant non-linear function 
@@ -916,7 +1166,7 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM after the dredge
 LC_add.gam_CA.terrain_dist.dredge <- gam(Canopy_area_lg ~ s(d) + s(X.1, Y.1) + s(LC_Eastness), 
-                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(location) is significant
 
@@ -925,38 +1175,53 @@ AIC(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.dredge) # AICs
 anova(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.dredge)  #ANOVA F-Test
 #the dredge model is preferred
 
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LC_add.gam_CA.terrain_dist.dredge) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(location), s(eastness)
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_CA.terrain_dist.dredge.2 <- gam(Canopy_area_lg ~ s(X.1, Y.1) + s(d), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.dredge.2)
+#location is significant, distance is borderline
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_CA.terrain_dist.dredge.2 <- gam(Canopy_area_lg ~ s(X.1, Y.1) + s(Elevation..m.FIXED), 
-                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_CA.terrain_dist.dredge.2 <- gam(Canopy_area_lg ~ s(d), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist.dredge.2)
-#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+#distance is significant
 
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_CA.terrain_dist.dredge.3 <- gam(Canopy_area_lg ~ s(d) + s(LC_Eastness) + s(X.1,Y.1), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.dredge.3)
+#location is significant and distance is borderline
 
 # Checking a GAM after the dredge
-LC_add.gam_CA.terrain_dist.dredge.3 <- gam(Canopy_area_lg ~ s(d) + s(LC_Eastness), 
-                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_CA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(elevation is significant)
-
-# Checking a GAM after the dredge
-LC_add.gam_CA.terrain_dist.dredge.4 <- gam(Canopy_area_lg ~ s(d) + s(LC_TWI_values) + s(LC_Eastness), 
-                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_CA.terrain_dist.dredge.4 <- gam(Canopy_area_lg ~ s(d) + s(LC_Eastness), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(elevation is significant)
+#eastness is significant and distance is borderling
+
+# Checking a GAM after the dredge
+LC_add.gam_CA.terrain_dist.dredge.5 <- gam(Canopy_area_lg ~ s(d) + s(LC_slope_raster_15_data_pts) + s(X.1,Y.1), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+# Checking a GAM after the dredge
+LC_add.gam_CA.terrain_dist.dredge.6 <- gam(Canopy_area_lg ~ s(d) + s(LC_slope_raster_15_data_pts), 
+                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CA.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#distance is significant and slope is borderline
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LC_add.gam_CA.terrain_dist.dredge, LC_add.gam_CA.terrain_dist.dredge.2, LC_add.gam_CA.terrain_dist.dredge.3, LC_add.gam_CA.terrain_dist.dredge.4) # AICs
+AIC(LC_add.gam_CA.terrain_dist, LC_add.gam_CA.terrain_dist.dredge,
+    LC_add.gam_CA.terrain_dist.dredge.2, LC_add.gam_CA.terrain_dist.dredge.3, 
+    LC_add.gam_CA.terrain_dist.dredge.4, LC_add.gam_CA.terrain_dist.dredge.5,
+    LC_add.gam_CA.terrain_dist.dredge.6) # AICs
 #the dredge model with s(d), s(eastness), s(location) is preferred
 
 #checking if the model without location meets spatial autocorrelation 
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
-res <- residuals(LC_add.gam_CA.terrain_dist.dredge) #storing the residuals of the GAM
+res <- residuals(LC_add.gam_CA.terrain_dist) #storing the residuals of the GAM
 coords <- data.frame(
   x = LC_fixed_field_data_processed_terrain_dist_no_NA$X.1,
   y = LC_fixed_field_data_processed_terrain_dist_no_NA$Y.1
@@ -970,15 +1235,43 @@ lw <- nb2listw(nb, style = "W")
 #running the moran's I test
 moran.test(res, lw)
 
-# the model without s(x,y) does not meet the control of spatial autocorrelation, so we need s(x,y)
-# using gam.check, we observed that we do not need to adjust the k value
+#LC_add.gam_CA.terrain_dist controls for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge controls for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge.2 does not control for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge.3 controls for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge.4 does not control for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge.5 controls for spatial autocorrelation
+#LC_add.gam_CA.terrain_dist.dredge.6 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(LC_add.gam_CA.terrain_dist)
+
+#LC_add.gam_CA.terrain_dist high concurvity across all terms
+#LC_add.gam_CA.terrain_dist.dredge low concurvity across all terms
+#LC_add.gam_CA.terrain_dist.dredge.2 low concurvity across all terms
+#LC_add.gam_CA.terrain_dist.dredge.3 low concurvity across all terms
+#LC_add.gam_CA.terrain_dist.dredge.4 low concurvity across all terms
+#LC_add.gam_CA.terrain_dist.dredge.5 High concurvity with slope and location
+#LC_add.gam_CA.terrain_dist.dredge.6 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LC_add.gam_CA.terrain_dist.dredge$residuals)
+
+#LC_add.gam_CA.terrain_dist normal
+#LC_add.gam_CA.terrain_dist.dredge normal
+#LC_add.gam_CA.terrain_dist.dredge.2 normal
+#LC_add.gam_CA.terrain_dist.dredge.3 normal
+#LC_add.gam_CA.terrain_dist.dredge.4 normal
+#LC_add.gam_CA.terrain_dist.dredge.5 normal
+#LC_add.gam_CA.terrain_dist.dredge.6 normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although LC_add.gam_CA.terrain_dist.dredge has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# LC_add.gam_CA.terrain_dist.dredge is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_CA.terrain_dist.dredge 
 summary(LC_add.gam_CA.terrain_dist.dredge)
 #but all models seem to do similarly well
-
-#check concurvity
-check_concurvity(LC_add.gam_CA.terrain_dist.dredge) #low concurvity
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
@@ -1030,12 +1323,12 @@ AIC(LC_add.gam_CA.inter, LC_add.gam_CA.terrain_dist.dredge)
 ## CS ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-LC_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
+LC_add.gam_CS.terrain_dist <- gam(Crown_spread_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
                                     s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                  data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#no variables have significant non-linear functions
+#location has significant non-linear functions, distance is borderline
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(LC_add.gam_CS.terrain_dist) #using the dredge model to narrow the models down to the best choice
@@ -1043,48 +1336,50 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(d), s(elevation), s(slope)
 
 # Checking a GAM post dredge
-LC_add.gam_CS.terrain_dist.dredge <- gam(Crown_spread ~ s(d) + s(LC_Eastness) + s(X.1, Y.1), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_CS.terrain_dist.dredge <- gam(Crown_spread_lg ~ s(d) + s(X.1, Y.1), 
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_CS.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(eastness) is borderline significant
-
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LC_add.gam_CS.terrain_dist.dredge) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(elevation), s(slope)
-
-# Checking a GAM post dredge
-LC_add.gam_CS.terrain_dist.dredge.2 <- gam(Crown_spread ~ s(LC_Eastness) + s(X.1, Y.1), 
-                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_CS.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(eastness) is borderline significant
-
-# Checking a GAM post dredge
-LC_add.gam_CS.terrain_dist.dredge.3 <- gam(Crown_spread ~ s(LC_Eastness) + s(Elevation..m.FIXED), 
-                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_CS.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(eastness) is borderline significant
-
-# Checking a GAM post dredge
-LC_add.gam_CS.terrain_dist.dredge.4 <- gam(Crown_spread ~ s(d) + s(LC_Eastness) + s(Elevation..m.FIXED), 
-                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(LC_add.gam_CS.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(eastness) is borderline significant
+#only s(distance) + s(location) is borderline significant
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.dredge, LC_add.gam_CS.terrain_dist.dredge.2, LC_add.gam_CS.terrain_dist.dredge.3, LC_add.gam_CS.terrain_dist.dredge.4) # AICs
+AIC(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.dredge) # AICs
 anova(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.dredge)  #ANOVA F-Test
-#the more complicated model is not significantly better
-# the models are similarly strong, and we do not need to control for spatial autocorrelation
-# I will use dredge 4
+#the dredge model is preferred
 
-#LC_add.gam_CS.terrain_dist.dredge is currently the best model
+# Checking a GAM post dredge
+LC_add.gam_CS.terrain_dist.dredge.2 <- gam(Crown_spread_lg ~ s(d) + s(LC_Eastness) + s(X.1, Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant, distance is borderline
 
+# Checking a GAM post dredge
+LC_add.gam_CS.terrain_dist.dredge.3 <- gam(Crown_spread_lg ~ s(d) + s(LC_Eastness), 
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(eastness) is  significant, distance is borderline
+
+# Checking a GAM post dredge
+LC_add.gam_CS.terrain_dist.dredge.4 <- gam(Crown_spread_lg ~ s(d) + s(LC_slope_raster_15_data_pts) + s(X.1, Y.1), 
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+# location is significant, distance is borderline
+
+# Checking a GAM post dredge
+LC_add.gam_CS.terrain_dist.dredge.5 <- gam(Crown_spread_lg ~ s(d) + s(LC_slope_raster_15_data_pts), 
+                                         data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_CS.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(distance) is significant
+
+#comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
+AIC(LC_add.gam_CS.terrain_dist, LC_add.gam_CS.terrain_dist.dredge,
+    LC_add.gam_CS.terrain_dist.dredge.2, LC_add.gam_CS.terrain_dist.dredge.3, 
+    LC_add.gam_CS.terrain_dist.dredge.4, LC_add.gam_CS.terrain_dist.dredge.5) # AICs
+#the dredge model with s(d), s(eastness), s(location) is preferred
 
 #checking if the model without location meets spatial autocorrelation 
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
-res <- residuals(LC_add.gam_CS.terrain_dist.dredge.4) #storing the residuals of the GAM
+res <- residuals(LC_add.gam_CS.terrain_dist) #storing the residuals of the GAM
 coords <- data.frame(
   x = LC_fixed_field_data_processed_terrain_dist_no_NA$X.1,
   y = LC_fixed_field_data_processed_terrain_dist_no_NA$Y.1
@@ -1098,45 +1393,72 @@ lw <- nb2listw(nb, style = "W")
 #running the moran's I test
 moran.test(res, lw)
 
-#none of the models are having trouble with spatial autocorrelation
-# using gam.check, we observed that we do not need to adjust the k value
+#LC_add.gam_CS.terrain_dist controls for spatial autocorrelation
+#LC_add.gam_CS.terrain_dist.dredge controls for spatial autocorrelation
+#LC_add.gam_CS.terrain_dist.dredge.2 controls for spatial autocorrelation
+#LC_add.gam_CS.terrain_dist.dredge.3 does not control for spatial autocorrelation
+#LC_add.gam_CS.terrain_dist.dredge.4 controls for spatial autocorrelation
+#LC_add.gam_CS.terrain_dist.dredge.5 does not control for spatial autocorrelation
 
+# checking concurvity
+check_concurvity(LC_add.gam_CS.terrain_dist)
+
+#LC_add.gam_CS.terrain_dist high concurvity across all terms
+#LC_add.gam_CS.terrain_dist.dredge low concurvity across all terms
+#LC_add.gam_CS.terrain_dist.dredge.2 low concurvity across all terms
+#LC_add.gam_CS.terrain_dist.dredge.3 low concurvity across all terms
+#LC_add.gam_CS.terrain_dist.dredge.4 High concurvity with slope and location
+#LC_add.gam_CS.terrain_dist.dredge.5 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LC_add.gam_CS.terrain_dist$residuals)
+
+#LC_add.gam_CS.terrain_dist normal
+#LC_add.gam_CS.terrain_dist.dredge normal
+#LC_add.gam_CS.terrain_dist.dredge.2 normal
+#LC_add.gam_CS.terrain_dist.dredge.3 normal
+#LC_add.gam_CS.terrain_dist.dredge.4 normal
+#LC_add.gam_CS.terrain_dist.dredge.5 normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although LC_add.gam_CA.terrain_dist.dredge has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# LC_add.gam_CS.terrain_dist.dredge is the best supported model
+
+#LC_add.gam_CS.terrain_dist.dredge is currently the best model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_CS.terrain_dist.no.aspect 
-summary(LC_add.gam_CS.terrain_dist.dredge.4)
+summary(LC_add.gam_CS.terrain_dist.dredge)
 #but all models seem to do similarly well
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LC_add.gam_CS.terrain_dist.dredge.4) #pretty normal residuals and no Heteroscedasticity 
+gam.check(LC_add.gam_CS.terrain_dist.dredge) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(LC_add.gam_CS.terrain_dist.dredge.4)
+summary(LC_add.gam_CS.terrain_dist.dredge)
 
 #Chosen model: LC_add.gam_CS.terrain_dist.no.aspect
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LC_add.gam_CS.terrain_dist.dredge.4, select=1, 
+plot.gam(LC_add.gam_CS.terrain_dist.dredge, select=1, 
          all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(LC_add.gam_CS.terrain_dist.dredge.4, select=3, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(LC_add.gam_CS.terrain_dist.dredge.4, select=2, 
-         all.terms=T, xlab = "Eastness (º)", ylab = expression(f[1]*'Eastness'), 
-         se = TRUE , col = "black")
+plot.gam(LC_add.gam_CS.terrain_dist.dredge, select=2, 
+         all.terms=T, xlab = "Location", 
+         ylab = expression(f[1]*'(Location)'), se = TRUE , col = "black")
+
 
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=LC_add.gam_CS.terrain_dist.dredge.4$Elevation..m.FIXED, 
-        y=LC_add.gam_CS.terrain_dist.dredge.4$d, 
-        z=LC_add.gam_CS.terrain_dist.dredge.4$LC_Eastness, 
+plot_ly(x=LC_add.gam_CS.terrain_dist.dredge$Y.1, 
+        y=LC_add.gam_CS.terrain_dist.dredge$d, 
+        z=LC_add.gam_CS.terrain_dist.dredge$X.1, 
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-LC_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m.FIXED, d, LC_Eastness), 
+LC_add.gam_CS.inter <- gam(Crown_spread ~ ti(X.1, d, Y.1), 
                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(LC_add.gam_CS.inter)
 #there was no significant interaction term after checking combinations
@@ -1148,16 +1470,16 @@ plot.gam(LC_add.gam_CS.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(LC_add.gam_CS.inter, LC_add.gam_CS.terrain_dist.no.aspect)
+AIC(LC_add.gam_CS.inter, LC_add.gam_CS.terrain_dist.dredge)
 
-#overall best model: LC_add.gam_CS.terrain_dist.no.aspect
+#overall best model: LC_add.gam_CS.terrain_dist.dredge
 
 ## DBH ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
 LC_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
                                      s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #only location has a significant non-linear function 
@@ -1169,14 +1491,9 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 
 # Checking a GAM without aspect
 LC_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(d) + s(X.1,Y.1), 
-                                                 data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                                 data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(location) is significant 
-
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(LC_add.gam_DBH.terrain_dist.dredge) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(elevation), s(slope)
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
 AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.dredge) # AICs
@@ -1185,29 +1502,74 @@ anova(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.dredge)  #ANOVA F
 
 #making a dredge model with just smooth elevation and no aspect
 LC_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(d),
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.2)
+#distance is significant
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(d) + s(X.1,Y.1) + s(LC_Eastness) + s(LC_TWI_values), 
-                                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(d) + s(X.1,Y.1) + 
+                                              s(LC_Eastness) + s(LC_TWI_values), 
+                                                           data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.3)
-#s(distance) is marginally not significantly  non-linear, slope and elevation are not significantly useful with the linear fit
+#location is significant 
 
 #making a dredge model with just smooth elevation and no aspect
 LC_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag_lg ~ s(d) + s(LC_Eastness) + s(LC_TWI_values), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.4)
 #s(eastiness) is significantly non-linear 
 
-#comparing the models 
-AIC(LC_add.gam_DBH.terrain_dist.dredge, LC_add.gam_DBH.terrain_dist.dredge.2, LC_add.gam_DBH.terrain_dist.dredge.3, LC_add.gam_DBH.terrain_dist.dredge.4)
-#LC_add.gam_DBH.terrain_dist.dredge.3 has lowest AIC
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) 
+                                            + s(X.1,Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.5)
+#s(eastiness) is significantly non-linear 
 
-# checking to see if we need to control for spatial autocorrelation
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.6)
+#s(eastiness) is significantly non-linear 
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag_lg ~ s(LC_slope_raster_15_data_pts) 
+                                            + s(X.1,Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.7)
+#s(eastiness) is significantly non-linear 
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.8 <- gam(DBH_ag_lg ~ s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.8)
+#s(eastiness) is significantly non-linear 
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.9 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(X.1,Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.9)
+#s(eastiness) is significantly non-linear 
+
+
+#making a dredge model with just smooth elevation and no aspect
+LC_add.gam_DBH.terrain_dist.dredge.10 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.10)
+#s(eastiness) is significantly non-linear 
+
+
+#comparing the models 
+AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.dredge, LC_add.gam_DBH.terrain_dist.dredge.2, 
+    LC_add.gam_DBH.terrain_dist.dredge.3, LC_add.gam_DBH.terrain_dist.dredge.4,
+    LC_add.gam_DBH.terrain_dist.dredge.5, LC_add.gam_DBH.terrain_dist.dredge.6,
+    LC_add.gam_DBH.terrain_dist.dredge.7, LC_add.gam_DBH.terrain_dist.dredge.8,
+    LC_add.gam_DBH.terrain_dist.dredge.9, LC_add.gam_DBH.terrain_dist.dredge.10)
+
+#checking if the model without location meets spatial autocorrelation 
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
-res <- residuals(LC_add.gam_DBH.terrain_dist.dredge.4) #storing the residuals of the GAM
+res <- residuals(LC_add.gam_DBH.terrain_dist.dredge.10) #storing the residuals of the GAM
 coords <- data.frame(
   x = LC_fixed_field_data_processed_terrain_dist_no_NA$X.1,
   y = LC_fixed_field_data_processed_terrain_dist_no_NA$Y.1
@@ -1221,14 +1583,54 @@ lw <- nb2listw(nb, style = "W")
 #running the moran's I test
 moran.test(res, lw)
 
-#LC_add.gam_DBH.terrain_dist.dredge controls for  spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist controls for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge controls for spatial autocorrelation
 #LC_add.gam_DBH.terrain_dist.dredge.2 does not control for spatial autocorrelation
 #LC_add.gam_DBH.terrain_dist.dredge.3 controls for spatial autocorrelation
-#LC_add.gam_DBH.terrain_dist.dredge.4 does not for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.4 does not control for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.5 controls for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.6 does not control for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.7 controls for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.8 does not control for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.9 controls for spatial autocorrelation
+#LC_add.gam_DBH.terrain_dist.dredge.10 does not control for spatial autocorrelation
 
+# checking concurvity
+check_concurvity(LC_add.gam_DBH.terrain_dist.dredge.10)
+
+#LC_add.gam_DBH.terrain_dist high concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge low concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge.2 low concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge.3 moderate concurvity with location, eastness, TWI
+#LC_add.gam_DBH.terrain_dist.dredge.4 low concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge.5 high concurvity elevation, slope, and location
+#LC_add.gam_DBH.terrain_dist.dredge.6 low concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge.7 moderate concurvity slope and location
+#LC_add.gam_DBH.terrain_dist.dredge.8 low concurvity across all terms
+#LC_add.gam_DBH.terrain_dist.dredge.9 high concurvity elevation and location
+#LC_add.gam_DBH.terrain_dist.dredge.10 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(LC_add.gam_DBH.terrain_dist.dredge.10$residuals)
+
+#LC_add.gam_DBH.terrain_dist normal
+#LC_add.gam_DBH.terrain_dist.dredge normal
+#LC_add.gam_DBH.terrain_dist.dredge.2 normal
+#LC_add.gam_DBH.terrain_dist.dredge.3 normal
+#LC_add.gam_DBH.terrain_dist.dredge.4 normal
+#LC_add.gam_DBH.terrain_dist.dredge.5 normal
+#LC_add.gam_DBH.terrain_dist.dredge.6 not normal
+#LC_add.gam_DBH.terrain_dist.dredge.7 normal
+#LC_add.gam_DBH.terrain_dist.dredge.8 normal
+#LC_add.gam_DBH.terrain_dist.dredge.9 normal
+#LC_add.gam_DBH.terrain_dist.dredge.10 not normal
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although LC_add.gam_DBH.terrain_dist.dredge has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# LC_add.gam_DBH.terrain_dist.dredge is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_DBH.terrain_dist.dredge.3 
-summary(LC_add.gam_DBH.terrain_dist.dredge.3)
+summary(LC_add.gam_DBH.terrain_dist.dredge)
 #the model with just distance smooth is marginally better, so I will use the one with smoothing splines on all of the quantitative variables
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
@@ -1249,23 +1651,23 @@ plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=2,
          all.terms=T, xlab = "Location", 
          ylab = expression(f[1]*'(Location)'), se = TRUE , col = "black")
 plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=3, 
-         all.terms=T, xlab = "Eastness (º)", ylab = expression(f[1]*'Eastness'), 
-         se = TRUE , col = "black")
+         all.terms=T, xlab = "Eastness", 
+         ylab = expression(f[1]*'(Eastness)'), se = TRUE , col = "black")
 plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=4, 
-         all.terms=T, xlab = "TWI", ylab = expression(f[1]*'TWI'), 
-         se = TRUE , col = "black")
+         all.terms=T, xlab = "TWI", 
+         ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
+
 
 # # 3d plotting in plotly and with gg3D
-# plot_ly(x=LC_add.gam_DBH.terrain_dist.dredge.3$Elevation..m.FIXED, 
-#         y=LC_add.gam_DBH.terrain_dist.dredge.3$X., 
-#         z=LC_add.gam_DBH.terrain_dist.dredge.3$LC_Eastness, 
-#         color = LC_add.gam_DBH.terrain_dist.dredge.3$LC_TWI_values,
-#         type="scatter3d", mode="markers")
+plot_ly(x=LC_add.gam_DBH.terrain_dist.dredge$d,
+        y=LC_add.gam_DBH.terrain_dist.dredge$X.1,
+        z=LC_add.gam_DBH.terrain_dist.dredge.3$Y.1,
+        type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-LC_add.gam_DBH.inter <- gam(DBH_ag ~ ti(LC_Eastness, X.1, Y.1, d, LC_TWI_values), 
+LC_add.gam_DBH.inter <- gam(DBH_ag ~ ti(X.1, Y.1, d), 
                             data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(LC_add.gam_DBH.inter)
 #there was no significant interaction term after checking combinations
@@ -1277,7 +1679,7 @@ plot.gam(LC_add.gam_DBH.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(LC_add.gam_DBH.inter, LC_add.gam_DBH.terrain_dist)
+AIC(LC_add.gam_DBH.inter, LC_add.gam_DBH.terrain_dist.dredge)
 #while there is significant interaction, the model with the interaction performs significantly better
 
 #overall best model: LC_add.gam_DBH.inter
@@ -1305,92 +1707,150 @@ SD_fixed_field_data_processed_terrain_dist_no_NA <- SD_fixed_field_data_processe
 SD_fixed_field_data_processed_terrain_dist_no_NA <- st_drop_geometry(SD_fixed_field_data_processed_terrain_dist_no_NA)
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_SCA.terrain_dist <- gam(Canopy_short ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
-                                     s(LC_Eastness) + s(LC_TWI_values) + s(X.1, Y.1), 
-                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+SD_add.gam_SCA.terrain_dist <- gam(Canopy_short_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+                                     s(SD_Eastness) + s(SD_TWI_values) + s(X.1, Y.1), 
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_SCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-
-#slope has significant non-linear function 
+#location have significant non-linear function
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_SCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # it wants s(d), s(elevation), s(slope)
 
-# Checking a GAM with no aspect
-SD_add.gam_SCA.terrain_dist.no.aspect <- gam(Canopy_short ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_SCA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#slope of the linear fits are significant
-
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_SCA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(elevation), s(slope)
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge <- gam(Canopy_short_lg ~ s(Elevation..m.) + s(SD_Northness) +
+                                            s(SD_slope_raster_15_data_pts), 
+                                             data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, northness, and slope are significant
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect) # AICs
-anova(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect)  #ANOVA F-Test
-#the model without aspect is better
+AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.dredge) # AICs
+anova(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.dredge)  #ANOVA F-Test
+#the original model is preferred over the dredged one
 
-# setting up the dredge GAM with only slope being smoothed
-SD_add.gam_SCA.terrain_dist.slope.smooth <- gam(Canopy_short ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts), 
-                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants elevation, s(slope)
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.2 <- gam(Canopy_short_lg ~ s(d) + s(SD_TWI_values) + s(X.1,Y.1), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location has significant non-linear fit
 
-# setting up the dredge GAM with only slope being smoothed, no distance
-SD_add.gam_SCA.terrain_dist.slope.smooth.dredge <- gam(Canopy_short ~ Elevation..m. + s(SD_slope_raster_15_data_pts), 
-                                                       data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge)
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_SCA.terrain_dist.slope.smooth.dredge) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(elevation), s(slope)
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.3 <- gam(Canopy_short_lg ~ s(d) + s(SD_TWI_values), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation and slope of the linear fits are significant
+
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.4 <- gam(Canopy_short_lg ~ s(Elevation..m.) + s(SD_TWI_values) + s(X.1,Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location has significant non-linear fit, borderline with elevation
+
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.5 <- gam(Canopy_short_lg ~ s(Elevation..m.) + s(SD_TWI_values), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation has significant non-linear fit, borderline with TWI
+
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.6 <- gam(Canopy_short_lg ~ s(d) + s(SD_slope_raster_15_data_pts) + s(SD_TWI_values) + s(X.1,Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location has significant non-linear fit
+
+# Checking a GAM after dredge
+SD_add.gam_SCA.terrain_dist.dredge.7 <- gam(Canopy_short_lg ~ s(d) + s(SD_slope_raster_15_data_pts) + s(SD_TWI_values), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_SCA.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#slope has significant non-linear fit
 
 #comparing the models 
-AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.no.aspect,  SD_add.gam_SCA.terrain_dist.slope.smooth, SD_add.gam_SCA.terrain_dist.slope.smooth.dredge)
-summary(SD_add.gam_SCA.terrain_dist.no.aspect)
-#SD_add.gam_SCA.terrain_dist.no.aspect has lowest AIC
+AIC(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.dredge,  
+    SD_add.gam_SCA.terrain_dist.dredge.2, SD_add.gam_SCA.terrain_dist.dredge.3,
+    SD_add.gam_SCA.terrain_dist.dredge.4, SD_add.gam_SCA.terrain_dist.dredge.5,
+    SD_add.gam_SCA.terrain_dist.dredge.6, SD_add.gam_SCA.terrain_dist.dredge.7)
 
-#Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_SCA.terrain_dist.dredge 
-summary(SD_add.gam_SCA.terrain_dist.no.aspect)
+#SD_add.gam_SCA.terrain_dist.dredge.4 has the lowest AIC
+
+# checking to see if we need to control for spatial autocorrelation
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(SD_add.gam_SCA.terrain_dist.dredge.7) #storing the residuals of the GAM
+coords <- data.frame(
+  x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 16) #K chosen based on what removes neighbor sub-graphs
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#SD_add.gam_SCA.terrain_dist controls for  spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge controls for  spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.2 controls for spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.3 does not control for spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.4 controls for spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.5 does not control for spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.6 controls for spatial autocorrelation
+#SD_add.gam_SCA.terrain_dist.dredge.7 does not control for spatial autocorrelation
+
+shapiro.test(SD_add.gam_SCA.terrain_dist.dredge.7$residuals) #.dredge
+
+##SD_add.gam_SCA.terrain_dist meets normality of residuals
+#SD_add.gam_DBH.terrain_dist.dredge does not meet normality of residuals
+#SD_add.gam_SCA.terrain_dist.dredge.2 meets normality of residuals
+#SD_add.gam_SCA.terrain_dist.dredge.3 does not meet normality of residuals
+#SD_add.gam_DBH.terrain_dist.dredge.4 does not meet normality of residuals
+#SD_add.gam_SCA.terrain_dist.dredge.5 meets normality of residuals
+#SD_add.gam_SCA.terrain_dist.dredge.6 does not meet normality of residuals
+#SD_add.gam_SCA.terrain_dist.dredge.7 does not meet normality of residuals
+
+#only SD_add.gam_SCA.terrain_dist and SD_add.gam_SCA.terrain_dist.dredge.2 met normal residuals and control for spatial autocorrelation
+
+#ANOVA to compare models with normal residuals and that control for spatial autocorrelation
+anova(SD_add.gam_SCA.terrain_dist, SD_add.gam_SCA.terrain_dist.dredge.2)
+#dredge model is fine
+
+#Based on the comparisons (AIC/Anova) of these models and which ones control for spatial autoccorlation, the best model seems to be: SD_add.gam_SCA.terrain_dist.dredge.2 
+summary(SD_add.gam_SCA.terrain_dist.dredge.2)
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_SCA.terrain_dist) #pretty normal residuals and no Heteroscedasticity 
+gam.check(SD_add.gam_SCA.terrain_dist.dredge.2) #pretty normal residuals and no Heteroscedasticity 
+shapiro.test(SD_add.gam_SCA.terrain_dist.dredge.5$residuals)
 
 #looking at significance
-summary(SD_add.gam_SCA.terrain_dist.no.aspect)
+summary(SD_add.gam_SCA.terrain_dist.dredge.2)
 
-#Chosen model: SD_add.gam_SCA.terrain_dist.no.aspect
+#Chosen model: SD_add.gam_SCA.terrain_dist.dredge.2
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=1, 
+plot.gam(SD_add.gam_SCA.terrain_dist.dredge.2, select=1, 
          all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=2, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(SD_add.gam_SCA.terrain_dist.no.aspect, select=3, 
-         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
+plot.gam(SD_add.gam_SCA.terrain_dist.dredge.2, select=2, 
+         all.terms=T, xlab = "TWI", 
+         ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_SCA.terrain_dist.dredge.2, select=3, 
+         all.terms=T, xlab = "Location", ylab = expression(f[1]*'Location'), 
          se = TRUE , col = "black")
-visreg(SD_add.gam_SCA.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on SCA") 
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
-        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
-        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
-        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_TWI_values, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$X.1, 
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-SD_add.gam_SCA.inter <- gam(Canopy_short ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+SD_add.gam_SCA.inter <- gam(Canopy_short ~ ti(SD_TWI_values, d, X.1, Y.1), 
                             data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(SD_add.gam_SCA.inter)
 #there was no significant interaction term after checking combinations
@@ -1409,11 +1869,12 @@ AIC(SD_add.gam_SCA.inter, SD_add.gam_SCA.terrain_dist.no.aspect)
 ## LCA ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+SD_add.gam_LCA.terrain_dist <- gam(Canopy_long ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+                                     s(SD_Eastness) + s(SD_TWI_values) + s(X.1, Y.1),  
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_LCA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#slope have significant non-linear function and sw was significant aspect
+#location is significant, and TWI is borderline
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_LCA.terrain_dist) #using the dredge model to narrow the models down to the best choice
@@ -1421,62 +1882,174 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(slope) and aspect
 
 # Checking a GAM with only slope smooth
-SD_add.gam_LCA.terrain_dist.slope.smooth <- gam(Canopy_long ~ d + Elevation..m. + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_LCA.terrain_dist.slope.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only west is significant
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_LCA.terrain_dist.slope.smooth) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(elevation), s(slope)
+SD_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long ~  s(SD_TWI_values) + s(X.1,Y.1, k = 13), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(location) is significant
 
-#making a dredge model with just smooth elevation
-SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist <- gam(Canopy_long ~ s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                       data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
-#s(slope) and NE and SW are significant
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge <- gam(Canopy_long ~  s(SD_TWI_values), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#none significant
 
-#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
-AIC(SD_add.gam_LCA.terrain_dist, SD_add.gam_LCA.terrain_dist.slope.smooth, SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
-#SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist has lowest AIC
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.2 <- gam(Canopy_long ~  s(Elevation..m.) + s(SD_TWI_values) + s(X.1,Y.1, k = 13), 
+                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(location) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.3 <- gam(Canopy_long ~  s(Elevation..m.) + s(SD_TWI_values), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(elevation) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.4 <- gam(Canopy_long ~  s(SD_slope_raster_15_data_pts) + s(SD_TWI_values) + s(X.1,Y.1, k = 13), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(location) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.5 <- gam(Canopy_long ~  s(SD_slope_raster_15_data_pts) + s(SD_TWI_values), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.6 <- gam(Canopy_long ~  s(SD_Eastness) + s(SD_slope_raster_15_data_pts) + 
+                                              s(SD_TWI_values) + s(X.1,Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.7 <- gam(Canopy_long ~  s(SD_Eastness) + s(SD_slope_raster_15_data_pts) + 
+                                              s(SD_TWI_values), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.8 <- gam(Canopy_long ~  s(SD_Eastness) + s(SD_slope_raster_15_data_pts) 
+                                            + s(X.1,Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.8) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+
+# Checking a GAM with only slope smooth
+SD_add.gam_LCA.terrain_dist.dredge.9 <- gam(Canopy_long ~  s(SD_Eastness) + s(SD_slope_raster_15_data_pts), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_LCA.terrain_dist.dredge.9) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only s(slope) is significant
+
+#checking AIC
+AIC(SD_add.gam_LCA.terrain_dist, SD_add.gam_LCA.terrain_dist.dredge, 
+    SD_add.gam_LCA.terrain_dist.dredge.2, SD_add.gam_LCA.terrain_dist.dredge.3,
+    SD_add.gam_LCA.terrain_dist.dredge.4, SD_add.gam_LCA.terrain_dist.dredge.5,
+    SD_add.gam_LCA.terrain_dist.dredge.6, SD_add.gam_LCA.terrain_dist.dredge.7,
+    SD_add.gam_LCA.terrain_dist.dredge.8, SD_add.gam_LCA.terrain_dist.dredge.9)
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(SD_add.gam_LCA.terrain_dist.dredge.7) #storing the residuals of the GAM
+coords <- data.frame(
+  x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 17)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#SD_add.gam_LCA.terrain_dist controls for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge does not control for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.2 controls for spatial autocorrelation, barely
+#SD_add.gam_LCA.terrain_dist.dredge.3 does not control for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.4 does not control for spatial autocorrelation, barely
+#SD_add.gam_LCA.terrain_dist.dredge.5 does not control for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.6 controls for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.7 does not control for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.8 controls for spatial autocorrelation
+#SD_add.gam_LCA.terrain_dist.dredge.9 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(SD_add.gam_LCA.terrain_dist.dredge.9)
+
+#SD_add.gam_LCA.terrain_dist high concurvity across all terms
+#SD_add.gam_LCA.terrain_dist.dredge low concurvity across all terms
+#SD_add.gam_LCA.terrain_dist.dredge.2 high concurvity with elevation and location
+#SD_add.gam_LCA.terrain_dist.dredge.3 low concurvity across all terms
+#SD_add.gam_LCA.terrain_dist.dredge.4 moderate concurvity with slope and location
+#SD_add.gam_LCA.terrain_dist.dredge.5 low concurvity across all terms
+#SD_add.gam_LCA.terrain_dist.dredge.6 high concurvity on eastness, slope, and location
+#SD_add.gam_LCA.terrain_dist.dredge.7 low concurvity across all terms
+#SD_add.gam_LCA.terrain_dist.dredge.8 high concurvity eastness, slope, location
+#SD_add.gam_LCA.terrain_dist.dredge.9 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(SD_add.gam_LCA.terrain_dist.dredge.9$residuals)
+
+#SD_add.gam_LCA.terrain_dist not normal
+#SD_add.gam_LCA.terrain_dist.dredge not normal
+#SD_add.gam_LCA.terrain_dist.dredge.2 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.3 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.4 not normal, closest to normal
+#SD_add.gam_LCA.terrain_dist.dredge.5 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.6 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.7 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.8 not normal
+#SD_add.gam_LCA.terrain_dist.dredge.9 not normal
+
+#no good model, SD_add.gam_LCA.terrain_dist.dredge.4 is best of the bad models
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although SD_add.gam_LCA.terrain_dist.dredge.3 has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# SD_add.gam_LCA.terrain_dist.dredge.3 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist 
-summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+summary(SD_add.gam_LCA.terrain_dist.dredge.4)
+#location is significant
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist) #pretty normal residuals and no Heteroscedasticity 
+gam.check(SD_add.gam_LCA.terrain_dist.dredge.4) #pretty normal residuals and no Heteroscedasticity 
+shapiro.test(SD_add.gam_LCA.terrain_dist.dredge.4$residuals)
 
 #looking at model significance
-summary(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+summary(SD_add.gam_LCA.terrain_dist.dredge.4)
 
 #Chosen model: SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(SD_add.gam_LCA.terrain_dist, select=1, 
-         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(SD_add.gam_LCA.terrain_dist, select=2, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist, select=1, 
+plot.gam(SD_add.gam_LCA.terrain_dist.dredge.4, select=2, 
+         all.terms=T, xlab = 'TWI', ylab = expression(f[1]*'(TWI)'))
+plot.gam(SD_add.gam_LCA.terrain_dist.dredge.4, select=3, 
+         all.terms=T, xlab = "Location", 
+         ylab = expression(f[1]*'(Location)'), se = TRUE , col = "black")
+plot.gam(SD_add.gam_LCA.terrain_dist.dredge.4, select=1, 
          all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
          se = TRUE , col = "black")
-visreg(SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist, "SD_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on LCA") 
 
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$X.1, 
         y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
-        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1, 
         color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-SD_add.gam_LCA.inter <- gam(Canopy_long ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+SD_add.gam_LCA.inter <- gam(Canopy_long ~ ti(X.1, Y.1, d, SD_slope_raster_15_data_pts), 
                             data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(SD_add.gam_LCA.inter)
 #there was no significant interaction term after checking combinations
@@ -1488,7 +2061,7 @@ plot.gam(SD_add.gam_LCA.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(SD_add.gam_LCA.inter, SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
+AIC(SD_add.gam_LCA.inter, SD_add.gam_LCA.terrain_dist.dredge.4)
 
 #overall best model: SD_add.gam_LCA.inter
 
@@ -1497,84 +2070,217 @@ AIC(SD_add.gam_LCA.inter, SD_add.gam_LCA.terrain_dist.dredge.no.elev.dist)
 # I am using the logged transformation of canopy area to get more normal residuals and less heteroscedasticity to better meet the conditions for the GAMs
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+SD_add.gam_CA.terrain_dist <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+                                    s(SD_Eastness) + s(SD_TWI_values) + s(X.1, Y.1), 
+                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CA.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#slope have significant non-linear function 
+#location is significant
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_CA.terrain_dist) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # it wants s(d), s(elevation), s(slope)
 
-# Checking a GAM without aspect
-SD_add.gam_CA.terrain_dist.no.aspect <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_CA.terrain_dist.no.aspect) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(elevation is significant)
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_CA.terrain_dist.no.aspect) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(d), s(elevation), s(slope)
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge <- gam(Canopy_area_lg ~ s(SD_TWI_values) + s(X.1, Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #comparing the AIC of the model by comparing their AICs and using an ANOVA F-Test
-AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect) # AICs
-anova(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect)  #ANOVA F-Test
-#the model with aspect is not significantly better
+AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.dredge) # AICs
+anova(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.dredge)  #ANOVA F-Test
+#the full model is better
 
-#making a dredge model with just smooth elevation and slope and no aspect
-SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth <- gam(Canopy_area_lg ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                                data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth)
-#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.2 <- gam(Canopy_area_lg ~ s(SD_TWI_values), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#no signficance
 
-#making a dredge model with just smooth elevation and slope
-SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist <- gam(Canopy_area_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                                        data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist)
-#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.3 <- gam(Canopy_area_lg ~ s(SD_slope_raster_15_data_pts) + s(SD_TWI_values) + s(X.1,Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
 
-#comparing the models with smoothed distance, elevation, and slope with and without aspect, and one with only s(elevation) and no aspect
-AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.no.aspect, SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth, SD_add.gam_CA.terrain_dist.dredge.just.elev.slope.smooth.no.dist)
-#SD_add.gam_CA.terrain_dist.no.aspect  has lowest AIC
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.4 <- gam(Canopy_area_lg ~ s(SD_slope_raster_15_data_pts) + s(SD_TWI_values), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#slope is significant
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.5 <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(SD_TWI_values) + s(X.1,Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant, twi is borderline
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.6 <- gam(Canopy_area_lg ~ s(Elevation..m.FIXED) + s(SD_TWI_values), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation is sigificant 
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.7 <- gam(Canopy_area_lg ~ s(SD_slope_raster_15_data_pts) + s(X.1,Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant and slope is borderline
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.8 <- gam(Canopy_area_lg ~ s(SD_slope_raster_15_data_pts), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.8) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#slope is significant 
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.9 <- gam(Canopy_area_lg ~ s(SD_TWI_values) + s(X.1,Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.9) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.10 <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_Northness) +
+                                             s(SD_slope_raster_15_data_pts) + s(X.1,Y.1), 
+                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.10) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.11 <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_Northness) +
+                                             s(SD_slope_raster_15_data_pts), 
+                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.11) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.12 <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_Eastness) +
+                                             s(SD_slope_raster_15_data_pts) + s(X.1,Y.1), 
+                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.12) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+# Checking a GAM post dredge
+SD_add.gam_CA.terrain_dist.dredge.13 <- gam(Canopy_area_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_Eastness) +
+                                             s(SD_slope_raster_15_data_pts), 
+                                           data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CA.terrain_dist.dredge.13) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#location is significant
+
+#checking AIC
+AIC(SD_add.gam_CA.terrain_dist, SD_add.gam_CA.terrain_dist.dredge,
+    SD_add.gam_CA.terrain_dist.dredge.2, SD_add.gam_CA.terrain_dist.dredge.3,
+    SD_add.gam_CA.terrain_dist.dredge.4, SD_add.gam_CA.terrain_dist.dredge.5,
+    SD_add.gam_CA.terrain_dist.dredge.6, SD_add.gam_CA.terrain_dist.dredge.7, 
+    SD_add.gam_CA.terrain_dist.dredge.8, SD_add.gam_CA.terrain_dist.dredge.9,
+    SD_add.gam_CA.terrain_dist.dredge.10, SD_add.gam_CA.terrain_dist.dredge.11,
+    SD_add.gam_CA.terrain_dist.dredge.12, SD_add.gam_CA.terrain_dist.dredge.13)
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(SD_add.gam_CA.terrain_dist.dredge.13) #storing the residuals of the GAM
+coords <- data.frame(
+  x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 17)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#SD_add.gam_CA.terrain_dist controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.2 does not control for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.3 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.4 does not control for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.5 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.6 does not control for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.7 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.8 does not control for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.9 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.10 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.11 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.12 controls for spatial autocorrelation
+#SD_add.gam_CA.terrain_dist.dredge.13 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(SD_add.gam_CA.terrain_dist.dredge)
+
+#SD_add.gam_CA.terrain_dist high concurvity across all terms
+#SD_add.gam_CA.terrain_dist.dredge moderate concurvity with twi and locatin
+#SD_add.gam_CA.terrain_dist.dredge.2 low concurvity across all terms
+#SD_add.gam_CA.terrain_dist.dredge.3 high concurvity with slope and location
+#SD_add.gam_CA.terrain_dist.dredge.4 low concurvity across all terms
+#SD_add.gam_CA.terrain_dist.dredge.5 high concurvity with elevation and location
+#SD_add.gam_CA.terrain_dist.dredge.6 low concurvity across all terms
+#SD_add.gam_CA.terrain_dist.dredge.7 high concurvity wih slope and location
+#SD_add.gam_CA.terrain_dist.dredge.8 low concurvity across all terms
+#SD_add.gam_CA.terrain_dist.dredge.9 moderate concurvity with twi and location
+#SD_add.gam_CA.terrain_dist.dredge.10 high concurvity d, elevation, northness, slope, location
+#SD_add.gam_CA.terrain_dist.dredge.11 moderate concurvity with elevation, northness, slope
+#SD_add.gam_CA.terrain_dist.dredge.12 high concurvity with distance, elevation, eastness, slope, location
+#SD_add.gam_CA.terrain_dist.dredge.13 moderate concurvity with eastness and slope
+
+#checking normality of residuals
+shapiro.test(SD_add.gam_CA.terrain_dist.dredge.13$residuals)
+
+#SD_add.gam_CA.terrain_dist not normal
+#SD_add.gam_CA.terrain_dist.dredge not normal
+#SD_add.gam_CA.terrain_dist.dredge.2 not normal
+#SD_add.gam_CA.terrain_dist.dredge.3 not normal
+#SD_add.gam_CA.terrain_dist.dredge.4 not normal, closest to normal
+#SD_add.gam_CA.terrain_dist.dredge.5 not normal
+#SD_add.gam_CA.terrain_dist.dredge.6 normal
+#SD_add.gam_CA.terrain_dist.dredge.7 not normal
+#SD_add.gam_CA.terrain_dist.dredge.8 not normal, but barely
+#SD_add.gam_CA.terrain_dist.dredge.9 not normal
+#SD_add.gam_CA.terrain_dist.dredge.10 not normal
+#SD_add.gam_CA.terrain_dist.dredge.11 not normal
+#SD_add.gam_CA.terrain_dist.dredge.12 not normal
+#SD_add.gam_CA.terrain_dist.dredge.13 not normal
+
+#no good model, SD_add.gam_CA.terrain_dist.dredge is best of the bad models
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although SD_add.gam_CA.terrain_dist.dredge has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# SD_add.gam_CA.terrain_dist.dredge is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_CA.terrain_dist.no.aspect 
-summary(SD_add.gam_CA.terrain_dist.no.aspect)
+summary(SD_add.gam_CA.terrain_dist.dredge)
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_CA.terrain_dist.no.aspect) #pretty normal residuals and no Heteroscedasticity 
+gam.check(SD_add.gam_CA.terrain_dist.dredge) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(SD_add.gam_CA.terrain_dist.no.aspect)
+summary(SD_add.gam_CA.terrain_dist.dredge)
 
 #Chosen model: SD_add.gam_CA.terrain_dist.no.aspect
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=1, 
-         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=2, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(SD_add.gam_CA.terrain_dist.no.aspect, select=3, 
-         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
-         se = TRUE , col = "black")
-visreg(SD_add.gam_CA.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+plot.gam(SD_add.gam_CA.terrain_dist.dredge, select=1, 
+         all.terms=T, xlab = 'TWI', ylab = expression(f[1]*'(TWI)'))
+plot.gam(SD_add.gam_CA.terrain_dist.dredge, select=2, 
+         all.terms=T, xlab = "Location (m)", 
+         ylab = expression(f[1]*'(Location)'), se = TRUE , col = "black")
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
-        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
-        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
-        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$X.1, 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_TWI_values, 
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-SD_add.gam_CA.inter <- gam(Canopy_area ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+SD_add.gam_CA.inter <- gam(Canopy_area ~ ti(X.1, Y.1, SD_TWI_values), 
                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(SD_add.gam_CA.inter)
 #there was no significant interaction term after checking combinations
@@ -1586,81 +2292,190 @@ plot.gam(SD_add.gam_CA.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(SD_add.gam_CA.inter, SD_add.gam_CA.terrain_dist.no.aspect)
+AIC(SD_add.gam_CA.inter, SD_add.gam_CA.terrain_dist.dredge)
 
-#overall best model: SD_add.gam_CA.terrain_dist.no.aspect
+#overall best model: SD_add.gam_CA.terrain_dist.dredge
 
 ## CS ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+SD_add.gam_CS.terrain_dist <- gam(Crown_spread ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+                                    s(SD_Eastness) + s(SD_TWI_values) + s(X.1, Y.1),  
+                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_CS.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#slope have significant non-linear function and Southwest are significant
+#location is significant
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_CS.terrain_dist) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # it wants s(elevation), s(slope), and aspect
 
-# Checking a GAM without d smoothed
-SD_add.gam_CS.terrain_dist.no.dist.smooth <- gam(Crown_spread ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                 data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_CS.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(elevation and slope) are significant
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_CS.terrain_dist.no.dist.smooth) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(elevation), s(slope), aspect
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge <- gam(Crown_spread ~ s(SD_slope_raster_15_data_pts) + s(X.1, Y.1), 
+                                                 data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only location is significant
 
-#making a dredge model with just smooth elevation and no aspect
-SD_add.gam_CS.terrain_dist.no.dist <- gam(Crown_spread ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_CS.terrain_dist.no.dist)
-#s(elevation) is significantly non-linear, slope and distance are not significantly useful with the linear fit
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.2 <- gam(Crown_spread ~ s(SD_slope_raster_15_data_pts), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only slope is significant
 
-#comparing the models
-AIC(SD_add.gam_CS.terrain_dist, SD_add.gam_CS.terrain_dist.no.dist.smooth, SD_add.gam_CS.terrain_dist.no.dist)
-#SD_add.gam_CS.terrain_dist.no.dist has lowest AIC, but none are significantlt better than the others
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.3 <- gam(Crown_spread ~ s(SD_TWI_values) + s(X.1, Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only location is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.4 <- gam(Crown_spread ~ s(SD_TWI_values), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#no significance
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.5 <- gam(Crown_spread ~ s(SD_slope_raster_15_data_pts) + s(SD_TWI_values)  + s(X.1, Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only location is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.6 <- gam(Crown_spread ~ s(SD_slope_raster_15_data_pts) + s(SD_TWI_values), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only slope is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.7 <- gam(Crown_spread ~ s(d) + s(SD_slope_raster_15_data_pts) + s(X.1, Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only location is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.8 <- gam(Crown_spread ~ s(d) + s(SD_slope_raster_15_data_pts), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.8) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only slope is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.9 <- gam(Crown_spread ~ s(SD_Eastness) + s(SD_slope_raster_15_data_pts) + s(X.1, Y.1), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.9) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only location is significant
+
+# Checking a GAM after dredge
+SD_add.gam_CS.terrain_dist.dredge.10 <- gam(Crown_spread ~ s(SD_Eastness) + s(SD_slope_raster_15_data_pts), 
+                                         data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_CS.terrain_dist.dredge.10) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#only slope is significant
+
+#checking AIC
+AIC(SD_add.gam_CS.terrain_dist, SD_add.gam_CS.terrain_dist.dredge,
+    SD_add.gam_CS.terrain_dist.dredge.2, SD_add.gam_CS.terrain_dist.dredge.3,
+    SD_add.gam_CS.terrain_dist.dredge.4, SD_add.gam_CS.terrain_dist.dredge.5, 
+    SD_add.gam_CS.terrain_dist.dredge.6, SD_add.gam_CS.terrain_dist.dredge.7,
+    SD_add.gam_CS.terrain_dist.dredge.8, SD_add.gam_CS.terrain_dist.dredge.9,
+    SD_add.gam_CS.terrain_dist.dredge.10)
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(SD_add.gam_CS.terrain_dist.dredge.3) #storing the residuals of the GAM
+coords <- data.frame(
+  x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 17)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#SD_add.gam_CS.terrain_dist controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.2 does not control for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.3 controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.4 does not control for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.5 controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.6 does not control for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.7 controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.8 does not control for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.9 controls for spatial autocorrelation
+#SD_add.gam_CS.terrain_dist.dredge.10 does not control for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(SD_add.gam_CS.terrain_dist.dredge.3)
+
+#SD_add.gam_CS.terrain_dist high concurvity across all terms
+#SD_add.gam_CS.terrain_dist.dredge high concurvity with slope and location
+#SD_add.gam_CS.terrain_dist.dredge.2 low concurvity across all terms
+#SD_add.gam_CS.terrain_dist.dredge.3 moderate concurvity with twi and location
+#SD_add.gam_CS.terrain_dist.dredge.4 low concurvity across all terms
+#SD_add.gam_CS.terrain_dist.dredge.5 high concurvity with slope and location
+#SD_add.gam_CS.terrain_dist.dredge.6 low concurvity across all terms
+#SD_add.gam_CS.terrain_dist.dredge.7 high concurvity wih slope, distance, and location
+#SD_add.gam_CS.terrain_dist.dredge.8 low concurvity across all terms
+#SD_add.gam_CS.terrain_dist.dredge.9 high concurvity with eastness, slope, and location
+#SD_add.gam_CS.terrain_dist.dredge.10 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(SD_add.gam_CS.terrain_dist.dredge.3$residuals)
+
+#SD_add.gam_CS.terrain_dist not normal
+#SD_add.gam_CS.terrain_dist.dredge not normal
+#SD_add.gam_CS.terrain_dist.dredge.2 not normal
+#SD_add.gam_CS.terrain_dist.dredge.3 not normal
+#SD_add.gam_CS.terrain_dist.dredge.4 not normal
+#SD_add.gam_CS.terrain_dist.dredge.5 not normal
+#SD_add.gam_CS.terrain_dist.dredge.6 not normal
+#SD_add.gam_CS.terrain_dist.dredge.7 normal
+#SD_add.gam_CS.terrain_dist.dredge.8 not normal
+#SD_add.gam_CS.terrain_dist.dredge.9 not normal
+#SD_add.gam_CS.terrain_dist.dredge.10 not normal
+
+#no good model, SD_add.gam_CS.terrain_dist.dredge.3 is best of the bad models
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although SD_add.gam_CS.terrain_dist.dredge.3 has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# SD_add.gam_CS.terrain_dist.dredge.3 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_CS.terrain_dist.no.aspect 
-summary(SD_add.gam_CS.terrain_dist.no.dist)
+summary(SD_add.gam_CS.terrain_dist.dredge.3)
 #but all models seem to do similarly well
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_CS.terrain_dist.no.dist) #pretty normal residuals and no Heteroscedasticity 
+gam.check(SD_add.gam_CS.terrain_dist.dredge.3) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(SD_add.gam_CS.terrain_dist.no.dist)
+summary(SD_add.gam_CS.terrain_dist.dredge.3)
 
-#Chosen model: SD_add.gam_CS.terrain_dist.no.dist
+#Chosen model: SD_add.gam_CS.terrain_dist.dredge.3
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(SD_add.gam_CS.terrain_dist, select=1, 
-         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(SD_add.gam_CS.terrain_dist, select=2, 
-         all.terms=T, xlab = "Elevation (m)", 
-         ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(SD_add.gam_CS.terrain_dist, select=3, 
-         all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
-         se = TRUE , col = "black")
-visreg(SD_add.gam_CS.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
+plot.gam(SD_add.gam_CS.terrain_dist.dredge.3, select=1, 
+         all.terms=T, xlab = 'TWI', ylab = expression(f[1]*'(TWI)'))
+plot.gam(SD_add.gam_CS.terrain_dist.dredge.3, select=2, 
+         all.terms=T, xlab = "Location (m)", 
+         ylab = expression(f[1]*'(Location)'), se = TRUE , col = "black")
+
 
 # 3d plotting in plotly and with gg3D
-plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
-        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
-        z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
-        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
+plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_TWI_values, 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$X.1, 
+        z=SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1, 
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-SD_add.gam_CS.inter <- gam(Crown_spread ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+SD_add.gam_CS.inter <- gam(Crown_spread ~ ti(SD_TWI_values, X.1, Y.1), 
                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(SD_add.gam_CS.inter)
 #there was no significant interaction term after checking combinations
@@ -1672,86 +2487,162 @@ plot.gam(SD_add.gam_CS.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(SD_add.gam_CS.inter, SD_add.gam_CS.terrain_dist)
+AIC(SD_add.gam_CS.inter, SD_add.gam_CS.terrain_dist.dredge.3)
 
-#overall best model: SD_add.gam_CS.terrain_dist
+#overall best model: SD_add.gam_CS.inter
 
 
 ## DBH ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
+SD_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+                                     s(SD_Eastness) + s(SD_TWI_values) + s(X.1, Y.1),  
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
-#only slope have significant non-linear function 
+#twi, northness, location have significant non-linear function , eastness is borderline
 
 #using the dredge function to determine which explanatory variables allow for the best fitting model
 dredge <- dredge(SD_add.gam_DBH.terrain_dist) #using the dredge model to narrow the models down to the best choice
 dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
 # it wants s(elevation), s(slope)
 
-# Checking a GAM without smoothing distance 
-SD_add.gam_DBH.terrain_dist.no.dist.smooth <- gam(DBH_ag ~ d + s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
-                                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_DBH.terrain_dist.no.dist.smooth) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
-#only s(slope) is significant
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_DBH.terrain_dist.no.dist.smooth) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(elevation), s(slope)
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Eastness) + 
+                                                    s(SD_TWI_values) + s(X.1,Y.1), 
+                                                  data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, eastness, location is significant
 
-#making a dredge model with just smooth elevation and no aspect
-SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts), 
-                                                                 data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail) #na fail makes sure the later dredge does not have to worry about NAs
-summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
-#s(slope) is significantly non-linear but not s(elevation), slope and distance are not significantly useful with the linear fit
-#using the dredge function to determine which explanatory variables allow for the best fitting model
-dredge <- dredge(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth) #using the dredge model to narrow the models down to the best choice
-dredge[1:5,] #looking at the top five best models, lowest AIC is the best model, rule of thumb is that a difference of 2 is a significant difference
-# it wants s(elevation), s(slope)
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Eastness) + 
+                                            s(SD_TWI_values), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation is significant
 
-#comparing the models 
-AIC(SD_add.gam_DBH.terrain_dist, SD_add.gam_DBH.terrain_dist.no.dist.smooth, SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
-#SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth has lowest AIC
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Northness) + 
+                                            s(SD_TWI_values) + s(X.1,Y.1), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+# twi, location is significant, elevation is borderline
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Northness) + 
+                                            s(SD_TWI_values), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#northness and elevation are significant 
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
+                                            s(SD_TWI_values) + s(X.1,Y.1), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation and location is significant, twi is borderline
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
+                                            s(SD_TWI_values), 
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, slope is significant
+
+#checking AICs
+AIC(SD_add.gam_DBH.terrain_dist, SD_add.gam_DBH.terrain_dist.dredge,
+    SD_add.gam_DBH.terrain_dist.dredge.2, SD_add.gam_DBH.terrain_dist.dredge.3,
+    SD_add.gam_DBH.terrain_dist.dredge.4, SD_add.gam_DBH.terrain_dist.dredge.5,
+    SD_add.gam_DBH.terrain_dist.dredge.6)
+
+#checking if the model without location meets spatial autocorrelation 
+
+#creating the matrix of coordinates to evaluate if spatial autocorrelation as control
+res <- residuals(SD_add.gam_DBH.terrain_dist.dredge.6) #storing the residuals of the GAM
+coords <- data.frame(
+  x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
+  y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
+)
+coords_mat <- as.matrix(coords)
+#k-nearest neighbors 
+knn <- knearneigh(coords_mat, k = 17)
+nb <- knn2nb(knn)
+#spatial weights
+lw <- nb2listw(nb, style = "W")
+#running the moran's I test
+moran.test(res, lw)
+
+#SD_add.gam_DBH.terrain_dist controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.2 controls for spatial autocorrelation, borderline
+#SD_add.gam_DBH.terrain_dist.dredge.3 controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.4 controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.5 controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.6 controls for spatial autocorrelation
+
+# checking concurvity
+check_concurvity(SD_add.gam_DBH.terrain_dist.dredge.6)
+
+#SD_add.gam_DBH.terrain_dist high concurvity across all terms
+#SD_add.gam_DBH.terrain_dist.dredge high concurvity with elevation, eastness and location
+#SD_add.gam_DBH.terrain_dist.dredge.2 low concurvity across all terms
+#SD_add.gam_DBH.terrain_dist.dredge.3 high concurvity with elevation, northness, and location
+#SD_add.gam_DBH.terrain_dist.dredge.4 low concurvity across all terms
+#SD_add.gam_DBH.terrain_dist.dredge.5 high concurvity with elevation, slope and location
+#SD_add.gam_DBH.terrain_dist.dredge.6 low concurvity across all terms
+
+#checking normality of residuals
+shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.4$residuals)
+
+#SD_add.gam_DBH.terrain_dist normal
+#SD_add.gam_CS.terrain_dist.dredge not normal
+#SD_add.gam_DBH.terrain_dist.dredge.2 normal
+#SD_add.gam_DBH.terrain_dist.dredge.3 normal
+#SD_add.gam_DBH.terrain_dist.dredge.4 normal
+#SD_add.gam_DBH.terrain_dist.dredge.5 normal
+#SD_add.gam_DBH.terrain_dist.dredge.6 normal
+
+#SD_add.gam_DBH.terrain_dist.dredge.6 is best of the bad models
+
+
+#based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
+#although SD_add.gam_DBH.terrain_dist.dredge.6 has the lowest AIC, if we do not need x.1, y.1 to control for spatial autocorrelation we should not include it
+# SD_add.gam_DBH.terrain_dist.dredge.6 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_DBH.terrain_dist.dredge.no.smooth 
-summary(SD_add.gam_DBH.terrain_dist.dredge.no.smooth)
+summary(SD_add.gam_DBH.terrain_dist.dredge.6)
 #the linear model seems to do the best, the GAM model with all smoothing is close behind
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth) #pretty normal residuals and no Heteroscedasticity 
+gam.check(SD_add.gam_DBH.terrain_dist.dredge.6) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+summary(SD_add.gam_DBH.terrain_dist.dredge.6)
 
 #Chosen model: SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(SD_add.gam_DBH.terrain_dist, select=1, 
-         all.terms=T, xlab = 'Distance (m)', ylab = expression(f[1]*'(Distance)'))
-plot.gam(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth, select=2, 
+plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, 
+         all.terms=T, xlab = 'TWI (m)', ylab = expression(f[1]*'(TWI)'))
+plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=1, 
          all.terms=T, xlab = "Elevation (m)", 
          ylab = expression(f[1]*'(Elevation)'), se = TRUE , col = "black")
-plot.gam(SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth, select=1, 
+plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=2, 
          all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
          se = TRUE , col = "black")
-visreg(SD_add.gam_DBH.terrain_dist, "SD_aspect_raster_15_data_pts_8_categorical",
-       gg = F, xlab = "Aspect", ylab = "Effect on CA") 
 
 # 3d plotting in plotly and with gg3D
 plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 
-        y=SD_fixed_field_data_processed_terrain_dist_no_NA$d, 
+        y=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_TWI_values, 
         z=SD_fixed_field_data_processed_terrain_dist_no_NA$SD_slope_raster_15_data_pts, 
-        color = SD_fixed_field_data_processed_terrain_dist_no_NA$SD_aspect_raster_15_data_pts_8_categorical,
         type="scatter3d", mode="markers")
 
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-SD_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m., d, SD_slope_raster_15_data_pts) + SD_aspect_raster_15_data_pts_8_categorical, 
+SD_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m., SD_TWI_values, SD_slope_raster_15_data_pts), 
                             data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
 summary(SD_add.gam_DBH.inter)
 #there was no significant interaction term after checking combinations
@@ -1763,10 +2654,10 @@ plot.gam(SD_add.gam_DBH.inter, select=1,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
 #checking to see whether interaction model outperforms our previously selected model
-AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth)
+AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.6)
 #the interaction is not significant
 
-#overall best model: SD_add.gam_DBH.terrain_dist.dredge.just.elev.slope.smooth 
+#overall best model: SD_add.gam_DBH.terrain_dist.dredge.6 
 
 
 

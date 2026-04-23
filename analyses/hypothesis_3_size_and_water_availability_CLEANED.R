@@ -77,11 +77,6 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
-population = "LM"
-size_variable = "SCA"
-explanatory_var = "TWI_values"
-
-
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
   
   #removing NAs 
@@ -99,14 +94,23 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     dataframe_metric = LM_fixed_field_data_processed_terrain_dist #assigning the LM tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$LM_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     dataframe_metric$TWI_values <- dataframe_metric$LM_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Eastness <- dataframe_metric$LM_Eastness #adding a eastness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Northness <- dataframe_metric$LM_Northness #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$heat.load <- dataframe_metric$heat.load #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "LC"){ #LC trees
     dataframe_metric = LC_fixed_field_data_processed_terrain_dist #assigning the LC tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$LC_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     dataframe_metric$TWI_values <- dataframe_metric$LC_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Eastness <- dataframe_metric$LC_Eastness #adding a eastness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Northness <- dataframe_metric$LC_Northness #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$heat.load <- dataframe_metric$heat.load #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "SD"){ #SD trees
     dataframe_metric = SD_fixed_field_data_processed_terrain_dist #assigning the SD tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$SD_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     dataframe_metric$TWI_values <- dataframe_metric$SD_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Eastness <- dataframe_metric$SD_Eastness #adding a eastness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$Northness <- dataframe_metric$SD_Northness #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
+    dataframe_metric$heat.load <- dataframe_metric$heat.load #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "All Points"){ #All trees across all populations
     dataframe_metric = all_points_fixed_field_data_processed_terrain #assigning the all points/population tree/topography/distance dataframe
     dataframe_metric$Slope <- dataframe_metric$all_points_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
@@ -144,6 +148,15 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   } else if (explanatory_var == "TWI_values"){ #topographic wetness index
     explanatory_var_name = "TWI_values" #storing the name of the explanatory variable we are using
     explanatory_var_metric = dataframe_metric$TWI_values #assigning the Distance to River variable to the explanatory variable
+  } else if (explanatory_var == "Eastness"){ #topographic wetness index
+    explanatory_var_name = "Eastness" #storing the name of the explanatory variable we are using
+    explanatory_var_metric = dataframe_metric$Eastness #assigning the Distance to River variable to the explanatory variable
+  } else if (explanatory_var == "Northness"){ #topographic wetness index
+    explanatory_var_name = "Northness" #storing the name of the explanatory variable we are using
+    explanatory_var_metric = dataframe_metric$Northness #assigning the Distance to River variable to the explanatory variable
+  } else if (explanatory_var == "heat.load"){ #topographic wetness index
+    explanatory_var_name = "heat.load" #storing the name of the explanatory variable we are using
+    explanatory_var_metric = dataframe_metric$heat.load #assigning the Distance to River variable to the explanatory variable
   } 
   
   #creating a dataframe with influential/outlier points removed 
@@ -157,7 +170,7 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   
   #removing points that were deemed too influential on the linear model fit
   dataframe_metric_no_outliers <- dataframe_metric[-c(as.numeric(names(influential))),]
-  
+
   #creating the linear regressions
   
   #creating the base linear regression (no removal of outliers, no transformations)
@@ -5225,6 +5238,1969 @@ ggplot(data = simple_linear_regressions_SD_DBH_TWI_values$chosen_model, aes(x = 
   labs(title = "Residuals vs. Fitted Values for DBH and TWI_values")
 
 
+#### Sizes vs. Eastness ####
+
+# removing NAs
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+
+# LM
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_SCA_Eastness <- simple_linear_regressions("LM", "SCA", "Eastness")
+simple_linear_regressions_LM_SCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Eastness, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_SCA_Eastness$chosen_model, aes(x= simple_linear_regressions_LM_SCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_SCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LM_SCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_SCA_Eastness$chosen_model, aes(x = simple_linear_regressions_LM_SCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LM_SCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Eastness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_LCA_Eastness <- simple_linear_regressions("LM", "LCA", "Eastness")
+simple_linear_regressions_LM_LCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Eastness, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_LCA_Eastness$chosen_model, aes(x= simple_linear_regressions_LM_LCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_LCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LM_LCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_LCA_Eastness$chosen_model, aes(x = simple_linear_regressions_LM_LCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LM_LCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Eastness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CA_Eastness <- simple_linear_regressions("LM", "CA", "Eastness")
+simple_linear_regressions_LM_CA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Eastness, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CA_Eastness$chosen_model, aes(x= simple_linear_regressions_LM_CA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LM_CA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CA_Eastness$chosen_model, aes(x = simple_linear_regressions_LM_CA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LM_CA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Eastness")
+
+# Calculating the trend line for plotting
+LM_trend_line_CA_Eastness <- predict(loess(LM_fixed_field_data_processed_terrain_dist$Canopy_area ~ LM_fixed_field_data_processed_terrain_dist$LM_Eastness))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_Eastness, y = (LM_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_Eastness, y = LM_trend_line_CA_elevation), color = "red") +
+  labs(x = "LM_Eastness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CS_Eastness <- simple_linear_regressions("LM", "CS", "Eastness")
+simple_linear_regressions_LM_CS_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Eastness, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CS_Eastness$chosen_model, aes(x= simple_linear_regressions_LM_CS_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CS_Eastness$chosen_model, aes(sample = simple_linear_regressions_LM_CS_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CS_Eastness$chosen_model, aes(x = simple_linear_regressions_LM_CS_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LM_CS_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Eastness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_Eastness <- simple_linear_regressions("LM", "DBH", "Eastness")
+simple_linear_regressions_LM_DBH_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=LM_Eastness, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_DBH_Eastness$chosen_model, aes(x= simple_linear_regressions_LM_DBH_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_DBH_Eastness$chosen_model, aes(sample = simple_linear_regressions_LM_DBH_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_DBH_Eastness$chosen_model, aes(x = simple_linear_regressions_LM_DBH_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LM_DBH_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Eastness")
 
 
+# LC
+
+
+# removing NAs
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_SCA_Eastness <- simple_linear_regressions("LC", "SCA", "Eastness")
+simple_linear_regressions_LC_SCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y=log(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Logged Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_SCA_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_SCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_SCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LC_SCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_SCA_Eastness$chosen_model, aes(x = simple_linear_regressions_LC_SCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LC_SCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Eastness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_LCA_Eastness <- simple_linear_regressions("LC", "LCA", "Eastness")
+simple_linear_regressions_LC_LCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=LC_Eastness, y=log(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness")+
+  ylab("Logged Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_LCA_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_LCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_LCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LC_LCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_LCA_Eastness$chosen_model, aes(x = simple_linear_regressions_LC_LCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LC_LCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Eastness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CA_Eastness <- simple_linear_regressions("LC", "CA", "Eastness")
+simple_linear_regressions_LC_CA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y=log(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("Logged Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CA_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_CA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CA_Eastness$chosen_model, aes(sample = simple_linear_regressions_LC_CA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CA_Eastness$chosen_model, aes(x = simple_linear_regressions_LC_CA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LC_CA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Eastness")
+
+# Calculating the trend line for plotting
+LC_trend_line_CA_Eastness <- predict(loess(LC_fixed_field_data_processed_terrain_dist$Canopy_area ~ LC_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED, y = (LC_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED, y = LC_trend_line_CA_Eastness), color = "red") +
+  labs(x = "Eastness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CS_Eastness <- simple_linear_regressions("LC", "CS", "Eastness")
+simple_linear_regressions_LC_CS_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y= log(Crown_spread))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("Logged Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CS_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_CS_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CS_Eastness$chosen_model, aes(sample = simple_linear_regressions_LC_CS_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CS_Eastness$chosen_model, aes(x = simple_linear_regressions_LC_CS_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LC_CS_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Eastness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_Eastness <- simple_linear_regressions("LC", "DBH", "Eastness")
+simple_linear_regressions_LC_DBH_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=Eastness..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_DBH_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_DBH_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_DBH_Eastness$chosen_model, aes(x= simple_linear_regressions_LC_DBH_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_DBH_Eastness$chosen_model, aes(x = simple_linear_regressions_LC_DBH_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_LC_DBH_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Eastness")
+
+
+# SD
+
+# removing NAs
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  drop_na(SD_Eastness) #removing NAs in Eastness 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_SCA_Eastness <- simple_linear_regressions("SD", "SCA", "Eastness")
+simple_linear_regressions_SD_SCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=SD_Eastness, y=sqrt(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness")+
+  ylab("Square Root of Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_SCA_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_SCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_SCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_SD_SCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_SCA_Eastness$chosen_model, aes(x = simple_linear_regressions_SD_SCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_SD_SCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Eastness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_LCA_Eastness <- simple_linear_regressions("SD", "LCA", "Eastness")
+simple_linear_regressions_SD_LCA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y=sqrt(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("Square root of Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_LCA_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_LCA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_LCA_Eastness$chosen_model, aes(sample = simple_linear_regressions_SD_LCA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_LCA_Eastness$chosen_model, aes(x = simple_linear_regressions_SD_LCA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_SD_LCA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Eastness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CA_Eastness <- simple_linear_regressions("SD", "CA", "Eastness")
+simple_linear_regressions_SD_CA_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y=sqrt(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("Square root of Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CA_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_CA_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CA_Eastness$chosen_model, aes(sample = simple_linear_regressions_SD_CA_Eastness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CA_Eastness$chosen_model, aes(x = simple_linear_regressions_SD_CA_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_SD_CA_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Eastness")
+
+# Calculating the trend line for plotting
+SD_trend_line_CA_Eastness <- predict(loess(SD_fixed_field_data_processed_terrain_dist$Canopy_area ~ SD_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = SD_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED, y = (SD_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = SD_fixed_field_data_processed_terrain_dist$Eastness..m.FIXED, y = SD_trend_line_CA_Eastness), color = "red") +
+  labs(x = "Eastness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CS_Eastness <- simple_linear_regressions("SD", "CS", "Eastness")
+simple_linear_regressions_SD_CS_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Eastness..m.FIXED, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("Square root of Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CS_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_CS_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Eastness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CS_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_CS_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CS_Eastness$chosen_model, aes(x = simple_linear_regressions_SD_CS_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_SD_CS_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Eastness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_Eastness <- simple_linear_regressions("SD", "DBH", "Eastness")
+simple_linear_regressions_SD_DBH_Eastness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=Eastness..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Eastness (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_DBH_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_DBH_Eastness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_DBH_Eastness$chosen_model, aes(x= simple_linear_regressions_SD_DBH_Eastness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_DBH_Eastness$chosen_model, aes(x = simple_linear_regressions_SD_DBH_Eastness$chosen_model$fitted.values, y = simple_linear_regressions_SD_DBH_Eastness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Eastness")
+
+
+#### Sizes vs. Northness ####
+
+# removing NAs
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  drop_na(LM_Northness) #removing NAs in elevation 
+
+# LM
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_SCA_Northness <- simple_linear_regressions("LM", "SCA", "Northness")
+simple_linear_regressions_LM_SCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Northness, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_SCA_Northness$chosen_model, aes(x= simple_linear_regressions_LM_SCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_SCA_Northness$chosen_model, aes(sample = simple_linear_regressions_LM_SCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_SCA_Northness$chosen_model, aes(x = simple_linear_regressions_LM_SCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LM_SCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Northness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_LCA_Northness <- simple_linear_regressions("LM", "LCA", "Northness")
+simple_linear_regressions_LM_LCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Northness, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_LCA_Northness$chosen_model, aes(x= simple_linear_regressions_LM_LCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_LCA_Northness$chosen_model, aes(sample = simple_linear_regressions_LM_LCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_LCA_Northness$chosen_model, aes(x = simple_linear_regressions_LM_LCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LM_LCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Northness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CA_Northness <- simple_linear_regressions("LM", "CA", "Northness")
+simple_linear_regressions_LM_CA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Northness, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CA_Northness$chosen_model, aes(x= simple_linear_regressions_LM_CA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CA_Northness$chosen_model, aes(sample = simple_linear_regressions_LM_CA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CA_Northness$chosen_model, aes(x = simple_linear_regressions_LM_CA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LM_CA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Northness")
+
+# Calculating the trend line for plotting
+LM_trend_line_CA_Northness <- predict(loess(LM_fixed_field_data_processed_terrain_dist$Canopy_area ~ LM_fixed_field_data_processed_terrain_dist$LM_Northness))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_Northness, y = (LM_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_Northness, y = LM_trend_line_CA_elevation), color = "red") +
+  labs(x = "LM_Northness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CS_Northness <- simple_linear_regressions("LM", "CS", "Northness")
+simple_linear_regressions_LM_CS_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_Northness, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CS_Northness$chosen_model, aes(x= simple_linear_regressions_LM_CS_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CS_Northness$chosen_model, aes(sample = simple_linear_regressions_LM_CS_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CS_Northness$chosen_model, aes(x = simple_linear_regressions_LM_CS_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LM_CS_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Northness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_Northness <- simple_linear_regressions("LM", "DBH", "Northness")
+simple_linear_regressions_LM_DBH_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=LM_Northness, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_DBH_Northness$chosen_model, aes(x= simple_linear_regressions_LM_DBH_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_DBH_Northness$chosen_model, aes(sample = simple_linear_regressions_LM_DBH_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_DBH_Northness$chosen_model, aes(x = simple_linear_regressions_LM_DBH_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LM_DBH_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Northness")
+
+
+# LC
+
+
+# removing NAs
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  drop_na(LC_Northness) #removing NAs in elevation 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_SCA_Northness <- simple_linear_regressions("LC", "SCA", "Northness")
+simple_linear_regressions_LC_SCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y=log(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Logged Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_SCA_Northness$chosen_model, aes(x= simple_linear_regressions_LC_SCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_SCA_Northness$chosen_model, aes(sample = simple_linear_regressions_LC_SCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_SCA_Northness$chosen_model, aes(x = simple_linear_regressions_LC_SCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LC_SCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Northness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_LCA_Northness <- simple_linear_regressions("LC", "LCA", "Northness")
+simple_linear_regressions_LC_LCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=LC_Northness, y=log(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness")+
+  ylab("Logged Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_LCA_Northness$chosen_model, aes(x= simple_linear_regressions_LC_LCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_LCA_Northness$chosen_model, aes(sample = simple_linear_regressions_LC_LCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_LCA_Northness$chosen_model, aes(x = simple_linear_regressions_LC_LCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LC_LCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Northness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CA_Northness <- simple_linear_regressions("LC", "CA", "Northness")
+simple_linear_regressions_LC_CA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y=log(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("Logged Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CA_Northness$chosen_model, aes(x= simple_linear_regressions_LC_CA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CA_Northness$chosen_model, aes(sample = simple_linear_regressions_LC_CA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CA_Northness$chosen_model, aes(x = simple_linear_regressions_LC_CA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LC_CA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Northness")
+
+# Calculating the trend line for plotting
+LC_trend_line_CA_Northness <- predict(loess(LC_fixed_field_data_processed_terrain_dist$Canopy_area ~ LC_fixed_field_data_processed_terrain_dist$Northness..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_processed_terrain_dist$Northness..m.FIXED, y = (LC_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_processed_terrain_dist$Northness..m.FIXED, y = LC_trend_line_CA_Northness), color = "red") +
+  labs(x = "Northness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CS_Northness <- simple_linear_regressions("LC", "CS", "Northness")
+simple_linear_regressions_LC_CS_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y= log(Crown_spread))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("Logged Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CS_Northness$chosen_model, aes(x= simple_linear_regressions_LC_CS_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CS_Northness$chosen_model, aes(sample = simple_linear_regressions_LC_CS_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CS_Northness$chosen_model, aes(x = simple_linear_regressions_LC_CS_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LC_CS_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Northness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_Northness <- simple_linear_regressions("LC", "DBH", "Northness")
+simple_linear_regressions_LC_DBH_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=Northness..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_DBH_Northness$chosen_model, aes(x= simple_linear_regressions_LC_DBH_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_DBH_Northness$chosen_model, aes(x= simple_linear_regressions_LC_DBH_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_DBH_Northness$chosen_model, aes(x = simple_linear_regressions_LC_DBH_Northness$chosen_model$fitted.values, y = simple_linear_regressions_LC_DBH_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Northness")
+
+
+# SD
+
+# removing NAs
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  drop_na(SD_Northness) #removing NAs in Northness 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_SCA_Northness <- simple_linear_regressions("SD", "SCA", "Northness")
+simple_linear_regressions_SD_SCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=SD_Northness, y=sqrt(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness")+
+  ylab("Square Root of Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_SCA_Northness$chosen_model, aes(x= simple_linear_regressions_SD_SCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_SCA_Northness$chosen_model, aes(sample = simple_linear_regressions_SD_SCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_SCA_Northness$chosen_model, aes(x = simple_linear_regressions_SD_SCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_SD_SCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and Northness")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_LCA_Northness <- simple_linear_regressions("SD", "LCA", "Northness")
+simple_linear_regressions_SD_LCA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y=sqrt(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("Square root of Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_LCA_Northness$chosen_model, aes(x= simple_linear_regressions_SD_LCA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_LCA_Northness$chosen_model, aes(sample = simple_linear_regressions_SD_LCA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_LCA_Northness$chosen_model, aes(x = simple_linear_regressions_SD_LCA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_SD_LCA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and Northness")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CA_Northness <- simple_linear_regressions("SD", "CA", "Northness")
+simple_linear_regressions_SD_CA_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y=sqrt(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("Square root of Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CA_Northness$chosen_model, aes(x= simple_linear_regressions_SD_CA_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CA_Northness$chosen_model, aes(sample = simple_linear_regressions_SD_CA_Northness$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CA_Northness$chosen_model, aes(x = simple_linear_regressions_SD_CA_Northness$chosen_model$fitted.values, y = simple_linear_regressions_SD_CA_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and Northness")
+
+# Calculating the trend line for plotting
+SD_trend_line_CA_Northness <- predict(loess(SD_fixed_field_data_processed_terrain_dist$Canopy_area ~ SD_fixed_field_data_processed_terrain_dist$Northness..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = SD_fixed_field_data_processed_terrain_dist$Northness..m.FIXED, y = (SD_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = SD_fixed_field_data_processed_terrain_dist$Northness..m.FIXED, y = SD_trend_line_CA_Northness), color = "red") +
+  labs(x = "Northness", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CS_Northness <- simple_linear_regressions("SD", "CS", "Northness")
+simple_linear_regressions_SD_CS_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=Northness..m.FIXED, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("Square root of Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CS_Northness$chosen_model, aes(x= simple_linear_regressions_SD_CS_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. Northness")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CS_Northness$chosen_model, aes(x= simple_linear_regressions_SD_CS_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CS_Northness$chosen_model, aes(x = simple_linear_regressions_SD_CS_Northness$chosen_model$fitted.values, y = simple_linear_regressions_SD_CS_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and Northness")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_Northness <- simple_linear_regressions("SD", "DBH", "Northness")
+simple_linear_regressions_SD_DBH_Northness
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=Northness..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("Northness (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_DBH_Northness$chosen_model, aes(x= simple_linear_regressions_SD_DBH_Northness$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_DBH_Northness$chosen_model, aes(x= simple_linear_regressions_SD_DBH_Northness$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_DBH_Northness$chosen_model, aes(x = simple_linear_regressions_SD_DBH_Northness$chosen_model$fitted.values, y = simple_linear_regressions_SD_DBH_Northness$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and Northness")
+
+
+#### Sizes vs. Heat Load Index ####
+
+# removing NAs
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  drop_na(heat.load) #removing NAs in elevation 
+
+# LM
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_SCA_heat.load <- simple_linear_regressions("LM", "SCA", "heat.load")
+simple_linear_regressions_LM_SCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=heat.load, y=Canopy_short)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_SCA_heat.load$chosen_model, aes(x= simple_linear_regressions_LM_SCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Short Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_SCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LM_SCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_SCA_heat.load$chosen_model, aes(x = simple_linear_regressions_LM_SCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LM_SCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and heat.load")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_LCA_heat.load <- simple_linear_regressions("LM", "LCA", "heat.load")
+simple_linear_regressions_LM_LCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_heat.load, y=Canopy_long)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_LCA_heat.load$chosen_model, aes(x= simple_linear_regressions_LM_LCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_LCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LM_LCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_LCA_heat.load$chosen_model, aes(x = simple_linear_regressions_LM_LCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LM_LCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and heat.load")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CA_heat.load <- simple_linear_regressions("LM", "CA", "heat.load")
+simple_linear_regressions_LM_CA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_heat.load, y=Canopy_area)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CA_heat.load$chosen_model, aes(x= simple_linear_regressions_LM_CA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LM_CA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CA_heat.load$chosen_model, aes(x = simple_linear_regressions_LM_CA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LM_CA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and heat.load")
+
+# Calculating the trend line for plotting
+LM_trend_line_CA_heat.load <- predict(loess(LM_fixed_field_data_processed_terrain_dist$Canopy_area ~ LM_fixed_field_data_processed_terrain_dist$LM_heat.load))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_heat.load, y = (LM_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LM_fixed_field_data_processed_terrain_dist$LM_heat.load, y = LM_trend_line_CA_elevation), color = "red") +
+  labs(x = "LM_heat.load", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LM_CS_heat.load <- simple_linear_regressions("LM", "CS", "heat.load")
+simple_linear_regressions_LM_CS_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_heat.load, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_CS_heat.load$chosen_model, aes(x= simple_linear_regressions_LM_CS_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_CS_heat.load$chosen_model, aes(sample = simple_linear_regressions_LM_CS_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_CS_heat.load$chosen_model, aes(x = simple_linear_regressions_LM_CS_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LM_CS_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and heat.load")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_heat.load <- simple_linear_regressions("LM", "DBH", "heat.load")
+simple_linear_regressions_LM_DBH_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=LM_heat.load, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LM_DBH_heat.load$chosen_model, aes(x= simple_linear_regressions_LM_DBH_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LM_DBH_heat.load$chosen_model, aes(sample = simple_linear_regressions_LM_DBH_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LM_DBH_heat.load$chosen_model, aes(x = simple_linear_regressions_LM_DBH_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LM_DBH_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and heat.load")
+
+
+# LC
+
+
+# removing NAs
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  drop_na(heat.load) #removing NAs in elevation 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_SCA_heat.load <- simple_linear_regressions("LC", "SCA", "heat.load")
+simple_linear_regressions_LC_SCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=heat.load..m.FIXED, y=log(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("TWI")+
+  ylab("Logged Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_SCA_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_SCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_SCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LC_SCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_SCA_heat.load$chosen_model, aes(x = simple_linear_regressions_LC_SCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LC_SCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and heat.load")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_LCA_heat.load <- simple_linear_regressions("LC", "LCA", "heat.load")
+simple_linear_regressions_LC_LCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=LC_heat.load, y=log(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load")+
+  ylab("Logged Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_LCA_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_LCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_LCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LC_LCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_LCA_heat.load$chosen_model, aes(x = simple_linear_regressions_LC_LCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LC_LCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and heat.load")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CA_heat.load <- simple_linear_regressions("LC", "CA", "heat.load")
+simple_linear_regressions_LC_CA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=heat.load..m.FIXED, y=log(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("Logged Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CA_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_CA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CA_heat.load$chosen_model, aes(sample = simple_linear_regressions_LC_CA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CA_heat.load$chosen_model, aes(x = simple_linear_regressions_LC_CA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LC_CA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and heat.load")
+
+# Calculating the trend line for plotting
+LC_trend_line_CA_heat.load <- predict(loess(LC_fixed_field_data_processed_terrain_dist$Canopy_area ~ LC_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = LC_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED, y = (LC_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = LC_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED, y = LC_trend_line_CA_heat.load), color = "red") +
+  labs(x = "heat.load", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_LC_CS_heat.load <- simple_linear_regressions("LC", "CS", "heat.load")
+simple_linear_regressions_LC_CS_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=heat.load..m.FIXED, y= log(Crown_spread))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("Logged Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_CS_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_CS_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_CS_heat.load$chosen_model, aes(sample = simple_linear_regressions_LC_CS_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_CS_heat.load$chosen_model, aes(x = simple_linear_regressions_LC_CS_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LC_CS_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and heat.load")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_heat.load <- simple_linear_regressions("LC", "DBH", "heat.load")
+simple_linear_regressions_LC_DBH_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=heat.load..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_LC_DBH_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_DBH_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_LC_DBH_heat.load$chosen_model, aes(x= simple_linear_regressions_LC_DBH_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_LC_DBH_heat.load$chosen_model, aes(x = simple_linear_regressions_LC_DBH_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_LC_DBH_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and heat.load")
+
+
+# SD
+
+# removing NAs
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  drop_na(heat.load) #removing NAs in heat.load 
+
+#SCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_SCA_heat.load <- simple_linear_regressions("SD", "SCA", "heat.load")
+simple_linear_regressions_SD_SCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=SD_heat.load, y=sqrt(Canopy_short))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load")+
+  ylab("Square Root of Short Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_SCA_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_SCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Square Root of Short Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_SCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_SD_SCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_SCA_heat.load$chosen_model, aes(x = simple_linear_regressions_SD_SCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_SD_SCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for SCA and heat.load")
+
+#LCA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_LCA_heat.load <- simple_linear_regressions("SD", "LCA", "heat.load")
+simple_linear_regressions_SD_LCA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=heat.load, y=sqrt(Canopy_long))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("Square root of Long Canopy Axis (m)")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_LCA_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_LCA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Long Canopy Axis vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_LCA_heat.load$chosen_model, aes(sample = simple_linear_regressions_SD_LCA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_LCA_heat.load$chosen_model, aes(x = simple_linear_regressions_SD_LCA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_SD_LCA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for LCA and heat.load")
+
+#CA
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CA_heat.load <- simple_linear_regressions("SD", "CA", "heat.load")
+simple_linear_regressions_SD_CA_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=heat.load..m.FIXED, y=sqrt(Canopy_area))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("Square root of Canopy Area")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CA_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_CA_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Canopy Area vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CA_heat.load$chosen_model, aes(sample = simple_linear_regressions_SD_CA_heat.load$chosen_model$residual))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CA_heat.load$chosen_model, aes(x = simple_linear_regressions_SD_CA_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_SD_CA_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CA and heat.load")
+
+# Calculating the trend line for plotting
+SD_trend_line_CA_heat.load <- predict(loess(SD_fixed_field_data_processed_terrain_dist$Canopy_area ~ SD_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = SD_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED, y = (SD_fixed_field_data_processed_terrain_dist$Canopy_area), color = "blue")) +
+  geom_line(aes(x = SD_fixed_field_data_processed_terrain_dist$heat.load..m.FIXED, y = SD_trend_line_CA_heat.load), color = "red") +
+  labs(x = "heat.load", y = "Canopy Area", title = "Trend Line Plot") +
+  theme_minimal()
+
+#CS
+
+#running the simple linear regression function
+simple_linear_regressions_SD_CS_heat.load <- simple_linear_regressions("SD", "CS", "heat.load")
+simple_linear_regressions_SD_CS_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=heat.load..m.FIXED, y=Crown_spread)))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("Square root of Crown Spread")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_CS_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_CS_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for Crown Spread vs. heat.load")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_CS_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_CS_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_CS_heat.load$chosen_model, aes(x = simple_linear_regressions_SD_CS_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_SD_CS_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for CS and heat.load")
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_heat.load <- simple_linear_regressions("SD", "DBH", "heat.load")
+simple_linear_regressions_SD_DBH_heat.load
+
+#checking linearity 
+
+#plotting the scatterplot and linear model in ggplot
+ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=heat.load..m.FIXED, y=log(DBH_ag))))+ 
+  geom_smooth(method='lm')+
+  geom_point()+
+  xlab("heat.load (m)")+
+  ylab("DBH")
+
+#looking at the normality of residuals with a histogram and qqnorm plot
+
+#histogram
+ggplot(simple_linear_regressions_SD_DBH_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_DBH_heat.load$chosen_model$residuals))+
+  geom_histogram()+
+  labs(title = "Distribution of Residuals for DBH vs. Inverse Distance")+
+  xlab("Residuals")+
+  ylab("Frequency")
+
+#qqnorm plot
+ggplot(simple_linear_regressions_SD_DBH_heat.load$chosen_model, aes(x= simple_linear_regressions_SD_DBH_heat.load$chosen_model$residuals))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = simple_linear_regressions_SD_DBH_heat.load$chosen_model, aes(x = simple_linear_regressions_SD_DBH_heat.load$chosen_model$fitted.values, y = simple_linear_regressions_SD_DBH_heat.load$chosen_model$residual))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values for DBH and heat.load")
+
+
+
+#### Comparing the means of the explanatory variables ####
+
+#creating a dataframe with the explanatory variables across all the populations for the comparison of means
+means_fixed_field_data_processed_terrain_dist <- tibble(Elevation..m.FIXED = c(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                               LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                               SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        slope_raster_15_data_pts = c(LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                               LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                               SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        Eastness = c(LM_fixed_field_data_processed_terrain_dist$LM_Eastness[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                     LC_fixed_field_data_processed_terrain_dist$LC_Eastness[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                     SD_fixed_field_data_processed_terrain_dist$SD_Eastness[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        Northness = c(LM_fixed_field_data_processed_terrain_dist$LM_Northness[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                     LC_fixed_field_data_processed_terrain_dist$LC_Northness[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                     SD_fixed_field_data_processed_terrain_dist$SD_Northness[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        TWI_values = c(LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                      LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                      SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        heat.load = c(LM_fixed_field_data_processed_terrain_dist$heat.load[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                       LC_fixed_field_data_processed_terrain_dist$heat.load[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                       SD_fixed_field_data_processed_terrain_dist$heat.load[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        d = c(LM_fixed_field_data_processed_terrain_dist$d[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                       LC_fixed_field_data_processed_terrain_dist$d[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                       SD_fixed_field_data_processed_terrain_dist$d[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]),
+                                                        Locality = c(LM_fixed_field_data_processed_terrain_dist$Locality[LM_fixed_field_data_processed_terrain_dist$Locality == "LM"],
+                                                                     LC_fixed_field_data_processed_terrain_dist$Locality[LC_fixed_field_data_processed_terrain_dist$Locality == "LC"],
+                                                                     SD_fixed_field_data_processed_terrain_dist$Locality[SD_fixed_field_data_processed_terrain_dist$Locality == "SD"]))
+
+
+#elevation
+ggplot()+
+  labs(title = "Elevation Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+   theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Elevation..m.FIXED ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Elevation..m.FIXED ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+#slope
+ggplot()+
+  labs(title = "Slope Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, slope_raster_15_data_pts), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(slope_raster_15_data_pts ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(slope_raster_15_data_pts ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$slope_raster_15_data_pts, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+#Eastness
+
+ggplot()+
+  labs(title = "Eastness Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Eastness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Eastness ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Eastness ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$Eastness, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+#northness
+ggplot()+
+  labs(title = "Northness Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Northness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Northness ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Northness ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$Northness, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+#TWI
+ggplot()+
+  labs(title = "TWI Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, TWI_values), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(TWI_values ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(TWI_values ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$TWI_values, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+#distance
+
+ggplot()+
+  labs(title = "Distance Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, d), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(d ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(d ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$d, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+#Heat load index
+
+ggplot()+
+  labs(title = "HLI Across Population")+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(heat.load ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(heat.load ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$heat.load, means_fixed_field_data_processed_terrain_dist$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
 

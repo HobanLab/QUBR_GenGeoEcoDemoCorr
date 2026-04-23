@@ -1023,6 +1023,73 @@ ggplot(aes(x = fct_reorder(Shape.Size, P_Value), y = Significance, fill = P_Valu
         plot.subtitle = element_text(size = 12))
 
 
+#### Comparing if there is a significant difference between sand available water for and LM and clay/loam available water for SD ####
+
+#creating available water column that allows for a mix of sand and clay/loam available water
+fixed_field_data_processed_trees_soils <- fixed_field_data_processed_trees_soils %>%
+  mutate(available_water_0.5 = case_when(Locality == "LM" ~ sandy_avail_water_0.5,
+                                         Locality == "LC" ~ sandy_avail_water_0.5,
+                                         Locality == "SD" ~ clay_loam_avail_water_0.5),
+         available_water_100.200 = case_when(Locality == "LM" ~ sandy_avail_water_100.200,
+                                             Locality == "LC" ~ sandy_avail_water_100.200,
+                                             Locality == "SD" ~ clay_loam_avail_water_100.200))
+
+
+#0.5 cm available water
+ggplot()+
+  labs(y = "Available Water", title = "Blue is 0.5 cm, SD is clay/Loam and LM/LC is sand")+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, available_water_0.5), fill = "light blue")+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "LM"), aes(Locality, sandy_avail_water_0.5), fill = "light blue")+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "LC"), aes(Locality, sandy_avail_water_0.5), fill = "light blue")+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "SD"), aes(Locality, clay_loam_avail_water_0.5), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(available_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(available_water_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils$available_water_0.5, fixed_field_data_processed_trees_soils$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+#100-200 cm boxplots to show the spread of data
+ggplot()+
+  labs(y = "Available Water", title = "100.200 Available Water, SD is clay/Loam and LM/LC is sand")+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, available_water_100.200), fill = "light blue")+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "LM"), aes(Locality, sandy_avail_water_100.200))+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "LC"), aes(Locality, sandy_avail_water_100.200))+
+  # geom_boxplot(data = subset(fixed_field_data_processed_trees_soils, Locality == "SD"), aes(Locality, clay_loam_avail_water_100.200))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_100.200 <- aov(available_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+hist(anova_available_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(available_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils$available_water_100.200, fixed_field_data_processed_trees_soils$Locality,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
