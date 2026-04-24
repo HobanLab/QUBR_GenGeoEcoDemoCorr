@@ -1080,15 +1080,90 @@ post_hoc <- pairwise.wilcox.test(fixed_field_data_processed_trees_soils$availabl
 post_hoc
 
 
+#### Plotting the Soil Classifications of the Different Populations ####
+
+#installing/loading in the package 
+devtools::install_github("Saryace/ggsoiltexture")
+library(ggsoiltexture)
+
+#creating a dataframe with a copy of the fixed_field_data_processed_trees_soils dataframe
+fixed_field_data_processed_trees_soils.texture.triangle <- fixed_field_data_processed_trees_soils
+
+
+#converting them from g/kg to percentage (%)
+fixed_field_data_processed_trees_soils.texture.triangle <- fixed_field_data_processed_trees_soils.texture.triangle %>%
+  mutate(clay.content.0.5.perc = round(clay.content.0.5/10, digits = 0)) %>%
+  mutate(silt.0.5.perc = round(silt.0.5/10, digits = 0)) %>%
+  mutate(sand.0.5.perc = round(sand.0.5/10, digits = 0)) %>%
+  mutate(clay.content.100.200.perc = round(clay.content.100.200/10, digits = 0)) %>%
+  mutate(silt.100.200.perc = round(silt.100.200/10, digits = 0)) %>%
+  mutate(sand.100.200.perc = round(sand.100.200/10, digits = 0))
+
+#fixing column names so they will be usable for the soil texture triangle 
+fixed_field_data_processed_trees_soils.texture.triangle.0.5 <- fixed_field_data_processed_trees_soils.texture.triangle %>%
+  rename(clay = clay.content.0.5.perc) %>%
+  rename(silt = silt.0.5.perc) %>%
+  rename(sand = sand.0.5.perc)
+
+remove <- which(fixed_field_data_processed_trees_soils.texture.triangle.0.5$clay+fixed_field_data_processed_trees_soils.texture.triangle.0.5$silt+fixed_field_data_processed_trees_soils.texture.triangle.0.5$sand != 100)
+fixed_field_data_processed_trees_soils.texture.triangle.0.5 <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[-c(remove),]
+
+
+plot.0.5 <- 
+  ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.0.5, class = "USDA") +
+  geom_point(aes(color = Locality), size = 1) +
+  scale_color_discrete(type = "viridis")+
+  labs(title = "Soi Texture 0-5 cm")
+
+plot.0.5
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- st_drop_geometry(fixed_field_data_processed_trees_soils.texture.triangle.100.200)
+#fixing column names so they will be usable for the soil texture triangle 
+fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_data_processed_trees_soils.texture.triangle %>%
+  rename(clay = clay.content.100.200.perc) %>%
+  rename(silt = silt.100.200.perc) %>%
+  rename(sand = sand.100.200.perc)
+
+remove <- which(fixed_field_data_processed_trees_soils.texture.triangle.100.200$clay+fixed_field_data_processed_trees_soils.texture.triangle.100.200$silt+fixed_field_data_processed_trees_soils.texture.triangle.100.200$sand != 100)
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[1],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[1],] %>%
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] %>%
+  mutate(clay = 17) %>%
+  mutate(silt = 15) %>%
+  mutate(sand = 68)
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[3],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[3],] %>%
+  mutate(clay = 16.3) %>%
+  mutate(silt = 15.5) %>%
+  mutate(sand = 68.2)
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[4],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[4],] %>%
+  mutate(clay = 15.5) %>%
+  mutate(silt = 15.7) %>%
+  mutate(sand = 68.8)
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] %>%
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
 
 
 
 
+fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[-c(remove),]
 
 
+plot.100.200 <- 
+  ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.100.200, class = "USDA") +
+  geom_point(aes(color = Locality), size = 1) +
+  scale_color_discrete(type = "viridis")+
+  labs(title = "Soil Texture 100-200 cm")
 
-
-
+plot.100.200
 
 
 
