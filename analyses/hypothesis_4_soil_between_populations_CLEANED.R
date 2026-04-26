@@ -45,7 +45,7 @@ library(ggnewscale) #to be able to assign different colors to different layered 
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run the line below, line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
-#source("./analyses/Data_Processing_Script.R")
+# source("./analyses/Data_Processing_Script.R")
 
 #### Choosing a Random Tree per Grid Cell ####
 
@@ -1089,7 +1089,6 @@ library(ggsoiltexture)
 #creating a dataframe with a copy of the fixed_field_data_processed_trees_soils dataframe
 fixed_field_data_processed_trees_soils.texture.triangle <- fixed_field_data_processed_trees_soils
 
-
 #converting them from g/kg to percentage (%)
 fixed_field_data_processed_trees_soils.texture.triangle <- fixed_field_data_processed_trees_soils.texture.triangle %>%
   mutate(clay.content.0.5.perc = round(clay.content.0.5/10, digits = 0)) %>%
@@ -1099,16 +1098,71 @@ fixed_field_data_processed_trees_soils.texture.triangle <- fixed_field_data_proc
   mutate(silt.100.200.perc = round(silt.100.200/10, digits = 0)) %>%
   mutate(sand.100.200.perc = round(sand.100.200/10, digits = 0))
 
+## 0-5 cm
+
 #fixing column names so they will be usable for the soil texture triangle 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5 <- fixed_field_data_processed_trees_soils.texture.triangle %>%
   rename(clay = clay.content.0.5.perc) %>%
   rename(silt = silt.0.5.perc) %>%
   rename(sand = sand.0.5.perc)
 
+#make a list of the rows that have silt, clay, and sand percentages that do not add to 100%
 remove <- which(fixed_field_data_processed_trees_soils.texture.triangle.0.5$clay+fixed_field_data_processed_trees_soils.texture.triangle.0.5$silt+fixed_field_data_processed_trees_soils.texture.triangle.0.5$sand != 100)
-fixed_field_data_processed_trees_soils.texture.triangle.0.5 <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[-c(remove),]
 
 
+#replacing sand, silt, clay values to get a total of 100
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[1],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[1],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = 70.4)
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[2],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[2],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = 17.7) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[3],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[3],] %>%
+  mutate(clay = 11) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[4],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[4],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = 70.7)
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[5],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[5],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = 18.2) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[6],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[6],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[7],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[7],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[8],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[8],] %>%
+  mutate(clay = 16.2) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[9],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[9],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = 66.6)
+
+fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[10],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[10],] %>%
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
+  mutate(sand = round(sand.0.5/10, digits = 1))
+
+#plotting the soil texture triangle
 plot.0.5 <- 
   ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.0.5, class = "USDA") +
   geom_point(aes(color = Locality), size = 1) +
@@ -1117,7 +1171,10 @@ plot.0.5 <-
 
 plot.0.5
 
+## 100-200 cm
+
 fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- st_drop_geometry(fixed_field_data_processed_trees_soils.texture.triangle.100.200)
+
 #fixing column names so they will be usable for the soil texture triangle 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_data_processed_trees_soils.texture.triangle %>%
   rename(clay = clay.content.100.200.perc) %>%
@@ -1151,10 +1208,29 @@ fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] <- f
   mutate(silt = round(silt.100.200/10, digits = 1)) %>%
   mutate(sand = round(sand.100.200/10, digits = 1))
 
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[6],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[6],] %>%
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[7],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[7],] %>%
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = 17.5) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[8],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[8],] %>%
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[9],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[9],] %>%
+  mutate(clay = 22.3) %>%
+  mutate(silt = 17.3) %>%
+  mutate(sand = 60.4)
 
 
 
-fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[-c(remove),]
+#fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[-c(remove),]
 
 
 plot.100.200 <- 
