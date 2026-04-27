@@ -77,6 +77,10 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
+
+population = "SD"
+size_variable = "DBH"
+explanatory_var = "TWI_values"
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
   
   #removing NAs 
@@ -5210,7 +5214,7 @@ simple_linear_regressions_SD_DBH_TWI_values
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=TWI_values..m.FIXED, y=log(DBH_ag))))+ 
+ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=SD_TWI_values, y=log(DBH_ag))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("TWI_values (m)")+
@@ -5236,6 +5240,16 @@ ggplot(data = simple_linear_regressions_SD_DBH_TWI_values$chosen_model, aes(x = 
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and TWI_values")
+
+# Calculating the trend line for plotting
+SD_trend_line_DBH_slope <- predict(loess(SD_fixed_field_data_processed_terrain_dist$DBH_ag ~ SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts))
+
+# Creating a trend line plot
+ggplot() +
+  geom_point(aes(x = SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts, y = (SD_fixed_field_data_processed_terrain_dist$DBH_ag), color = "blue")) +
+  geom_line(aes(x = SD_fixed_field_data_processed_terrain_dist$sd_slope_raster_15_data_pts, y = SD_trend_line_DBH_slope), color = "red") +
+  labs(x = "Slope", y = "DBH", title = "Trend Line Plot") +
+  theme_minimal()
 
 
 #### Sizes vs. Eastness ####
