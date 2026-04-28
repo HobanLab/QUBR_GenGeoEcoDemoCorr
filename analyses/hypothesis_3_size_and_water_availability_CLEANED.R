@@ -7217,4 +7217,4 @@ test
 post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$heat.load, means_fixed_field_data_processed_terrain_dist$Locality,
                                  p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 post_hoc
-
+#hello
