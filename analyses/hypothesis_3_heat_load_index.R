@@ -3192,5 +3192,81 @@ AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.6)
 #overall best model: SD_add.gam_DBH.terrain_dist.dredge.6 
 
 
+#### Session Info ####
+# 
+# R version 4.4.3 (2025-02-28)
+# Platform: aarch64-apple-darwin20
+# Running under: macOS Sequoia 15.2
+# 
+# Matrix products: default
+# BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+# LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+# 
+# locale:
+#   [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+# 
+# time zone: America/New_York
+# tzcode source: internal
+# 
+# attached base packages:
+#   [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#   [1] lmtest_0.9-40          zoo_1.8-15             gdalUtilities_1.2.5   
+# [4] car_3.1-5              carData_3.0-6          googledrive_2.1.1     
+# [7] spdep_1.3-10           spData_2.3.4           performance_0.16.0    
+# [10] ggsoiltexture_1.1.1    whitebox_2.4.3         spatialEco_2.0-3      
+# [13] visreg_2.7.0           MuMIn_1.48.11          plotly_4.10.4         
+# [16] mgcv_1.9-1             tmaptools_3.2          geostatsp_2.0.8       
+# [19] terra_1.8-29           Matrix_1.7-2           starsExtra_0.2.8      
+# [22] stars_0.6-8            abind_1.4-8            ggnewscale_0.5.1      
+# [25] rstatix_0.7.2          raster_3.6-32          sp_2.2-1              
+# [28] spatstat_3.3-1         spatstat.linnet_3.2-5  spatstat.model_3.3-4  
+# [31] rpart_4.1.24           spatstat.explore_3.5-2 nlme_3.1-167          
+# [34] spatstat.random_3.4-1  spatstat.geom_3.5-0    spatstat.univar_3.1-4 
+# [37] spatstat.data_3.1-6    geomtextpath_0.1.5     PMCMRplus_1.9.12      
+# [40] ggpmisc_0.6.1          ggpp_0.5.8-1           smatr_3.4-8           
+# [43] sf_1.0-24              moments_0.14.1         lubridate_1.9.4       
+# [46] forcats_1.0.0          stringr_1.6.0          dplyr_1.2.0           
+# [49] purrr_1.2.1            readr_2.2.0            tidyr_1.3.2           
+# [52] tibble_3.3.1           ggplot2_4.0.2          tidyverse_2.0.0       
+# [55] emmeans_2.0.2         
+# 
+# loaded via a namespace (and not attached):
+#   [1] RColorBrewer_1.1-3    wk_0.9.4              rstudioapi_0.18.0    
+# [4] jsonlite_2.0.0        magrittr_2.0.4        TH.data_1.1-5        
+# [7] estimability_1.5.1    spatstat.utils_3.1-5  SuppDists_1.1-9.8    
+# [10] farver_2.1.2          fs_1.6.7              vctrs_0.7.2          
+# [13] memoise_2.0.1         usethis_3.2.1         htmltools_0.5.9      
+# [16] polynom_1.4-1         curl_6.2.1            broom_1.0.12         
+# [19] s2_1.1.7              BWStest_0.2.3         Formula_1.2-5        
+# [22] KernSmooth_2.23-26    htmlwidgets_1.6.4     sandwich_3.1-1       
+# [25] cachem_1.1.0          igraph_2.2.2          lifecycle_1.0.5      
+# [28] pkgconfig_2.0.3       R6_2.6.1              fastmap_1.2.0        
+# [31] digest_0.6.39         numDeriv_2016.8-1.1   colorspace_2.1-2     
+# [34] tensor_1.5            pkgload_1.4.1         nngeo_0.4.8          
+# [37] textshaping_1.0.0     labeling_0.4.3        lwgeom_0.2-14        
+# [40] spatstat.sparse_3.1-0 timechange_0.3.0      httr_1.4.7           
+# [43] polyclip_1.10-7       compiler_4.4.3        gargle_1.5.2         
+# [46] remotes_2.5.0         proxy_0.4-27          withr_3.0.2          
+# [49] backports_1.5.0       DBI_1.2.3             pkgbuild_1.4.8       
+# [52] MASS_7.3-64           quantreg_6.1          sessioninfo_1.2.3    
+# [55] classInt_0.4-11       tools_4.4.3           units_0.8-6          
+# [58] goftest_1.2-3         glue_1.8.0            grid_4.4.3           
+# [61] generics_0.1.4        gtable_0.3.6          tzdb_0.5.0           
+# [64] class_7.3-23          data.table_1.17.0     hms_1.1.4            
+# [67] pillar_1.11.1         splines_4.4.3         lattice_0.22-9       
+# [70] survival_3.8-3        gmp_0.7-5             deldir_2.0-4         
+# [73] SparseM_1.84-2        tidyselect_1.2.1      stats4_4.4.3         
+# [76] devtools_2.4.6        stringi_1.8.7         boot_1.3-31          
+# [79] lazyeval_0.2.2        codetools_0.2-20      kSamples_1.2-10      
+# [82] multcompView_0.1-10   cli_3.6.5             xtable_1.8-4         
+# [85] systemfonts_1.2.3     munsell_0.5.1         dichromat_2.0-0.1    
+# [88] Rcpp_1.1.1            coda_0.19-4.1         XML_3.99-0.20        
+# [91] parallel_4.4.3        ellipsis_0.3.2        MatrixModels_0.5-4   
+# [94] Rmpfr_1.0-0           viridisLite_0.4.3     mvtnorm_1.3-6        
+# [97] scales_1.4.0          e1071_1.7-16          insight_1.4.6        
+# [100] crayon_1.5.3          rlang_1.1.7           multcomp_1.4-30  
+# 
 
 
