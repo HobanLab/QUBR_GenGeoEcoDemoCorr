@@ -70,6 +70,7 @@ library(plotly) #to 3d plot variables
 library(MuMIn) #to be able to use dredge
 library(visreg) # to be able to plot Aspect/categorical variables with GAM
 library(spatialEco) # for heat load index function
+library(geosphere) # for finding the distance of populations to the coast
 
 #### Loading and processing relevant data ####
 
@@ -293,6 +294,15 @@ SD_box <- st_bbox(river_SD_trans)
 # CEM_15_utm <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm.tif"))
 # 
 # plot(CEM_15_utm) # just to visualize the raster
+
+# #cropping the rasters for each population
+# 
+# #all points
+# 
+# # #mapping cropped 
+# CEM_15_utm_all_populations <- crop(CEM_15_utm, extent((c(500000, 700000, 2500000, 2700000))))
+# plot(CEM_15_utm_all_populations) # just to visualize the raster
+# # 
 # 
 # #cropping the rasters for each population
 # 
@@ -337,6 +347,7 @@ SD_box <- st_bbox(river_SD_trans)
 #   geom_sf(data = SD_fixed_field_data_processed)
 
 # #exporting this cropped rasters as a tif
+# writeRaster(CEM_15_utm_all_populations,'./data/15m_Elevation_Raster/CEM_15_utm_all_populations.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
 # writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
 # writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LC.tif')
 # writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_SD.tif')
@@ -354,6 +365,9 @@ SD_box <- st_bbox(river_SD_trans)
 # plot(CEM_15_utm)
 
 #Importing the cropped rasters for LM, LC, and SD and setting the crs to the same as the points
+CEM_15_utm_all_populations <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm_all_populations.tif"))
+terra::crs(CEM_15_utm_all_populations) <- CRS("EPSG:26912")
+
 CEM_15_utm_LM <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif"))
 terra::crs(CEM_15_utm_LM) <- CRS("EPSG:26912")
 
@@ -1084,6 +1098,46 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
 whitebox::install_whitebox(force = TRUE) #if you run into issues with whitebox tools not working, first try re-installing it
 library(whitebox)
 
+## All Points
+
+#writing the raster to a tif file
+writeRaster(CEM_15_utm_all_points, filename = "./data/15m_Elevation_Raster/CEM_15_utm_all_points.tif", overwrite = TRUE)
+
+
+# 1. we fill in the depressions in the DEM
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_all_points.tif")
+out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_all_points.tif"), )
+
+# 2. we want to create a slope raster using the filled DEM raster even though we already have slope rasters
+wbt_slope(dem = "./data/topographic_wetness_index/dem_filled_all_points.tif", output = "./data/topographic_wetness_index/slope_all_points.tif")
+
+# 3. we create the specific contributing area
+# we are using the deterministic 8 which factors in the eight immediate neighbors 
+wbt_d8_flow_accumulation(input = "./data/topographic_wetness_index/dem_filled_all_points.tif", output = "./data/topographic_wetness_index/spec_catch_area_all_points.tif", out_type = 'specific contributing area')
+
+# 4. we create the topographic wetness index raster
+wbt_wetness_index(sca = "./data/topographic_wetness_index/spec_catch_area_all_points.tif", slope = "./data/topographic_wetness_index/slope_all_points.tif", output = "./data/topographic_wetness_index/twi_all_points.tif")
+
+#importing the rasters and setting the crs
+
+#filled DEM
+dem_filled_all_points <- raster(paste0("./data/topographic_wetness_index/dem_filled_all_points.tif"))
+terra::crs(dem_filled_all_points) <- CRS("EPSG:26912")
+
+#slope
+slope_all_points <- raster(paste0("./data/topographic_wetness_index/slope_all_points.tif"))
+terra::crs(slope_all_points) <- CRS("EPSG:26912")
+
+#specific catchment area
+spec_catch_area_all_points <- raster(paste0("./data/topographic_wetness_index/spec_catch_area_all_points.tif"))
+terra::crs(spec_catch_area_all_points) <- CRS("EPSG:26912")
+
+#topographic wetness index
+twi_all_points <- raster(paste0("./data/topographic_wetness_index/twi_all_points.tif"))
+terra::crs(twi_all_points) <- CRS("EPSG:26912")
+
+
 ## LM
 
 # 1. we fill in the depressions in the DEM
@@ -1296,6 +1350,16 @@ SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_ter
 #meaning we could potentially avoid those less informative variables in future analysis
 
 #the index is 0-1 (cold/northeast to 1 hot/southwest aspects)
+
+# All Points
+
+#need to make sure the DEM is a spatraster for the heat load index function
+CEM_15_utm_all_points <- as(CEM_15_utm_all_points, "SpatRaster")
+
+#creating the heat load index raster
+heat.load.raster.all.points <- hli(CEM_15_utm_all_points, #our LM DEM 
+                           check = TRUE, #check for projection integrity and calculate central latitude for non-geographic projections
+                           force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
 
 # LM
 
@@ -1575,6 +1639,9 @@ sandy_avail_water_100.200_utm <- vol_wat_33kpa_200_utm - vol_wat_1500kpa_200_utm
 clay_loam_avail_water_0.5_utm <- vol_wat_10kpa_05_utm - vol_wat_1500kpa_05_utm # Clay/Loam Available Water 0-5 cm
 clay_loam_avail_water_100.200_utm <- vol_wat_10kpa_200_utm - vol_wat_1500kpa_200_utm # Clay/Loam Available Water 100-200 cm
 
+nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
+
+"Elevation", "Slope", "Eastness", "Northness", "TWI", "HLI", "Distance to River"
 
 ## cropping the soil metrics to bounding boxes around each population ##
 
@@ -1796,6 +1863,62 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
+#### Creating All Population Slope, Aspect, TWI, HLI ####
+
+#extracting the slope in degrees, using the queens method (neighbor = 8)
+all_populations_slope_raster_15 <- terra::terrain(CEM_15_utm_all_populations, unit = 'degrees', neighbors = 8, 'slope')
+
+#extracting the aspect in degrees, using the queens method (neighbor = 8)
+all_populations_aspect_raster_15 <- terra::terrain(CEM_15_utm_all_populations, unit = 'degrees', neighbors = 8, 'aspect')
+
+
+## TWI
+
+# 1. we fill in the depressions in the DEM
+dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_all_populations.tif")
+out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
+wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_all_populations.tif"), )
+
+# 2. we want to create a slope raster using the filled DEM raster even though we already have slope rasters
+wbt_slope(dem = "./data/topographic_wetness_index/dem_filled_all_populations.tif", output = "./data/topographic_wetness_index/slope_all_populations.tif")
+
+# 3. we create the specific contributing area
+# we are using the deterministic 8 which factors in the eight immediate neighbors 
+wbt_d8_flow_accumulation(input = "./data/topographic_wetness_index/dem_filled_all_populations.tif", output = "./data/topographic_wetness_index/spec_catch_area_all_populations.tif", out_type = 'specific contributing area')
+
+# 4. we create the topographic wetness index raster
+wbt_wetness_index(sca = "./data/topographic_wetness_index/spec_catch_area_all_populations.tif", slope = "./data/topographic_wetness_index/slope_all_populations.tif", output = "./data/topographic_wetness_index/twi_all_populations.tif")
+
+#importing the rasters and setting the crs
+
+#filled DEM
+dem_filled_all_populations <- raster(paste0("./data/topographic_wetness_index/dem_filled_all_populations.tif"))
+terra::crs(dem_filled_all_populations) <- CRS("EPSG:26912")
+
+#slope
+slope_all_populations <- raster(paste0("./data/topographic_wetness_index/slope_all_populations.tif"))
+terra::crs(slope_all_populations) <- CRS("EPSG:26912")
+
+#specific catchment area
+spec_catch_area_all_populations <- raster(paste0("./data/topographic_wetness_index/spec_catch_area_all_populations.tif"))
+terra::crs(spec_catch_area_all_populations) <- CRS("EPSG:26912")
+
+#topographic wetness index
+twi_all_populations <- raster(paste0("./data/topographic_wetness_index/twi_all_populations.tif"))
+terra::crs(twi_all_populations) <- CRS("EPSG:26912")
+
+
+# HLI 
+
+#need to make sure the DEM is a spatraster for the heat load index function
+CEM_15_utm_all_populations <- as(CEM_15_utm_all_populations, "SpatRaster")
+
+#creating the heat load index raster
+heat.load.raster.all.pops <- hli(CEM_15_utm_all_populations, #our LM DEM 
+                                 check = TRUE, #check for projection integrity and calculate central latitude for non-geographic projections
+                                 force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
+
+
 #### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
 
 #downloading the data containing the locations (lat/lon) of the 20 known populations
@@ -1976,6 +2099,12 @@ clay_loam_avail_water_0.5_all_pop <- mask(clay_loam_avail_water_0.5_clipped, cla
 clay_loam_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
 clay_loam_avail_water_100.200_clipped <- crop(clay_loam_avail_water_100.200_utm, clay_loam_avail_water_100.200_bbox_poly_buffered) # Crop the raster by the polygon
 clay_loam_avail_water_100.200_all_pop <- mask(clay_loam_avail_water_100.200_clipped, clay_loam_avail_water_100.200_bbox_poly_buffered) # Mask the raster by the polygon
+# Elevation
+clay_loam_avail_water_100.200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(clay_loam_avail_water_100.200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
+clay_loam_avail_water_100.200_clipped <- crop(clay_loam_avail_water_100.200_utm, clay_loam_avail_water_100.200_bbox_poly_buffered) # Crop the raster by the polygon
+clay_loam_avail_water_100.200_all_pop <- mask(clay_loam_avail_water_100.200_clipped, clay_loam_avail_water_100.200_bbox_poly_buffered) # Mask the raster by the polygon
+
+
 
 #Plotting a confirmation that we properly cropped the rasters by plotting the clay rasters (blue) with the cropped polygon (green) around it
 ggplot()+
@@ -2025,6 +2154,27 @@ all_known_pop_soil_nitrogen <- raster::extract(soil_stack_nitrogen, all_pop_loca
 all_known_pop_soil_soc <- raster::extract(soil_stack_soc, all_pop_locations.df_sf_trans_coordinates) # extracting soil organic carbon
 all_known_pop_soil_sandy_water <- raster::extract(soil_stack_sandy_water, all_pop_locations.df_sf_trans_coordinates) # extracting
 all_known_pop_soil_clay_loam_water <- raster::extract(soil_stack_clay_loam_water, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_elevation <- raster::extract(CEM_15_utm_all_populations, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_slope <- raster::extract(all_populations_slope_raster_15, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_aspect <- raster::extract(all_populations_aspect_raster_15, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_TWI <- raster::extract(twi_all_populations, all_pop_locations.df_sf_trans_coordinates) # extracting
+all_known_pop_soil_HLI <- raster::extract(heat.load.raster.all.pops, all_pop_locations.df_sf_trans_coordinates) # extracting
+
+
+# All Points
+
+#creating the eastness and northness values
+all_populations_aspect_raster_15
+#first, converting aspect values to radian
+all_known_pop_soil_aspect_radian = ((all_known_pop_soil_aspect * pi) / 180) # creating a column that is the radians
+  
+#creating eastness
+all_known_pop_soil_eastness = sin(all_known_pop_soil_aspect_radian) # creating the eastness column
+
+#creating northness
+all_known_pop_soil_northness = cos(all_known_pop_soil_aspect_radian) # creating the northness column
+
+
 
 #combine all of the extracted population soil textures data across all soil metrics
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #adding clay to the dataframe
@@ -2040,12 +2190,45 @@ all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_vol_wat_150
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_nitrogen) #adding nitrogen to the dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_soc) #adding soil organic carbon to the dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_sandy_water) #adding sandy available water to the dataframe
-all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_clay_loam_water) #adding clay/loam available water to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_clay_loam_water) #adding clay/loam available waterr to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_elevation) #adding elevation to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_slope) #adding slope to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_eastness) #adding eastness to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_northness) #adding northness to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_aspect) #adding aspect to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_TWI) #adding topographic wetness index to the dataframe
+all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_HLI) #adding heat load index to the dataframe
 
 #correcting column names for clarity
 all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_0.5 = layer.1) %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
-  mutate(clay_loam_avail_water_100.200 = layer.2.1) 
+  mutate(clay_loam_avail_water_100.200 = layer.2.1)  %>%
+  mutate(all_known_pop_soil_HLI = lyr.1)
+
+
+## Creating the distance to coast column ##
+
+#plotting the original extent of the BCS polygon, the buffered polygon, the cropped extent, and the 20 population points
+ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=bbox_poly_buffered)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
+#  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances
+all_pop_locations.df_sf_trans_coordinates_sp <- st_transform(all_pop_locations.df_sf_trans_coordinates, crs = 4326)
+all_pop_locations.df_sf_trans_coordinates_sp <- as(st_geometry(all_pop_locations.df_sf_trans_coordinates_sp$geometry), "Spatial")
+
+#  converting the BCS polygon to spatial data with longitudes and latitudes to be able to calculate distances
+BCS_polygon_UTM_sp_coast <- st_transform(BCS_polygon_UTM, crs = 4326)
+BCS_polygon_UTM_sp_coast <- as(st_geometry(BCS_polygon_UTM_sp_coast), "Spatial")
+
+# calculates the shortest distance (meters) of each population to the coast
+Distance <- dist2Line(p = all_pop_locations.df_sf_trans_coordinates_sp, 
+                       line = BCS_polygon_UTM_sp_coast)
+
+# add the distance to coast column 
+all_known_pop_soils <- cbind(all_known_pop_soils, Distance)
 

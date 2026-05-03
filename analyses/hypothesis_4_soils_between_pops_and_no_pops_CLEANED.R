@@ -47,12 +47,66 @@ library(ggnewscale) #to be able to assign different colors to different layered 
 # NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
 #source("./analyses/Data_Processing_Script.R")
 
-## Finalizing the tree soil metric dataframe
+## Finalizing the tree soil metric/terrain dataframe
 
-#combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell
+#combining the LM, LC, and SD tree dataframes with the soil metrics and terrain data and randomly chosen points within each grid cell
 
-fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_soils, LC_fixed_field_data_processed_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+LM_fixed_field_data_processed_terrain_dist_soils <- cbind(LM_fixed_field_data_processed_terrain_dist, LM_fixed_field_data_processed_soils)
+LC_fixed_field_data_processed_terrain_dist_soils <- cbind(LC_fixed_field_data_processed_terrain_dist, LC_fixed_field_data_processed_soils)
+SD_fixed_field_data_processed_terrain_dist_soils <- cbind(SD_fixed_field_data_processed_terrain_dist, SD_fixed_field_data_processed_soils)
+
+#fixing column names to be able to merge dataframes
+LM_fixed_field_data_processed_terrain_dist_soils <- LM_fixed_field_data_processed_terrain_dist_soils %>%
+  mutate(aspect_raster_15_data_pts = LM_aspect_raster_15_data_pts) %>%
+  mutate(slope_raster_15_data_pts = LM_slope_raster_15_data_pts) %>%
+  mutate(elevation_raster_15_data_pts = LM_elevation_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts = LM_aspect_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts_8_categorical = LM_aspect_raster_15_data_pts_8_categorical) %>%
+  mutate(aspect_raster_15_data_pts_4_categorical = LM_aspect_raster_15_data_pts_4_categorical) %>%
+  mutate(aspect_raster_15_data_pts_radian = LM_aspect_raster_15_data_pts_radian) %>%
+  mutate(Eastness = LM_Eastness) %>%
+  mutate(Northness = LM_Northness) %>%
+  mutate(TWI_values = LM_TWI_values)  %>%
+  select(-c("LM_slope_raster_15_data_pts", "LM_elevation_raster_15_data_pts", "LM_aspect_raster_15_data_pts",
+            "LM_aspect_raster_15_data_pts_8_categorical", "LM_aspect_raster_15_data_pts_4_categorical",
+            "LM_aspect_raster_15_data_pts_radian", "LM_Eastness", "LM_Northness", "LM_TWI_values"))
+
+#fixing column names to be able to merge dataframes
+LC_fixed_field_data_processed_terrain_dist_soils <- LC_fixed_field_data_processed_terrain_dist_soils %>%
+  mutate(aspect_raster_15_data_pts = LC_aspect_raster_15_data_pts) %>%
+  mutate(slope_raster_15_data_pts = LC_slope_raster_15_data_pts) %>%
+  mutate(elevation_raster_15_data_pts = LC_elevation_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts = LC_aspect_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts_8_categorical = LC_aspect_raster_15_data_pts_8_categorical) %>%
+  mutate(aspect_raster_15_data_pts_4_categorical = LC_aspect_raster_15_data_pts_4_categorical) %>%
+  mutate(aspect_raster_15_data_pts_radian = LC_aspect_raster_15_data_pts_radian) %>%
+  mutate(Eastness = LC_Eastness) %>%
+  mutate(Northness = LC_Northness) %>%
+  mutate(TWI_values = LC_TWI_values) %>%
+  select(-c("LC_slope_raster_15_data_pts", "LC_elevation_raster_15_data_pts", "LC_aspect_raster_15_data_pts",
+            "LC_aspect_raster_15_data_pts_8_categorical", "LC_aspect_raster_15_data_pts_4_categorical",
+            "LC_aspect_raster_15_data_pts_radian", "LC_Eastness", "LC_Northness", "LC_TWI_values"))
+
+#fixing column names to be able to merge dataframes
+SD_fixed_field_data_processed_terrain_dist_soils <- SD_fixed_field_data_processed_terrain_dist_soils %>%
+  mutate(aspect_raster_15_data_pts = SD_aspect_raster_15_data_pts) %>%
+  mutate(slope_raster_15_data_pts = SD_slope_raster_15_data_pts) %>%
+  mutate(elevation_raster_15_data_pts = SD_elevation_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts = SD_aspect_raster_15_data_pts) %>%
+  mutate(aspect_raster_15_data_pts_8_categorical = SD_aspect_raster_15_data_pts_8_categorical) %>%
+  mutate(aspect_raster_15_data_pts_4_categorical = SD_aspect_raster_15_data_pts_4_categorical) %>%
+  mutate(aspect_raster_15_data_pts_radian = SD_aspect_raster_15_data_pts_radian) %>%
+  mutate(Eastness = SD_Eastness) %>%
+  mutate(Northness = SD_Northness) %>%
+  mutate(TWI_values = SD_TWI_values) %>%
+  select(-c("SD_slope_raster_15_data_pts", "SD_elevation_raster_15_data_pts", "SD_aspect_raster_15_data_pts",
+            "SD_aspect_raster_15_data_pts_8_categorical", "SD_aspect_raster_15_data_pts_4_categorical",
+            "SD_aspect_raster_15_data_pts_radian", "SD_Eastness", "SD_Northness", "SD_TWI_values"))
+
+
+#combine all three populations into one dataframe
+fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_terrain_dist_soils, LC_fixed_field_data_processed_terrain_dist_soils) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_terrain_dist_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
 #### Creating the Function Comparing Average Soil Values from Inside Populations to Outside Populations ####
 
@@ -79,7 +133,8 @@ Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 
                   "Nitrogen 0-5", "Nitrogen 100-200", 
                   "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
                   "Sand Available Water 0-5", "Sand Available Water 100-200",
-                  "Clay/Loam Available Water 0-5", "Clay/Loam Available Water 100-200")
+                  "Clay/Loam Available Water 0-5", "Clay/Loam Available Water 100-200",
+                  "Elevation", "Slope", "Eastness", "Northness", "TWI", "HLI", "Distance to River")
 
 # The function the soil mean list and p-value list, the randomly generated point plots, and stored histogram plot list.
 
@@ -93,6 +148,9 @@ random_pop_soils <- function(){
   #to store generated histogram plots
   plot_list <- list()   
   
+  #setting a seed
+  set.seed(20) 
+
   #loop iterating over each soil metric
   for (i in 1:length(Soil.metrics)){
     
@@ -163,13 +221,34 @@ random_pop_soils <- function(){
     } else if (Soil.metrics[i] == "Clay/Loam Available Water 100-200"){
       soil_stack = soil_stack_clay_loam_water
       soil_metric = all_known_pop_soils$clay_loam_avail_water_100.200
+    }  else if (Soil.metrics[i] == "Elevation"){
+      soil_raster = CEM_15_utm_all_populations
+      soil_metric = all_known_pop_soils$CEM_15_utm_all_populations
+    } else if (Soil.metrics[i] == "Slope"){
+      soil_raster = all_populations_slope_raster_15
+      soil_metric = all_known_pop_soils$all_known_pop_soil_slope
+    } else if (Soil.metrics[i] == "Eastness"){
+      soil_metric = all_known_pop_soils$all_known_pop_soil_eastness
+    } else if (Soil.metrics[i] == "Northness"){
+      soil_metric = all_known_pop_soils$all_known_pop_soil_northness
+    } else if (Soil.metrics[i] == "TWI"){
+      soil_raster = twi_all_populations
+      soil_metric = all_known_pop_soils$all_known_pop_soil_TWI
+    } else if (Soil.metrics[i] == "HLI"){
+      soil_raster = raster(heat.load.raster.all.pops)
+      soil_metric = all_known_pop_soils$all_known_pop_soil_HLI
+    } else if (Soil.metrics[i] == "Distance to River"){
+      soil_metric = all_known_pop_soils$distance
     } 
     
+  
+    #creating a list of the variables without soil stacks
+    no_stack_list <- c("Elevation", "Slope", "Eastness", "Northness",
+                       "TWI", "HLI", "Distance to River")
+
     #creating empty list to collect means
-    random_soil_means <- c()  #for the means of the randomly generated population means
-     
-    
-    set.seed(20) #setting a seed
+    random_soil_means <- numeric(1000)  #for the means of the randomly generated population means
+
     
     #looping for 1000 permutations
     for (y in 1:1000){ 
@@ -178,20 +257,80 @@ random_pop_soils <- function(){
       random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
       random_20 <- random_20 %>%
         st_as_sf() #making sure the random points are stored as simple features
-      random_20_pop_soil <- raster::extract(soil_stack, random_20) #extracting the soil metrics for the random points
       
-      #storing the mean of the soil metric of the randomly generated populations depending on if it is the 0-5 or 100-200 cm version of the rasters
-      if (i %% 2 == 1){ #if the iteration we are on is odd, then we use the 0-5 cm variable
-        random_mean <- mean(random_20_pop_soil[,1]) #storing the mean soil metric, using the 0-5 cm raster
-      } else {  #if the iteration we are on is odd, then we use the 100-200 cm variable
-        random_mean <- mean(random_20_pop_soil[,2]) #storing the mean soil metric, using the 100-200 cm raster
+      #if the metrics have soil stack (soil metric with 0-5 and 100-200 cm) it run this first loop
+      if (!(Soil.metrics[i] %in% no_stack_list)){
+        random_20_pop_soil <- raster::extract(soil_stack, random_20) #extracting the soil metrics for the random points
+        
+        #storing the mean of the soil metric of the randomly generated populations depending on if it is the 0-5 or 100-200 cm version of the rasters
+        if (i %% 2 == 1){ #if the iteration we are on is odd, then we use the 0-5 cm variable
+          random_mean <- mean(random_20_pop_soil[,1]) #storing the mean soil metric, using the 0-5 cm raster
+        } else {  #if the iteration we are on is odd, then we use the 100-200 cm variable
+          random_mean <- mean(random_20_pop_soil[,2]) #storing the mean soil metric, using the 100-200 cm raster
+        }
+        
+      } else if (Soil.metrics[i] == "Eastness") {   #calculating the Eastness for the randomly selected points
+        
+        random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
+        
+        #first, converting aspect values to radian
+        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
+        
+        #creating eastness
+        random_20_eastness = sin(random_20_aspect_radian) # creating the eastness column
+        
+        random_mean <- mean(random_20_eastness)
+        
+      } else if (Soil.metrics[i] == "Northness") {   #calculating the Eastness for the randomly selected points
+        
+        random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
+        
+        #first, converting aspect values to radian
+        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
+
+        #creating northness
+        random_20__northness = cos(random_20_aspect_radian) # creating the northness column
+        
+        random_mean <- mean(random_20__northness)
+        
+      } else if (Soil.metrics[i] == "Distance to River") { #calculating the distance to river for the randomly selected points
+        #  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances
+        random_20_sp <- st_transform(random_20, crs = 4326)
+        random_20_sp <- as(st_geometry(random_20_sp), "Spatial")
+        
+        # calculates the shortest distance (meters) of each population to the coast
+        Distance <- dist2Line(p = random_20_sp, 
+                              line = BCS_polygon_UTM_sp_coast)
+        
+        #turn the matrix into a dataframe
+        Distance <- as.data.frame(Distance)
+        
+        # calculating the mean
+        random_mean <- mean(Distance$distance)
+        
+      } else if (Soil.metrics[i] == "Elevation") { #if the metric does not have a soil stack (the topographic variables)
+        
+        #extracting the soil metrics for the random points
+        random_20_pop_soil <- raster::extract(soil_raster, random_20) 
+        
+        #storing the mean metric
+        random_mean <- mean(random_20_pop_soil$CEM_15_utm_all_populations) 
+        
+      } else { #if the metric does not have a soil stack (the topographic variables)
+        
+        #extracting the soil metrics for the random points
+        random_20_pop_soil <- raster::extract(soil_raster, random_20) 
+        
+        #storing the mean metric
+        random_mean <- mean(random_20_pop_soil) 
+        
       }
-      
-      random_soil_means <- c(random_soil_means, random_mean) #adding the 0-5 or 100-200 cm means to the list of means
-      
+        
+      #adding the created random mean to the list
+      random_soil_means[y] <- random_mean
+
     }
-    
-    
+
     #plotting the randomly selected points on the cropped, buffered, and full Baja California Sur polygons
     random_points_BCS <- ggplot()+
       geom_sf(data=BCS_polygon_UTM)+
@@ -257,6 +396,7 @@ random_pop_soils <- function(){
 
 }
 
+
 #### Running and Storing the Function and its Results ####
 random_pop_soils_function <- random_pop_soils()
 
@@ -287,11 +427,11 @@ random_pop.df <- data.frame("Soil.metrics" = Soil.metrics,
                             "p_holm_corrected" = p_holm_corrected,
                             "p_hoch_corrected" = p_hoch_corrected,
                             "p_fdr_corrected" = p_fdr_corrected,
-                            "Significance" = c(rep(NA, 22)),
-                            "Bonf_Significance" = c(rep(NA, 22)),
-                            "Holm_Significance" = c(rep(NA, 22)),
-                            "Hoch_Significance" = c(rep(NA, 22)),
-                            "FDR_Significance" = c(rep(NA, 22)))
+                            "Significance" = c(rep(NA, 29)),
+                            "Bonf_Significance" = c(rep(NA, 29)),
+                            "Holm_Significance" = c(rep(NA, 29)),
+                            "Hoch_Significance" = c(rep(NA, 29)),
+                            "FDR_Significance" = c(rep(NA, 29)))
 
 #creating the significance column for the p-values (p<0.05 is significant)
 random_pop.df <- random_pop.df %>%
@@ -400,7 +540,13 @@ ggplot(aes(x = fct_reorder(Soil.metrics, P_values), y = Significance, fill = P_v
 random_pop_soils_function$plot_list$`Sand 0-5_Histogram`
 random_pop_soils_function$plot_list$`Volume of water content -33 kpa 0-5_Histogram`
 random_pop_soils_function$plot_list$`Volume of water content -33 kpa 100-200_Histogram`
-
+random_pop_soils_function$plot_list$Elevation_Histogram
+random_pop_soils_function$plot_list$Slope_Histogram
+random_pop_soils_function$plot_list$Eastness_Histogram
+random_pop_soils_function$plot_list$Northness_Histogram
+random_pop_soils_function$plot_list$TWI_Histogram
+random_pop_soils_function$plot_list$HLI_Histogram
+random_pop_soils_function$plot_list$`Distance to River_Histogram`
 
 #### Session Info ####
 # 
