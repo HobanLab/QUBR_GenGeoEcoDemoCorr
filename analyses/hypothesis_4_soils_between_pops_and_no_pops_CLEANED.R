@@ -237,14 +237,14 @@ random_pop_soils <- function(){
     } else if (Soil.metrics[i] == "HLI"){
       soil_raster = raster(heat.load.raster.all.pops)
       soil_metric = all_known_pop_soils$all_known_pop_soil_HLI
-    } else if (Soil.metrics[i] == "Distance to River"){
+    } else if (Soil.metrics[i] == "Distance to Coast"){
       soil_metric = all_known_pop_soils$distance
     } 
     
   
     #creating a list of the variables without soil stacks
     no_stack_list <- c("Elevation", "Slope", "Eastness", "Northness",
-                       "TWI", "HLI", "Distance to River")
+                       "TWI", "HLI", "Distance to Coast")
 
     #creating empty list to collect means
     random_soil_means <- numeric(1000)  #for the means of the randomly generated population means
@@ -456,7 +456,7 @@ ggplot(aes(x = fct_reorder(Soil.metrics, p_bonf_corrected), y = Bonf_Significanc
   labs(y = "Significant P-Value", x  = "Soil Characteristic", 
        fill = "P-Value",  
        title = "Association Between Soil Metrics and Population Locations",
-       subtitle = "P-Values Below 0.5 Labeled") + 
+       subtitle = "P-Values Below 0.05 Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(p_bonf_corrected < 0.05, round(p_bonf_corrected, 4), NA), col = "white")) +
   coord_flip() +
@@ -547,6 +547,16 @@ random_pop_soils_function$plot_list$Northness_Histogram
 random_pop_soils_function$plot_list$TWI_Histogram
 random_pop_soils_function$plot_list$HLI_Histogram
 random_pop_soils_function$plot_list$`Distance to River_Histogram`
+
+
+# editing the histograms for the paper
+
+#sand available water
+random_pop_soils_function$plot_list$`Sand 0-5_Histogram` +
+  geom_histogram(fill = "dodgerblue", color = "black", bins = 20)+
+  geom_vline(xintercept=all_known_mean, col = "red") + 
+  xlab(paste0("Mean ", Soil.metrics[i], " of Random Populations vs. Known Populations (n=20)"))+
+  theme_classic()
 
 #### Session Info ####
 # 
