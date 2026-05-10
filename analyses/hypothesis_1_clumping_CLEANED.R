@@ -335,6 +335,8 @@ par(mar = c(8,8,8,8))
 title(ylab = bquote(italic("K(r), San Dionisio trees")), cex.lab = 1.1, line = 4)
 title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 
+
+
 #### ANN Analysis (test for clustering/dispersion) ####
 
 # For all ANN Analyses (for each population and for convex hulls/buffers/and river shapefiles):
@@ -354,108 +356,110 @@ title(xlab = bquote(italic("r (m)")), cex.lab = 1.1)
 
 # creating the river rasters for the ANN analysis 
 
+
+# LM
+
 # creating the rasters that will be used for point generation later
 
-#turning river polygon into multipoints and then into a raster for using them to calculate the distances
-# river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-# river_LM_trans_point_raster <- st_rasterize(river_points_sf) #create raster of lake edge points
-# plot(river_LM_trans_point_raster)
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_LM <- project(vect(river_LM), rast(dist_near_river_buffer_LM))
 
-# river_points <- st_line_sample(st_cast(river_LM_trans, "LINESTRING"), density = 1/50) # adjust spacing
-# river_points <- st_cast(river_points, "POINT")
-# river_points_sf <- st_sf(geometry = river_points)
-# 
-# #creating a raster of the river buffer polygon within LINESTRING can be calculated
-# river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
-# river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
-# plot(river_buffer_LM_point_raster)
-# 
-# #making a stars object of the distances of each cell in the buffer raster from the river edge points
-# river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-# dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_LM_corrected <- rasterize(river_vect_LM, rast(dist_near_river_buffer_LM), field=0, update=TRUE, touches=TRUE)
+
+#turning the distance to river correct raster into a stars object
+dist_near_river_buffer_LM_corrected_stars <- st_as_stars(dist_near_river_buffer_LM_corrected)
 
 #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM 
+dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM_corrected_stars %>%
+  st_as_sf() %>%
+  mutate(layer = case_when(layer >= 1 ~ 1/layer,
+                           layer > 0 & layer < 1 ~ 1,
+                       layer == 0 ~ 1)) %>%
+  st_rasterize()
 
-#creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 70 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 70 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_LM_inverse)
+# creating the cropped versions ## 
 
+#creating a raster out of the inverse distance stars object
+dist_near_river_buffer_LM_inverse_im_raster <- rast(dist_near_river_buffer_LM_inverse)
 
-#LM
+#projecting the inverse distance raster to match the other crs
+crs(dist_near_river_buffer_LM_inverse_im_raster) <- crs(rast(dist_near_river_buffer_LM_inverse))
 
-# # creating the rasters that will be used for point generation later
-# 
-# #turning river polygon into multipoints and then into a raster for using them to calculate the distances
-# river_LM_trans_outline <- st_cast(river_LM_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-# river_LM_trans_point_raster <- st_rasterize(river_LM_trans_outline) #create raster of lake edge points
-# plot(river_LM_trans_point_raster)
-# 
-# #creating a raster of the river buffer polygon within distances can be calculated
-# river_LM_buffer_trans_outline <- st_cast(river_buffer_LM, "LINESTRING") #turns the polyline of the river into a multipoint object
-# river_buffer_LM_point_raster <- st_rasterize(river_LM_buffer_trans_outline) #create raster of lake edge points, actually a stars object
-# plot(river_buffer_LM_point_raster)
-# 
-# #making a stars object of the distances of each cell in the buffer raster from the river edge points
-# river_buffer_LM_point_raster[is.na(river_buffer_LM_point_raster[])] <- 0  #making sure the points that are not the river buffer have a 0 value
-# dist_near_river_buffer_LM <- dist_to_nearest(river_buffer_LM_point_raster, LM_fixed_field_data_processed_sf, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run, but it depends on the computer
+#cropping the distance to river raster
+dist_near_river_buffer_LM_inverse_cropped <- raster::crop(dist_near_river_buffer_LM_inverse_im_raster, river_buffer_LM, mask = T)
 
-#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-dist_near_river_buffer_LM_inverse <- 1/dist_near_river_buffer_LM 
-plot(LM_fixed_field_data_processed_sf)
+#trimming off the NAs
+dist_near_river_buffer_LM_inverse_cropped <- trim(dist_near_river_buffer_LM_inverse_cropped)
 
-#creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_LM_inverse <- dist_near_river_buffer_LM %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 70 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 70 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_LM_inverse)
 
 #LC
 
-#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-dist_near_river_buffer_LC_inverse <- 1/dist_near_river_buffer_LC 
-plot(dist_near_river_buffer_LC_inverse)
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_LC <- project(vect(river_LC), rast(dist_near_river_buffer_LC))
 
-#creating a raster with assigned values of 1 to cells within 30 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_LC_inverse <- dist_near_river_buffer_LC %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 50 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 20 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_LC_inverse)
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_LC_corrected <- rasterize(river_vect_LC, rast(dist_near_river_buffer_LC), field=0, update=TRUE, touches=TRUE)
+
+#turning the distance to river correct raster into a stars object
+dist_near_river_buffer_LC_corrected_stars <- st_as_stars(dist_near_river_buffer_LC_corrected)
+
+#creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
+dist_near_river_buffer_LC_inverse <- dist_near_river_buffer_LC_corrected_stars %>%
+  st_as_sf() %>%
+  mutate(layer = case_when(layer >= 1 ~ 1/layer,
+                           layer > 0 & layer < 1 ~ 1,
+                           layer == 0 ~ 1)) %>%
+  st_rasterize()
+
+# creating the cropped versions ## 
+
+#creating a raster out of the inverse distance stars object
+dist_near_river_buffer_LC_inverse_im_raster <- rast(dist_near_river_buffer_LC_inverse)
+
+#projecting the inverse distance raster to match the other crs
+crs(dist_near_river_buffer_LC_inverse_im_raster) <- crs(rast(dist_near_river_buffer_LC_inverse))
+
+#cropping the distance to river raster
+dist_near_river_buffer_LC_inverse_cropped <- raster::crop(dist_near_river_buffer_LC_inverse_im_raster, river_buffer_LC, mask = T)
+
+#trimming off the NAs
+dist_near_river_buffer_LC_inverse_cropped <- trim(dist_near_river_buffer_LC_inverse_cropped)
+
 
 #SD
 
-# #turning river polygon into multipoints and then into a raster for using them to calculate the distances
-# river_SD_trans_points <- st_cast(river_SD_trans, "LINESTRING") #turns the polyline of the river into a multipoint object
-# river_SD_trans_point_raster <- st_rasterize(river_SD_trans_points) #create raster of lake edge points
-# plot(river_SD_trans_point_raster)
-# 
-# river_buffer_SD_points <- st_cast(river_buffer_SD, "LINESTRING") #turns the polyline of the river buffer into a multipoint object
-# river_buffer_SD_point_raster <- st_rasterize(river_buffer_SD_points) #create raster of lake edge points
-# plot(river_buffer_SD_point_raster)
-# 
-# #making a stars object of the distances of each cell in the buffer raster from the river edge points
-# river_buffer_SD_point_raster[is.na(river_buffer_SD_point_raster[])] <- 0  #making sure the points that are not in the river buffer have a 0 value
-# dist_near_river_buffer_SD <- dist_to_nearest(river_buffer_SD_point_raster, river_SD_trans_points, progress = T) #creating a raster of the distances of each cell in the buffer raster to the multipoints on the river polygon, this took an hour to run
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_SD <- project(vect(river_SD), rast(dist_near_river_buffer_SD))
+
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_SD_corrected <- rasterize(river_vect_SD, rast(dist_near_river_buffer_SD), field=0, update=TRUE, touches=TRUE)
+
+#turning the distance to river correct raster into a stars object
+dist_near_river_buffer_SD_corrected_stars <- st_as_stars(dist_near_river_buffer_SD_corrected)
 
 #creating the inverse of the distance raster so that the higher values are closer to the river and the values are between 0-1
-dist_near_river_buffer_SD_inverse <- 1/dist_near_river_buffer_SD 
-plot(dist_near_river_buffer_SD_inverse)
+dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD_corrected_stars %>%
+  st_as_sf() %>%
+  mutate(layer = case_when(layer >= 1 ~ 1/layer,
+                           layer > 0 & layer < 1 ~ 1,
+                           layer == 0 ~ 1)) %>%
+  st_rasterize()
 
-#creating a raster with assigned values of 1 to cells within 70 m of the river edge and 1/distance to the cells outside to turn the distances into values 0-1
-dist_near_river_buffer_SD_inverse <- dist_near_river_buffer_SD %>% #creating a new stars object with new defined values for distance
-  st_as_sf() %>% #converting the stars to a shapefile
-  mutate(d = case_when(d <= 70 ~ 1, 
-                       d > 1 ~ 1/d)) %>% #assigning cells less than 50 m away from rivers edge with value of 1 and taking 1/distance for all other cells
-  st_rasterize() #convert the shapefile into a raster
-plot(dist_near_river_buffer_SD_inverse)
+## creating the cropped versions (only within the buffer) ## 
+
+#creating a raster out of the inverse distance stars object
+dist_near_river_buffer_SD_inverse_im_raster <- rast(dist_near_river_buffer_SD_inverse)
+
+#projecting the inverse distance raster to match the other crs
+crs(dist_near_river_buffer_SD_inverse_im_raster) <- crs(rast(dist_near_river_buffer_SD_inverse))
+
+#cropping the distance to river raster
+dist_near_river_buffer_SD_inverse_cropped <- raster::crop(dist_near_river_buffer_SD_inverse_im_raster, river_buffer_SD, mask = T)
+
+#trimming off the NAs
+dist_near_river_buffer_SD_inverse_cropped <- trim(dist_near_river_buffer_SD_inverse_cropped)
+
 
 #creating ANN Analysis function
 
@@ -470,7 +474,7 @@ ANN_analysis <- function(population, window) {
     } else if (window == "Just River"){ #ANN with controlling for river
       selected_window <- river_LM_trans_point_raster
     } else if (window == "Inside, On, and Outside River"){
-      selected_window <- dist_near_river_buffer_LM_inverse
+      selected_window <- st_as_stars(dist_near_river_buffer_LM_inverse_cropped)
     } else if (window == "On and Inside River"){
       selected_window <- st_rasterize(river_LM_trans)
     }
@@ -486,7 +490,7 @@ ANN_analysis <- function(population, window) {
     } else if (window == "Just River"){ #ANN with controlling for river
       selected_window <- river_LC_trans_point_raster
     } else if (window == "Inside, On, and Outside River"){
-      selected_window <- dist_near_river_buffer_LC_inverse
+      selected_window <- st_as_stars(dist_near_river_buffer_LC_inverse_cropped)
     } else if (window == "On and Inside River"){
       selected_window <- st_rasterize(river_LC_trans)
     }
@@ -502,7 +506,7 @@ ANN_analysis <- function(population, window) {
     } else if (window == "Just River"){ #ANN with controlling for river
       selected_window <- river_SD_trans_point_raster
     } else if (window == "Inside, On, and Outside River"){
-      selected_window <- dist_near_river_buffer_SD_inverse
+      selected_window <- st_as_stars(dist_near_river_buffer_SD_inverse_cropped)
     } else if (window == "On and Inside River"){
       selected_window <- st_rasterize(river_SD_trans)
     }
@@ -512,7 +516,7 @@ ANN_analysis <- function(population, window) {
   ann.p <- mean(nndist(ppp, k=1))
   ann.p
   
-  #simulating the random points and caluclating the average nearest neighbor for each 566 permutations
+  #simulating the random points and calculating the average nearest neighbor for each 566 permutations
   if (window == "Convex Hull"){ 
     #simulation to create a list of ANN from randomly placed points
     n <- 566L #defines the number of simulations
@@ -661,18 +665,41 @@ LM_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_LM_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=LM_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), alpha = 0.5, aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16, alpha = 0.5)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", 
+               "Randomly Generated" = "black"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "Las Matancitas")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, LM_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
+  xlab("Average Nearest Neighbor") +
+  ylab("Frequency")+
+  labs(title = "Las Matancitas")+
+  geom_text(aes(label = round(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 6.7, y = 40, color = "red") +
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -688,10 +715,11 @@ ggplot()+
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(LM_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LM_ANN_Anlysis_on_inside_river$observed_ANN, LM_ANN_Anlysis_on_inside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=LM_ANN_Anlysis_on_inside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
+  xlab("Average Nearest Neighbor") +
+  ylab("Frequency")+
   theme_classic()
 
 ### LC
@@ -709,7 +737,7 @@ ggplot()+
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(LC_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LC_ANN_Anlysis_river$observed_ANN, LC_ANN_Anlysis_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(LC_ANN_Anlysis_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
   xlab("ANN") +
@@ -722,18 +750,40 @@ LC_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_LC_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=LC_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=LC_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA) #plotting the random points
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LC_inverse_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(LC_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), alpha = 0.5, aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16, alpha = 0.5)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", "Randomly Generated" = "black"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "La Cobriza")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
-  geom_histogram(aes(x = value), fill = "dodgerblue1", color = "black", bins = 50) + 
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, LC_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("ANN") +
-  theme_classic()
+  xlab("Average Nearest Neighbor") +
+  ylab("Frequency")+
+  labs(title = "La Cobriza")+
+  geom_text(aes(label = round(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 5.2, y = 50, color = "red") +
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -784,12 +834,27 @@ as_tibble(SD_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
 SD_ANN_Anlysis_inside_on_outside_river <- ANN_analysis("SD", "Inside, On, and Outside River")
 SD_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second is the left-tailed p-value
 
+library(RColorBrewer)
 #plotting the randomly generated points, tree points, and probability/distance raster
 ggplot()+ 
-  geom_stars(data=dist_near_river_buffer_SD_inverse)+ #plotting the distance inverse raster 
-  geom_sf(data=SD_fixed_field_data_processed_sf, aes(col = "red"))+ #plotting the tree points
-  geom_sf(data=SD_ANN_Anlysis_inside_on_outside_river$random_points, fill = NA)+ #plotting the random points
-  labs(color = "Trees", fill = "Inverse Distance (m)")
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_SD_inverse_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+   scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(SD_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), alpha = 0.5, aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16, alpha = 0.5)+ #plotting the tree points
+   labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", "Randomly Generated" = "black"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "San Dionisio")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
 as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
@@ -797,22 +862,17 @@ as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r v
   geom_histogram(aes(x = value),  fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("Average Nearest Neighbor (ANN)") +
   theme_classic()+
-  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15))
+  xlab("Average Nearest Neighbor") +
+  ylab("Frequency")+
+  labs(title = "San Dionisio")+
+  geom_text(aes(label = round(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7, y = 55, color = "red") +
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
-
-as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
-  ggplot()+
-  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
-  xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
-  geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red", size = 1.2) + #plotting our tree's mean ANN
-  xlab("Average Nearest Neighbor (ANN)") +
-  ylab("Frequency") +
-  theme_classic()+
-  theme(axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15))
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -839,7 +899,7 @@ as_tibble(SD_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as
 
 # for every PPM analysis 
 
-# 1) generate an image object of inverse distance raster 
+# 1) generate an image object of distance raster 
 # 2) create the Poisson Point Model using ppm() function with the river influencing the location of the points (Alternative Hypothesis Model)
 # 3) create the Poisson Point Model using ppm() function with the river not influencing the location of the points (Null Hypothesis Model)
 # 4) Use an ANOVA likelihood Ratio Test to compare the Alternate and Null hypotheses
@@ -848,7 +908,7 @@ as_tibble(SD_ANN_Anlysis_on_inside_river$ann.r) %>% #turning the ann.r vector as
 #Test for LM
 
 #creating the image of the distance to river stars
-dist_near_river_buffer_LM_inverse_im <- as.im(dist_near_river_buffer_LM_inverse)
+dist_near_river_buffer_LM_inverse_im <- as.im(st_as_stars(dist_near_river_buffer_LM_inverse))
 
 #Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
 PPM1 <- ppm(Q = as.ppp(LM_fixed_field_data_processed_sf) ~ dist_near_river_buffer_LM_inverse_im) 
@@ -922,6 +982,265 @@ ggplot()+
   geom_sf(data = river_SD_trans)+
   geom_sf(data = points_river, size = 2)+
   theme_classic()
+
+## Using more cropped versions
+
+# LM 
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_LM_inverse_im_cropped <- as.im(st_as_stars(dist_near_river_buffer_LM_inverse_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_LM_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LM))
+
+#creating a poison point model object of our known trees 
+LM_fixed_field_data_processed_ppp <- as.ppp(LM_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+LM_fixed_field_data_processed_ppp_crop <- LM_fixed_field_data_processed_ppp[river_buffer_LM_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = LM_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_LM_inverse_im_cropped)
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(LM_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of Las Matancitas",
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+
+#Test for LC
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_LC_inverse_im_cropped <- as.im(st_as_stars(dist_near_river_buffer_LC_inverse_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_LC_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LC))
+
+#creating a poison point model object of our known trees 
+LC_fixed_field_data_processed_ppp <- as.ppp(LC_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+LC_fixed_field_data_processed_ppp_crop <- LC_fixed_field_data_processed_ppp[river_buffer_LC_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = LC_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_LC_inverse_im_cropped) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(LC_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of La Cobriza",
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+
+#Test for SD
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_SD_inverse_im_cropped <- as.im(st_as_stars(dist_near_river_buffer_SD_inverse_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_SD_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_SD))
+
+#creating a poison point model object of our known trees 
+SD_fixed_field_data_processed_ppp <- as.ppp(SD_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+SD_fixed_field_data_processed_ppp_crop <- SD_fixed_field_data_processed_ppp[river_buffer_SD_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = SD_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_SD_inverse_im_cropped) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(SD_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of San Dionisio",
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+
+
+
+## Using the non-inverse distance to river raster ##
+
+
+#### Creating the distance to river rasters where everything inside the river equals 1 ####
+
+#LM
+
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_LM <- project(vect(st_as_sf(river_LM)), rast(dist_near_river_buffer_LM))
+
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_LM_corrected <- rasterize(river_vect_LM, rast(dist_near_river_buffer_LM), field=0, update=TRUE, touches=TRUE)
+
+#making sure the projections are identifical for the buffer and the raster
+river_buffer_LM <- project(river_buffer_LM, rast(dist_near_river_buffer_LM_corrected))
+
+#cropping the distance to river raster
+dist_near_river_buffer_LM_corrected_cropped <- raster::crop(dist_near_river_buffer_LM_corrected, river_buffer_LM, mask = T)
+
+#trimming off the NAs
+dist_near_river_buffer_LM_corrected_cropped <- trim(dist_near_river_buffer_LM_corrected_cropped)
+
+#LC
+
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_LC <- project(vect(st_as_sf(river_LC)), rast(dist_near_river_buffer_LC))
+
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_LC_corrected <- rasterize(river_vect_LC, rast(dist_near_river_buffer_LC), field=0, update=TRUE, touches=TRUE)
+
+#making sure the projections are identifical for the buffer and the raster
+river_buffer_LC <- project(vect(river_buffer_LC), rast(dist_near_river_buffer_LC_corrected))
+
+#cropping the distance to river raster
+dist_near_river_buffer_LC_corrected_cropped <- raster::crop(dist_near_river_buffer_LC_corrected, river_buffer_LC, mask = T)
+
+#trimming off the NAs
+dist_near_river_buffer_LC_corrected_cropped <- trim(dist_near_river_buffer_LC_corrected_cropped)
+
+#SD
+
+#making sure the river polygon and distance to river raster have the same projection
+river_vect_SD <- project(vect(st_as_sf(river_SD)), rast(dist_near_river_buffer_SD))
+
+#creating the corrected distance to river column where the values inside the cells touching the polygon equal 0
+dist_near_river_buffer_SD_corrected <- rasterize(river_vect_SD, rast(dist_near_river_buffer_SD), field=0, update=TRUE, touches=TRUE)
+
+#making sure the projections are identifical for the buffer and the raster
+river_buffer_SD <- project(vect(river_buffer_SD), rast(dist_near_river_buffer_SD_corrected))
+
+#cropping the distance to river raster
+dist_near_river_buffer_SD_corrected_cropped <- raster::crop(dist_near_river_buffer_SD_corrected, river_buffer_SD, mask = T)
+
+#trimming off the NAs
+dist_near_river_buffer_SD_corrected_cropped <- trim(dist_near_river_buffer_SD_corrected_cropped)
+
+ggplot()+
+  geom_raster(data = as.data.frame(dist_near_river_buffer_LM_corrected_cropped, xy=T), aes(x=x, y=y, fill = layer))+
+  #geom_sf(data = river_LM_trans)+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
+#Test for LM
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_LM_corrected_im <- as.im(st_as_stars(dist_near_river_buffer_LM_corrected_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_LM_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LM))
+
+#creating a poison point model object of our known trees 
+LM_fixed_field_data_processed_ppp <- as.ppp(LM_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+LM_fixed_field_data_processed_ppp_crop <- LM_fixed_field_data_processed_ppp[river_buffer_LM_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = LM_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_LM_corrected_im, na.rm = TRUE) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(LM_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LM_corrected_im", se.fit = TRUE), main = "Distance to River of Las Matancitas",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+
+#Test for LC
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_LC_corrected_im <- as.im(st_as_stars(dist_near_river_buffer_LC_corrected_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_LC_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LC))
+
+#creating a poison point model object of our known trees 
+LC_fixed_field_data_processed_ppp <- as.ppp(LC_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+LC_fixed_field_data_processed_ppp_crop <- LC_fixed_field_data_processed_ppp[river_buffer_LC_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = LC_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_LC_corrected_im) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(LC_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_LC_corrected_im", se.fit = TRUE), main = "Distance to River of La Cobriza",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+
+#Test for SD
+
+#creating the image of the distance to river stars
+dist_near_river_buffer_SD_corrected_im <- as.im(st_as_stars(dist_near_river_buffer_SD_corrected_cropped))
+
+#creating a window of the river buffer for cropping purposes
+river_buffer_SD_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_SD))
+
+#creating a poison point model object of our known trees 
+SD_fixed_field_data_processed_ppp <- as.ppp(SD_fixed_field_data_processed_sf)
+
+#cropping the river with the river buffer window
+SD_fixed_field_data_processed_ppp_crop <- SD_fixed_field_data_processed_ppp[river_buffer_SD_W]
+
+#Alternative hypothesis, seeing if the distance to the river's edge influences the tree point placement
+PPM1 <- ppm(Q = SD_fixed_field_data_processed_ppp_crop ~ dist_near_river_buffer_SD_corrected_im) 
+PPM1
+
+#null hypothesis, no change in the trend of the points
+PPM0 <- ppm(SD_fixed_field_data_processed_ppp_crop ~ 1)
+PPM0
+
+#using a likelihood ratio test to compare the alternative and null models
+anova(PPM0, PPM1, test="LRT")
+
+#plotting the alternative model
+plot(effectfun(PPM1, "dist_near_river_buffer_SD_corrected_im", se.fit = TRUE), main = "Distance to River of San Dionisio",
+     ylab = "Quercus brandegeei Trees", xlab = "Distance to River", legend = FALSE)
+
+
+# making examples of random point distributions vs. points only along the river's edge for presentation 
+
+points_box = sf::st_sample(SD_box, size=50) #randomizing points onlu in population bbox
+points_river = sf::st_sample(river_SD_trans_points, size=50) #randomizing points along river's edge
+
+#plotting the randomized box points
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = points_box, size = 2)+
+  theme_classic()
+
+#plotting the randomized river's edge points
+ggplot()+
+  geom_sf(data = river_SD_trans)+
+  geom_sf(data = points_river, size = 2)+
+  theme_classic()
+
+
 
 #### Session Info ####
 # 
