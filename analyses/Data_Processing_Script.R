@@ -24,17 +24,22 @@
     # slope and aspect data were created from the elevation data 
     # we recategorized aspect to be in either the 4 cardinal directions (N, E, S, W) or the 8 directions (N, NE, E, etc.)
     # the columns were then added to spatial and size/shape data
-# 6) creating the distance to river columns:
+# 6) creating the topographic wetness index column
+    # creating the rasters and extracting the data for each tree at each population 
+# 7) creating the heat load index column
+    # creating the rasters and extracting the data for each tree at each population 
+# 8) creating the distance to river columns:
     # extracting distances for each individual tree from generated distance to river rasters for each population
-# 7) loading and processing soil rasters:
-    # loading in, cropping, and extracting soil metric values for individual trees using rasters
-# 8) creating and storing sand and clay soil available water columns:
+# 9) creating and storing sand and clay soil available water columns:
     # creating these columns by subtracting field capacity by permanent wilting point and adding this column to the tree dataframes 
-# 9) loading and processing the spatial, size/shape, and soil data of the 20 known QUBR population locations,
+# 10) creating the all populations slope, aspect, TWI, HLI rasters 
+    # to be able to calculate these values across any population (real or generated) in the region
+# 11) loading and processing the spatial, size/shape, and soil data of the 20 known QUBR population locations,
     # we loaded in the spatial and size/shape of 20 QUBR populations and BCS polygon, then transformed and stored them as shapefiles,
     # we created a 7,000 km buffer around the 20 populations,
     # we then used the buffer and soil metric rasters to extract the soil metrics for each population point location and added the soil data
           #to the 20 QUBR population spatial and size/shape dataframe,
+    # we had to add the distance to the coast column at the end 
 
 # There are 5 main types of dataframes created in this script:
 
@@ -1863,7 +1868,7 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
 
-#### Creating All Population Slope, Aspect, TWI, HLI ####
+#### Creating All Population Variables Extraction, Storing, and Uploading ####
 
 #extracting the slope in degrees, using the queens method (neighbor = 8)
 all_populations_slope_raster_15 <- terra::terrain(CEM_15_utm_all_populations, unit = 'degrees', neighbors = 8, 'slope')
