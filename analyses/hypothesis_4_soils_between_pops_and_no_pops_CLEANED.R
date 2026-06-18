@@ -45,7 +45,7 @@ library(ggnewscale) #to be able to assign different colors to different layered 
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
-#source("./analyses/Data_Processing_Script.R")
+# source("./analyses/Data_Processing_Script.R")
 
 ## Finalizing the tree soil metric/terrain dataframe
 
@@ -104,9 +104,21 @@ SD_fixed_field_data_processed_terrain_dist_soils <- SD_fixed_field_data_processe
             "SD_aspect_raster_15_data_pts_radian", "SD_Eastness", "SD_Northness", "SD_TWI_values"))
 
 
-#combine all three populations into one dataframe
-fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_terrain_dist_soils, LC_fixed_field_data_processed_terrain_dist_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, SD_fixed_field_data_processed_terrain_dist_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+#combine all three populations into one dataframe, subsetting what variables to remove to allow for rbinding
+fixed_field_data_processed_soils <- rbind(subset(LM_fixed_field_data_processed_terrain_dist_soils, select = -c(LM_aspect_raster_15_data_pts.1, LM_slope_raster_15_data_pts.1,
+                                                                                                             LM_elevation_raster_15_data_pts.1, LM_aspect_raster_15_data_pts_8_categorical.1,
+                                                                                                             LM_aspect_raster_15_data_pts_4_categorical.1, LM_aspect_raster_15_data_pts_radian.1, 
+                                                                                                             LM_Eastness.1, LM_Northness.1, LM_TWI_values.1)), 
+                                                subset(LC_fixed_field_data_processed_terrain_dist_soils, select = -c(LC_aspect_raster_15_data_pts.1, LC_slope_raster_15_data_pts.1,
+                                                                                                              LC_elevation_raster_15_data_pts.1, LC_aspect_raster_15_data_pts_8_categorical.1,
+                                                                                                              LC_aspect_raster_15_data_pts_4_categorical.1, LC_aspect_raster_15_data_pts_radian.1, 
+                                                                                                              LC_Eastness.1, LC_Northness.1, LC_TWI_values.1))) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, 
+                                                subset(SD_fixed_field_data_processed_terrain_dist_soils, select = -c(SD_aspect_raster_15_data_pts.1, SD_slope_raster_15_data_pts.1,
+                                                                                                              SD_elevation_raster_15_data_pts.1, SD_aspect_raster_15_data_pts_8_categorical.1,
+                                                                                                              SD_aspect_raster_15_data_pts_4_categorical.1, SD_aspect_raster_15_data_pts_radian.1, 
+                                                                                                              SD_Eastness.1, SD_Northness.1, SD_TWI_values.1))) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+
 
 #### Creating the Function Comparing Average Soil Values from Inside Populations to Outside Populations ####
 
@@ -134,9 +146,12 @@ Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 
                   "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
                   "Sand Available Water 0-5", "Sand Available Water 100-200",
                   "Clay/Loam Available Water 0-5", "Clay/Loam Available Water 100-200",
-                  "Elevation", "Slope", "Eastness", "Northness", "TWI", "HLI", "Distance to River")
+                  "Elevation", "Slope", "Eastness", "Northness", "TWI", "HLI", "Distance to Coast")
 
 # The function the soil mean list and p-value list, the randomly generated point plots, and stored histogram plot list.
+
+pb <- txtProgressBar(min = 1, max = 29, style = 3)
+
 
 random_pop_soils <- function(){
   
@@ -264,9 +279,9 @@ random_pop_soils <- function(){
         
         #storing the mean of the soil metric of the randomly generated populations depending on if it is the 0-5 or 100-200 cm version of the rasters
         if (i %% 2 == 1){ #if the iteration we are on is odd, then we use the 0-5 cm variable
-          random_mean <- mean(random_20_pop_soil[,1]) #storing the mean soil metric, using the 0-5 cm raster
+          random_mean <- mean(random_20_pop_soil[,1], na.rm = TRUE) #storing the mean soil metric, using the 0-5 cm raster
         } else {  #if the iteration we are on is odd, then we use the 100-200 cm variable
-          random_mean <- mean(random_20_pop_soil[,2]) #storing the mean soil metric, using the 100-200 cm raster
+          random_mean <- mean(random_20_pop_soil[,2], na.rm = TRUE) #storing the mean soil metric, using the 100-200 cm raster
         }
         
       } else if (Soil.metrics[i] == "Eastness") {   #calculating the Eastness for the randomly selected points
@@ -279,7 +294,7 @@ random_pop_soils <- function(){
         #creating eastness
         random_20_eastness = sin(random_20_aspect_radian) # creating the eastness column
         
-        random_mean <- mean(random_20_eastness)
+        random_mean <- mean(random_20_eastness, na.rm = TRUE)
         
       } else if (Soil.metrics[i] == "Northness") {   #calculating the Eastness for the randomly selected points
         
@@ -289,11 +304,11 @@ random_pop_soils <- function(){
         random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
 
         #creating northness
-        random_20__northness = cos(random_20_aspect_radian) # creating the northness column
+        random_20_northness = cos(random_20_aspect_radian) # creating the northness column
         
-        random_mean <- mean(random_20__northness)
+        random_mean <- mean(random_20_northness, na.rm = TRUE)
         
-      } else if (Soil.metrics[i] == "Distance to River") { #calculating the distance to river for the randomly selected points
+      } else if (Soil.metrics[i] == "Distance to Coast") { #calculating the distance to river for the randomly selected points
         #  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances
         random_20_sp <- st_transform(random_20, crs = 4326)
         random_20_sp <- as(st_geometry(random_20_sp), "Spatial")
@@ -306,7 +321,8 @@ random_pop_soils <- function(){
         Distance <- as.data.frame(Distance)
         
         # calculating the mean
-        random_mean <- mean(Distance$distance)
+        random_mean <- mean(Distance$distance, na.rm = TRUE)
+        
         
       } else if (Soil.metrics[i] == "Elevation") { #if the metric does not have a soil stack (the topographic variables)
         
@@ -314,7 +330,7 @@ random_pop_soils <- function(){
         random_20_pop_soil <- raster::extract(soil_raster, random_20) 
         
         #storing the mean metric
-        random_mean <- mean(random_20_pop_soil$CEM_15_utm_all_populations) 
+        random_mean <- mean(random_20_pop_soil, na.rm = T) 
         
       } else { #if the metric does not have a soil stack (the topographic variables)
         
@@ -322,13 +338,14 @@ random_pop_soils <- function(){
         random_20_pop_soil <- raster::extract(soil_raster, random_20) 
         
         #storing the mean metric
-        random_mean <- mean(random_20_pop_soil) 
+        random_mean <- mean(random_20_pop_soil, na.rm = TRUE) 
         
       }
         
       #adding the created random mean to the list
       random_soil_means[y] <- random_mean
-
+      
+      
     }
 
     #plotting the randomly selected points on the cropped, buffered, and full Baja California Sur polygons
@@ -345,7 +362,7 @@ random_pop_soils <- function(){
       geom_sf(data=random_20, color ="blue")
   
     #storing the real soil metric mean for our known populations
-    all_known_mean <- mean(soil_metric)
+    all_known_mean <- mean(soil_metric, na.rm = TRUE)
     
     #adding the current known population mean soil metric to the list
     known_soil_means <- c(known_soil_means, all_known_mean)
@@ -386,10 +403,17 @@ random_pop_soils <- function(){
     
     #print(paste("Updating:", i)) # printing the iteration number we are currently on
     
+    # Sleep for 0.1 seconds
+    Sys.sleep(0.01)
+    
+    #printing progress bar, adding 1/29th everytime
+    setTxtProgressBar(pb, i)
+    
   }
   
   return(list(known_soil_means = known_soil_means, #soil mean list
          random_soil_p_values = random_soil_p_values, #p-value list
+         all_known_mean = all_known_mean,
          random_points_BCS = random_points_BCS, #randomly generated points plot
          random_points_BCS_crop = random_points_BCS_crop, #randomly generated points plot with the crop
          plot_list = plot_list)) #stored histogram plot list
@@ -403,6 +427,8 @@ random_pop_soils_function <- random_pop_soils()
 #Example of extracting one of the histograms comparing the slopes for our original soil vs. size metrics to the shuffled ones
 random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
 plot <- random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
+random_pop_soils_function$plot_list$`Ph 0-5_Histogram`
+random_pop_soils_function$plot_list$`Ph 100-200_Histogram`
 
 #if you want to see all of the plots at once run: 
 #random_pop_soils_function$plot_list
@@ -549,14 +575,105 @@ random_pop_soils_function$plot_list$HLI_Histogram
 random_pop_soils_function$plot_list$`Distance to River_Histogram`
 
 
-# editing the histograms for the paper
+sandy_water_0.5 <- random_pop_soils_function$plot_list$`Distance to Coast_Histogram`[1]$data$random_soil_means
+mean(sandy_water_0.5, na.rm = T)
 
+
+# editing the histograms for the paper
+options(scipen=999)
+random_pop_soils_function$known_soil_means
 #sand available water
-random_pop_soils_function$plot_list$`Sand 0-5_Histogram` +
-  geom_histogram(fill = "dodgerblue", color = "black", bins = 20)+
-  geom_vline(xintercept=all_known_mean, col = "red") + 
-  xlab(paste0("Mean ", Soil.metrics[i], " of Random Populations vs. Known Populations (n=20)"))+
-  theme_classic()
+sandy_water_0.5 <- random_pop_soils_function$plot_list$`Sand Available Water 0-5_Histogram`[1]$data$random_soil_means
+ggplot() +
+  geom_histogram(aes(x=random_pop_soils_function$plot_list$`Sand Available Water 0-5_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_means[19], col = "red") + 
+  xlab(expression(paste("Mean Sandy Available Water (cm"^3*"/cm"^3*")")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[19], 2)), 
+            x = 195, y = 75, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  xlim(c(min(sandy_water_0.5), max(sandy_water_0.5)))+ 
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+
+#Volumetric Water Content -33 kPa 100-200 cm available water
+random_pop_soils_function$known_soil_means[12]
+vwc_100_200_means <- random_pop_soils_function$plot_list$`Volume of water content -33 kpa 100-200_Histogram`[1]$data$random_soil_means
+ggplot()+ 
+  geom_histogram(aes(x = random_pop_soils_function$plot_list$`Volume of water content -33 kpa 100-200_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20)+
+  geom_vline(xintercept=random_pop_soils_function$known_soil_means[12], col = "red") + 
+  xlab(expression(paste("Mean Volumetric Water Content -33 kPa 100-200 cm (cm"^3*"/cm"^3*")")))+
+  ylab("Frequency")+
+  #labs(title = "VOC -33 kPa 100-200 cm") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[12], 2)), 
+            x = 303, y = 125, color = "red", size= 6, family = "serif") +
+  xlim(c(min(vwc_100_200_means), max(vwc_100_200_means)))+ #230,290
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+#Volumetric Water Content -33 kPa 0-5 cm available water
+vwc_0_5_means <- random_pop_soils_function$plot_list$`Volume of water content -33 kpa 0-5_Histogram`[1]$data$random_soil_means
+ggplot() +
+  geom_histogram(aes(x = random_pop_soils_function$plot_list$`Volume of water content -33 kpa 0-5_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_means[11], col = "red") + 
+  xlab(expression(paste("Mean Volumetric Water Content -33 kPa 0-5 cm (cm"^3*"/cm"^3*")")))+
+  ylab("Frequency")+
+  #labs(title = "Mean VOC -33 kPa 0-5 cm") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[11], 2)), 
+            x = 287, y = 125, color = "red", size= 6, family = "serif") +
+  xlim(c(min(vwc_0_5_means), max(vwc_100_200_means)))+ #230,290
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+#TWI_Histogram
+twi_means <- random_pop_soils_function$plot_list$TWI_Histogram[1]$data$random_soil_means
+ggplot() +
+  geom_histogram(aes(x = random_pop_soils_function$plot_list$TWI_Histogram[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_means[27], col = "red") + 
+  xlab(paste0("Mean Topographic Wetness Index"))+
+  ylab("Frequency")+
+  #labs(title = "Mean Topographic Wetness Index") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[27], 2)), 
+            x = 8.35, y = 125, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  xlim(c(min(twi_means), max(twi_means)))+ #230,290
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+#distance to coast
+d_coast_means <- random_pop_soils_function$plot_list$`Distance to Coast_Histogram`[1]$data$random_soil_means
+ggplot() +
+  geom_histogram(aes(x=random_pop_soils_function$plot_list$`Distance to Coast_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_means[29], col = "red") + 
+  xlab(paste0("Mean Distance to Coast (m)"))+
+  ylab("Frequency")+
+  #labs(title = "Mean Distance to Coast") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[29], 2)), 
+            x = 22000, y = 100, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  xlim(c(min(d_coast_means), max(d_coast_means)))+ #230,290
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
 
 #### Session Info ####
 # 

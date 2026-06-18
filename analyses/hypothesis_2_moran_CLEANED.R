@@ -59,21 +59,23 @@ library(Kendall)# to use the Kendall's Tau test to look for non-parametric corre
 
 #creating function to compute the Global and Local Moran's I
 
+
+
 morans_I <- function(population, variable){
   #assigning the size/shape metric to a variable
   metric <- variable
   
   #assigning the dataframes based on the population
   if (population == "LM") {
-    dataframe <- LM_fixed_field_data_processed
+    dataframe <- LM_fixed_field_data_processed_terrain_dist
   }
   
   if (population == "LC") {
-    dataframe <- LC_fixed_field_data_processed
+    dataframe <- LM_fixed_field_data_processed_terrain_dist
   }
   
   if (population == "SD") {
-    dataframe <- SD_fixed_field_data_processed
+    dataframe <- LM_fixed_field_data_processed_terrain_dist
   }
   
   ## Global Moran's I
@@ -1071,101 +1073,157 @@ ggplot() +
 ###Test for LM###
 
 #removing the NAs and turning the fruiting variable into a factor
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
   filter(!is.na(DBH_ag)) %>%
   filter(!is.na(fruiting)) %>%
   mutate(fruiting = as.factor(fruiting))
 
 #creating a matrix of the tree locations
-tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed$X.1, 
-                                     LM_fixed_field_data_processed$Y))
+tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed_terrain_dist$X.1, 
+                                     LM_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.LM <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed$DBH_ag)))
+knn.dist.LM <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed_terrain_dist$DBH_ag)))
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
-lw.dist.LM <- nb2listwdist(knn.dist.LM, LM_fixed_field_data_processed, type="idw", style="W", 
+lw.dist.LM <- nb2listwdist(knn.dist.LM, LM_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
              alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
 
 #running the joint count function
-joincount.test(fx = LM_fixed_field_data_processed$fruiting, listw = lw.dist.LM)
+joincount.test(fx = LM_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LM)
 
 #running the monte carlo, permutation test for join count statistics 
 set.seed(42) #need to set a seed first before the permutation test
-joincount.mc(fx = LM_fixed_field_data_processed$fruiting, listw = lw.dist.LM, nsim = 1000, zero.policy=T,
+joincount.mc.LM <- joincount.mc(fx = LM_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LM, nsim = 1000, zero.policy=T,
              alternative="greater", spChk=NULL)
+
 
 #plotting the fruiting trees
 ggplot() +
-  geom_sf(data =river_LM_trans) +
-  geom_sf(data =LM_fixed_field_data_processed, aes(color = fruiting)) +
-  labs(color = "Fruiting")
+  geom_sf(data =river_LM_trans, fill = "skyblue") +
+  geom_sf(data =LM_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  labs(color = "Fruiting")+
+  labs(title = "Las Matancitas")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
+
+
+ggplot()+ 
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", 
+               "Randomly Generated" = "black"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "Las Matancitas")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 ###Test for LC###
 
 #removing the NAs and turning the fruiting variable into a factor
-LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
   filter(!is.na(DBH_ag)) %>%
   filter(!is.na(fruiting)) %>%
   mutate(fruiting = as.factor(fruiting))
 
 #creating a matrix of the tree locations
-tree.coord.matrix <- as.matrix(cbind(LC_fixed_field_data_processed$X.1, 
-                                     LC_fixed_field_data_processed$Y))
+tree.coord.matrix <- as.matrix(cbind(LC_fixed_field_data_processed_terrain_dist$X.1, 
+                                     LC_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.LC <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LC_fixed_field_data_processed$DBH_ag)))
+knn.dist.LC <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LC_fixed_field_data_processed_terrain_dist$DBH_ag)))
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
-lw.dist.LC <- nb2listwdist(knn.dist.LC, LC_fixed_field_data_processed, type="idw", style="W", 
+lw.dist.LC <- nb2listwdist(knn.dist.LC, LC_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
                         alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
 
 #running the joint count function
-joincount.test(fx = LC_fixed_field_data_processed$fruiting, listw = lw.dist.LC)
+joincount.test(fx = LC_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LC)
 
 #running the monte carlo, permutation test for join count statistics 
 set.seed(42) #need to set a seed first before the permutation test
-joincount.mc(fx = LC_fixed_field_data_processed$fruiting, listw = lw.dist.LC, nsim = 1000, zero.policy=T,
+joincount.mc(fx = LC_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LC, nsim = 1000, zero.policy=T,
              alternative="two.sided", spChk=NULL)
 
 #plotting the fruiting trees
 ggplot() +
   geom_sf(data =river_LC_trans) +
-  geom_sf(data =LC_fixed_field_data_processed, aes(color = fruiting)) +
+  geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting)) +
   labs(color = "Fruiting")
+
+#plotting the fruiting trees
+ggplot() +
+  geom_sf(data =river_LC_trans, fill = "skyblue") +
+  geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  labs(color = "Fruiting")+
+  labs(title = "La Cobriza")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 ###Test for LM###
 
 #removing the NAs and turning the fruiting variable into a factor
-SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
   filter(!is.na(DBH_ag)) %>%
   filter(!is.na(fruiting)) %>%
   mutate(fruiting = as.factor(fruiting))
 
 #creating a matrix of the tree locations
-tree.coord.matrix <- as.matrix(cbind(SD_fixed_field_data_processed$X.1, 
-                                     SD_fixed_field_data_processed$Y))
+tree.coord.matrix <- as.matrix(cbind(SD_fixed_field_data_processed_terrain_dist$X.1, 
+                                     SD_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.SD <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(SD_fixed_field_data_processed$DBH_ag)))
+knn.dist.SD <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(SD_fixed_field_data_processed_terrain_dist$DBH_ag)))
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
-lw.dist.SD <- nb2listwdist(knn.dist.SD, SD_fixed_field_data_processed, type="idw", style="W", 
+lw.dist.SD <- nb2listwdist(knn.dist.SD, SD_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
                         alpha = 1, dmax = NULL, longlat = NULL, zero.policy=T)
 
 #running the joint count function
-joincount.test(fx = SD_fixed_field_data_processed$fruiting, listw = lw.dist.SD)
+joincount.test(fx = SD_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.SD)
 
 #running the monte carlo, permutation test for join count statistics 
 set.seed(42) #need to set a seed first before the permutation test
-joincount.mc(fx = SD_fixed_field_data_processed$fruiting, listw = lw.dist.SD, nsim = 1000, zero.policy=T,
+joincount.mc(fx = SD_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.SD, nsim = 1000, zero.policy=T,
              alternative="two.sided", spChk=NULL)
 
 #plotting the fruiting trees
 ggplot() +
   geom_sf(data =river_SD_trans) +
-  geom_sf(data =SD_fixed_field_data_processed, aes(color = fruiting)) +
+  geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting)) +
   labs(color = "Fruiting")
+
+#plotting the fruiting trees
+ggplot() +
+  geom_sf(data =river_SD_trans, fill = "skyblue") +
+  geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  labs(color = "Fruiting")+
+  labs(title = "San Dionisio")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 
 #### Ch-square Test Comparing Fruiting Proportions ####
@@ -1198,8 +1256,26 @@ chi_result$observed
 library(chisq.posthoc.test)
 chisq.posthoc.test(chi_matrix, method = "bonferroni")
 
-ggplot(fixed_field_data_processed_sf_transformed) +
-  geom_bar(aes(x = locality, fill = fruiting), position = "fill")
+fixed_field_data_processed_sf_transformed.labels <- fixed_field_data_processed_sf_transformed
+fixed_field_data_processed_sf_transformed.labels$locality <- factor(fixed_field_data_processed_sf_transformed$locality, 
+                                                            levels = c("LC", "LM", "SD"),
+                                                            #labels = c("LM", "LC", "SD"))
+                                                            labels = c("La Cobriza", "Las Matancitas", "San Dionisio"))
+
+ggplot(fixed_field_data_processed_sf_transformed.labels) +
+  geom_bar(aes(x = locality, fill = fruiting), position = "fill")+
+ # geom_sf(data =river_SD_trans, fill = "skyblue") +
+ # geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
+  scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  labs(fill = "Fruiting")+
+  ylab("Proportion")+
+  xlab("")+
+  #labs(title = "San Dionisio")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
 
 #looking at the pairwise differences
 chisq.test(chi_matrix[c(1, 2),], correct = FALSE)

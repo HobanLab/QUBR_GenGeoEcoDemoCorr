@@ -1102,6 +1102,74 @@ summary(LM_add.gam_DBH.terrain_dist.dredge.3)
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
 plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=1, 
          all.terms=T, xlab = 'Eastness', ylab = expression(f[1]*'(Eastness)'))
+ggplot(data = LM_fixed_field_data_processed_terrain_dist_no_NA) +
+  geom_point()+
+  geom_smooth(method= "gam", formula = DBH_ag_lg ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + 
+                s(LM_TWI_values))
+draw(LM_add.gam_DBH.terrain_dist.dredge.3)
+library(gratia)
+model_data$DBH_ag_lg
+model_data <- model.frame(LM_add.gam_DBH.terrain_dist.dredge.3) #extracting the datapoints from the model
+
+LM_add.gam_DBH.terrain_dist.dredge.3.1 <- 
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=1, residuals = T, point_col = "skyblue") +
+  labs(title = expression(bold('s(Eastness)')))+
+  xlab("Eastness (º)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.1
+
+LM_add.gam_DBH.terrain_dist.dredge.3.2 <- 
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, point_col = "skyblue") +
+  labs(title = "s(Slope)")+
+  xlab("Slope (º)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.2
+
+LM_add.gam_DBH.terrain_dist.dredge.3.3 <- 
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=3, residuals = T, point_col = "skyblue") +
+  labs(title = expression(italic("s(Topographic Wetness Index)")))+
+  xlab("Topographic Wetness Index")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.3
+
+LM_add.gam_DBH.terrain_dist.dredge.3.arrange <- ggarrange(LM_add.gam_DBH.terrain_dist.dredge.3.1, LM_add.gam_DBH.terrain_dist.dredge.3.2, 
+          LM_add.gam_DBH.terrain_dist.dredge.3.3)
+LM_add.gam_DBH.terrain_dist.dredge.3.arrange
+ggsave(plot = LM_add.gam_DBH.terrain_dist.dredge.3.arrange, "./GAM_LM_DBH.png", dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in"
+  
+  
+
 plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=3, 
          all.terms=T, xlab = "TWI", 
          ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
@@ -2041,6 +2109,104 @@ plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=3,
 plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=4, 
          all.terms=T, xlab = "TWI", 
          ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
+
+
+LC_add.gam_DBH.terrain_dist.dredge.3.1 <- 
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=1, residuals = T, point_col = "skyblue") +
+  labs(title = "s(Distance)")+
+  xlab("Distance (m)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LC_add.gam_DBH.terrain_dist.dredge.3.1
+
+library(viridis)
+
+LC_fixed_field_data_processed_terrain_utm <-
+  sf::st_transform(LC_fixed_field_data_processed_terrain,
+    crs = 32612)
+
+LC_add.gam_DBH.terrain_dist.dredge.3.2 <- 
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, 
+       continuous_fill = scale_fill_viridis_c(option = "plasma",
+                                               na.value = "transparent",
+                                              name = "Partial Effect")) +
+  labs(title = expression(bold("s(Location)")),
+       subtitle = "UTM Zone 12N")+
+  xlab("")+ #X (m)
+  ylab("")+ #Y (m)
+  theme_classic() +
+  geom_point(data=LC_fixed_field_data_processed_terrain, aes(x = X.1, y = Y), shape = 16, alpha = 0.7)+ #plotting the tree points
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue"
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$layers[[3]] <- NULL
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$scales$scales[[1]]$name <- "Partial Effect"
+LC_add.gam_DBH.terrain_dist.dredge.3.2
+
+LC_add.gam_DBH.terrain_dist.dredge.3.3 <- 
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=3, residuals = T, point_col = "skyblue") +
+  labs(title = "s(Eastness)")+
+  xlab("Eastness (º)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LC_add.gam_DBH.terrain_dist.dredge.3.3
+
+
+LC_add.gam_DBH.terrain_dist.dredge.3.4 <- 
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=4, residuals = T, point_col = "skyblue") +
+  labs(title = "s(Topographic Wetness Index)")+
+  xlab("Topographic Wetness Index")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+LC_add.gam_DBH.terrain_dist.dredge.3.4$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.4$layers[[4]] <- NULL
+LC_add.gam_DBH.terrain_dist.dredge.3.4
+
+LC_add.gam_DBH.terrain_dist.dredge.3.arrange <- ggarrange(LC_add.gam_DBH.terrain_dist.dredge.3.1, LC_add.gam_DBH.terrain_dist.dredge.3.2, 
+                                                          LC_add.gam_DBH.terrain_dist.dredge.3.3, LC_add.gam_DBH.terrain_dist.dredge.3.4)
+LC_add.gam_DBH.terrain_dist.dredge.3.arrange
+ggsave(plot = LC_add.gam_DBH.terrain_dist.dredge.3.arrange, "./GAM_LC_DBH.png", dpi = 1200, width = 15, 
+       height = 15, units = "in") #units = "in"
+
+
+LC_add.gam_DBH.terrain_dist.dredge.3.arrange <- ggarrange(LC_add.gam_DBH.terrain_dist.dredge.3.1, 
+                                                          LC_add.gam_DBH.terrain_dist.dredge.3.3, LC_add.gam_DBH.terrain_dist.dredge.3.4)
+LC_add.gam_DBH.terrain_dist.dredge.3.arrange
+ggsave(plot = LC_add.gam_DBH.terrain_dist.dredge.3.arrange, "./GAM_LC_DBH.png", dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in"
+
+LC_add.gam_DBH.terrain_dist.dredge.3.2
+
 
 
 # # 3d plotting in plotly and with gg3D
@@ -3143,6 +3309,7 @@ shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.8$residuals)
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: SD_add.gam_DBH.terrain_dist.dredge.no.smooth 
 summary(SD_add.gam_DBH.terrain_dist.dredge.6)
+
 #the linear model seems to do the best, the GAM model with all smoothing is close behind
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
@@ -3164,6 +3331,65 @@ plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=1,
 plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=2, 
          all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
          se = TRUE , col = "black")
+
+SD_add.gam_DBH.terrain_dist.dredge.6.1 <- 
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=1, residuals = T, point_col = "skyblue") +
+  labs(title = expression(bold("s(Elevation)")))+
+  xlab("Elevation (m)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.1
+
+SD_add.gam_DBH.terrain_dist.dredge.6.2 <- 
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, residuals = T, point_col = "skyblue") +
+  labs(title = expression(bold("s(Slope)")))+
+  xlab("Slope (º)")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.2
+
+SD_add.gam_DBH.terrain_dist.dredge.6.3 <- 
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, residuals = T, point_col = "skyblue") +
+  labs(title = "s(Topographic Wetness Index)")+
+  xlab("Topographic Wetness Index")+
+  ylab("Partial Effect")+
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"))
+SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.3
+
+
+SD_add.gam_DBH.terrain_dist.dredge.6.arrange <- ggarrange(SD_add.gam_DBH.terrain_dist.dredge.6.1, SD_add.gam_DBH.terrain_dist.dredge.6.2, 
+                                                          SD_add.gam_DBH.terrain_dist.dredge.6.3)
+SD_add.gam_DBH.terrain_dist.dredge.6.arrange
+ggsave(plot = SD_add.gam_DBH.terrain_dist.dredge.6.arrange, "./GAM_SD_DBH.png", dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in"
+
 
 # 3d plotting in plotly and with gg3D
 plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m., 

@@ -92,7 +92,7 @@ LM_list_grids_and_trees_fixed <- LM_list_grids_and_point_trees_df %>%
 #filtering out point data to be just the focal points
 LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
   filter(X_sequential %in% LM_list_grids_and_trees_fixed$tree_row_num)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
-
+nrow(LM_fixed_field_data_processed_trees_soils)
 #plotting the points, grid, and randomly selected points from each grid
 ggplot()+
   geom_sf(data = LM_tree_grid_cropped)+
@@ -190,16 +190,32 @@ ggplot()+
   geom_sf(data= SD_fixed_field_data_processed_sf)+
   geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red")
 
+
+
+
 ## Finalizing the tree soil metric dataframe
 
-#combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell
 
-fixed_field_data_processed_trees_soils <- rbind(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils) #combining the LM and LC soil and randomly chosen tree data
-fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, SD_fixed_field_data_processed_trees_soils) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+#combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell, subsetting what variables to remove to allow for rbinding
+
+fixed_field_data_processed_trees_soils <- rbind(subset(LM_fixed_field_data_processed_trees_soils,select = -c(LM_aspect_raster_15_data_pts, LM_slope_raster_15_data_pts,
+                                                                                                             LM_elevation_raster_15_data_pts, LM_aspect_raster_15_data_pts_8_categorical,
+                                                                                                             LM_aspect_raster_15_data_pts_4_categorical, LM_aspect_raster_15_data_pts_radian, 
+                                                                                                             LM_Eastness, LM_Northness, LM_TWI_values)), 
+                                                subset(LC_fixed_field_data_processed_trees_soils, select = -c(LC_aspect_raster_15_data_pts, LC_slope_raster_15_data_pts,
+                                                                                                                     LC_elevation_raster_15_data_pts, LC_aspect_raster_15_data_pts_8_categorical,
+                                                                                                                     LC_aspect_raster_15_data_pts_4_categorical, LC_aspect_raster_15_data_pts_radian, 
+                                                                                                                     LC_Eastness, LC_Northness, LC_TWI_values))) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, 
+                                                subset(SD_fixed_field_data_processed_trees_soils, select = -c(SD_aspect_raster_15_data_pts, SD_slope_raster_15_data_pts,
+                                                                                                              SD_elevation_raster_15_data_pts, SD_aspect_raster_15_data_pts_8_categorical,
+                                                                                                              SD_aspect_raster_15_data_pts_4_categorical, SD_aspect_raster_15_data_pts_radian, 
+                                                                                                              SD_Eastness, SD_Northness, SD_TWI_values))) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
 #creating a column/variable with locality as a factor to be able to use it in the Tamhane's T2 Test later
 
 fixed_field_data_processed_trees_soils$Locality_Factor <- as.factor(fixed_field_data_processed_trees_soils$Locality)
+
 
 #### Making Function for Differences in Means ####
 
@@ -334,9 +350,17 @@ clay_0.5_mean_p.value <- mean_soil_function_clay_0.5$kruskal_test$p.value
 mean_soil_function_clay_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_clay_0_5 <- aov(clay.content.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -364,9 +388,17 @@ clay_100.200_mean_p.value <- mean_soil_function_clay_100.200$kruskal_test$p.valu
 mean_soil_function_clay_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_clay_100_200 <- aov(clay.content.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -393,9 +425,17 @@ silt_0.5_mean_p.value <- mean_soil_function_silt_0.5$kruskal_test$p.value
 mean_soil_function_silt_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_silt_0_5 <- aov(silt.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -422,9 +462,18 @@ silt_100.200_mean_p.value <- mean_soil_function_silt_100.200$kruskal_test$p.valu
 mean_soil_function_silt_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
 
 # checking to see if residuals are normal
 anova_silt_100_200 <- aov(silt.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -451,9 +500,17 @@ sand_0.5_mean_p.value <- mean_soil_function_sand_0.5$kruskal_test$p.value
 mean_soil_function_sand_0.5$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_sand_0_5 <- aov(sand.0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -480,9 +537,17 @@ sand_100.200_mean_p.value <- mean_soil_function_sand_100.200$kruskal_test$p.valu
 mean_soil_function_sand_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_sand_100_200 <- aov(sand.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -509,9 +574,17 @@ ph_0.5_mean_p.value <- mean_soil_function_ph_0_5$kruskal_test$p.value
 mean_soil_function_ph_0_5$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("pH 0-5 cm")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_ph_0_5 <- aov(ph_0.5 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -538,9 +611,17 @@ ph_100.200_mean_p.value <- mean_soil_function_ph_100_200$kruskal_test$p.value
 mean_soil_function_ph_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))+
-  theme_minimal()
+ggplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("pH 100-200 cm")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
 
 # checking to see if residuals are normal
 anova_ph_100_200 <- aov(ph_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -596,9 +677,7 @@ soc_100.200_mean_p.value <- mean_soil_function_SOC_100_200$kruskal_test$p.value
 mean_soil_function_SOC_100_200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200))+
-  theme_minimal()
+
 
 # checking to see if residuals are normal
 anova_soc_100_200 <- aov(SOC.100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -947,6 +1026,7 @@ mean_soil_function_clay_loam_avail_water_100_200$kruskal_post_hoc
 ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_100.200))+
   theme_minimal()
+
 
 # checking to see if residuals are normal
 anova_clay_loam_avail_water_100.200 <- aov(clay_loam_avail_water_100.200 ~ Locality, data = fixed_field_data_processed_trees_soils)
@@ -1392,6 +1472,7 @@ ggplot()+
 # checking to see if residuals are normal
 anova_available_water_0.5 <- aov(d ~ Locality, data = means_fixed_field_data_processed_terrain_dist)
 anova_available_water_0.5
+
 hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
 
 #kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
@@ -1425,6 +1506,886 @@ post_hoc <- pairwise.wilcox.test(means_fixed_field_data_processed_terrain_dist$h
                                  p.adjust.method = "fdr") #p value adjusted using false discovery rate method
 post_hoc
 
+#### Figures for Paper ####
+
+
+#making sure the order of the figures uses LM, LC, SD
+fixed_field_data_processed_trees_soils$Locality <- factor(fixed_field_data_processed_trees_soils$Locality, 
+                                                          levels = c("LM", "LC", "SD"))
+                                                          #labels = c("LM", "LC", "SD"))
+                                                          #labels = c("Las Matancitas", "La Cobriza", "San Dionisio"))
+
+#shallower_soil_color <- c("#C4B07B")
+#deeper_soil_color <- c("#A3623A")
+
+#setting the colors for the boxplots/points for the shallower and deeper soils
+shallower_soil_color <- c("#C4B07B")
+deeper_soil_color <- c("#5C462B")
+colors = c(shallower_soil_color, shallower_soil_color, shallower_soil_color,
+           deeper_soil_color, deeper_soil_color, deeper_soil_color)
+
+
+#probably a better way to do this where it bases it off the boxplot whiskers
+
+clay.content.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = "skyblue",
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, clay.content.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Clay Content (g/kg)")+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(round(min(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                      fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  round(max(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                            fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+clay.content.plot.build <- ggplot_build(clay.content.plot)
+clay.content.plot.build.shallow.df <- clay.content.plot.build$data[[1]] #storing the 0-5 cm boxplots
+clay.content.plot.build.deep.df <- clay.content.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(clay.content.plot.build.shallow.df$ymax[1] + 8,  #adding 5 units to the whisker y-maxs
+        clay.content.plot.build.shallow.df$ymax[2] + 8, 
+        clay.content.plot.build.shallow.df$ymax[3] + 8,
+        clay.content.plot.build.deep.df$ymax[1] + 8, 
+        clay.content.plot.build.deep.df$ymax[2] + 8, 
+        clay.content.plot.build.deep.df$ymax[3] + 8), 
+  label = c("a", "a", "b", #adding the significance labels
+            "x", "y", "z")
+  
+)
+#adding the significance letters to the plot
+clay.content.plot <- clay.content.plot +
+  geom_text(data = significance_letters_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+clay.content.plot
+
+silt.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.3, outliers=F)+ #fill = "skyblue",
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, silt.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Silt Content (g/kg)")+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+silt.plot.build <- ggplot_build(silt.plot)
+silt.plot.build.shallow.df <- silt.plot.build$data[[1]] #storing the 0-5 cm boxplots
+silt.plot.build.deep.df <- silt.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_silt_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(silt.plot.build.shallow.df$ymax[1] + 2,  #adding 5 units to the whisker y-maxs
+        silt.plot.build.shallow.df$ymax[2] + 2, 
+        silt.plot.build.shallow.df$ymax[3] + 2,
+        silt.plot.build.deep.df$ymin[1] - 2, 
+        silt.plot.build.deep.df$ymin[2] - 2, 
+        silt.plot.build.deep.df$ymin[3] - 2), 
+  label = c("a", "b", "b", #adding the significance labels
+            "x", "x", "y")
+  
+)
+#adding the significance letters to the plot
+silt.plot <- silt.plot +
+  geom_text(data = significance_letters_silt_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+silt.plot
+
+
+SOC.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, SOC.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Soil Organic Content (g/kg)")+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+SOC.plot.build <- ggplot_build(SOC.plot)
+SOC.plot.build.shallow.df <- SOC.plot.build$data[[1]] #storing the 0-5 cm boxplots
+SOC.plot.build.deep.df <- SOC.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_SOC_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(SOC.plot.build.shallow.df$ymax[1] + 15,  #adding 5 units to the whisker y-maxs
+        SOC.plot.build.shallow.df$ymax[2] + 15, 
+        SOC.plot.build.shallow.df$ymax[3] + 15,
+        SOC.plot.build.deep.df$ymax[1] + 15, 
+        SOC.plot.build.deep.df$ymax[2] + 15, 
+        SOC.plot.build.deep.df$ymax[3] + 15), 
+  label = c("a", "a", "b", #adding the significance labels
+            "x", "x", "y")
+  
+)
+#adding the significance letters to the plot
+SOC.plot <- SOC.plot +
+  geom_text(data = significance_letters_SOC_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+SOC.plot
+
+vol_water_.10.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.10_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Field Capacity for Sandy Soil (cm"^3*"/cm"^3*")")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water_.10.plot.build <- ggplot_build(vol_water_.10.plot)
+vol_water_.10.plot.build.shallow.df <- vol_water_.10.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water_.10.plot.build.deep.df <- vol_water_.10.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water_.10_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(vol_water_.10.plot.build.shallow.df$ymax[1] + 0.5,  #adding 5 units to the whisker y-maxs
+        vol_water_.10.plot.build.shallow.df$ymax[2] + 0.5, 
+        vol_water_.10.plot.build.shallow.df$ymax[3] + 0.5,
+        vol_water_.10.plot.build.deep.df$ymin[1] - 0.5, 
+        vol_water_.10.plot.build.deep.df$ymin[2] - 0.5, 
+        vol_water_.10.plot.build.deep.df$ymin[3] - 0.5), 
+  label = c("a", "b", "b", #adding the significance labels
+            "x", "y", "y")
+  
+)
+#adding the significance letters to the plot
+vol_water_.10.plot <- vol_water_.10.plot +
+  geom_text(data = significance_letters_vol_water_.10_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water_.10.plot
+
+
+
+sand.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, sand.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Sand Content (g/kg)")+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(signif(min(c(fixed_field_data_processed_trees_soils$sand.0.5, 
+                                              fixed_field_data_processed_trees_soils$sand.100.200)), 1), 
+                                  signif(max(c(fixed_field_data_processed_trees_soils$sand.0.5, 
+                                              fixed_field_data_processed_trees_soils$sand.100.200)), 1), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+sand.plot.build <- ggplot_build(sand.plot)
+sand.build.shallow.df <- sand.plot.build$data[[1]] #storing the 0-5 cm boxplots
+sand.build.deep.df <- sand.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_sand_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(sand.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        sand.build.shallow.df$ymax[2] + 5, 
+        sand.build.shallow.df$ymax[3] + 5,
+        sand.build.deep.df$ymin[1] - 5, 
+        sand.build.deep.df$ymin[2] - 5, 
+        sand.build.deep.df$ymin[3] - 5), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "y", "z")
+  
+)
+#adding the significance letters to the plot
+sand.plot <- sand.plot +
+  geom_text(data = significance_letters_sand_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+sand.plot
+
+
+
+vol_water_.1500kPa.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500kPa_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_.1500_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Permantent Wilting Point (cm"^3*"/cm"^3*")")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water_.1500kPa.plot.build <- ggplot_build(vol_water_.1500kPa.plot)
+vol_water_.1500kPa.build.shallow.df <- vol_water_.1500kPa.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water_.1500kPa.build.deep.df <- vol_water_.1500kPa.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water_.1500kPa_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(vol_water_.1500kPa.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        vol_water_.1500kPa.build.shallow.df$ymax[2] + 5, 
+        vol_water_.1500kPa.build.shallow.df$ymax[3] + 5,
+        vol_water_.1500kPa.build.deep.df$ymax[1] + 5, 
+        vol_water_.1500kPa.build.deep.df$ymax[2] + 5, 
+        vol_water_.1500kPa.build.deep.df$ymax[3] + 5), 
+  label = c("a", "a", "b", #adding the significance labels
+            "x", "y", "z")
+  
+)
+#adding the significance letters to the plot
+vol_water_.1500kPa.plot <- vol_water_.1500kPa.plot +
+  geom_text(data = significance_letters_vol_water_.1500kPa_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water_.1500kPa.plot
+
+ph.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, ph_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("pH")+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+ph.plot.build <- ggplot_build(ph.plot)
+ph.build.shallow.df <- ph.plot.build$data[[1]] #storing the 0-5 cm boxplots
+ph.build.deep.df <- ph.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_ph_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(ph.build.shallow.df$ymin[1] - 0.05,  #adding 5 units to the whisker y-maxs
+        ph.build.shallow.df$ymin[2] - 0.05, 
+        ph.build.shallow.df$ymin[3] - 0.05,
+        ph.build.deep.df$ymax[1] + 0.05, 
+        ph.build.deep.df$ymax[2] + 0.05, 
+        ph.build.deep.df$ymax[3] + 0.05), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "y", "z")
+  
+)
+#adding the significance letters to the plot
+ph.plot <- ph.plot +
+  geom_text(data = significance_letters_ph_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+ph.plot
+
+nitrogen.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, nitrogen.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Nitrogen Content (cg/kg)")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+nitrogen.plot.build <- ggplot_build(nitrogen.plot)
+nitrogen.build.shallow.df <- nitrogen.plot.build$data[[1]] #storing the 0-5 cm boxplots
+nitrogen.build.deep.df <- nitrogen.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_nitrogen_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(nitrogen.build.shallow.df$ymax[1] + 10,  #adding 5 units to the whisker y-maxs
+        nitrogen.build.shallow.df$ymax[2] + 10, 
+        nitrogen.build.shallow.df$ymax[3] + 10,
+        nitrogen.build.deep.df$ymax[1] + 10, 
+        nitrogen.build.deep.df$ymax[2] + 10, 
+        nitrogen.build.deep.df$ymax[3] + 10), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "y", "z")
+  
+)
+#adding the significance letters to the plot
+nitrogen.plot <- nitrogen.plot +
+  geom_text(data = significance_letters_nitrogen_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+nitrogen.plot
+
+sandy_avail_water.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, sandy_avail_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Water Available in Sandy Soil (cm"^3*"/cm"^3*")")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+sandy_avail_water.plot.build <- ggplot_build(sandy_avail_water.plot)
+sandy_avail_water.plot.build.shallow.df <- sandy_avail_water.plot.build$data[[1]] #storing the 0-5 cm boxplots
+sandy_avail_water.plot.build.deep.df <- sandy_avail_water.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_sandy_avail_water_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(sandy_avail_water.plot.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        sandy_avail_water.plot.build.shallow.df$ymax[2] + 5, 
+        sandy_avail_water.plot.build.shallow.df$ymax[3] + 5,
+        sandy_avail_water.plot.build.deep.df$ymin[1] - 5, 
+        sandy_avail_water.plot.build.deep.df$ymin[2] - 5, 
+        sandy_avail_water.plot.build.deep.df$ymin[3] - 5), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "x", "y")
+  
+)
+#adding the significance letters to the plot
+sandy_avail_water.plot <- sandy_avail_water.plot +
+  geom_text(data = significance_letters_sandy_avail_water_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+sandy_avail_water.plot
+
+
+vol_water.33.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, vol_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Field Capacity for Clay/Loam Soil (cm"^3*"/cm"^3*")")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water.33.plot.build <- ggplot_build(vol_water.33.plot)
+vol_water.33.plot.build.shallow.df <- vol_water.33.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water.33.plot.build.deep.df <- vol_water.33.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water.33_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(vol_water.33.plot.build.shallow.df$ymin[1] - 4,  #adding 5 units to the whisker y-maxs
+        vol_water.33.plot.build.shallow.df$ymin[2] - 4, 
+        vol_water.33.plot.build.shallow.df$ymin[3] - 4,
+        vol_water.33.plot.build.deep.df$ymax[1] + 4, 
+        vol_water.33.plot.build.deep.df$ymax[2] + 4, 
+        vol_water.33.plot.build.deep.df$ymax[3] + 4), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "y", "y")
+  
+)
+#adding the significance letters to the plot
+vol_water.33.plot <- vol_water.33.plot +
+  geom_text(data = significance_letters_vol_water.33_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water.33.plot
+
+clay_loam_avail_water.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(Locality, clay_loam_avail_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Water Available in Clay/Loam Soil (cm"^3*"/cm"^3*")")))+
+  xlab("")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+clay_loam_avail_water.plot.build <- ggplot_build(clay_loam_avail_water.plot)
+clay_loam_avail_water.plot.build.shallow.df <- clay_loam_avail_water.plot.build$data[[1]] #storing the 0-5 cm boxplots
+clay_loam_avail_water.plot.build.deep.df <- clay_loam_avail_water.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_clay_loam_avail_water_df <- data.frame(
+  Locality = c("LM", "LC", "SD", #storing the localities
+               "LM", "LC", "SD"),
+  y = c(clay_loam_avail_water.plot.build.shallow.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        clay_loam_avail_water.plot.build.shallow.df$ymin[2] - 5, 
+        clay_loam_avail_water.plot.build.shallow.df$ymin[3] - 5,
+        clay_loam_avail_water.plot.build.deep.df$ymax[1] + 5, 
+        clay_loam_avail_water.plot.build.deep.df$ymax[2] + 5, 
+        clay_loam_avail_water.plot.build.deep.df$ymax[3] + 7), 
+  label = c("a", "b", "c", #adding the significance labels
+            "x", "x", "y")
+  
+)
+#adding the significance letters to the plot
+clay_loam_avail_water.plot <- clay_loam_avail_water.plot +
+  geom_text(data = significance_letters_clay_loam_avail_water_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+clay_loam_avail_water.plot
+
+plots <- c(clay.content.plot, silt.plot, sand.plot, SOC.plot, vol_water_.10.plot, 
+           vol_water.33.plot, vol_water_.1500kPa.plot, ph.plot, nitrogen.plot, 
+           sandy_avail_water.plot, clay_loam_avail_water.plot)
+library(ggpubr)
+ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, SOC.plot, vol_water_.10.plot, 
+                            vol_water.33.plot, vol_water_.1500kPa.plot, ph.plot, nitrogen.plot, 
+             sandy_avail_water.plot, clay_loam_avail_water.plot,
+             common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.plot
+
+ggsave("./soil_boxplots_plot.png", dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in"
+
+#saving the individual plots not going into the reduced plot for the supplement
+ggsave("./SOC.plot.png", plot = SOC.plot, dpi = 1200, width = 8, 
+       height = 6, units = "in") #units = "in", 14, 20
+ggsave("./ph.plot.png", plot = ph.plot, dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in", 14, 20
+ggsave("./nitrogen.plot.png", plot = nitrogen.plot, dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in", 14, 20
+
+#saving the supplement plots in a grid arrange
+ggarrange.plot <- ggarrange(SOC.plot, ph.plot, nitrogen.plot, 
+                            nrow = 1,
+                            common.legend = TRUE)
+ggarrange.plot
+ggsave("./soil_boxplots_supplement_plot.png", dpi = 1200, width = 14, 
+       height = 6, units = "in") #units = "in", 14, 20
+
+#saving the reduced plot
+ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, vol_water_.10.plot, 
+                            vol_water.33.plot, vol_water_.1500kPa.plot, 
+                            sandy_avail_water.plot, clay_loam_avail_water.plot,
+                            common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.plot
+
+ggsave("./soil_boxplots_reduced_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in", 14, 20
+
+
+### topographic metrics ###
+
+#making sure the locality is in LM, LC, SD order
+means_fixed_field_data_processed_terrain_dist$Locality <- factor(means_fixed_field_data_processed_terrain_dist$Locality, 
+                                                          levels = c("LM", "LC", "SD"))
+# ("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
+# c("#522201", "#C65102", "#228B22", "#b2df8a", "#5e8c2e")
+
+plot_color <- c("#5C462B")
+library(colorBlindness)
+plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
+plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
+
+
+
+#"skyblue"
+#"#5C462B"
+# shallower_soil_color <- c("#C4B07B")
+# deeper_soil_color <- c("#5C462B")
+
+elevation.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED, fill = Locality, color = Locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(round(min(means_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+                                  round(max(means_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+                                  by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+elevation.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(elevation.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5, 
+        elevation.plot.build.df$ymin[3] - 5), 
+  label = c("a", "b", "c") #adding the significance labels
+)
+#adding the significance letters to the plot
+elevation.plot <- elevation.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+elevation.plot
+
+slope.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, slope_raster_15_data_pts, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, slope_raster_15_data_pts, width = 0.2, fill = Locality, color = Locality),  alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+slope.plot.build <- ggplot_build(slope.plot)
+slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_slope_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
+        slope.plot.build.df$ymin[2] - 2, 
+        slope.plot.build.df$ymin[3] - 2), 
+  label = c("a", "b", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+slope.plot <- slope.plot +
+  geom_text(data = significance_letters_slope_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+slope.plot
+
+Eastness.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Eastness, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Eastness, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
+  ylab("Eastness (º)")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+Eastness.plot.build <- ggplot_build(Eastness.plot)
+Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_eastness_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Eastness.plot.build.df$ymax[2] + 0.1, 
+        Eastness.plot.build.df$ymax[3] + 0.1), 
+  label = c("a", "a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+Eastness.plot <- Eastness.plot +
+  geom_text(data = significance_letters_eastness_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+Eastness.plot
+
+Northness.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Northness, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Northness, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
+  ylab("Northness (º)")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+Northness.plot.build <- ggplot_build(Northness.plot)
+Northness.plot.build.df <- Northness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_northness_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(Northness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Northness.plot.build.df$ymax[2] + 0.1, 
+        Northness.plot.build.df$ymax[3] + 0.1), 
+  label = c("a", "b", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+Northness.plot <- Northness.plot +
+  geom_text(data = significance_letters_northness_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+Northness.plot
+
+TWI_values.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, TWI_values, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, TWI_values, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
+  ylab("Topographic Wetness Index")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+TWI_values.plot.build <- ggplot_build(TWI_values.plot)
+TWI_values.plot.build.df <- TWI_values.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_twi_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(TWI_values.plot.build.df$ymax[1] + 2.7,  #adding 5 units to the whisker y-maxs
+        TWI_values.plot.build.df$ymax[2] + 2, 
+        TWI_values.plot.build.df$ymax[3] + 2.7), 
+  label = c("a", "b", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+TWI_values.plot <- TWI_values.plot +
+  geom_text(data = significance_letters_twi_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+TWI_values.plot
+
+d.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, d, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, d, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
+  ylab("Distance from River (m)")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  scale_y_continuous(breaks = seq(round(min(means_fixed_field_data_processed_terrain_dist$d)), 
+                                  round(max(means_fixed_field_data_processed_terrain_dist$d)), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+d.plot.build <- ggplot_build(d.plot)
+d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_distance_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(d.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymin[2] - 5, 
+        d.plot.build.df$ymin[3] - 5), 
+  label = c("a", "a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+d.plot <- d.plot +
+  geom_text(data = significance_letters_distance_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+d.plot
+
+heat.load.plot <- ggplot()+
+  geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load, width = 0.2, fill = Locality, color = Locality),  alpha = 0.3)+
+  ylab("Distance from River (m)")+
+  xlab("")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+heat.load.plot.build <- ggplot_build(heat.load.plot)
+heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_heat_load_df <- data.frame(
+  Locality = c("LM", "LC", "SD"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.03,  #adding 5 units to the whisker y-maxs
+        heat.load.plot.build.df$ymax[2] + 0.08, 
+        heat.load.plot.build.df$ymax[3] + 0.13), 
+  label = c("a", "a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+heat.load.plot <- heat.load.plot +
+  geom_text(data = significance_letters_heat_load_df, 
+            aes(x = Locality, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+heat.load.plot
+
+ggarrange.topo.plot <- ggarrange(elevation.plot, slope.plot, Eastness.plot, 
+                            Northness.plot, TWI_values.plot, d.plot, heat.load.plot,
+                            common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.topo.plot
+
+ggsave("./topo_boxplots_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in"
 
 
 #### Session Info ####

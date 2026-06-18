@@ -667,8 +667,8 @@ LM_ANN_Anlysis_inside_on_outside_river #first index is the ANN value, the second
 ggplot()+ 
   geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
   scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
-  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), alpha = 0.5, aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
-  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16, alpha = 0.5)+ #plotting the tree points
+  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
   labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
        x = "Longitude", 
        y = "Latitude")+
@@ -694,11 +694,11 @@ as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r v
   xlab("Average Nearest Neighbor") +
   ylab("Frequency")+
   labs(title = "Las Matancitas")+
-  geom_text(aes(label = round(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 6.7, y = 40, color = "red") +
+  geom_text(aes(label = round(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 6.8, y = 50, color = "red", size = 6) + 
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
@@ -743,6 +743,7 @@ as_tibble(LC_ANN_Anlysis_river$ann.r) %>% #turning the ann.r vector as a tibble
   xlab("ANN") +
   theme_classic()
 
+
 ## Version of ANN analysis controlling for the river with inside, on, and outside the river
 
 LC_ANN_Anlysis_inside_on_outside_river <- ANN_analysis("LC", "Inside, On, and Outside River")
@@ -778,12 +779,13 @@ as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r v
   xlab("Average Nearest Neighbor") +
   ylab("Frequency")+
   labs(title = "La Cobriza")+
-  geom_text(aes(label = round(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 5.2, y = 50, color = "red") +
+  geom_text(aes(label = round(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 5.2, y = 50, color = "red", size = 6) +
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
+
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -866,11 +868,11 @@ as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r v
   xlab("Average Nearest Neighbor") +
   ylab("Frequency")+
   labs(title = "San Dionisio")+
-  geom_text(aes(label = round(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7, y = 55, color = "red") +
+  geom_text(aes(label = round(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7, y = 55, color = "red", size = 6) +
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
 
 
@@ -1012,7 +1014,7 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_LM_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of Las Matancitas",
-     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River (1/m)", legend = FALSE)
 
 #Test for LC
 
@@ -1041,7 +1043,7 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_LC_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of La Cobriza",
-     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River (1/m)", legend = FALSE)
 
 #Test for SD
 
@@ -1070,7 +1072,7 @@ anova(PPM0, PPM1, test="LRT")
 
 #plotting the alternative model
 plot(effectfun(PPM1, "dist_near_river_buffer_SD_inverse_im_cropped", se.fit = TRUE), main = "Distance to River of San Dionisio",
-     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River", legend = FALSE)
+     ylab = "Quercus brandegeei Trees", xlab = "Inverse Distance to River (1/m)", legend = FALSE)
 
 
 
@@ -1131,9 +1133,9 @@ dist_near_river_buffer_SD_corrected_cropped <- raster::crop(dist_near_river_buff
 dist_near_river_buffer_SD_corrected_cropped <- trim(dist_near_river_buffer_SD_corrected_cropped)
 
 ggplot()+
-  geom_raster(data = as.data.frame(dist_near_river_buffer_LM_corrected_cropped, xy=T), aes(x=x, y=y, fill = layer))+
+  geom_raster(data = as.data.frame(dist_near_river_buffer_SD_corrected_cropped, xy=T), aes(x=x, y=y, fill = layer))+
   #geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed_sf)
+  geom_sf(data = SD_fixed_field_data_processed_sf)
 
 #Test for LM
 

@@ -77,21 +77,12 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
-
-population = "SD"
+population = "LM"
 size_variable = "DBH"
-explanatory_var = "TWI_values"
+explanatory_var = "Elevation"
+
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
-  
-  #removing NAs 
-  dataframe_metric <- dataframe_metric %>%
-    filter(!is.na(Elevation..m.FIXED)) %>%
-    filter(!is.na(TWI_values)) %>%
-    filter(!is.na(DBH_ag)) %>%
-    filter(!is.na(Canopy_short)) %>%
-    filter(!is.na(Canopy_long)) %>%
-    filter(!is.na(Crown_spread)) %>%
-    filter(!is.na(Canopy_area)) 
+
   
   #assigning the population based on the inputted population
   if (population == "LM"){  #LM trees
@@ -120,6 +111,16 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     dataframe_metric$Slope <- dataframe_metric$all_points_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     
   }
+  
+  #removing NAs 
+  dataframe_metric <- dataframe_metric %>%
+    filter(!is.na(Elevation..m.FIXED)) %>%
+    filter(!is.na(TWI_values)) %>%
+    filter(!is.na(DBH_ag)) %>%
+    filter(!is.na(Canopy_short)) %>%
+    filter(!is.na(Canopy_long)) %>%
+    filter(!is.na(Crown_spread)) %>%
+    filter(!is.na(Canopy_area)) 
   
   #assigning the size/response variable based on the user input
   if (size_variable == "SCA"){  #Short Canopy Axis
@@ -7032,6 +7033,284 @@ ggplot(data = simple_linear_regressions_SD_DBH_heat.load$chosen_model, aes(x = s
   xlab("Fitted Values")+
   ylab("Residuals")+
   labs(title = "Residuals vs. Fitted Values for DBH and heat.load")
+
+
+#### Figures for the Paper ####
+
+#setting the colors for the boxplots/points for the shallower and deeper soils
+shallower_soil_color <- c("#C4B07B")
+deeper_soil_color <- c("#5C462B")
+
+
+#DBH
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_elevation <- simple_linear_regressions("LM", "DBH", "Elevation")
+simple_linear_regressions_LM_DBH_elevation
+
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_elevation <- simple_linear_regressions("LC", "DBH", "Elevation")
+simple_linear_regressions_LC_DBH_elevation
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_elevation <- simple_linear_regressions("SD", "DBH", "Elevation")
+simple_linear_regressions_SD_DBH_elevation
+
+
+
+#making sure the order of the figures uses LM, LC, SD
+LM_fixed_field_data_processed_distance$Locality <- factor(LM_fixed_field_data_processed_distance$Locality, 
+                                                          levels = c("LM", "LC", "SD"))
+LC_fixed_field_data_processed_distance$Locality <- factor(LC_fixed_field_data_processed_distance$Locality, 
+                                                          levels = c("LM", "LC", "SD"))
+SD_fixed_field_data_processed_distance$Locality <- factor(SD_fixed_field_data_processed_distance$Locality, 
+                                                          levels = c("LM", "LC", "SD"))
+
+#LM
+elevation_LM.plot <- ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
+  geom_smooth(method='lm', color = deeper_soil_color, alpha = 0.3)+
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LM")+
+  ylim(c(0, 1.5))+
+  xlim(c(380, 530))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+elevation_LM.plot
+
+#LC
+elevation_LC.plot <- ggplot(data = LC_fixed_field_data_processed_distance, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
+  geom_smooth(method='lm', color = deeper_soil_color, alpha = 0.3)+
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LC")+
+  ylim(c(0, 1.5))+
+  xlim(c(380, 530))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+elevation_LC.plot
+
+elevation_SD.plot <- ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+  #log(DBH_ag)
+  geom_smooth(method = "loess", color = deeper_soil_color, alpha = 0.3)+ #method='lm',
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "SD")+
+  ylim(c(0, 1.5))+
+  xlim(c(380, 530))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+elevation_SD.plot
+
+
+ggarrange.elevation.plot <- ggarrange(elevation_LM.plot, elevation_LC.plot, elevation_SD.plot,
+                                      common.legend = TRUE, nrow = 1, legend = "right")
+
+
+ggarrange.elevation.plot <- annotate_figure(ggarrange.elevation.plot,
+                                            bottom = text_grob("Elevation (m)", color = "black", size = 17, family = "serif"),
+                                            left = text_grob("DBH (m)", color = "black", rot = 90, size = 17, family = "serif"))
+
+ggarrange.elevation.plot
+
+
+ggsave("./elevation.plot.png", dpi = 1200, width = 15, 
+       height = 5, units = "in") #units = "in"
+
+
+LM_color = "#875E3BFF"
+LC_color = "#E37F3EFF"
+SD_color = "#B3C6ADFF"
+
+LM_color = "#1f78b4"
+LC_color = "#a6cee3"
+SD_color = "#7fb241"
+
+elevation_LM.plot <- ggplot()+ 
+  geom_smooth(method='lm', data = LM_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LM_color, fill = LM_color, alpha = 0.3)+
+  geom_point(data = LM_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LM"), alpha = 0.3)+
+  geom_smooth(method='lm', data = LC_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LC_color, fill = LC_color, alpha = 0.3)+
+  geom_point(data = LC_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LC"), alpha = 0.3)+
+  geom_smooth(method='lm', data = SD_fixed_field_data_processed_distance, 
+              aes(x=Elevation..m.FIXED, y=DBH_ag), 
+              color = SD_color, fill = SD_color, alpha = 0.3, linetype = 2, se = F)+
+  geom_point(data = SD_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "SD"), alpha = 0.3)+
+  xlab("Elevation (m)")+
+  ylab("DBH (m)")+
+  scale_color_manual(
+    name = "Population",
+    breaks = c("LM", "LC", "SD"),
+    values = c("LM" = LM_color,
+               "LC" = LC_color,
+               "SD" = SD_color),
+    labels = parse(text = c("bold('LM')","'LC'", "bold('SD')")))+
+  ylim(c(0, 1.5))+
+  xlim(c(380, 530)) +
+  scale_x_continuous(breaks = seq(from = 380, to = 530, by = 20))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+elevation_LM.plot <- elevation_LM.plot +
+  annotate(geom = "text", label = "tau == -0.182", x = 400, y = 0,
+           color = SD_color, parse = T, size = 6) #-0.182
+elevation_LM.plot
+
+
+
+# SLOPE
+
+
+#running the simple linear regression function
+simple_linear_regressions_LM_DBH_slope <- simple_linear_regressions("LM", "DBH", "Slope")
+simple_linear_regressions_LM_DBH_slope
+
+#running the simple linear regression function
+simple_linear_regressions_LC_DBH_slope <- simple_linear_regressions("LC", "DBH", "Slope")
+simple_linear_regressions_LC_DBH_slope
+
+#running the simple linear regression function
+simple_linear_regressions_SD_DBH_slope <- simple_linear_regressions("SD", "DBH", "Slope")
+simple_linear_regressions_SD_DBH_slope
+
+
+#LM
+slope_LM.plot <- ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=LM_slope_raster_15_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm', color = deeper_soil_color, alpha = 0.3)+
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LM")+
+  ylim(c(0, 1.5))+
+  xlim(c(0, 40))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+slope_LM.plot
+
+#LC
+slope_LC.plot <- ggplot(data = LC_fixed_field_data_processed_terrain_dist, (aes(x=LC_slope_raster_15_data_pts, y=DBH_ag)))+ 
+  geom_smooth(method='lm', color = deeper_soil_color, alpha = 0.3)+
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LC")+
+  ylim(c(0, 1.5))+
+  xlim(c(0, 40))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+slope_LC.plot
+
+slope_SD.plot <- ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=SD_slope_raster_15_data_pts, y=DBH_ag)))+  #log(DBH_ag)
+  geom_smooth(method = "loess", color = deeper_soil_color, alpha = 0.3)+ #method='lm',
+  geom_point(color = deeper_soil_color, alpha = 0.3)+
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "SD")+
+  ylim(c(0, 1.5))+
+  xlim(c(0, 40))+
+  theme_minimal() +
+  theme(title=element_text(size=17), 
+        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
+        axis.title.y =element_text(size= 17),
+        label =element_text(size= 17, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 14))
+slope_SD.plot
+
+
+ggarrange.slope.plot <- ggarrange(slope_LM.plot, slope_LC.plot, slope_SD.plot,
+                                  common.legend = TRUE, nrow = 1, legend = "right")
+
+
+ggarrange.slope.plot <- annotate_figure(ggarrange.slope.plot,
+                                        bottom = text_grob("Slope (º)", color = "black", size = 17, family = "serif"),
+                                        left = text_grob("DBH (m)", color = "black", rot = 90, size = 17, family = "serif"))
+
+ggarrange.slope.plot
+
+
+ggsave("./slope.plot.png", dpi = 1200, width = 15, 
+       height = 5, units = "in") #units = "in"
+
+
+LM_color = "#875E3BFF"
+LC_color = "#E37F3EFF"
+SD_color = "#B3C6ADFF"
+
+LM_color = "#1f78b4"
+LC_color = "#a6cee3"
+SD_color = "#7fb241"
+
+plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
+
+
+
+#DBH_ag
+#log(DBH_ag)
+
+slope_LM.plot <- ggplot()+ 
+  geom_smooth(method='lm', data = LM_fixed_field_data_processed_terrain_dist, aes(x=LM_slope_raster_15_data_pts, y=DBH_ag), color = LM_color, fill = LM_color, alpha = 0.3)+
+  geom_point(data = LM_fixed_field_data_processed_terrain_dist, aes(x=LM_slope_raster_15_data_pts, y=DBH_ag, color = "LM"), alpha = 0.3)+
+  geom_smooth(method='lm', data = LC_fixed_field_data_processed_terrain_dist, aes(x=LC_slope_raster_15_data_pts, y=DBH_ag), color = LC_color, fill = LC_color, alpha = 0.3)+
+  geom_point(data = LC_fixed_field_data_processed_terrain_dist, aes(x=LC_slope_raster_15_data_pts, y=DBH_ag, color = "LC"), alpha = 0.3)+
+  geom_smooth(method='lm', data = SD_fixed_field_data_processed_terrain_dist, 
+              aes(x=SD_slope_raster_15_data_pts, y=DBH_ag), 
+              color = SD_color, fill = SD_color, alpha = 0.3, linetype = 2, se = F)+
+  geom_point(data = SD_fixed_field_data_processed_terrain_dist, aes(x=SD_slope_raster_15_data_pts, y=DBH_ag, color = "SD"), 
+             alpha = 0.3)+
+  xlab("Slope (º)")+
+  ylab("DBH (m)")+
+  scale_color_manual(
+    name = "Population",
+    breaks = c("LM", "LC", "SD"),
+    values = c("LM" = LM_color,
+               "LC" = LC_color,
+               "SD" = SD_color),
+    labels = parse(text = c("bold('LM')","'LC'", "bold('SD')")))+
+  #scale_x_continuous(breaks = seq(from = 380, to = 530, by = 20))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+slope_LM.plot <- slope_LM.plot +
+  annotate(geom = "text", label = "tau == -0.175", x = 30, y = 0.7,
+           color = SD_color, parse = T, size = 6) #-0.1748603
+slope_LM.plot
+
 
 
 #### Session Info ####

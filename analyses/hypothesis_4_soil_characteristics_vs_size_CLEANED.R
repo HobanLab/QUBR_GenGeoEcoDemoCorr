@@ -261,7 +261,7 @@ size.pop.slopes.df <- size.pop.slopes.df %>%
 
 #exporting the CSV of the slope table
 
-write.csv(size.pop.slopes.df, file = "~/Documents/chewbecca/Morton Arboretum REU 2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/size.pop.slopes.df.csv")
+write.csv(size.pop.slopes.df, file = "~/Documents/chewbecca/Morton_Arboretum_REU_2024/Untitled/QUBR_GenGeoEcoDemoCorr/data/size.pop.slopes.df.csv")
   
 #### Summarizing the results ####
 
@@ -414,6 +414,106 @@ ggplot(aes(x = Size.Variable, y = Soil.Metric, fill = ifelse(P.value < 0.05, P.v
        subtitle = "Significant Slopes Labeled") + 
   scale_fill_distiller(palette = "RdPu", direction = -1) + 
   geom_text(aes(label = ifelse(P.value < 0.05, round(Slope, 3), NA))) 
+
+#### Figures for the Paper ####
+
+#setting the colors for the boxplots/points for the shallower and deeper soils
+shallower_soil_color <- c("#C4B07B")
+deeper_soil_color <- c("#5C462B")
+
+VWC_10.plot.LM <- ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LM")+
+  ylim(c(0, 1.5))+
+  xlim(c(340, 356))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+VWC_10.plot.LM <- VWC_10.plot.LM + 
+  annotate("text", label = " * ", x = 353, y = 1.5, size = 10, color = shallower_soil_color)
+VWC_10.plot.LM
+
+VWC_10.plot.LC <- ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LC")+
+  ylim(c(0, 1.5))+
+  xlim(c(340, 356))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+VWC_10.plot.LC <- VWC_10.plot.LC + 
+  annotate("text", label = " * ", x = 347, y = 1.5, size = 10, color = deeper_soil_color)
+VWC_10.plot.LC
+
+
+VWC_10.plot.SD <- ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(vol_water_.10_0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(vol_water_.10_100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "SD")+
+  ylim(c(0, 1.5))+
+  xlim(c(340, 356))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+VWC_10.plot.SD <- VWC_10.plot.SD + 
+  annotate("text", label = " * ", x = 343, y = 1.5, size = 10, color = deeper_soil_color) +
+  annotate("text", label = " * ", x = 351, y = 1.5, size = 10, color = shallower_soil_color)
+VWC_10.plot.SD
+
+ggarrange.VWC_10.plot <- ggarrange(VWC_10.plot.LM, VWC_10.plot.LC, VWC_10.plot.SD,
+            common.legend = TRUE, nrow = 1, legend = "right")
+
+
+ggarrange.VWC_10.plot <- annotate_figure(ggarrange.VWC_10.plot,
+                                         bottom = text_grob(expression(paste("Volume of Water Content Sandy Soils (cm"^3*"/cm"^3*")")), color = "black", size = 17, family = "serif"),
+                                          left = text_grob("DBH (m)", color = "black", rot = 90, size = 17, family = "serif"))
+
+ggarrange.VWC_10.plot
+
+
+ggsave("./VWC_10.plot.png", dpi = 1200, width = 15, 
+       height = 5, units = "in") #units = "in"
 
 
 #### Session Info ####
