@@ -39,6 +39,7 @@ daniel_data_in_ash_data <- daniel_data_raw %>%
          across(c(lat, long), ~ gsub('. ', '.', ., , fixed = T)), 
          across(c(lat, long), ~ measurements::conv_unit(., from = 'deg_dec_min', to = 'dec_deg')), 
          across(c(lat, long), ~ as.numeric(.))) %>%
+  mutate(across(starts_with("DBH"), as.numeric)) %>%
   mutate(across(starts_with("DBH"), ~ (.x/pi*100))) %>% #converting their circumference measurements in m to DBH in cm
   mutate(DBH1 = case_when(is.na(DBH1) ~ DBH, 
                           !is.na(DBH1) ~ DBH1)) %>% #making it so all DBH's are in the DBH1 column
@@ -64,7 +65,8 @@ field_data_processed <- field_data_processing %>%
   mutate(Canopy1 = as.numeric(Canopy1), 
          Canopy2 = as.numeric(Canopy2)) %>%
   mutate(across(starts_with("DBH"), ~ (.x/100)^2)) %>% #Squaring all of the DBH's and then summing them and then sqrting the sum is how people in the US tend to use multi-stem dbh's (which is what 167 of my trees are)
-  mutate(DBH_ag = sqrt(rowSums(across(starts_with("DBH")), na.rm = T))) %>%
+  mutate(DBH_ag = case_when(if_all(starts_with("DBH"), is.na) ~ NA,
+                                   T ~ sqrt(rowSums(across(starts_with("DBH")), na.rm = T)))) %>%
   mutate(multistemmed = case_when(is.na(DBH2) ~ F, 
                                   !is.na(DBH2) ~ T)) %>% # adding a column that is a logical vector that describes if the tree has multiple stems or not
   select(!c(DBH1, DBH2, DBH3, DBH4, DBH5, DBH6)) %>%

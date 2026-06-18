@@ -76,6 +76,7 @@ library(MuMIn) #to be able to use dredge
 library(visreg) # to be able to plot Aspect/categorical variables with GAM
 library(spatialEco) # for heat load index function
 library(geosphere) # for finding the distance of populations to the coast
+library(terra)
 
 #### Loading and processing relevant data ####
 
@@ -288,83 +289,83 @@ SD_box <- st_bbox(river_SD_trans)
 
 #SO WE COMMENTED OUT THE CODE WE USED TO LOAD IN THE ORIGINAL RASTER AND CREATE AND EXPORT THE CROPPED RASTERS FOR EACH POPULATION THAT WE DOWNLOAD LATER
 
-# #projecting the INGEI 15 m continuous elevation model into UTM 12N 
-# gdalwarp(srcfile = './data/15 m Elevation Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',  
-#          dstfile = './data/15 m Elevation Raster/CEM_15_utm.tif', 
-#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
-#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
+# #projecting the INGEI 15 m continuous elevation model into UTM 12N
+# gdalwarp(srcfile = './data/15m_Elevation_Raster/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif',
+#           dstfile = './data/15m_Elevation_Rasterr/CEM_15_utm.tif',
+#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs',
+#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 #          tr = c(15, 15), overwrite=T)
 # 
-# #loading in the projected file
-# CEM_15_utm <- raster(paste0("./data/15 m Elevation Raster/CEM_15_utm.tif"))
+#  #loading in the projected file
+#  CEM_15_utm <- raster(paste0("./data/15m_Elevation_Raster/CEM_15_utm.tif"))
 # 
-# plot(CEM_15_utm) # just to visualize the raster
-
-# #cropping the rasters for each population
+#  plot(CEM_15_utm) # just to visualize the raster
 # 
-# #all points
+#  #cropping the rasters for each population
 # 
-# # #mapping cropped 
-# CEM_15_utm_all_populations <- crop(CEM_15_utm, extent((c(500000, 700000, 2500000, 2700000))))
-# plot(CEM_15_utm_all_populations) # just to visualize the raster
-# # 
+#  #all points
 # 
-# #cropping the rasters for each population
+#  # #mapping cropped
+#  CEM_15_utm_all_populations <- crop(CEM_15_utm, extent((c(500000, 700000, 2500000, 2700000))))
+#  plot(CEM_15_utm_all_populations) # just to visualize the raster
+# # #
 # 
-# #all points
+#  #cropping the rasters for each population
 # 
-# #mapping cropped 
-# CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
+#  #all points
 # 
-# #plotting the LM elevation raster with the all points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+#  #mapping cropped
+#  CEM_15_utm_all_points <- crop(CEM_15_utm, extent((c(LM_box[1]-100, SD_box[3]+100, SD_box[2]-100, LM_box[4]+100))))
 # 
-# #LM
+#  #plotting the LM elevation raster with the all points
+#  ggplot()+
+#    geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#    geom_sf(data = fixed_field_data_processed_sf_trans_coordinates)
+# #
+# # #LM
+# #
+# # #mapping cropped
+#  CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
+# #
+# # #plotting the LM elevation raster with the LM points
+#  ggplot()+
+#    geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#    geom_sf(data = LM_fixed_field_data_processed)
+# #
+# # #LC
+# #
+# # #mapping cropped
+#  CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
+# #
+# # #plotting the LM elevation raster with the LM points
+#  ggplot()+
+#    geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#    geom_sf(data = LC_fixed_field_data_processed)
+# #
+# # #SD
+# #
+# # #mapping cropped
+#  CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
+# #
+# # #plotting the LM elevation raster with the LM points
+#  ggplot()+
+#    geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
+#    geom_sf(data = SD_fixed_field_data_processed)
 # 
-# #mapping cropped 
-# CEM_15_utm_LM <- crop(CEM_15_utm, extent((c(LM_box[1]-100, LM_box[3]+100, LM_box[2]-100, LM_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LM_fixed_field_data_processed)
-# 
-# #LC
-# 
-# #mapping cropped 
-# CEM_15_utm_LC <- crop(CEM_15_utm, extent((c(LC_box[1]-100, LC_box[3]+100, LC_box[2]-100, LC_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = LC_fixed_field_data_processed)
-# 
-# #SD
-# 
-# #mapping cropped 
-# CEM_15_utm_SD <- crop(CEM_15_utm, extent((c(SD_box[1]-100, SD_box[3]+100, SD_box[2]-100, SD_box[4]+100))))
-# 
-# #plotting the LM elevation raster with the LM points
-# ggplot()+
-#   geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm))+
-#   geom_sf(data = SD_fixed_field_data_processed)
-
-# #exporting this cropped rasters as a tif
+# # #exporting this cropped rasters as a tif
 # writeRaster(CEM_15_utm_all_populations,'./data/15m_Elevation_Raster/CEM_15_utm_all_populations.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
 # writeRaster(CEM_15_utm_LM$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LM.tif') # sending the raster to the data folder and then to the 15 m elevation raster folder
 # writeRaster(CEM_15_utm_LC$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_LC.tif')
 # writeRaster(CEM_15_utm_SD$CEM_15_utm,'./data/15m_Elevation_Raster/CEM_15_utm_SD.tif')
-
-# #projecting the INGEI 14 m continuous elevtion model into UTM 12N 
-# gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif", 
-#          dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif", 
-#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs', 
-#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs', 
+# 
+# # #projecting the INGEI 14 m continuous elevtion model into UTM 12N
+# gdalwarp(srcfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/BajaCaliforniaS_15m.tif",
+#          dstfile = "./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif",
+#          s_srs = '+proj=longlat +ellps=GRS80 +no_defs',
+#          t_srs= '+proj=utm +zone=12 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
 #          tr = c(15, 15), overwrite=TRUE)
 # 
-# #loading in the projected file
+# # #loading in the projected file
 # CEM_15_utm <- raster(paste0("./data/CEM bcs 15 m INEGI/CEM_V3_20170619_R15_E03_TIF/CEM_15_utm.tif"))
 # 
 # plot(CEM_15_utm)
@@ -492,34 +493,34 @@ ggplot()+
 
 #all points
 
-all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting aspect for each point value
-all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates) #extracting slope for each point value
+all_points_aspect_raster_15_data_pts <- extract(all_points_aspect_raster_15, fixed_field_data_processed_sf_trans_coordinates, ID = FALSE, raw = T) #extracting aspect for each point value
+all_points_slope_raster_15_data_pts <- extract(all_points_slope_raster_15, fixed_field_data_processed_sf_trans_coordinates, ID = FALSE, raw = T) #extracting slope for each point value
 all_points_fixed_field_data_processed_terrain <- cbind(fixed_field_data_processed_sf_trans_coordinates, all_points_aspect_raster_15_data_pts) #bind the aspect data for each point to the all point dataframe
 all_points_fixed_field_data_processed_terrain <- cbind(all_points_fixed_field_data_processed_terrain, all_points_slope_raster_15_data_pts) #bind the slope data for each point to the all point dataframe
 
 #LM
 
-LM_aspect_raster_15_data_pts <- extract(LM_aspect_raster_15, LM_fixed_field_data_processed) #extracting aspect for each point value
-LM_slope_raster_15_data_pts <- extract(LM_slope_raster_15, LM_fixed_field_data_processed) #extracting slope for each point value
-LM_elevation_raster_15_data_pts <- extract(CEM_15_utm_LM, LM_fixed_field_data_processed) #extracting the elevation for each point value
+LM_aspect_raster_15_data_pts <- terra::extract(LM_aspect_raster_15, LM_fixed_field_data_processed, ID = FALSE, raw = T) #extracting aspect for each point value
+LM_slope_raster_15_data_pts <- terra::extract(LM_slope_raster_15, LM_fixed_field_data_processed, ID = FALSE, raw = T) #extracting slope for each point value
+LM_elevation_raster_15_data_pts <- terra::extract(CEM_15_utm_LM, LM_fixed_field_data_processed, ID = FALSE, raw = T) #extracting the elevation for each point value
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed, LM_aspect_raster_15_data_pts) #bind the aspect data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_slope_raster_15_data_pts) #bind the slope data for each point to the LM point dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_elevation_raster_15_data_pts) #bind the elevation data for each point to the LM point dataframe
 
 #LC
 
-LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed) #extracting aspect for each point value
-LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed) #extracting slope for each point value
-LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed) #extracting the elevation for each point value
+LC_aspect_raster_15_data_pts <- extract(LC_aspect_raster_15, LC_fixed_field_data_processed, ID = FALSE, raw = T) #extracting aspect for each point value
+LC_slope_raster_15_data_pts <- extract(LC_slope_raster_15, LC_fixed_field_data_processed, ID = FALSE, raw = T) #extracting slope for each point value
+LC_elevation_raster_15_data_pts <- extract(CEM_15_utm_LC, LC_fixed_field_data_processed, ID = FALSE, raw = T) #extracting the elevation for each point value
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed, LC_aspect_raster_15_data_pts) #bind the aspect data for each point to the LC point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_slope_raster_15_data_pts) #bind the slope data for each point to the LC point dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_elevation_raster_15_data_pts) #bind the elevation data for each point to the LC point dataframe
 
 #SD
 
-SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed) #extracting aspect for each point value
-SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed) #extracting slope for each point value
-SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed) #extracting the elevation for each point value
+SD_aspect_raster_15_data_pts <- extract(SD_aspect_raster_15, SD_fixed_field_data_processed, ID = FALSE, raw = T) #extracting aspect for each point value
+SD_slope_raster_15_data_pts <- extract(SD_slope_raster_15, SD_fixed_field_data_processed, ID = FALSE, raw = T) #extracting slope for each point value
+SD_elevation_raster_15_data_pts <- extract(CEM_15_utm_SD, SD_fixed_field_data_processed, ID = FALSE, raw = T) #extracting the elevation for each point value
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed, SD_aspect_raster_15_data_pts) #bind the aspect data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_slope_raster_15_data_pts) #bind the slope data for each point to the SD point dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts) #bind the elevation data for each point to the SD point dataframe
@@ -530,25 +531,29 @@ SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_ter
 
 #all points
 all_points_fixed_field_data_processed_terrain <- all_points_fixed_field_data_processed_terrain %>%
-  mutate(all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
-                                                          (all_points_aspect_raster_15_data_pts != "360")~ all_points_aspect_raster_15_data_pts))
+  mutate(all_points_aspect_raster_15_data_pts = as.vector(all_points_aspect_raster_15_data_pts),
+         all_points_aspect_raster_15_data_pts = case_when((all_points_aspect_raster_15_data_pts == "360") ~  0,
+                                                          (all_points_aspect_raster_15_data_pts != "360") ~ all_points_aspect_raster_15_data_pts))
 
 #LM
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LM_aspect_raster_15_data_pts != "360")~ LM_aspect_raster_15_data_pts))
+  mutate(LM_aspect_raster_15_data_pts = as.vector(LM_aspect_raster_15_data_pts),
+         LM_aspect_raster_15_data_pts = case_when((LM_aspect_raster_15_data_pts == "360") ~  0,
+                                                          (LM_aspect_raster_15_data_pts != "360") ~ LM_aspect_raster_15_data_pts))
+
 #LC
 
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (LC_aspect_raster_15_data_pts != "360")~ LC_aspect_raster_15_data_pts))
-
+  mutate(LC_aspect_raster_15_data_pts = as.vector(LC_aspect_raster_15_data_pts),
+         LC_aspect_raster_15_data_pts = case_when((LC_aspect_raster_15_data_pts == "360") ~  0,
+                                                  (LC_aspect_raster_15_data_pts != "360") ~ LC_aspect_raster_15_data_pts))
 
 #SD
 
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
-                                                  (SD_aspect_raster_15_data_pts != "360")~ SD_aspect_raster_15_data_pts))
+  mutate(SD_aspect_raster_15_data_pts = as.vector(SD_aspect_raster_15_data_pts),
+         SD_aspect_raster_15_data_pts = case_when((SD_aspect_raster_15_data_pts == "360") ~  0,
+                                                  (SD_aspect_raster_15_data_pts != "360") ~ SD_aspect_raster_15_data_pts))
 
 
 # all points
@@ -937,7 +942,7 @@ LM_elevation_model <- lm(altitude ~ LM_elevation_raster_15_data_pts,
 coef(LM_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LM_fixed_field_data_processed_terrain$altitude, LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+cor(x = LM_fixed_field_data_processed_terrain$altitude, LM_fixed_field_data_processed_terrain$CEM_15_utm_LM, use = "complete.obs")
 
 #creating the combination column
 LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
@@ -958,7 +963,7 @@ LC_elevation_model <- lm(altitude ~ LC_elevation_raster_15_data_pts,
 coef(LC_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LC_fixed_field_data_processed_terrain$altitude, LC_fixed_field_data_processed_terrain$LC_elevation_raster_15_data_pts, use = "complete.obs")
+cor(LC_fixed_field_data_processed_terrain$altitude, LC_fixed_field_data_processed_terrain$CEM_15_utm_LC, use = "complete.obs")
 
 #creating the combination column
 LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
@@ -980,7 +985,7 @@ SD_elevation_model <- lm(altitude ~ SD_elevation_raster_15_data_pts,
 coef(SD_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(SD_fixed_field_data_processed_terrain$altitude, SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts, use = "complete.obs")
+cor(SD_fixed_field_data_processed_terrain$altitude, SD_fixed_field_data_processed_terrain$CEM_15_utm_SD, use = "complete.obs")
 
 #creating the combination column
 SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
@@ -1002,7 +1007,7 @@ elevation_model <- lm(Elevation..m.combo ~ LM_elevation_raster_15_data_pts,
 coef(elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LM_fixed_field_data_processed_terrain$Elevation..m.combo, LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
+cor(LM_fixed_field_data_processed_terrain$Elevation..m.combo, LM_fixed_field_data_processed_terrain$CEM_15_utm_LM, use = "complete.obs")
 
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
@@ -1205,12 +1210,14 @@ ggplot()+
   geom_raster(data= as.data.frame(twi_LM, xy = T), aes(x=x, y=y, fill = twi_LM))+
   geom_sf(data = LM_fixed_field_data_processed_sf)
 
+#extracting the coordinates
+LM_coords <- st_coordinates(LM_fixed_field_data_processed_sf)
+
 #extracting the TWI metrics for each tree
-LM_TWI_values <- extract(twi_LM, LM_fixed_field_data_processed) #extracting TWI for each point value
+LM_TWI_values <- extract(twi_LM, LM_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_TWI_values) #bind the elevation data for each point to the LM point dataframe
-
 
 ## LC
 
@@ -1274,8 +1281,11 @@ ggplot()+
   geom_raster(data= as.data.frame(twi_LC, xy = T), aes(x=x, y=y, fill = twi_LC))+
   geom_sf(data = LC_fixed_field_data_processed_sf)
 
+#extracting the coordinates
+LC_coords <- st_coordinates(LC_fixed_field_data_processed_sf)
+
 #extracting the TWI metrics for each tree
-LC_TWI_values <- extract(twi_LC, LC_fixed_field_data_processed) #extracting TWI for each point value
+LC_TWI_values <- extract(twi_LC, LC_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_TWI_values) #bind the elevation data for each point to the LM point dataframe
@@ -1343,8 +1353,11 @@ ggplot()+
   geom_raster(data= as.data.frame(twi_SD, xy = T), aes(x=x, y=y, fill = twi_SD))+
   geom_sf(data = SD_fixed_field_data_processed_sf)
 
+#extracting the coordinates
+SD_coords <- st_coordinates(SD_fixed_field_data_processed_sf)
+
 #extracting the TWI metrics for each tree
-SD_TWI_values <- extract(twi_SD, SD_fixed_field_data_processed) #extracting TWI for each point value
+SD_TWI_values <- extract(twi_SD, SD_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_TWI_values) #bind the elevation data for each point to the LM point dataframe
@@ -1383,12 +1396,20 @@ ggplot()+
   labs(fill = "Heat Load Index")+
   scale_fill_viridis_c(option = "inferno")
 
+#extracting the coordinates
+LM_coords <- st_coordinates(LM_fixed_field_data_processed_sf)
+
+#storing the point coordinates
+LM_fixed_field_data_processed_sf$LM_coords <- LM_coords
 
 #extracting the TWI metrics for each tree
-LM_heat.load <- extract(heat.load.raster.LM, LM_fixed_field_data_processed) #extracting TWI for each point value
+LM_heat.load <- extract(heat.load.raster.LM, LM_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 LM_fixed_field_data_processed_terrain <- cbind(LM_fixed_field_data_processed_terrain, LM_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#removing duplicate column names
+names(LM_fixed_field_data_processed_terrain) <- make.unique(names(LM_fixed_field_data_processed_terrain))
 
 #renaming the column to be called "heat.load"
 LM_fixed_field_data_processed_terrain <- rename(LM_fixed_field_data_processed_terrain, heat.load = lyr.1)
@@ -1410,11 +1431,20 @@ ggplot()+
   labs(fill = "Heat Load Index")+
   scale_fill_viridis_c(option = "inferno")
 
+#extracting the coordinates
+LC_coords <- st_coordinates(LC_fixed_field_data_processed_sf)
+
+#storing the point coordinates
+LC_fixed_field_data_processed_sf$LC_coords <- LC_coords
+
 #extracting the TWI metrics for each tree
-LC_heat.load <- extract(heat.load.raster.LC, LC_fixed_field_data_processed) #extracting TWI for each point value
+LC_heat.load <- extract(heat.load.raster.LC, LC_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 LC_fixed_field_data_processed_terrain <- cbind(LC_fixed_field_data_processed_terrain, LC_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#removing duplicate column names
+names(LC_fixed_field_data_processed_terrain) <- make.unique(names(LC_fixed_field_data_processed_terrain))
 
 #renaming the column to be called "heat.load"
 LC_fixed_field_data_processed_terrain <- rename(LC_fixed_field_data_processed_terrain, heat.load = lyr.1)
@@ -1436,11 +1466,20 @@ ggplot()+
   labs(fill = "Heat Load Index")+
   scale_fill_viridis_c(option = "inferno")
 
+#extracting the coordinates
+SD_coords <- st_coordinates(SD_fixed_field_data_processed_sf)
+
+#storing the point coordinates
+SD_fixed_field_data_processed_sf$SD_coords <- SD_coords
+
 #extracting the TWI metrics for each tree
-SD_heat.load <- extract(heat.load.raster.SD, SD_fixed_field_data_processed) #extracting TWI for each point value
+SD_heat.load <- extract(heat.load.raster.SD, SD_coords) #extracting TWI for each point value
 
 # adding the extracted TWI values to the terrain dataframe
 SD_fixed_field_data_processed_terrain <- cbind(SD_fixed_field_data_processed_terrain, SD_heat.load) #bind the elevation data for each point to the LM point dataframe
+
+#removing duplicate column names
+names(SD_fixed_field_data_processed_terrain) <- make.unique(names(SD_fixed_field_data_processed_terrain))
 
 #renaming the column to be called "heat.load"
 SD_fixed_field_data_processed_terrain <- rename(SD_fixed_field_data_processed_terrain, heat.load = lyr.1)
@@ -1506,35 +1545,35 @@ plot(dist_near_river_buffer_SD) #plotting the distance to river raster
 #LM
 
 #Assigning points within and overlapping with the river to be "true"
-LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed, river_LM_trans, sparse = F) #creating a list of true or falses for whether points intersect the river shapefiles
-LM_fixed_field_data_processed_intersects_river <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
+LM_points_intersects_river <- st_intersects(LM_fixed_field_data_processed_sf, river_LM_trans, sparse = F)
+LM_fixed_field_data_processed <- cbind(LM_fixed_field_data_processed, LM_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_LM_trans)+
-  geom_sf(data=LM_fixed_field_data_processed)+
-  geom_sf(data=LM_fixed_field_data_processed_intersects_river, aes(color = LM_points_intersects_river))
+  geom_sf(data=LM_fixed_field_data_processed_sf)+
+  geom_sf(data=LM_fixed_field_data_processed, aes(color = LM_points_intersects_river))
 
 #LC 
 
 #Assigning points within and overlapping with the river to be "true"
 LC_points_intersects_river <- st_intersects(LC_fixed_field_data_processed, river_LC_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-LC_fixed_field_data_processed_intersects_river <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
+LC_fixed_field_data_processed <- cbind(LC_fixed_field_data_processed, LC_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_LC_trans)+
   geom_sf(data=LC_fixed_field_data_processed)+
-  geom_sf(data=LC_fixed_field_data_processed_intersects_river, aes(color = LC_points_intersects_river))
+  geom_sf(data=LC_fixed_field_data_processed, aes(color = LC_points_intersects_river))
 
 #SD
 
 #Assigning points within and overlapping with the river to be "true"
 SD_points_intersects_river <- st_intersects(SD_fixed_field_data_processed, river_SD_trans, sparse = F) #creating a list of true or falses for whether points intersect the rivershapefiles
-SD_fixed_field_data_processed_intersects_river <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
+SD_fixed_field_data_processed <- cbind(SD_fixed_field_data_processed, SD_points_intersects_river) #binding the list of true or falses with the point data
 #printing the river polygon and the tree points, colored by whether are or aren't within or overlapping with the river
 ggplot()+
   geom_sf(data=river_SD_trans)+
   geom_sf(data=SD_fixed_field_data_processed)+
-  geom_sf(data=SD_fixed_field_data_processed_intersects_river, aes(color = SD_points_intersects_river))
+  geom_sf(data=SD_fixed_field_data_processed, aes(color = SD_points_intersects_river))
 
 ## Extracting distance to river for each tree using the distance to river raster
 
@@ -1646,7 +1685,6 @@ clay_loam_avail_water_100.200_utm <- vol_wat_10kpa_200_utm - vol_wat_1500kpa_200
 
 nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
 
-"Elevation", "Slope", "Eastness", "Northness", "TWI", "HLI", "Distance to River"
 
 ## cropping the soil metrics to bounding boxes around each population ##
 
