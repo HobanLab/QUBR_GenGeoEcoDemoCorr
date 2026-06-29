@@ -65,9 +65,10 @@ field_data_processed <- field_data_processing %>%
   mutate(Canopy1 = as.numeric(Canopy1), 
          Canopy2 = as.numeric(Canopy2)) %>%
   mutate(across(starts_with("DBH"), ~ (.x/100)^2)) %>% #Squaring all of the DBH's and then summing them and then sqrting the sum is how people in the US tend to use multi-stem dbh's (which is what 167 of my trees are)
-  mutate(DBH_ag = case_when(if_all(starts_with("DBH"), is.na) ~ NA,
-                                   T ~ sqrt(rowSums(across(starts_with("DBH")), na.rm = T)))) %>%
-  mutate(multistemmed = case_when(is.na(DBH2) ~ F, 
+  # mutate(DBH_ag = sqrt(rowSums(across(starts_with("DBH")), na.rm = T))) %>%
+   mutate(DBH_ag = case_when(if_all(starts_with("DBH"), is.na) ~ NA,
+                                    T ~ sqrt(rowSums(across(starts_with("DBH")), na.rm = T)))) %>%
+  mutate(multistemmed = case_when(is.na(DBH2) ~ F,
                                   !is.na(DBH2) ~ T)) %>% # adding a column that is a logical vector that describes if the tree has multiple stems or not
   select(!c(DBH1, DBH2, DBH3, DBH4, DBH5, DBH6)) %>%
   #filter(DBH_ag != 0) %>% #remove individuals with no DBH measurements
@@ -296,6 +297,18 @@ cleaned_all_data_final <- cleaned_all_data %>%
          notes_old_data = Comments) %>%
   select(c(Metal_ID, QUBR_ID, locality, lat, long, altitude, altitude_2023, fruiting, DBH_ag, multistemmed, height, Canopy_short, Canopy_long,  notes_new_data, notes_old_data, horiz_accuracy_m, vert_accuracy_m, Crown_spread, eccentricity, Canopy_area, positionsourcetype, fixtype, numsats))
 write_csv(cleaned_all_data_final, "./data/all_data_merged.csv")
+
+# hist(cleaned_all_data_final$DBH_ag)
+# hist(cleaned_all_data_final_2$DBH_ag)
+# 
+# hist(cleaned_all_data_final$DBH_ag)
+# hist(cleaned_all_data_final_2$DBH_ag)
+# 
+# differences <- cleaned_all_data_final[cleaned_all_data_final$DBH_ag != cleaned_all_data_final_2$DBH_ag, ]
+# 
+# which(!(cleaned_all_data_final$DBH_ag %in% cleaned_all_data_final_2$DBH_ag))
+# 
+# cleaned_all_data_final$DBH_ag == cleaned_all_data_final_2$DBH_ag
 
 ###Final sanity checks####
 #checking for inds with no QUBR_ID --> this should be essentially no trees but instead there were 10 --> hand checked these to figure out + assign their ID's

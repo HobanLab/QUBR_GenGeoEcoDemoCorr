@@ -153,6 +153,7 @@ Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 
 pb <- txtProgressBar(min = 1, max = 29, style = 3)
 
 
+
 random_pop_soils <- function(){
   
 

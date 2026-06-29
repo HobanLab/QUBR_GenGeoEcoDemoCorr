@@ -187,8 +187,20 @@ SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_soils
 #plotting the points, grid, and randomly selected points from each grid
 ggplot()+
   geom_sf(data = SD_tree_grid_cropped)+
-  geom_sf(data= SD_fixed_field_data_processed_sf)+
-  geom_sf(data = SD_fixed_field_data_processed_trees_soils, color = "red")
+  geom_sf(data= SD_fixed_field_data_processed_sf, aes(color = "Randomly Selected"), size = 2)+
+  geom_sf(data = SD_fixed_field_data_processed_trees_soils, aes(color = "Not Selected"), size = 2)+
+  scale_color_manual(values = c("Randomly Selected" = "black",
+                                "Not Selected" = "red"),
+                     labels = c("Randomly Selected", "Not Selected"))+
+  labs(title = "SD Example of Random Tree Selection",
+       color = "Trees")+
+  theme_classic()+
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
 
 
 

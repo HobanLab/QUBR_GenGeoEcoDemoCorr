@@ -46,7 +46,7 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run line 47, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
-#source("./analyses/Data_Processing_Script.R")
+source("./analyses/Data_Processing_Script.R")
 
 
 #### Creating a Function for Simple Linear Regressions ####
@@ -77,9 +77,9 @@ library(lmtest) #to be able to run the Breusch-Pagan Test
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
-population = "LM"
+population = "SD"
 size_variable = "DBH"
-explanatory_var = "Elevation"
+explanatory_var = "heat.load"
 
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
 
@@ -87,6 +87,8 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
   #assigning the population based on the inputted population
   if (population == "LM"){  #LM trees
     dataframe_metric = LM_fixed_field_data_processed_terrain_dist #assigning the LM tree/topography/distance dataframe
+    dataframe_metric <- dataframe_metric %>%
+      filter(QUBR_ID != "LM_338")
     dataframe_metric$Slope <- dataframe_metric$LM_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     dataframe_metric$TWI_values <- dataframe_metric$LM_TWI_values #adding a TWI column with a generic name to be able to call the same column across dataframes for different populations
     dataframe_metric$Eastness <- dataframe_metric$LM_Eastness #adding a eastness column with a generic name to be able to call the same column across dataframes for different populations
@@ -108,6 +110,8 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     dataframe_metric$heat.load <- dataframe_metric$heat.load #adding a northness column with a generic name to be able to call the same column across dataframes for different populations
   } else if (population == "All Points"){ #All trees across all populations
     dataframe_metric = all_points_fixed_field_data_processed_terrain #assigning the all points/population tree/topography/distance dataframe
+    dataframe_metric <- dataframe_metric %>%
+      filter(QUBR_ID != "LM_338")
     dataframe_metric$Slope <- dataframe_metric$all_points_slope_raster_15_data_pts #adding a slope column with the generic slope name to be able to call the same column across dataframes for different populations
     
   }
@@ -538,7 +542,7 @@ simple_linear_regressions_LM_DBH_elevation
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=Elevation..m.FIXED, y=log(DBH_ag))))+ 
+ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=log(DBH_ag))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("Elevation (m)")+
@@ -1565,7 +1569,7 @@ ggplot(data = simple_linear_regressions_LC_DBH_slope$chosen_model, aes(x = simpl
 
 # removing NAs
 SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
-  drop_na(LM_slope_raster_15_data_pts) #removing NAs in Slope 
+  drop_na(SD_slope_raster_15_data_pts) #removing NAs in Slope 
 
 #SCA
 
@@ -4653,7 +4657,7 @@ ggplot()+
 
 # removing NAs
 LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
-  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+  drop_na(LM_TWI_values) #removing NAs in elevation 
 
 # LM
 
@@ -4853,7 +4857,7 @@ ggplot(data = simple_linear_regressions_LM_DBH_TWI_values$chosen_model, aes(x = 
 
 # removing NAs
 LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
-  drop_na(Elevation..m.FIXED) #removing NAs in elevation 
+  drop_na(LC_TWI_values) #removing NAs in elevation 
 
 #SCA
 
@@ -5050,7 +5054,7 @@ ggplot(data = simple_linear_regressions_LC_DBH_TWI_values$chosen_model, aes(x = 
 
 # removing NAs
 SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
-  drop_na(TWI_values..m.FIXED) #removing NAs in TWI_values 
+  drop_na(SD_TWI_values) #removing NAs in TWI_values 
 
 #SCA
 
@@ -7007,7 +7011,7 @@ simple_linear_regressions_SD_DBH_heat.load
 #checking linearity 
 
 #plotting the scatterplot and linear model in ggplot
-ggplot(data = SD_fixed_field_data_processed_distance, (aes(x=heat.load..m.FIXED, y=log(DBH_ag))))+ 
+ggplot(data = SD_fixed_field_data_processed_terrain_dist, (aes(x=heat.load, y=sqrt(DBH_ag))))+ 
   geom_smooth(method='lm')+
   geom_point()+
   xlab("heat.load (m)")+
@@ -7060,15 +7064,18 @@ simple_linear_regressions_SD_DBH_elevation
 
 
 #making sure the order of the figures uses LM, LC, SD
-LM_fixed_field_data_processed_distance$Locality <- factor(LM_fixed_field_data_processed_distance$Locality, 
+LM_fixed_field_data_processed_terrain_dist$Locality <- factor(LM_fixed_field_data_processed_terrain_dist$Locality, 
                                                           levels = c("LM", "LC", "SD"))
-LC_fixed_field_data_processed_distance$Locality <- factor(LC_fixed_field_data_processed_distance$Locality, 
+LM_fixed_field_data_processed_terrain_dist$Locality <- factor(LM_fixed_field_data_processed_terrain_dist$Locality, 
                                                           levels = c("LM", "LC", "SD"))
-SD_fixed_field_data_processed_distance$Locality <- factor(SD_fixed_field_data_processed_distance$Locality, 
+LM_fixed_field_data_processed_terrain_dist$Locality <- factor(LM_fixed_field_data_processed_terrain_dist$Locality, 
                                                           levels = c("LM", "LC", "SD"))
 
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  filter(QUBR_ID != "LM_338")
+
 #LM
-elevation_LM.plot <- ggplot(data = LM_fixed_field_data_processed_distance, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
+elevation_LM.plot <- ggplot(data = LM_fixed_field_data_processed_terrain_dist, (aes(x=Elevation..m.FIXED, y=DBH_ag)))+ 
   geom_smooth(method='lm', color = deeper_soil_color, alpha = 0.3)+
   geom_point(color = deeper_soil_color, alpha = 0.3)+
   xlab(NULL)+
@@ -7140,19 +7147,19 @@ LM_color = "#875E3BFF"
 LC_color = "#E37F3EFF"
 SD_color = "#B3C6ADFF"
 
-LM_color = "#1f78b4"
-LC_color = "#a6cee3"
-SD_color = "#7fb241"
+# LM_color = "#1f78b4"
+# LC_color = "#a6cee3"
+# SD_color = "#7fb241"
 
 elevation_LM.plot <- ggplot()+ 
-  geom_smooth(method='lm', data = LM_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LM_color, fill = LM_color, alpha = 0.3)+
-  geom_point(data = LM_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LM"), alpha = 0.3)+
-  geom_smooth(method='lm', data = LC_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LC_color, fill = LC_color, alpha = 0.3)+
-  geom_point(data = LC_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LC"), alpha = 0.3)+
-  geom_smooth(method='lm', data = SD_fixed_field_data_processed_distance, 
+  geom_smooth(method='lm', data = LM_fixed_field_data_processed_terrain_dist, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LM_color, fill = LM_color, alpha = 0.3)+
+  geom_point(data = LM_fixed_field_data_processed_terrain_dist, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LM"), alpha = 0.3)+
+  geom_smooth(method='lm', data = LC_fixed_field_data_processed_terrain_dist, aes(x=Elevation..m.FIXED, y=DBH_ag), color = LC_color, fill = LC_color, alpha = 0.3, linetype = 2, se = F)+
+  geom_point(data = LC_fixed_field_data_processed_terrain_dist, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "LC"), alpha = 0.3)+
+  geom_smooth(method='lm', data = SD_fixed_field_data_processed_terrain_dist, 
               aes(x=Elevation..m.FIXED, y=DBH_ag), 
               color = SD_color, fill = SD_color, alpha = 0.3, linetype = 2, se = F)+
-  geom_point(data = SD_fixed_field_data_processed_distance, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "SD"), alpha = 0.3)+
+  geom_point(data = SD_fixed_field_data_processed_terrain_dist, aes(x=Elevation..m.FIXED, y=DBH_ag, color = "SD"), alpha = 0.3)+
   xlab("Elevation (m)")+
   ylab("DBH (m)")+
   scale_color_manual(
@@ -7173,8 +7180,10 @@ elevation_LM.plot <- ggplot()+
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
 elevation_LM.plot <- elevation_LM.plot +
-  annotate(geom = "text", label = "tau == -0.182", x = 400, y = 0,
-           color = SD_color, parse = T, size = 6) #-0.182
+  annotate(geom = "text", label = "tau == -0.177", x = 400, y = 0,
+           color = SD_color, parse = T, size = 6) + #-0.182 
+  annotate(geom = "text", label = "tau == -0.067", x = 440, y = 0,
+          color = LC_color, parse = T, size = 6)
 elevation_LM.plot
 
 
@@ -7297,7 +7306,7 @@ slope_LM.plot <- ggplot()+
     values = c("LM" = LM_color,
                "LC" = LC_color,
                "SD" = SD_color),
-    labels = parse(text = c("bold('LM')","'LC'", "bold('SD')")))+
+    labels = parse(text = c("LM","'LC'", "bold('SD')")))+
   #scale_x_continuous(breaks = seq(from = 380, to = 530, by = 20))+
   theme_minimal() +
   theme(title=element_text(size=18), 
@@ -7307,7 +7316,7 @@ slope_LM.plot <- ggplot()+
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
 slope_LM.plot <- slope_LM.plot +
-  annotate(geom = "text", label = "tau == -0.175", x = 30, y = 0.7,
+  annotate(geom = "text", label = "tau == -0.180", x = 30, y = 0.7,
            color = SD_color, parse = T, size = 6) #-0.1748603
 slope_LM.plot
 

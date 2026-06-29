@@ -998,6 +998,9 @@ river_buffer_LM_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LM))
 #creating a poison point model object of our known trees 
 LM_fixed_field_data_processed_ppp <- as.ppp(LM_fixed_field_data_processed_sf)
 
+#removing marks to be able to run ppm
+LM_fixed_field_data_processed_ppp <- unmark(LM_fixed_field_data_processed_ppp)
+
 #cropping the river with the river buffer window
 LM_fixed_field_data_processed_ppp_crop <- LM_fixed_field_data_processed_ppp[river_buffer_LM_W]
 
@@ -1026,6 +1029,9 @@ river_buffer_LC_W <- spatstat.geom::as.owin(st_as_sf(river_buffer_LC))
 
 #creating a poison point model object of our known trees 
 LC_fixed_field_data_processed_ppp <- as.ppp(LC_fixed_field_data_processed_sf)
+
+#removing marks to be able to run ppm
+LC_fixed_field_data_processed_ppp <- unmark(LC_fixed_field_data_processed_ppp)
 
 #cropping the river with the river buffer window
 LC_fixed_field_data_processed_ppp_crop <- LC_fixed_field_data_processed_ppp[river_buffer_LC_W]
