@@ -43,10 +43,11 @@ devtools::install_github("AckerDWM/gg3D") #3d plotting
 library("gg3D") #3d plotting
 library(mgcViz) #3d plotting
 library(rgl) #3d plotting
+library(rstatix)
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run line 49, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
-#source("./analyses/Data_Processing_Script.R")
+source("./analyses/Data_Processing_Script.R")
 
 #### Generalized Additive Models ####
 

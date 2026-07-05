@@ -64,18 +64,6 @@ library(spdep) #for checking the moran's I
 # i) We then looked for interactions and compared the interaction model to the previous best model and if we have a significant interaction term we have to consider
 # j) We then plotted the interactions both to be able to describe the relationships
 
-#looking at the pairs
-pairs(LM_fixed_field_data_processed_terrain_dist_no_NA[, c("d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts",
-                                                           "LM_Northness", "LM_Eastness", "LM_TWI_values",
-                                                           "heat.load", "X.1", "Y.1")])
-cor(LM_fixed_field_data_processed_terrain_dist_no_NA[, c("d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts",
-                                                         "LM_Northness", "LM_Eastness", "LM_TWI_values",
-                                                         "heat.load", "X.1", "Y.1")])
-
-#elevation has very high correlation with x.y and y.1 (>90)
-#elevation and eastness, twi, northness, heatload have moderate correlations (20-32)
-#slope and distance to river and northness correlated (20-33)
-
 
 #We used only the 8 categories to get a more specific idea of how direction may be influencing size 
 
@@ -107,6 +95,18 @@ LM_fixed_field_data_processed_terrain_dist_no_NA <- LM_fixed_field_data_processe
   filter(!is.na(Canopy_area_inv)) %>% #canopy area NAs removed
   filter(!is.na(Crown_spread_inv)) %>% #crown spread NAs removed
   filter(!is.na(DBH_ag_inv)) #DBH NAs removed
+
+#looking at the pairs
+pairs(LM_fixed_field_data_processed_terrain_dist_no_NA[, c("d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts",
+                                                           "LM_Northness", "LM_Eastness", "LM_TWI_values",
+                                                           "heat.load", "X.1", "Y.1")])
+cor(LM_fixed_field_data_processed_terrain_dist_no_NA[, c("d", "Elevation..m.FIXED", "LM_slope_raster_15_data_pts",
+                                                         "LM_Northness", "LM_Eastness", "LM_TWI_values",
+                                                         "heat.load", "X.1", "Y.1")])
+
+#elevation has very high correlation with x.y and y.1 (>90)
+#elevation and eastness, twi, northness, heatload have moderate correlations (20-32)
+#slope and distance to river and northness correlated (20-33)
 
 ## SCA ##
 
@@ -984,9 +984,9 @@ AIC(LM_add.gam_CS.inter, LM_add.gam_CS.terrain_dist.no.aspect)
 LM_fixed_field_data_processed_terrain_dist_no_NA$DBH_ag_lg <- log1p(LM_fixed_field_data_processed_terrain_dist_no_NA$DBH_ag) #removes the infinites allowing us to run the GAM
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-LM_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + 
+LM_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LM_slope_raster_15_data_pts) + s(LM_Northness) + 
                                      s(LM_Eastness) + s(LM_TWI_values) + s(heat.load) + s(X.1, Y.1), 
-                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only elevation is showing signs of significant non-linear function 
 
@@ -996,9 +996,9 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(eastness), s(twi)
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(LM_Eastness) +
+LM_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag ~ s(LM_Eastness) +
                                             s(LM_TWI_values), 
-                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                          data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #eastness and twi showing somewhat significance
 
@@ -1008,40 +1008,66 @@ anova(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.dredge)  #ANOVA F
 #the more complex, original model is preferred
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(LM_Eastness) + s(Elevation..m.FIXED) + s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag ~ s(LM_Eastness) + s(Elevation..m.FIXED) + s(LM_TWI_values), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #twi showing somewhat significance
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + 
+LM_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + 
                                               s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #eastness showing somewhat significance, twi is borderline
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag_lg ~ s(d) + s(LM_Eastness) + s(LM_TWI_values), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag ~ s(d) + s(LM_Eastness) + s(LM_TWI_values), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #eastness and twi showing somewhat significance
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag_lg ~ s(d) + s(LM_Eastness) + s(LM_TWI_values) + s(heat.load), 
-                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LM_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag ~ s(d) + s(LM_Eastness) + s(LM_TWI_values) + s(heat.load), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #eastness and twi showing somewhat significance
+
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag ~ s(d) + s(LM_Eastness) + s(LM_TWI_values) + s(heat.load) + s(Elevation..m.FIXED), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#eastness and twi showing somewhat significance
+
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LM_TWI_values), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#twi showing somewhat significance
+
+# Checking a GAM after the dredge
+LM_add.gam_DBH.terrain_dist.dredge.3.b <- gam(DBH_ag ~ s(LM_Eastness, k = 20) + s(LM_slope_raster_15_data_pts) + 
+                                              s(LM_TWI_values, k = 20), 
+                                            data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LM_add.gam_DBH.terrain_dist.dredge.3.b) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#eastness showing somewhat significance, twi is borderline
+hist(LM_add.gam_DBH.terrain_dist.dredge.3.b$residuals)
+shapiro_test(LM_add.gam_DBH.terrain_dist.dredge.3.b$residuals)
+par(mfrow = c(2, 2))
+gam.check(LM_add.gam_DBH.terrain_dist.dredge.3.b)
+
 
 #comparing AIC values
 AIC(LM_add.gam_DBH.terrain_dist, LM_add.gam_DBH.terrain_dist.dredge, 
     LM_add.gam_DBH.terrain_dist.dredge.2, LM_add.gam_DBH.terrain_dist.dredge.3,
-    LM_add.gam_DBH.terrain_dist.dredge.4, LM_add.gam_DBH.terrain_dist.dredge.5)
-#the second and third dredge models are preferred
+    LM_add.gam_DBH.terrain_dist.dredge.4, LM_add.gam_DBH.terrain_dist.dredge.5, 
+    LM_add.gam_DBH.terrain_dist.dredge.6, LM_add.gam_DBH.terrain_dist.dredge.7, 
+    LM_add.gam_DBH.terrain_dist.dredge.3.b)
+#the second, third, and sixth dredge models are preferred
 
 #checking if the model without location meets spatial autocorrelation 
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
-res <- residuals(LM_add.gam_DBH.terrain_dist.dredge.5) #storing the residuals of the GAM
+res <- residuals(LM_add.gam_DBH.terrain_dist.dredge.7) #storing the residuals of the GAM
 coords <- data.frame(
   x = LM_fixed_field_data_processed_terrain_dist_no_NA$X.1,
   y = LM_fixed_field_data_processed_terrain_dist_no_NA$Y.1
@@ -1061,9 +1087,10 @@ moran.test(res, lw)
 #LM_add.gam_DBH.terrain_dist.dredge.3 controls for spatial autocorrelation
 #LM_add.gam_DBH.terrain_dist.dredge.4 controls for spatial autocorrelation
 #LM_add.gam_DBH.terrain_dist.dredge.5 controls for spatial autocorrelation
+#LM_add.gam_DBH.terrain_dist.dredge.6 controls for spatial autocorrelation
 
 # checking concurvity
-check_concurvity(LM_add.gam_DBH.terrain_dist.dredge.5)
+check_concurvity(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 
 #LM_add.gam_DBH.terrain_dist high concurvity across all terms
 #LM_add.gam_DBH.terrain_dist.dredge low concurvity
@@ -1071,9 +1098,10 @@ check_concurvity(LM_add.gam_DBH.terrain_dist.dredge.5)
 #LM_add.gam_DBH.terrain_dist.dredge.3 low concurvity across all terms
 #LM_add.gam_DBH.terrain_dist.dredge.4 high concurvity distance and twi
 #LM_add.gam_DBH.terrain_dist.dredge.5 high concurvity distance and twi
+#LM_add.gam_DBH.terrain_dist.dredge.6 high concurvity distance, TWI, elevation
 
 #checking normality of residuals
-shapiro.test(LM_add.gam_DBH.terrain_dist.dredge.5$residuals)
+shapiro.test(LM_add.gam_DBH.terrain_dist.dredge.7$residuals)
 
 #LM_add.gam_DBH.terrain_dist not normal
 #LM_add.gam_DBH.terrain_dist.dredge not normal
@@ -1081,38 +1109,39 @@ shapiro.test(LM_add.gam_DBH.terrain_dist.dredge.5$residuals)
 #LM_add.gam_DBH.terrain_dist.dredge.3 not normal
 #LM_add.gam_DBH.terrain_dist.dredge.4 not normal
 #LM_add.gam_DBH.terrain_dist.dredge.5 not normal
+#LM_add.gam_DBH.terrain_dist.dredge.6 not normal
 
 #based on the models with lower AIC, normality of residuals, low concurvity, amd control for spatial autocorrelation
 # LM_add.gam_DBH.terrain_dist.dredge.3 is the best supported model
 
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LM_add.gam_DBH.terrain_dist.dredge.no.smooth 
-summary(LM_add.gam_DBH.terrain_dist.dredge.3)
+summary(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 #the linear model seems to do the best, the GAM model with all smoothing is close behind
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
-gam.check(LM_add.gam_DBH.terrain_dist.dredge.3) #pretty normal residuals and no Heteroscedasticity 
+gam.check(LM_add.gam_DBH.terrain_dist.dredge.3.b) #pretty normal residuals and no Heteroscedasticity 
 
 #looking at significance
-summary(LM_add.gam_DBH.terrain_dist.dredge.3)
+summary(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 
 #Chosen model: LM_add.gam_DBH.terrain_dist.no.aspect
 
 #plotting the chosen function, with no interaction 
 par(mfrow = c(3,2), mar = c(4.5, 4.5, 1, 1))
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=1, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=1, 
          all.terms=T, xlab = 'Eastness', ylab = expression(f[1]*'(Eastness)'))
 ggplot(data = LM_fixed_field_data_processed_terrain_dist_no_NA) +
   geom_point()+
   geom_smooth(method= "gam", formula = DBH_ag_lg ~ s(LM_Eastness) + s(LM_slope_raster_15_data_pts) + 
                 s(LM_TWI_values))
-draw(LM_add.gam_DBH.terrain_dist.dredge.3)
+draw(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 library(gratia)
 model_data$DBH_ag_lg
-model_data <- model.frame(LM_add.gam_DBH.terrain_dist.dredge.3) #extracting the datapoints from the model
+model_data <- model.frame(LM_add.gam_DBH.terrain_dist.dredge.3.b) #extracting the datapoints from the model
 
 LM_add.gam_DBH.terrain_dist.dredge.3.1 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=1, residuals = T, point_col = "skyblue") +
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=1, residuals = T, point_col = "skyblue") +
   labs(title = expression(bold('s(Eastness)')))+
   xlab("Eastness (º)")+
   ylab("Partial Effect")+
@@ -1129,7 +1158,7 @@ LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue
 LM_add.gam_DBH.terrain_dist.dredge.3.1
 
 LM_add.gam_DBH.terrain_dist.dredge.3.2 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, point_col = "skyblue") +
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=2, residuals = T, point_col = "skyblue") +
   labs(title = "s(Slope)")+
   xlab("Slope (º)")+
   ylab("Partial Effect")+
@@ -1146,8 +1175,8 @@ LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue
 LM_add.gam_DBH.terrain_dist.dredge.3.2
 
 LM_add.gam_DBH.terrain_dist.dredge.3.3 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3, select=3, residuals = T, point_col = "skyblue") +
-  labs(title = expression(italic("s(Topographic Wetness Index)")))+
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=3, residuals = T, point_col = "skyblue") +
+  labs(title = expression(bold("s(Topographic Wetness Index)")))+
   xlab("Topographic Wetness Index")+
   ylab("Partial Effect")+
   theme_classic() +
@@ -1170,10 +1199,10 @@ ggsave(plot = LM_add.gam_DBH.terrain_dist.dredge.3.arrange, "./GAM_LM_DBH.png", 
   
   
 
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=3, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3.2, select=3, 
          all.terms=T, xlab = "TWI", 
          ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
-plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3, select=2, 
+plot.gam(LM_add.gam_DBH.terrain_dist.dredge.3.2, select=2, 
          all.terms=T, xlab = "Slope (º)", ylab = expression(f[1]*'Slope'), 
          se = TRUE , col = "black")
 

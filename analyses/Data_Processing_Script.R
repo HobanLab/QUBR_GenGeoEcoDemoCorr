@@ -77,6 +77,9 @@ library(visreg) # to be able to plot Aspect/categorical variables with GAM
 library(spatialEco) # for heat load index function
 library(geosphere) # for finding the distance of populations to the coast
 library(terra)
+library(caret) #for running cross-validations
+library(rstatix) #to run shapiro_wilk function
+library(lmtest) #to run breusch pagan test
 
 #### Loading and processing relevant data ####
 
@@ -936,24 +939,85 @@ hist(SD_fixed_field_data_processed_terrain$vert_accuracy_m)
 
 # creating an elevation column where we use the updated GPS elevation values (altitude) and if there is no new GPS data it takes from the linear regression for new_elevation = a*DEM_elevation + b 
 
+LM_fixed_field_data_processed_terrain_fixed <- LM_fixed_field_data_processed_terrain 
+
 #finding the linear regression between them
 LM_elevation_model <- lm(altitude ~ LM_elevation_raster_15_data_pts,
-                      data = LM_fixed_field_data_processed_terrain)
+                      data = LM_fixed_field_data_processed_terrain_fixed)
 coef(LM_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(x = LM_fixed_field_data_processed_terrain$altitude, LM_fixed_field_data_processed_terrain$CEM_15_utm_LM, use = "complete.obs")
+cor(x = LM_fixed_field_data_processed_terrain_fixed$altitude, LM_fixed_field_data_processed_terrain_fixed$LM_elevation_raster_15_data_pts, use = "complete.obs")
 
-#creating the combination column
-LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
-  mutate(Elevation..m.combo = (LM_elevation_raster_15_data_pts*coef(LM_elevation_model)[[2]] + coef(LM_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
-  geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
-  geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  geom_point(data = LM_fixed_field_data_processed_terrain_fixed, aes(x = LM_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LM_fixed_field_data_processed_terrain_fixed, aes(x = LM_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
   annotate("text", x = 505, y = 500, label = "y == 0.8783499*x + 35.7047559", parse = TRUE)+
   annotate("text", x = 505, y = 495, label = "r == 0.9736062", parse = TRUE) +
-  geom_errorbar(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+  geom_errorbar(data = LM_fixed_field_data_processed_terrain_fixed, aes(x = LM_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#looking for normality of residuals
+hist(LM_elevation_model$residuals)
+shapiro_test(LM_elevation_model$residuals)
+
+#Breusch-Pagan test of equal variances
+bptest(as.formula(altitude ~ LM_elevation_raster_15_data_pts), data = LM_fixed_field_data_processed_terrain)
+
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = LM_elevation_model, aes(x = LM_elevation_model$fitted.values, y = LM_elevation_model$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+
+#checking the slope test
+summary(LM_elevation_model)
+
+#trying a single linear without outliers
+
+#using Cook's D to check for highly influential points that may skew the linear model results
+slr <- lm(as.formula(altitude ~ LM_elevation_raster_15_data_pts), data = LM_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+slr_cooks <- cooks.distance(slr) #creating a linear regression to use to calculate the Cook's D
+plot(slr_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- slr_cooks[(slr_cooks > (3 * mean(slr_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+influential
+
+#removing points that were deemed too influential on the linear model fit
+LM_fixed_field_data_processed_terrain_no_outliers <- LM_fixed_field_data_processed_terrain[-c(as.numeric(names(influential))),]
+
+#finding the linear regression between them
+LM_elevation_model_no_outlier <- lm(altitude ~ LM_elevation_raster_15_data_pts,
+                              data = LM_fixed_field_data_processed_terrain_no_outliers)
+coef(LM_elevation_model_no_outlier) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(x = LM_fixed_field_data_processed_terrain_no_outliers$altitude, LM_fixed_field_data_processed_terrain_no_outliers$LM_elevation_raster_15_data_pts, use = "complete.obs")
+
+
+#checking normal residuals
+shapiro_test(LM_elevation_model_no_outlier$residuals)
+#checking equal variance residuals
+bptest(as.formula(altitude ~ LM_elevation_raster_15_data_pts), data = LM_fixed_field_data_processed_terrain_no_outliers)
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_terrain_no_outliers, aes(x = LM_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LM_fixed_field_data_processed_terrain_no_outliers, aes(x = LM_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 505, y = 500, label = "y == 0.8905*x + 29.7435", parse = TRUE)+
+  annotate("text", x = 505, y = 495, label = "r == 0.9841595", parse = TRUE) +
+  geom_errorbar(data = LM_fixed_field_data_processed_terrain_no_outliers, aes(x = LM_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+
+## creating the combination column
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = (LM_elevation_raster_15_data_pts*coef(LM_elevation_model_no_outlier)[[2]] + coef(LM_elevation_model_no_outlier)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+
+# checking the verical accuracy on the elevations (if greater than 5 m we might want to remove the points as bad data)
+hist(LM_fixed_field_data_processed_terrain$vert_accuracy_m, bin = 50)
+boxplot(LM_fixed_field_data_processed_terrain$vert_accuracy_m)
 
 # LC
 
@@ -963,11 +1027,7 @@ LC_elevation_model <- lm(altitude ~ LC_elevation_raster_15_data_pts,
 coef(LC_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LC_fixed_field_data_processed_terrain$altitude, LC_fixed_field_data_processed_terrain$CEM_15_utm_LC, use = "complete.obs")
-
-#creating the combination column
-LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
-  mutate(Elevation..m.combo = (LC_elevation_raster_15_data_pts*coef(LC_elevation_model)[[2]] + coef(LC_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+cor(LC_fixed_field_data_processed_terrain$altitude, LC_fixed_field_data_processed_terrain$LC_elevation_raster_15_data_pts, use = "complete.obs")
 
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
@@ -977,6 +1037,83 @@ ggplot()+
   annotate("text", x = 470, y = 455, label = "r == 0.9780811", parse = TRUE) +
   geom_errorbar(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
 
+#looking for normality of residuals
+hist(LC_elevation_model$residuals)
+shapiro_test(LC_elevation_model$residuals)
+#qqnorm plot
+ggplot(data = LC_elevation_model, aes(y = LC_elevation_model$residuals, x = LC_elevation_model$fitted.values))+
+  geom_qq()
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = LC_elevation_model, aes(x = LC_elevation_model$fitted.values, y = LC_elevation_model$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+
+#Breusch-Pagan test of equal variances
+bptest(as.formula(altitude ~ LC_elevation_raster_15_data_pts), data = LC_fixed_field_data_processed_terrain)
+
+#met normality but not equal variance
+
+#slope test results 
+summary(LC_elevation_model)
+
+#non-parametric Mann-Kendall Test, non-parametric test
+tau_result <- cor.test(LC_fixed_field_data_processed_terrain$LC_elevation_raster_15_data_pts, 
+                       LC_fixed_field_data_processed_terrain$altitude,  method = "kendall")
+tau_result
+
+#trying a single linear without outliers
+
+#using Cook's D to check for highly influential points that may skew the linear model results
+slr <- lm(as.formula(altitude ~ LC_elevation_raster_15_data_pts), data = LC_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+slr_cooks <- cooks.distance(slr) #creating a linear regression to use to calculate the Cook's D
+plot(slr_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- slr_cooks[(slr_cooks > (1.5 * mean(slr_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+influential
+
+#removing points that were deemed too influential on the linear model fit
+LC_fixed_field_data_processed_terrain_no_outliers <- LC_fixed_field_data_processed_terrain[-c(as.numeric(names(influential))),]
+
+#finding the linear regression between them
+LC_elevation_model_no_outlier <- lm(altitude ~ LC_elevation_raster_15_data_pts,
+                                    data = LC_fixed_field_data_processed_terrain_no_outliers)
+coef(LC_elevation_model_no_outlier) #extracting the linear regression equation
+
+#finding the correlation coefficient
+cor(x = LC_fixed_field_data_processed_terrain_no_outliers$altitude, LC_fixed_field_data_processed_terrain_no_outliers$LC_elevation_raster_15_data_pts, use = "complete.obs")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 470, y = 460, label = "y == 1.359784*x - 206.680698", parse = TRUE)+
+  annotate("text", x = 470, y = 455, label = "r == 0.9896519", parse = TRUE) +
+  geom_errorbar(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#checking normal residuals
+shapiro_test(LC_elevation_model_no_outlier$residuals)
+#checking equal variance residuals
+bptest(as.formula(altitude ~ LC_elevation_raster_15_data_pts), data = LC_fixed_field_data_processed_terrain_no_outliers)
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 505, y = 500, label = "y == 0.8905*x + 29.7435", parse = TRUE)+
+  annotate("text", x = 505, y = 495, label = "r == 0.9841595", parse = TRUE) +
+  geom_errorbar(data = LC_fixed_field_data_processed_terrain_no_outliers, aes(x = LC_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#creating the combination column
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = (LC_elevation_raster_15_data_pts*coef(LC_elevation_model_no_outlier)[[2]] + coef(LC_elevation_model_no_outlier)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+
+# checking the verical accuracy on the elevations (if greater than 5 m we might want to remove the points as bad data)
+hist(LC_fixed_field_data_processed_terrain$vert_accuracy_m, bin = 50)
+boxplot(LC_fixed_field_data_processed_terrain$vert_accuracy_m)
+
 # SD
 
 #finding the linear regression between them
@@ -985,11 +1122,8 @@ SD_elevation_model <- lm(altitude ~ SD_elevation_raster_15_data_pts,
 coef(SD_elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(SD_fixed_field_data_processed_terrain$altitude, SD_fixed_field_data_processed_terrain$CEM_15_utm_SD, use = "complete.obs")
+cor(SD_fixed_field_data_processed_terrain$altitude, SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts, use = "complete.obs")
 
-#creating the combination column
-SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
-  mutate(Elevation..m.combo = (SD_elevation_raster_15_data_pts*coef(SD_elevation_model)[[2]] + coef(SD_elevation_model)[[1]])) #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
   geom_point(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
@@ -997,6 +1131,232 @@ ggplot()+
   annotate("text", x = 425, y = 420, label = "y == 0.6418434*x + 125.4284431", parse = TRUE)+
   annotate("text", x = 425, y = 415, label = "r == 0.8174634", parse = TRUE)  +
   geom_errorbar(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#looking for normality of residuals
+hist(SD_elevation_model$residuals)
+shapiro_test(SD_elevation_model$residuals)
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = SD_elevation_model, aes(x = SD_elevation_model$fitted.values, y = SD_elevation_model$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+
+#Breusch-Pagan test of equal variances
+bptest(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain)
+
+#met neither normality and equal variance
+
+#slope test results 
+summary(SD_elevation_model)
+
+#non-parametric Mann-Kendall Test, non-parametric test
+tau_result <- cor.test(SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts, 
+                       SD_fixed_field_data_processed_terrain$altitude,  method = "kendall")
+tau_result
+
+
+#trying a single linear without outliers
+
+#using Cook's D to check for highly influential points that may skew the linear model results
+slr <- lm(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain) #creating a linear regression to use to calculate the Cook's D
+slr_cooks <- cooks.distance(slr) #creating a linear regression to use to calculate the Cook's D
+plot(slr_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- slr_cooks[(slr_cooks > (3 * mean(slr_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+influential
+
+#removing points that were deemed too influential on the linear model fit
+SD_fixed_field_data_processed_terrain_no_outliers <- SD_fixed_field_data_processed_terrain[-c(as.numeric(names(influential))),]
+
+#finding the linear regression between them
+SD_elevation_model_no_outlier <- lm(altitude ~ SD_elevation_raster_15_data_pts,
+                                    data = SD_fixed_field_data_processed_terrain_no_outliers)
+coef(SD_elevation_model_no_outlier) #extracting the linear regression equation
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_terrain_no_outliers, aes(x = SD_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = SD_fixed_field_data_processed_terrain_no_outliers, aes(x = SD_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 470, y = 460, label = "y == 1.320958*x - 187.645928", parse = TRUE)+
+  annotate("text", x = 470, y = 455, label = "r == 0.9780811", parse = TRUE) +
+  geom_errorbar(data = SD_fixed_field_data_processed_terrain_no_outliers, aes(x = SD_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#checking normal residuals
+shapiro_test(SD_elevation_model_no_outlier$residuals)
+#checking equal variance residuals
+bptest(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain_no_outliers)
+
+
+
+## version of no outliers removing points with vertical outliers greater than 5 m
+
+# checking the verical accuracy on the elevations (if greater than 5 m we might want to remove the points as bad data)
+hist(SD_fixed_field_data_processed_terrain$vert_accuracy_m, bin = 50)
+boxplot(SD_fixed_field_data_processed_terrain$vert_accuracy_m)
+
+#SD has a few vertical accuracy greater than 5 m 
+
+#filtering out trees with vertical accuracy greater than 5 m (bad data) to get better fits with the elevation and DEM
+SD_fixed_field_data_processed_terrain_no_outliers <- SD_fixed_field_data_processed_terrain %>%
+  filter(vert_accuracy_m <= 5)
+
+# #using Cook's D to check for highly influential points that may skew the linear model results
+# slr <- lm(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain_no_outliers) #creating a linear regression to use to calculate the Cook's D
+# slr_cooks <- cooks.distance(slr) #creating a linear regression to use to calculate the Cook's D
+# plot(slr_cooks, type = 'h') #checking to see which Cook's D are unusually high
+# influential <- slr_cooks[(slr_cooks > (0.35 * mean(slr_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+# influential
+# 
+# #removing points that were deemed too influential on the linear model fit
+# SD_fixed_field_data_processed_terrain_no_outliers <- SD_fixed_field_data_processed_terrain[-c(as.numeric(names(influential))),]
+
+## comparing the linear, quadratic, cubic, and quartic fits after > 5m vertical accuracy filtering
+
+#finding the linear regression between them
+SD_elevation_model <- lm(altitude ~ SD_elevation_raster_15_data_pts,
+                               data = SD_fixed_field_data_processed_terrain_no_outliers)
+SD_elevation_model_quad <- lm(altitude ~ SD_elevation_raster_15_data_pts + I(SD_elevation_raster_15_data_pts^2),
+                               data = SD_fixed_field_data_processed_terrain_no_outliers)
+SD_elevation_model_cubic <- lm(altitude ~ SD_elevation_raster_15_data_pts + I(SD_elevation_raster_15_data_pts^2)
+                               + I(SD_elevation_raster_15_data_pts^3),
+                               data = SD_fixed_field_data_processed_terrain_no_outliers)
+SD_elevation_model_quart <- lm(altitude ~ SD_elevation_raster_15_data_pts + I(SD_elevation_raster_15_data_pts^2)
+          + I(SD_elevation_raster_15_data_pts^3) + I(SD_elevation_raster_15_data_pts^4),
+                              data = SD_fixed_field_data_processed_terrain_no_outliers)
+
+#checking if the quadratic fit is better
+anova(SD_elevation_model, SD_elevation_model_quad, SD_elevation_model_cubic, SD_elevation_model_quart)
+AIC(SD_elevation_model, SD_elevation_model_quad, SD_elevation_model_cubic, SD_elevation_model_quart)
+
+#comparing the term significances and R^2 of the models
+summary(SD_elevation_model) 
+summary(SD_elevation_model_quad)
+summary(SD_elevation_model_cubic)
+summary(SD_elevation_model_quart)
+
+#quartic fit is the best fit
+
+hist(SD_elevation_model_quart$residuals)
+shapiro_test(SD_elevation_model_quart$residuals)
+#Breusch-Pagan test of equal variances
+bptest(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain_no_outliers)
+
+#plotting the model fits
+ggplot(SD_fixed_field_data_processed_terrain,
+       aes(SD_elevation_raster_15_data_pts,
+           altitude)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = altitude - vert_accuracy_m,
+                    ymax = altitude + vert_accuracy_m), color = "black") +
+  geom_smooth(method = "lm", formula = y ~ x, color = "black") +
+  geom_smooth(method = "lm", formula = y ~ poly(x,2,raw=TRUE), color = "blue") +
+  geom_smooth(method = "lm", formula = y ~ poly(x,3,raw=TRUE), color = "green") +
+  geom_smooth(method = "lm", formula = y ~ poly(x,4,raw=TRUE), color = "red") 
+
+# the quartic model with > 5 m vertical accuracy were removed
+
+
+# plotting where forpoints without new altitude GPSs below 450 m elevation in the DEMs, we use the linear transformation. 
+# For points above the 450 m elevation in the DEMs, we can’t use the linear transformation, so we either remove the point (NA) or we set it to the new GPS point
+
+SD_fixed_field_data_processed_terrain_no_outliers_below_450 <- SD_fixed_field_data_processed_terrain_no_outliers %>%
+  filter(SD_elevation_raster_15_data_pts <= 450)
+
+#using Cook's D to check for highly influential points that may skew the linear model results
+slr <- lm(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain_no_outliers_below_450) #creating a linear regression to use to calculate the Cook's D
+slr_cooks <- cooks.distance(slr) #creating a linear regression to use to calculate the Cook's D
+plot(slr_cooks, type = 'h') #checking to see which Cook's D are unusually high
+influential <- slr_cooks[(slr_cooks > (3 * mean(slr_cooks, na.rm = TRUE)))] #remove points with Cook's D that are bigger than 3 times the mean Cook's D (the influential points)
+influential
+
+#removing points that were deemed too influential on the linear model fit
+SD_fixed_field_data_processed_terrain_no_outliers_below_450 <- SD_fixed_field_data_processed_terrain_no_outliers_below_450[-c(as.numeric(names(influential))),]
+
+#correlation between the variables
+cor(SD_fixed_field_data_processed_terrain_no_outliers_below_450$SD_elevation_raster_15_data_pts,
+    SD_fixed_field_data_processed_terrain_no_outliers_below_450$altitude)
+
+#comparing linear regressions with different transformations
+SD_elevation_model_no_outlier_below_450 <- lm(altitude ~ SD_elevation_raster_15_data_pts,
+                                    data = SD_fixed_field_data_processed_terrain_no_outliers_below_450)
+SD_elevation_model_no_outlier_below_450_quad <- lm(altitude ~ SD_elevation_raster_15_data_pts + I(SD_elevation_raster_15_data_pts^2),
+                                              data = SD_fixed_field_data_processed_terrain_no_outliers_below_450)
+SD_elevation_model_no_outlier_below_450_sqrt <- lm(altitude ~ sqrt(SD_elevation_raster_15_data_pts),
+                                                   data = SD_fixed_field_data_processed_terrain_no_outliers_below_450)
+coef(SD_elevation_model_no_outlier_below_450) #extracting the linear regression equation
+anova(SD_elevation_model_no_outlier_below_450, SD_elevation_model_no_outlier_below_450_quad, SD_elevation_model_no_outlier_below_450_sqrt)
+AIC(SD_elevation_model_no_outlier_below_450, SD_elevation_model_no_outlier_below_450_quad, SD_elevation_model_no_outlier_below_450_sqrt)
+
+#comparing different models visually
+ggplot() +
+  geom_point(data = SD_fixed_field_data_processed_terrain_no_outliers,
+             aes(SD_elevation_raster_15_data_pts,
+                 altitude)) +
+  geom_smooth(data = SD_fixed_field_data_processed_terrain_no_outliers, 
+              method = "lm", aes(x= SD_elevation_raster_15_data_pts, y = altitude), color = "black") + 
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x= SD_elevation_raster_15_data_pts, y = altitude),
+              formula = y ~ poly(x,2,raw=TRUE), color = "blue") +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x= SD_elevation_raster_15_data_pts, y = altitude),
+              formula = y ~ poly(x,3,raw=TRUE), color = "red") +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x= SD_elevation_raster_15_data_pts, y = altitude),
+              formula = y ~ sqrt(x), color = "green") 
+
+#looking at the summary of the model
+summary(SD_elevation_model_no_outlier_below_450)
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = SD_elevation_model_no_outlier_below_450, aes(x = SD_elevation_model_no_outlier_below_450$fitted.values, y = SD_elevation_model_no_outlier_below_450$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+
+#plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
+ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x = SD_elevation_raster_15_data_pts, y = altitude, color = is.na(vert_accuracy_m)))+
+  geom_smooth(data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x = SD_elevation_raster_15_data_pts, y = altitude), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 440, y = 440, label = "y == 0.97037*x - 13.82900", parse = TRUE)+
+  annotate("text", x = 440, y = 435, label = "r == 0.94725", parse = TRUE) +
+  geom_errorbar(data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, aes(x = SD_elevation_raster_15_data_pts,  y = altitude, ymin = altitude - vert_accuracy_m, ymax = altitude + vert_accuracy_m), alpha = 0.2)
+
+#checking normal residuals
+shapiro_test(SD_elevation_model_no_outlier_below_450$residuals)
+hist(SD_elevation_model_no_outlier_below_450$residuals)
+qq_plot(SD_elevation_model_no_outlier_below_450)
+
+#checking equal variance residuals
+bptest(as.formula(altitude ~ SD_elevation_raster_15_data_pts), data = SD_fixed_field_data_processed_terrain_no_outliers_below_450)
+
+#10-fold cross-validation to test prediction error of model
+
+# Set seed for reproducibility
+set.seed(25)
+
+#setting the cross-validation configuration
+train_control <- trainControl(method = "cv", number = 10) # method = "cv" specifies cross-validation and number = 10 represents 10 folds
+
+#training the model 
+model.full <- train(altitude ~ SD_elevation_raster_15_data_pts, 
+                        data = SD_fixed_field_data_processed_terrain_no_outliers_below_450, 
+                        method = "lm", 
+                        trControl = train_control)
+
+#cross-validation results
+print(model.full)
+
+
+#creating the combination column
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  mutate(Elevation..m.combo = case_when(SD_elevation_raster_15_data_pts <= 450 ~ (SD_elevation_raster_15_data_pts*coef(SD_elevation_model_no_outlier_below_450)[[2]] + coef(SD_elevation_model_no_outlier_below_450)[[1]]), 
+         SD_elevation_raster_15_data_pts > 450 ~ ifelse(is.na(altitude) == F & vert_accuracy_m <= 5, altitude, NA)))
+#this linear transformation correction of the DEM values has had points filtered out if they greater the 5m of vertical accuracy 
+#if the points are below 450, it uses the transformed DEM values
+#if the points are above 450, it uses the new altitude values or NA if they are not 
+            #if there is NAs in the new data, meaning new data wasn't recorded for those trees, we will use the DEM points because they tend to be more accurate
+
 
 
 # Plotting the DEMs against the combination elevation (corrected DEM), all points should fall on the smae line
@@ -1007,13 +1367,13 @@ elevation_model <- lm(Elevation..m.combo ~ LM_elevation_raster_15_data_pts,
 coef(elevation_model) #extracting the linear regression equation
 
 #finding the correlation coefficient
-cor(LM_fixed_field_data_processed_terrain$Elevation..m.combo, LM_fixed_field_data_processed_terrain$CEM_15_utm_LM, use = "complete.obs")
+cor(LM_fixed_field_data_processed_terrain$Elevation..m.combo, LM_fixed_field_data_processed_terrain$LM_elevation_raster_15_data_pts, use = "complete.obs")
 
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
   geom_point(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
   geom_smooth(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
-  annotate("text", x = 505, y = 500, label = "y == 0.8783499*x + 35.7047559", parse = TRUE)+
+  annotate("text", x = 505, y = 500, label = "y == 0.8904731*x + 29.7434744", parse = TRUE)+
   annotate("text", x = 505, y = 495, label = "r == 1", parse = TRUE)
 
 #finding the linear regression between them
@@ -1028,7 +1388,7 @@ cor(LC_fixed_field_data_processed_terrain$Elevation..m.combo, LC_fixed_field_dat
 ggplot()+
   geom_point(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
   geom_smooth(data = LC_fixed_field_data_processed_terrain, aes(x = LC_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
-  annotate("text", x = 470, y = 460, label = "y == 1.320958 *x - 187.645928", parse = TRUE)+
+  annotate("text", x = 470, y = 460, label = "y == 1.359784 *x - 206.680698", parse = TRUE)+
   annotate("text", x = 470, y = 450, label = "r == 1", parse = TRUE)
 
 #finding the linear regression between them
@@ -1043,9 +1403,9 @@ cor(SD_fixed_field_data_processed_terrain$Elevation..m.combo, SD_fixed_field_dat
 #plotting the scatterplot and linear regression, points colored by if their elevation data has accuracy data (if it does not, it was not re-sampled for elevation)
 ggplot()+
   geom_point(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = Elevation..m.combo, color = is.na(vert_accuracy_m)))+
-  geom_smooth(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
-  annotate("text", x = 420, y = 420, label = "y == 0.6418434*x + 125.4284431", parse = TRUE)+
-  annotate("text", x = 420, y = 415, label = "r == 1", parse = TRUE)
+  geom_smooth(data = filter(SD_fixed_field_data_processed_terrain, SD_elevation_raster_15_data_pts <= 450), aes(x = SD_elevation_raster_15_data_pts, y = Elevation..m.combo), method = "lm", se = FALSE, show.legend = T) +
+  annotate("text", x = 420, y = 420, label = "y == 0.9606178*x - 9.1212656", parse = TRUE)+
+  annotate("text", x = 420, y = 415, label = "r == 0.9629148", parse = TRUE)
 
 #plotting the distributions of the original DEM elevations with the GPS elevations
 
@@ -1053,7 +1413,7 @@ ggplot()+
 ggplot()+
   geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
   geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = LM_elevation_raster_15_data_pts), color = "purple", alpha = 0.1) +
-  labs(title = "LM Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Green")
+  labs(title = "LM Elevation Distribution", subtitle = "DEM Elevations Overlaid in Purple")
 #LC
 ggplot(data = LC_fixed_field_data_processed_terrain)+
   geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m)))  +
@@ -1065,23 +1425,6 @@ ggplot(data = SD_fixed_field_data_processed_terrain)+
   geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = SD_elevation_raster_15_data_pts), color = "purple", alpha = 0.1) +
   labs(title = "SD Elevation Distribution", subtitle = "DEM Elevations Overlaid in Purple")
 
-#plotting the distributions of the corrected DEM elevations with the GPS elevations
-
-#LM
-ggplot()+
-  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
-  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
-  labs(title = "LM Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
-#LC
-ggplot(data = LC_fixed_field_data_processed_terrain)+
-  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m)))  +
-  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
-  labs(title = "LC Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
-#SD
-ggplot(data = SD_fixed_field_data_processed_terrain)+
-  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
-  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
-  labs(title = "SD Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
 
 #### Setting the Fixed Elevation Column Equal to the New Altitudes when Available and the Corrected DEM variable when not available ####
 
@@ -1100,6 +1443,25 @@ SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %
   mutate(Elevation..m.FIXED = case_when(is.na(altitude) == F ~ altitude,
                                         is.na(altitude) == T ~ Elevation..m.combo))
 
+
+
+#plotting the distributions of the corrected DEM elevations with the GPS elevations
+
+#LM
+ggplot()+
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = LM_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "LM Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
+#LC
+ggplot(data = LC_fixed_field_data_processed_terrain)+
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m)))  +
+  geom_histogram(data = LC_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "LC Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
+#SD
+ggplot(data = SD_fixed_field_data_processed_terrain)+
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.FIXED, fill = is.na(vert_accuracy_m))) +
+  geom_histogram(data = SD_fixed_field_data_processed_terrain, aes(x = Elevation..m.combo), color = "purple", alpha = 0.1) +
+  labs(title = "SD Elevation Distribution", subtitle = "Corrected DEM Elevations Overlaid in Purple")
 
 
 #### Creating a Topographic Wetness Index Variable ####
@@ -1840,40 +2202,40 @@ plot(soil_stack_SD_extra, zlim = c(25, 340)) #version where the plots have the s
 #creating X sequential columns in point data which will make it easier to select random points from each grid later
 
 #creating an x_sequential column that is 1 through the number of LM points, which will make it easier to randomly choose one point
-LM_fixed_field_data_processed <- LM_fixed_field_data_processed %>%
-  mutate(X_sequential = 1:nrow(LM_fixed_field_data_processed))
+LM_fixed_field_data_processed_terrain <- LM_fixed_field_data_processed_terrain %>%
+  mutate(X_sequential = 1:nrow(LM_fixed_field_data_processed_terrain))
 
 #creating an x_sequential column that is 1 through the number of LC points, which will make it easier to randomly choose one point
-LC_fixed_field_data_processed <- LC_fixed_field_data_processed %>%
-  mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed))
+LC_fixed_field_data_processed_terrain <- LC_fixed_field_data_processed_terrain %>%
+  mutate(X_sequential = 1:nrow(LC_fixed_field_data_processed_terrain))
 
 #creating an x_sequential column that is 1 through the number of SD points, which will make it easier to randomly choose one point
-SD_fixed_field_data_processed <- SD_fixed_field_data_processed %>%
-  mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed))
+SD_fixed_field_data_processed_terrain <- SD_fixed_field_data_processed_terrain %>%
+  mutate(X_sequential = 1:nrow(SD_fixed_field_data_processed_terrain))
 
 ## Extracting the soil data to the tree points 
 
 #LM
-LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed) #extracting soil textures for each point value
-LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed) #extracting the other soil variables for each point value
-LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed) #extracting the extra soil variables for each point value
-LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
+LM_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LM_soil_text, LM_fixed_field_data_processed_terrain) #extracting soil textures for each point value
+LM_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LM_other, LM_fixed_field_data_processed_terrain) #extracting the other soil variables for each point value
+LM_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LM_extra, LM_fixed_field_data_processed_terrain) #extracting the extra soil variables for each point value
+LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_terrain, LM_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LM point dataframe
 LM_fixed_field_data_processed_soils <- cbind(LM_fixed_field_data_processed_soils, LM_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LM point dataframe
 
 #LC
-LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed) #extracting soil textures for each point value
-LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed) #extracting the other soil variables for each point value
-LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed) #extracting the extra soil variables for each point value
-LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+LC_soil_text_raster_250_data_pts <- raster::extract(soil_stack_LC_soil_text, LC_fixed_field_data_processed_terrain) #extracting soil textures for each point value
+LC_soil_other_raster_250_data_pts <- raster::extract(soil_stack_LC_other, LC_fixed_field_data_processed_terrain) #extracting the other soil variables for each point value
+LC_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_LC_extra, LC_fixed_field_data_processed_terrain) #extracting the extra soil variables for each point value
+LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_terrain, LC_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 LC_fixed_field_data_processed_soils <- cbind(LC_fixed_field_data_processed_soils, LC_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
 #SD
-SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed) #extracting soil textures for each point value
-SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed) #extracting the other soil variables for each point value
-SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed) #extracting the extra soil variables for each point value
-SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
+SD_soil_text_raster_250_data_pts <- raster::extract(soil_stack_SD_soil_text, SD_fixed_field_data_processed_terrain) #extracting soil textures for each point value
+SD_soil_other_raster_250_data_pts <- raster::extract(soil_stack_SD_other, SD_fixed_field_data_processed_terrain) #extracting the other soil variables for each point value
+SD_soil_extra_raster_250_data_pts <- raster::extract(soil_stack_SD_extra, SD_fixed_field_data_processed_terrain) #extracting the extra soil variables for each point value
+SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_terrain, SD_soil_text_raster_250_data_pts) #bind the soil textures data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_other_raster_250_data_pts) #bind the other soil variable data for each point to the LC point dataframe
 SD_fixed_field_data_processed_soils <- cbind(SD_fixed_field_data_processed_soils, SD_soil_extra_raster_250_data_pts) #bind the extra soil variable data for each point to the LC point dataframe
 
@@ -1905,6 +2267,25 @@ SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
   mutate(sandy_avail_water_100.200 = vol_water_100.200 - vol_water_.1500_100.200) %>% # Sand Available Water 100-200 cm
   mutate(clay_loam_avail_water_0.5 = vol_water_.10_0.5 - vol_water_.1500kPa_0.5) %>% # Clay/Loam Available Water 0-5 cm
   mutate(clay_loam_avail_water_100.200 = vol_water_.10_100.200 - vol_water_.1500_100.200) # Clay/Loam Available Water 100-200 cm
+
+#### Fixing the pH scaling issue ####
+
+#the pHs are x10 instead of betwen the 1-14 scale
+
+#LM
+LM_fixed_field_data_processed_soils <- LM_fixed_field_data_processed_soils %>%
+  mutate(ph_0.5 = ph_0.5/10) %>%
+  mutate(ph_100.200 = ph_100.200/10) 
+
+#LC
+LC_fixed_field_data_processed_soils <- LC_fixed_field_data_processed_soils %>%
+  mutate(ph_0.5 = ph_0.5/10) %>%
+  mutate(ph_100.200 = ph_100.200/10) 
+
+#SD
+SD_fixed_field_data_processed_soils <- SD_fixed_field_data_processed_soils %>%
+  mutate(ph_0.5 = ph_0.5/10) %>%
+  mutate(ph_100.200 = ph_100.200/10) 
 
 #### Creating All Population Variables Extraction, Storing, and Uploading ####
 
@@ -1989,7 +2370,7 @@ BCS_polygon_UTM <- st_transform(BCS_polygon, crs = 26912) # transforming the BCS
 BCS_polygon_UTM <- st_as_sf(BCS_polygon_UTM) #making sure the transformed BCS polygon is converted to a simple feature 
 
 
-#cropping the BCS polygon to just be the southern region of where the 20 known populations are with a 7 km radius 
+#cropping the BCS polygon to just be the southern region of where the 22 known populations are with a 7 km radius 
 
 # Creating a bounding box of the 20 known population points
 bbox_points <- st_bbox(all_pop_locations.df_sf_trans_coordinates)
@@ -2050,10 +2431,12 @@ sand_200_all_pop <- mask(sand_200_clipped, sand_200_bbox_poly_buffered) # Mask t
 ph_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
 ph_05_clipped <- crop(ph_05_utm, ph_05_bbox_poly_buffered) # Crop the raster by the polygon
 ph_05_all_pop <- mask(ph_05_clipped, ph_05_bbox_poly_buffered) # Mask the raster by the polygon
+ph_05_all_pop$ph_0.5 <- ph_05_all_pop$ph_0.5/10 #converting pH to the correct decimal
 #pH 100-200 cm
 ph_200_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ph_200_utm)) # Make sure your sfc polygon is in the same CRS as the raster
 ph_200_clipped <- crop(ph_200_utm, ph_200_bbox_poly_buffered) # Crop the raster by the polygon
 ph_200_all_pop <- mask(ph_200_clipped, ph_200_bbox_poly_buffered) # Mask the raster by the polygon
+ph_200_all_pop$ph_100.200 <- ph_200_all_pop$ph_100.200/10 #converting pH to the correct decimal
 #Organic Carbon Content (OCD) 0-5 cm
 ocd_05_bbox_poly_buffered <- st_transform(BCS_polygon_box_sf_cropped, crs(ocd_05_utm)) # Make sure your sfc polygon is in the same CRS as the raster
 ocd_05_clipped <- crop(ocd_05_utm, ocd_05_bbox_poly_buffered) # Crop the raster by the polygon
@@ -2203,7 +2586,6 @@ all_known_pop_soil_aspect <- raster::extract(all_populations_aspect_raster_15, a
 all_known_pop_soil_TWI <- raster::extract(twi_all_populations, all_pop_locations.df_sf_trans_coordinates) # extracting
 all_known_pop_soil_HLI <- raster::extract(heat.load.raster.all.pops, all_pop_locations.df_sf_trans_coordinates) # extracting
 
-
 # All Points
 
 #creating the eastness and northness values
@@ -2242,14 +2624,13 @@ all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_aspect) #ad
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_TWI) #adding topographic wetness index to the dataframe
 all_known_pop_soils <- cbind(all_known_pop_soils, all_known_pop_soil_HLI) #adding heat load index to the dataframe
 
-#correcting column names for clarity
+#correcting column nph_0.5#correcting column names for clarity and fixing the pH scale
 all_known_pop_soils <- all_known_pop_soils %>%
   mutate(sandy_avail_water_0.5 = layer.1) %>%
   mutate(sandy_avail_water_100.200 = layer.2) %>% 
   mutate(clay_loam_avail_water_0.5 = layer.1.1) %>%
   mutate(clay_loam_avail_water_100.200 = layer.2.1)  %>%
   mutate(all_known_pop_soil_HLI = lyr.1)
-
 
 ## Creating the distance to coast column ##
 
@@ -2259,6 +2640,7 @@ ggplot()+
   geom_sf(data=bbox_poly_buffered)+
   geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+
 
 #  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances
 all_pop_locations.df_sf_trans_coordinates_sp <- st_transform(all_pop_locations.df_sf_trans_coordinates, crs = 4326)
@@ -2274,4 +2656,73 @@ Distance <- dist2Line(p = all_pop_locations.df_sf_trans_coordinates_sp,
 
 # add the distance to coast column 
 all_known_pop_soils <- cbind(all_known_pop_soils, Distance)
+
+
+#### Figures for Paper ####
+
+
+#plotting the SD GPS Elevation vs. DEM Elevation figures
+ggplot(SD_fixed_field_data_processed_terrain,
+       aes(SD_elevation_raster_15_data_pts,
+           altitude))+
+  geom_errorbar(aes(ymin = altitude - vert_accuracy_m,
+                    ymax = altitude + vert_accuracy_m,
+                    linetype = vert_accuracy_m > 5),
+                color = "grey70") +
+  geom_point(aes(color = SD_elevation_raster_15_data_pts > 450)) +
+  labs(title = "SD 2025 GPS Elevation vs. DEM-Derived Elevation",
+       subtitle = "Errorbars Represent Vertical Accuracy",
+       x = "DEM Elevation (m)",
+       y = "2025 GPS Elevation (m)",
+       color = "DEM Elevation > 450 m")+
+  scale_x_continuous(breaks = seq(from = 400, 
+                                  to = 500, by = 10))+
+  scale_color_manual(values = c("FALSE" = "black",
+                                "TRUE" = "red"),
+                     labels = c("False", "True"))+
+  scale_linetype_manual(
+    name = "Vertical Accuracy > 5 m",
+    values = c("FALSE" = "solid",
+               "TRUE" = "dashed"),
+    labels = c("False", "True", ""))+
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        plot.subtitle = element_text(size=15),
+        legend.text = element_text(size=15),
+        axis.text=element_text(size=18),  
+        axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
+ggplot()+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(color = SD_elevation_raster_15_data_pts>450), #aes(color = "Randomly Generated")  SD_elevation_raster_15_data_pts>450
+          alpha = ifelse(SD_fixed_field_data_processed_terrain$SD_elevation_raster_15_data_pts<=450, 0.2, 1), size = 2)+
+  geom_sf(data = river_SD_trans, fill = NA) +
+  scale_color_manual(values = c("black", "red"),
+                     labels = c("False", "True"))+
+  labs(title = "SD Trees above 450 m DEM Elevation",
+       color = "> 450 m DEM Elevation")+
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        legend.text = element_text(size=15),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
+ggplot()+
+  geom_sf(data = SD_fixed_field_data_processed_terrain, aes(color = vert_accuracy_m>5), #aes(color = "Randomly Generated")  SD_elevation_raster_15_data_pts>450
+          alpha = ifelse(SD_fixed_field_data_processed_terrain$vert_accuracy_m<=5, 0.2, 1), size = 2)+
+  geom_sf(data = river_SD_trans, fill = NA) +
+  scale_color_manual(values = c("black", "red", "green"),
+                     labels = c("False", "True", "NA"))+
+  labs(title = "SD Trees above 5 m Vertical Accuracy",
+       color = "> 5 m Vertical Accuracy")+
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        legend.text = element_text(size=15),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
+
 

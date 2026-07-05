@@ -93,6 +93,8 @@ slopes_simulations <- function () {
      if (Populations[i] == "LM"){  #LM trees
        Population = "LM"
        dataframe_soils = LM_fixed_field_data_processed_soils #assigning the LM tree/soils dataframe
+       dataframe_soils <- dataframe_soils %>%
+         filter(QUBR_ID != "LM_338")
      } else if (Populations[i] == "LC"){ #LC trees
        Population = "LC"
        dataframe_soils = LC_fixed_field_data_processed_soils #assigning the LC tree/soils dataframe
@@ -506,8 +508,8 @@ ggarrange.VWC_10.plot <- ggarrange(VWC_10.plot.LM, VWC_10.plot.LC, VWC_10.plot.S
 
 
 ggarrange.VWC_10.plot <- annotate_figure(ggarrange.VWC_10.plot,
-                                         bottom = text_grob(expression(paste("Volume of Water Content Sandy Soils (cm"^3*"/cm"^3*")")), color = "black", size = 17, family = "serif"),
-                                          left = text_grob("DBH (m)", color = "black", rot = 90, size = 17, family = "serif"))
+                                         bottom = text_grob(expression(paste("Volumetric Water Content Sandy Soils (cm"^3*"/cm"^3*")")), color = "black", size = 20, family = "serif"),
+                                          left = text_grob("DBH (m)", color = "black", rot = 90, size = 20, family = "serif"))
 
 ggarrange.VWC_10.plot
 

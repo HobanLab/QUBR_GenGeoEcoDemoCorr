@@ -79,7 +79,7 @@ source("./analyses/Data_Processing_Script.R")
 
 population = "SD"
 size_variable = "DBH"
-explanatory_var = "heat.load"
+explanatory_var = "Elevation"
 
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
 
