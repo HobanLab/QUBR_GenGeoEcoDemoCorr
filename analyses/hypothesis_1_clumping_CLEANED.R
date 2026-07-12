@@ -1233,20 +1233,82 @@ plot(effectfun(PPM1, "dist_near_river_buffer_SD_corrected_im", se.fit = TRUE), m
 
 # making examples of random point distributions vs. points only along the river's edge for presentation 
 
-points_box = sf::st_sample(SD_box, size=50) #randomizing points onlu in population bbox
-points_river = sf::st_sample(river_SD_trans_points, size=50) #randomizing points along river's edge
+points_box = sf::st_sample(river_buffer_LM, size=50) #randomizing points onlu in population bbox
+points_river = sf::st_sample(river_LM_trans_points, size=50) #randomizing points along river's edge
 
+sampled_points <- st_sample(
+  x = river_buffer_LM, 
+  size = 100, 
+  type = "random", 
+  weights = weight_sf$layer 
+)
+r.raster <- rast(dist_near_river_buffer_LM_inverse_im_cropped)
+crs(r.raster) <- crs(r.raster, river_buffer_LM)
+r.mask <- mask(r.raster, river_buffer_LM)
+pts <- spatSample(
+  r_mask,
+  size = 100,
+  method = "weights",
+  as.points = TRUE,
+  na.rm = TRUE
+)
+
+dist_near_river_buffer_LM_inverse_im_cropped_stars <- st_as_stars(dist_near_river_buffer_LM_inverse_im_cropped)
+dist_near_river_buffer_LM_inverse_im_cropped_stars
 #plotting the randomized box points
 ggplot()+
-  geom_sf(data = river_SD_trans)+
-  geom_sf(data = points_box, size = 2)+
-  theme_classic()
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_viridis_c(option = "plasma", na.value = "transparent", name = "Inverse Distance (1/m)") +
+  #scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  #geom_sf(data = river_LM_trans)+
+  geom_sf(data = points_box, size = 2, color = "grey50")+
+  theme_classic() +
+  labs(fill = "Inverse Distance (1/m)") +
+  xlab("")+
+  ylab("")+
+  theme(title=element_text(size=18), 
+        legend.text = element_text(size=15), 
+        axis.text=element_text(size=18),  
+        axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
 
 #plotting the randomized river's edge points
 ggplot()+
-  geom_sf(data = river_SD_trans)+
+  geom_sf(data = river_LM_trans)+
   geom_sf(data = points_river, size = 2)+
-  theme_classic()
+  theme_classic()+
+  xlab("")+
+  ylab("")+
+  theme(title=element_text(size=18), 
+        legend.text = element_text(size=15), 
+        axis.text=element_text(size=18),  
+        axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
+ggplot()+ 
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", 
+               "Randomly Generated" = "grey40"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "LM")+
+  theme_classic() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        text = element_text(family = "serif"))
+
 
 
 

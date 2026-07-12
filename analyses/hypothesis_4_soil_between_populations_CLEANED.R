@@ -2360,7 +2360,7 @@ d.plot
 heat.load.plot <- ggplot()+
   geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load, width = 0.2, fill = Locality, color = Locality),  alpha = 0.3)+
-  ylab("Distance from River (m)")+
+  ylab("Heat Load Index")+
   xlab("")+
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +

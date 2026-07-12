@@ -1045,8 +1045,8 @@ summary(LM_add.gam_DBH.terrain_dist.dredge.7) #looking at which variables are si
 #twi showing somewhat significance
 
 # Checking a GAM after the dredge
-LM_add.gam_DBH.terrain_dist.dredge.3.b <- gam(DBH_ag ~ s(LM_Eastness, k = 20) + s(LM_slope_raster_15_data_pts) + 
-                                              s(LM_TWI_values, k = 20), 
+LM_add.gam_DBH.terrain_dist.dredge.3.b <- gam(DBH_ag ~ s(LM_Eastness, k = 15) + s(LM_slope_raster_15_data_pts) + 
+                                              s(LM_TWI_values, k = 15), 
                                             data = LM_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LM_add.gam_DBH.terrain_dist.dredge.3.b) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #eastness showing somewhat significance, twi is borderline
@@ -1101,7 +1101,7 @@ check_concurvity(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 #LM_add.gam_DBH.terrain_dist.dredge.6 high concurvity distance, TWI, elevation
 
 #checking normality of residuals
-shapiro.test(LM_add.gam_DBH.terrain_dist.dredge.7$residuals)
+shapiro.test(LM_add.gam_DBH.terrain_dist.dredge.3.b$residuals)
 
 #LM_add.gam_DBH.terrain_dist not normal
 #LM_add.gam_DBH.terrain_dist.dredge not normal
@@ -1125,6 +1125,13 @@ gam.check(LM_add.gam_DBH.terrain_dist.dredge.3.b) #pretty normal residuals and n
 #looking at significance
 summary(LM_add.gam_DBH.terrain_dist.dredge.3.b)
 
+plot_color <- c("#875E3BFF")
+
+
+library(colorBlindness)
+plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
+plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
+
 #Chosen model: LM_add.gam_DBH.terrain_dist.no.aspect
 
 #plotting the chosen function, with no interaction 
@@ -1141,54 +1148,60 @@ model_data$DBH_ag_lg
 model_data <- model.frame(LM_add.gam_DBH.terrain_dist.dredge.3.b) #extracting the datapoints from the model
 
 LM_add.gam_DBH.terrain_dist.dredge.3.1 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=1, residuals = T, point_col = "skyblue") +
-  labs(title = expression(bold('s(Eastness)')))+
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=1, residuals = T, point_col = plot_color) +
+  labs(title = expression(italic('s(Eastness)')))+
   xlab("Eastness (º)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 15") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue"
-LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 LM_add.gam_DBH.terrain_dist.dredge.3.1
 
 LM_add.gam_DBH.terrain_dist.dredge.3.2 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=2, residuals = T, point_col = "skyblue") +
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=2, residuals = T, point_col = plot_color) +
   labs(title = "s(Slope)")+
   xlab("Slope (º)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 9") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue"
-LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 LM_add.gam_DBH.terrain_dist.dredge.3.2
 
 LM_add.gam_DBH.terrain_dist.dredge.3.3 <- 
-  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=3, residuals = T, point_col = "skyblue") +
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=3, residuals = T, point_col = plot_color) +
   labs(title = expression(bold("s(Topographic Wetness Index)")))+
   xlab("Topographic Wetness Index")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 15") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- "skyblue"
+LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
-LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <-  plot_color # <- NULL
 LM_add.gam_DBH.terrain_dist.dredge.3.3
 
 LM_add.gam_DBH.terrain_dist.dredge.3.arrange <- ggarrange(LM_add.gam_DBH.terrain_dist.dredge.3.1, LM_add.gam_DBH.terrain_dist.dredge.3.2, 
@@ -1216,17 +1229,33 @@ plot_ly(x=LM_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.FIXED,
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-LM_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m.FIXED, LM_Eastness, LM_slope_raster_15_data_pts), 
-                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+LM_add.gam_DBH.inter <- gam(DBH_ag ~ ti(LM_Eastness, LM_slope_raster_15_data_pts, LM_TWI_values), 
+                            data = LM_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail, method = "REML", family = Gamma(link = "log"))
 summary(LM_add.gam_DBH.inter)
 #there was no significant interaction term after checking combinations
 
 #interaction plots
+plot.gam(LM_add.gam_DBH.inter, select=1)
 plot.gam(LM_add.gam_DBH.inter, select=1, 
-         all.terms=T, main = "s(Elevation:Slope:clay content)", 
-         ylab = expression(f[1]*'(Elevation (m):Slope (º)):Elevation'), se = TRUE,
+         all.terms=T, main = "s(Eastness:Slope:TWI)", 
+         ylab = expression(f[1]*'(Eastness (º):Slope (º)):TWI'), 
+         xlab = "Eastness (º)", se = TRUE,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
+vis.gam(LM_add.gam_DBH.inter,
+        view = c("LM_Eastness", "LM_slope_raster_15_data_pts"),
+        plot.type = "contour",
+        color = "terrain")
+plot(LM_add.gam_DBH.inter,
+     select = 1,
+     scheme = 2,     # filled contour
+     too.far = 0.1)
+vis.gam(LM_add.gam_DBH.inter,
+        view = c("LM_Eastness", "LM_slope_raster_15_data_pts", "Elevation..m.FIXED"),
+        plot.type = "persp")
 
+LM_add.gam_DBH.inter.plot <- 
+  draw(LM_add.gam_DBH.inter, select=1, residuals = T, point_col = plot_color) 
+LM_add.gam_DBH.inter.plot
 #checking to see whether interaction model outperforms our previously selected model
 AIC(LM_add.gam_DBH.inter, LM_add.gam_DBH.terrain_dist)
 #while there is no significant interaction, the model with the interaction performs significantly better
@@ -1942,9 +1971,9 @@ AIC(LC_add.gam_CS.inter, LC_add.gam_CS.terrain_dist.dredge)
 ## DBH ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-LC_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
+LC_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) + s(LC_Northness) + 
                                      s(LC_Eastness) + s(LC_TWI_values) + s(heat.load) + s(X.1, Y.1), 
-                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #only location has a significant non-linear function, distance is borderine
@@ -1955,8 +1984,8 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(location)
 
 # Checking a GAM without aspect
-LC_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(d) + s(X.1,Y.1), 
-                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag ~ s(d) + s(X.1,Y.1), 
+                                          data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #only s(location) is significant 
 
@@ -1966,72 +1995,72 @@ anova(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.dredge)  #ANOVA F
 #the dredge model is preferred
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(d),
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag ~ s(d),
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.2)
 #distance is significant
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(d) + s(X.1,Y.1) + 
+LC_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag ~ s(d) + s(X.1,Y.1) + 
                                               s(LC_Eastness) + s(LC_TWI_values), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.3)
 #location is significant 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag_lg ~ s(d) + s(LC_Eastness) + s(LC_TWI_values), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag ~ s(d) + s(LC_Eastness) + s(LC_TWI_values), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.4)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) 
+LC_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts) 
                                             + s(X.1,Y.1), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.5)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.6)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag_lg ~ s(LC_slope_raster_15_data_pts) 
+LC_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag ~ s(LC_slope_raster_15_data_pts) 
                                             + s(X.1,Y.1), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.7)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.8 <- gam(DBH_ag_lg ~ s(LC_slope_raster_15_data_pts), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.8 <- gam(DBH_ag ~ s(LC_slope_raster_15_data_pts), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.8)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.9 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED) + s(X.1,Y.1), 
-                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.9 <- gam(DBH_ag ~ s(Elevation..m.FIXED) + s(X.1,Y.1), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.9)
 #s(eastiness) is significantly non-linear 
 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.10 <- gam(DBH_ag_lg ~ s(Elevation..m.FIXED), 
-                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.10 <- gam(DBH_ag ~ s(Elevation..m.FIXED), 
+                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.10)
 #s(eastiness) is significantly non-linear 
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.11 <- gam(DBH_ag_lg ~ s(heat.load), 
-                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.11 <- gam(DBH_ag ~ s(heat.load), 
+                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.11)
 #not sig
 
 #making a dredge model with just smooth elevation and no aspect
-LC_add.gam_DBH.terrain_dist.dredge.12 <- gam(DBH_ag_lg ~ s(heat.load) + s(X.1,Y.1), 
-                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+LC_add.gam_DBH.terrain_dist.dredge.12 <- gam(DBH_ag ~ s(heat.load) + s(X.1,Y.1), 
+                                             data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(LC_add.gam_DBH.terrain_dist.dredge.12)
 #location is significantly non-linear 
 
@@ -2045,6 +2074,8 @@ AIC(LC_add.gam_DBH.terrain_dist, LC_add.gam_DBH.terrain_dist.dredge, LC_add.gam_
     LC_add.gam_DBH.terrain_dist.dredge.11, LC_add.gam_DBH.terrain_dist.dredge.12)
 
 #checking if the model without location meets spatial autocorrelation 
+
+#2,3,11 are best
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
 res <- residuals(LC_add.gam_DBH.terrain_dist.dredge.12) #storing the residuals of the GAM
@@ -2076,7 +2107,7 @@ moran.test(res, lw)
 #LC_add.gam_DBH.terrain_dist.dredge.12 controls for spatial autocorrelation
 
 # checking concurvity
-check_concurvity(LC_add.gam_DBH.terrain_dist.dredge.12)
+check_concurvity(LC_add.gam_DBH.terrain_dist.dredge.11)
 
 #LC_add.gam_DBH.terrain_dist high concurvity across all terms
 #LC_add.gam_DBH.terrain_dist.dredge low concurvity across all terms
@@ -2093,10 +2124,10 @@ check_concurvity(LC_add.gam_DBH.terrain_dist.dredge.12)
 #LC_add.gam_DBH.terrain_dist.dredge.12 high concurvity heat load and location
 
 #checking normality of residuals
-shapiro.test(LC_add.gam_DBH.terrain_dist.dredge.10$residuals)
+shapiro.test(LC_add.gam_DBH.terrain_dist.dredge.2$residuals)
 
-#LC_add.gam_DBH.terrain_dist normal
-#LC_add.gam_DBH.terrain_dist.dredge normal
+#LC_add.gam_DBH.terrain_dist not normal
+#LC_add.gam_DBH.terrain_dist.dredge not normal
 #LC_add.gam_DBH.terrain_dist.dredge.2 normal
 #LC_add.gam_DBH.terrain_dist.dredge.3 normal
 #LC_add.gam_DBH.terrain_dist.dredge.4 normal
@@ -2114,6 +2145,11 @@ shapiro.test(LC_add.gam_DBH.terrain_dist.dredge.10$residuals)
 #Based on the comparisons (AIC/Anova) of these models, the best model seems to be: LC_add.gam_DBH.terrain_dist.dredge.3 
 summary(LC_add.gam_DBH.terrain_dist.dredge.3)
 #the model with just distance smooth is marginally better, so I will use the one with smoothing splines on all of the quantitative variables
+
+LC_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag ~ s(d, k=12) + s(X.1,Y.1, k=40) + 
+                                              s(LC_Eastness) + s(LC_TWI_values, k=30), 
+                                            data = LC_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(LC_add.gam_DBH.terrain_dist.dredge.3)
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
@@ -2140,45 +2176,71 @@ plot.gam(LC_add.gam_DBH.terrain_dist.dredge.3, select=4,
          ylab = expression(f[1]*'(TWI)'), se = TRUE , col = "black")
 
 
+LM_add.gam_DBH.terrain_dist.dredge.3.3 <- 
+  draw(LM_add.gam_DBH.terrain_dist.dredge.3.b, select=3, residuals = T, point_col = plot_color) +
+  labs(title = expression(bold("s(Topographic Wetness Index)")))+
+  xlab("Topographic Wetness Index")+
+  ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 15") +
+  theme_classic() +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"))
+
 LC_add.gam_DBH.terrain_dist.dredge.3.1 <- 
-  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=1, residuals = T, point_col = "skyblue") +
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=1, residuals = T, point_col = plot_color) +
   labs(title = "s(Distance)")+
   xlab("Distance (m)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 12") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue"
-LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LC_add.gam_DBH.terrain_dist.dredge.3.1$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 LC_add.gam_DBH.terrain_dist.dredge.3.1
 
 library(viridis)
 
 LC_fixed_field_data_processed_terrain_utm <-
   sf::st_transform(LC_fixed_field_data_processed_terrain,
-    crs = 32612)
+    crs = 26912)
+
+river_LC_trans_utm <-
+  sf::st_transform(river_LC_trans,
+                   crs = 26912)
+
 
 LC_add.gam_DBH.terrain_dist.dredge.3.2 <- 
   draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, 
        continuous_fill = scale_fill_viridis_c(option = "plasma",
                                                na.value = "transparent",
                                               name = "Partial Effect")) +
-  labs(title = expression(bold("s(Location)")),
-       subtitle = "UTM Zone 12N")+
+  labs(title = expression(bold("s(Location)")))+
   xlab("")+ #X (m)
   ylab("")+ #Y (m)
   theme_classic() +
-  geom_point(data=LC_fixed_field_data_processed_terrain, aes(x = X.1, y = Y), shape = 16, alpha = 0.7)+ #plotting the tree points
+  geom_point(data=LC_fixed_field_data_processed_terrain_utm, aes(x = X.1, y = Y), shape = 16, alpha = 0.7)+ #plotting the tree points
+ # geom_sf(data = river_LC_trans_utm, inherit.aes = FALSE, fill = NA, color = "black", size = 0.5) +
+  coord_sf(crs = st_crs(26912)) +
+  labs(caption = "Basis: TPRS, k: 40",
+       subtitle = "NAD83 / UTM Zone 12N") +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
 #LC_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- "skyblue"
 #LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue"
@@ -2187,36 +2249,40 @@ LC_add.gam_DBH.terrain_dist.dredge.3.2 <-
 LC_add.gam_DBH.terrain_dist.dredge.3.2
 
 LC_add.gam_DBH.terrain_dist.dredge.3.3 <- 
-  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=3, residuals = T, point_col = "skyblue") +
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=3, residuals = T, point_col = plot_color) +
   labs(title = "s(Eastness)")+
   xlab("Eastness (º)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 9") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
-LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+LC_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 LC_add.gam_DBH.terrain_dist.dredge.3.3
 
 
 LC_add.gam_DBH.terrain_dist.dredge.3.4 <- 
-  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=4, residuals = T, point_col = "skyblue") +
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=4, residuals = T, point_col = plot_color) +
   labs(title = "s(Topographic Wetness Index)")+
   xlab("Topographic Wetness Index")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 30") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-LC_add.gam_DBH.terrain_dist.dredge.3.4$layers[[1]]$aes_params$colour <- "skyblue"
+LC_add.gam_DBH.terrain_dist.dredge.3.4$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
 LC_add.gam_DBH.terrain_dist.dredge.3.4$layers[[4]] <- NULL
 LC_add.gam_DBH.terrain_dist.dredge.3.4
@@ -2247,8 +2313,8 @@ plot_ly(x=LC_add.gam_DBH.terrain_dist.dredge$d,
 #checking for significant interaction terms  
 
 #creating an interaction model using tensor interaction to get interaction smooths
-LC_add.gam_DBH.inter <- gam(DBH_ag ~ ti(X.1, Y.1, d), 
-                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+LC_add.gam_DBH.inter <- gam(DBH_ag ~ ti(X.1, Y.1, d, LC_Eastness, LC_TWI_values), 
+                            data = LC_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail, method = "REML", family = Gamma(link = "log"))
 summary(LC_add.gam_DBH.inter)
 #there was no significant interaction term after checking combinations
 
@@ -3201,9 +3267,9 @@ AIC(SD_add.gam_CS.inter, SD_add.gam_CS.terrain_dist.dredge.3)
 ## DBH ##
 
 # Checking a GAM with smoothing splines s(), note we cannot put splines on a categorical variable
-SD_add.gam_DBH.terrain_dist <- gam(DBH_ag_lg ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
+SD_add.gam_DBH.terrain_dist <- gam(DBH_ag ~ s(d) + s(Elevation..m.FIXED) + s(SD_slope_raster_15_data_pts) + s(SD_Northness) + 
                                      s(SD_Eastness) + s(SD_TWI_values) + s(heat.load) + s(X.1, Y.1),  
-                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                   data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 
 #eastness have significant non-linear function , heat load is borderline
@@ -3214,59 +3280,73 @@ dredge[1:5,] #looking at the top five best models, lowest AIC is the best model,
 # it wants s(elevation), s(slope)
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Eastness) + 
+SD_add.gam_DBH.terrain_dist.dredge <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_Eastness) + 
                                             s(SD_TWI_values) + s(X.1,Y.1), 
-                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                          data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation, eastness, location is significant
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Eastness) + 
+SD_add.gam_DBH.terrain_dist.dredge.2 <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_Eastness) + 
                                               s(SD_TWI_values), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.2) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation is significant
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Northness) + 
+SD_add.gam_DBH.terrain_dist.dredge.3 <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_Northness) + 
                                               s(SD_TWI_values) + s(X.1,Y.1), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.3) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 # twi, location is significant, elevation is borderline
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_Northness) + 
+SD_add.gam_DBH.terrain_dist.dredge.4 <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_Northness) + 
                                               s(SD_TWI_values), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.4) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #northness and elevation are significant 
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
+SD_add.gam_DBH.terrain_dist.dredge.5 <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
                                               s(SD_TWI_values) + s(X.1,Y.1), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.5) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation and location is significant, twi is borderline
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
+SD_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag ~ s(Elevation..m.) + s(SD_slope_raster_15_data_pts) + 
                                               s(SD_TWI_values), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation, slope is significant
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(heat.load) + 
+SD_add.gam_DBH.terrain_dist.dredge.7 <- gam(DBH_ag ~ s(Elevation..m.) + s(heat.load) + 
                                               s(SD_Eastness), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.7) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation, heatload, eastness is significant
 
 # Checking a GAM post dredge
-SD_add.gam_DBH.terrain_dist.dredge.8 <- gam(DBH_ag_lg ~ s(Elevation..m.) + s(heat.load) + 
+SD_add.gam_DBH.terrain_dist.dredge.8 <- gam(DBH_ag ~ s(Elevation..m.) + s(heat.load) + 
                                               s(SD_Eastness) + s(X.1,Y.1), 
-                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML") #na fail makes sure the later dredge does not have to worry about NAs
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
 summary(SD_add.gam_DBH.terrain_dist.dredge.8) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, heatload, eastness are significant
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.9 <- gam(DBH_ag ~ s(Elevation..m.) + s(heat.load) + 
+                                              s(SD_Eastness) + s(SD_Northness), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.9) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, heatload, eastness are significant
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.10 <- gam(DBH_ag ~ s(Elevation..m.) + s(heat.load) + 
+                                              s(SD_Eastness) + s(SD_Northness) + s(X.1,Y.1), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.10) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
 #elevation, heatload, eastness are significant
 
 #checking AICs
@@ -3274,12 +3354,14 @@ AIC(SD_add.gam_DBH.terrain_dist, SD_add.gam_DBH.terrain_dist.dredge,
     SD_add.gam_DBH.terrain_dist.dredge.2, SD_add.gam_DBH.terrain_dist.dredge.3,
     SD_add.gam_DBH.terrain_dist.dredge.4, SD_add.gam_DBH.terrain_dist.dredge.5,
     SD_add.gam_DBH.terrain_dist.dredge.6, SD_add.gam_DBH.terrain_dist.dredge.7, 
-    SD_add.gam_DBH.terrain_dist.dredge.8)
+    SD_add.gam_DBH.terrain_dist.dredge.8, SD_add.gam_DBH.terrain_dist.dredge.9,
+    SD_add.gam_DBH.terrain_dist.dredge.10)
+#2, 5, 6
 
 #checking if the model without location meets spatial autocorrelation 
 
 #creating the matrix of coordinates to evaluate if spatial autocorrelation as control
-res <- residuals(SD_add.gam_DBH.terrain_dist.dredge.8) #storing the residuals of the GAM
+res <- residuals(SD_add.gam_DBH.terrain_dist.dredge.6) #storing the residuals of the GAM
 coords <- data.frame(
   x = SD_fixed_field_data_processed_terrain_dist_no_NA$X.1,
   y = SD_fixed_field_data_processed_terrain_dist_no_NA$Y.1
@@ -3295,16 +3377,18 @@ moran.test(res, lw)
 
 #SD_add.gam_DBH.terrain_dist controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge controls for spatial autocorrelation
-#SD_add.gam_DBH.terrain_dist.dredge.2 controls for spatial autocorrelation, borderline
+#SD_add.gam_DBH.terrain_dist.dredge.2 does not control for spatial autocorrelation, borderline
 #SD_add.gam_DBH.terrain_dist.dredge.3 controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge.4 controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge.5 controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge.6 controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge.7 controls for spatial autocorrelation
 #SD_add.gam_DBH.terrain_dist.dredge.8 controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.9 controls for spatial autocorrelation
+#SD_add.gam_DBH.terrain_dist.dredge.10 controls for spatial autocorrelation
 
 # checking concurvity
-check_concurvity(SD_add.gam_DBH.terrain_dist.dredge.8)
+check_concurvity(SD_add.gam_DBH.terrain_dist.dredge.10)
 
 #SD_add.gam_DBH.terrain_dist high concurvity across all terms
 #SD_add.gam_DBH.terrain_dist.dredge high concurvity with elevation, eastness and location
@@ -3314,10 +3398,12 @@ check_concurvity(SD_add.gam_DBH.terrain_dist.dredge.8)
 #SD_add.gam_DBH.terrain_dist.dredge.5 high concurvity with elevation, slope and location
 #SD_add.gam_DBH.terrain_dist.dredge.6 low concurvity across all terms
 #SD_add.gam_DBH.terrain_dist.dredge.7 mod concurvity heat load and eastness
-#SD_add.gam_DBH.terrain_dist.dredge.5 high concurvity
+#SD_add.gam_DBH.terrain_dist.dredge.8 high concurvity
+#SD_add.gam_DBH.terrain_dist.dredge.9 high concurvity
+#SD_add.gam_DBH.terrain_dist.dredge.10 high concurvity
 
 #checking normality of residuals
-shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.8$residuals)
+shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.10$residuals)
 
 #SD_add.gam_DBH.terrain_dist normal
 #SD_add.gam_CS.terrain_dist.dredge not normal
@@ -3328,6 +3414,8 @@ shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.8$residuals)
 #SD_add.gam_DBH.terrain_dist.dredge.6 normal
 #SD_add.gam_DBH.terrain_dist.dredge.7 normal
 #SD_add.gam_DBH.terrain_dist.dredge.8 normal
+#SD_add.gam_DBH.terrain_dist.dredge.9 normal
+#SD_add.gam_DBH.terrain_dist.dredge.10 normal
 
 #SD_add.gam_DBH.terrain_dist.dredge.6 is best of the bad models
 
@@ -3340,6 +3428,13 @@ shapiro.test(SD_add.gam_DBH.terrain_dist.dredge.8$residuals)
 summary(SD_add.gam_DBH.terrain_dist.dredge.6)
 
 #the linear model seems to do the best, the GAM model with all smoothing is close behind
+
+# Checking a GAM post dredge
+SD_add.gam_DBH.terrain_dist.dredge.6 <- gam(DBH_ag ~ s(Elevation..m., k=9) + s(SD_slope_raster_15_data_pts, k=20) + 
+                                              s(SD_TWI_values, k=9), 
+                                            data = SD_fixed_field_data_processed_terrain_dist_no_NA, na.action = na.fail, method = "REML", family = Gamma(link = "log")) #na fail makes sure the later dredge does not have to worry about NAs
+summary(SD_add.gam_DBH.terrain_dist.dredge.6) #looking at which variables are significant in the linear vs. non-linear model based on the p-values
+#elevation, slope is significant
 
 #checking conditions for our GAM which assumes a Gaussian distributed (normal distribution and equal variance of residuals assumption)
 par(mfrow = c(2, 2))
@@ -3362,54 +3457,60 @@ plot.gam(SD_add.gam_DBH.terrain_dist.dredge.6, select=2,
          se = TRUE , col = "black")
 
 SD_add.gam_DBH.terrain_dist.dredge.6.1 <- 
-  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=1, residuals = T, point_col = "skyblue") +
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=1, residuals = T, point_col = plot_color) +
   labs(title = expression(bold("s(Elevation)")))+
   xlab("Elevation (m)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 9") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[1]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
-SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.1$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 SD_add.gam_DBH.terrain_dist.dredge.6.1
 
 SD_add.gam_DBH.terrain_dist.dredge.6.2 <- 
-  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, residuals = T, point_col = "skyblue") +
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=2, residuals = T, point_col = plot_color) +
   labs(title = expression(bold("s(Slope)")))+
   xlab("Slope (º)")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 20") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[1]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
-SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.2$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 SD_add.gam_DBH.terrain_dist.dredge.6.2
 
 SD_add.gam_DBH.terrain_dist.dredge.6.3 <- 
-  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, residuals = T, point_col = "skyblue") +
+  draw(SD_add.gam_DBH.terrain_dist.dredge.6, select=3, residuals = T, point_col = plot_color) +
   labs(title = "s(Topographic Wetness Index)")+
   xlab("Topographic Wetness Index")+
   ylab("Partial Effect")+
+  labs(caption = "Basis: TPRS, k: 9") +
   theme_classic() +
   theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
-        title=element_text(size=17), 
-        axis.text=element_text(size=17),  axis.title.x =element_text(size= 17),
-        axis.title.y =element_text(size= 17),
-        label =element_text(size= 17, family = "serif"),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"))
-SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[1]]$aes_params$colour <- "skyblue"
+SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[1]]$aes_params$colour <- plot_color
 #LM_add.gam_DBH.terrain_dist.dredge.3.3$layers[[4]]$aes_params$colour <- "skyblue"
-SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[4]]$aes_params$colour <- "skyblue" # <- NULL
+SD_add.gam_DBH.terrain_dist.dredge.6.3$layers[[4]]$aes_params$colour <- plot_color # <- NULL
 SD_add.gam_DBH.terrain_dist.dredge.6.3
 
 
@@ -3430,21 +3531,70 @@ plot_ly(x=SD_fixed_field_data_processed_terrain_dist_no_NA$Elevation..m.,
 
 #creating an interaction model using tensor interaction to get interaction smooths
 SD_add.gam_DBH.inter <- gam(DBH_ag ~ ti(Elevation..m., SD_TWI_values, SD_slope_raster_15_data_pts), 
-                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail)
+                            data = SD_fixed_field_data_processed_terrain_dist_no_NA,  na.action = na.fail, method = "REML", family = Gamma(link = "log")) 
 summary(SD_add.gam_DBH.inter)
+gam.check(SD_add.gam_DBH.inter)
+
 #there was no significant interaction term after checking combinations
 
-#interaction plots
 plot.gam(SD_add.gam_DBH.inter, select=1, 
-         all.terms=T, main = "s(Elevation:Distance:Slope)", 
-         ylab = expression(f[1]*'(Elevation (m):Distance (m):Slope (º))'), se = TRUE,
+         all.terms=T, main = "s(Elevation:Slope:TWI)",
+         ylab = expression(f[1]*'(Elevation (m):Slope (º):TWI)'), se = TRUE,
          cex.axis = 1, cex.main = 1, cex.lab = 1)
+
+
+SD_add.gam_DBH.inter.plot +
+  scale_fill_viridis_c(
+    option = "plasma",
+    name = "Partial Effect",
+    na.value = "transparent"
+  )
 
 #checking to see whether interaction model outperforms our previously selected model
 AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.6)
 #the interaction is not significant
 
 #overall best model: SD_add.gam_DBH.terrain_dist.dredge.6 
+
+
+library(viridis)
+
+LC_fixed_field_data_processed_terrain_utm <-
+  sf::st_transform(LC_fixed_field_data_processed_terrain,
+                   crs = 26912)
+
+river_LC_trans_utm <-
+  sf::st_transform(river_LC_trans,
+                   crs = 26912)
+
+
+LC_add.gam_DBH.terrain_dist.dredge.3.2 <- 
+  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, 
+       continuous_fill = scale_fill_viridis_c(option = "plasma",
+                                              na.value = "transparent",
+                                              name = "Partial Effect")) +
+  labs(title = expression(bold("s(Location)")))+
+  xlab("")+ #X (m)
+  ylab("")+ #Y (m)
+  theme_classic() +
+  geom_point(data=LC_fixed_field_data_processed_terrain_utm, aes(x = X.1, y = Y), shape = 16, alpha = 0.7)+ #plotting the tree points
+  # geom_sf(data = river_LC_trans_utm, inherit.aes = FALSE, fill = NA, color = "black", size = 0.5) +
+  coord_sf(crs = st_crs(26912)) +
+  labs(caption = "Basis: TPRS, k: 40",
+       subtitle = "NAD83 / UTM Zone 12N") +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=13),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"))
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$layers[[1]]$aes_params$colour <- "skyblue"
+#LM_add.gam_DBH.terrain_dist.dredge.3.2$layers[[4]]$aes_params$colour <- "skyblue"
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$layers[[3]] <- NULL
+#LC_add.gam_DBH.terrain_dist.dredge.3.2$scales$scales[[1]]$name <- "Partial Effect"
+LC_add.gam_DBH.terrain_dist.dredge.3.2
+
 
 
 #### Session Info ####

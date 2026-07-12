@@ -77,12 +77,15 @@ slopes_simulations <- function () {
                     "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
                     "Sand Available Water 0-5", "Sand Available Water 100-200",
                     "Clay/Loam Available Water 0-5", "Clay/Loam Available Water 100-200") #creating a list of soil metric names
-  #creating the slopes and p-value arrays [soil metrics x size metrics x populations]
+  #creating the slopes, p-value, and correlation coefficient arrays [soil metrics x size metrics x populations]
   slopes_array <- array(NA, dim = c(length(Soil.metrics), length(Size.metrics), length(Populations)), 
                         list(Soil.metrics, Size.metrics, Populations)) #real slopes array
   p_values_array <- array(NA, dim = c(length(Soil.metrics), length(Size.metrics), length(Populations)), 
                         list(Soil.metrics, Size.metrics, Populations)) # p-value array
+  cor_array <- array(NA, dim = c(length(Soil.metrics), length(Size.metrics), length(Populations)), 
+                          list(Soil.metrics, Size.metrics, Populations)) # correlation coefficient array
 
+  
   #to store generated histogram plots
   plot_list <- list()   
   
@@ -120,7 +123,9 @@ slopes_simulations <- function () {
     fixed_field_data_processed_size_variables <- st_drop_geometry(dataframe_soils) #dropping the spatial geometry to easily remove columns
     fixed_field_data_processed_size_variables <- fixed_field_data_processed_size_variables[, c("Canopy_short", "Canopy_long",
                                                                                                "Canopy_area","Crown_spread", 
-                                                                                               "DBH_ag")] #dropping all columns except the relevant size metrics
+                                                                                              "DBH_ag")] #dropping all columns except the relevant size metrics
+    
+    
     
     #iterating over the number of soil variables
     for (j in 1:(ncol(fixed_field_data_processed_soils.condensed))){ 
@@ -181,6 +186,9 @@ slopes_simulations <- function () {
         p_value_less_than <- sum(slopes <= lm_real_slope)/length(slopes)   # proportion of simulated slopes lower than our real slope
         p_value <- min(1, 2 * min(p_value_greater_than, p_value_less_than)) # find twice the smaller tail (the "more extreme" one) and if the value is over 1, use 1
         
+        #storing the correlation
+        cor_array[j, k, i] = sqrt(lm_sum$r.squared)
+        
         #storing the results
         
         slopes_array[j, k, i] = lm_real_slope #assigning the each index in the array with the new slope value
@@ -196,7 +204,7 @@ slopes_simulations <- function () {
   }
   
   #returning the slope array, p-value array, and histogram plot list
-  return(list(slopes_array = slopes_array, p_values_array = p_values_array, plot_list = plot_list))
+  return(list(slopes_array = slopes_array, p_values_array = p_values_array, plot_list = plot_list, cor_array = cor_array))
   
 }
 
@@ -220,10 +228,14 @@ slopes_df <- as.data.frame.table(slope_simultations$slopes_array,
                                  responseName = "slope") #creating a dataframe from the slope array
 pvals_df <- as.data.frame.table(slope_simultations$p_values_array, 
                                 responseName = "p_value") #creating a dataframe from the p value array
+cor_df <- as.data.frame.table(slope_simultations$cor_array, 
+                                responseName = "cor")
+
 
 # merging the slopes and p-values dataframes 
 size.pop.slopes.df <- merge(slopes_df, pvals_df, by = c("Var3", "Var2", "Var1")) #merging the two dataframes into one
-names(size.pop.slopes.df) <- c("Population", "Size.Variable", "Soil.Metric", "Slope", "P.value") #re-naming the columns to be more appropriate
+size.pop.slopes.df <- merge(size.pop.slopes.df, cor_df, by = c("Var3", "Var2", "Var1"))
+names(size.pop.slopes.df) <- c("Population", "Size.Variable", "Soil.Metric", "Slope", "P.value", "Correlation.Coefficient") #re-naming the columns to be more appropriate
 
 # Bonferroni correction of the p-values because of multiple testing
 size.pop.slopes.df <- size.pop.slopes.df %>%

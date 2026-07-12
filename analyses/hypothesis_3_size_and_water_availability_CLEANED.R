@@ -77,10 +77,6 @@ source("./analyses/Data_Processing_Script.R")
 #The tests for Linearity, Independence, and Simple Random Sampling are not included in the function. Linearity is tested in the 
 #"Running the Simple Linear Regressions" section and the other two conditions should be tested by the analyst.
 
-population = "SD"
-size_variable = "DBH"
-explanatory_var = "Elevation"
-
 simple_linear_regressions <- function(population, size_variable, explanatory_var){ #input the population name and the size variable/response variable
 
   
@@ -322,6 +318,9 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
       lack_conditions_statement <- print(paste("None of the models met the normality and equal variance conditions, so we ran the non-parametric Mann-Kendall Test and stored the slope test results of the model that met the conditions the best"))
       lack_conditions_statement
       
+      #storing the correlation coefficient which we do not need since it is not significantly linear
+      cor_value <- NA
+      
     }
   } else { #if the condition is met
     
@@ -338,6 +337,10 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
     
     #if conditions are met, we do not need to run the non-parametric Mann-Kendall Test, so we can set those results to NA
     tau_result <- NA
+    
+    #storing the correlation coefficient 
+    test_model_sum <- summary(test_model)
+    cor_value <- sqrt(test_model_sum$r.squared)
     
   }
   
@@ -366,7 +369,8 @@ simple_linear_regressions <- function(population, size_variable, explanatory_var
               "slope_test_p_value" = slope_test_p_value, #returning the linear regression slope test results p-value
               "chosen_model_statement" = chosen_model_statement, #returning a statement of which model was chosen
               "lack_conditions_statement" = lack_conditions_statement, #returning a statement if none of the models met the conditions
-              "tau_result" = tau_result)) #returning the non-parametric Mann-Kendall Test results
+              "tau_result" = tau_result,
+              "cor_value" = cor_value)) #returning the non-parametric Mann-Kendall Test results
   
 }
 

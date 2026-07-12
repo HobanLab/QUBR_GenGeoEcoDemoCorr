@@ -1100,16 +1100,20 @@ joincount.mc.LM <- joincount.mc(fx = LM_fixed_field_data_processed_terrain_dist$
 
 #plotting the fruiting trees
 ggplot() +
-  geom_sf(data =river_LM_trans, fill = "skyblue") +
-  geom_sf(data =LM_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  geom_sf(data =river_LM_trans, fill = "#a6cee3") +
+  geom_sf(data =LM_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
+          size = 2) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+                     labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
-  labs(title = "Las Matancitas")+
+  labs(title = "LM")+
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        text = element_text(family = "serif"))
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 20))
 
 
 ggplot()+ 
@@ -1123,10 +1127,10 @@ ggplot()+
   scale_color_manual(
     name = "Trees",
     values = c("Actual Trees" = "red", 
-               "Randomly Generated" = "black"))+
+               "Randomly Generated" = "grey40"))+
   theme_minimal()+
   # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
-  labs(title = "Las Matancitas")+
+  labs(title = "LM")+
   theme_classic() +
   theme(title=element_text(size=15), 
         axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
@@ -1168,16 +1172,20 @@ ggplot() +
 
 #plotting the fruiting trees
 ggplot() +
-  geom_sf(data =river_LC_trans, fill = "skyblue") +
-  geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  geom_sf(data =river_LC_trans, fill = "#a6cee3") +
+  geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
+  size = 2) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+                     labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
-  labs(title = "La Cobriza")+
+  labs(title = "LC")+
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        text = element_text(family = "serif"))
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 20))
 
 ###Test for LM###
 
@@ -1214,17 +1222,20 @@ ggplot() +
 
 #plotting the fruiting trees
 ggplot() +
-  geom_sf(data =river_SD_trans, fill = "skyblue") +
-  geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  geom_sf(data =river_SD_trans, fill = "#a6cee3") +
+  geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
+  size = 2) +
+  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+                     labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
-  labs(title = "San Dionisio")+
+  labs(title = "SD")+
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        text = element_text(family = "serif"))
-
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 20))
 
 #### Ch-square Test Comparing Fruiting Proportions ####
 
@@ -1260,22 +1271,25 @@ fixed_field_data_processed_sf_transformed.labels <- fixed_field_data_processed_s
 fixed_field_data_processed_sf_transformed.labels$locality <- factor(fixed_field_data_processed_sf_transformed$locality, 
                                                             levels = c("LC", "LM", "SD"),
                                                             #labels = c("LM", "LC", "SD"))
-                                                            labels = c("La Cobriza", "Las Matancitas", "San Dionisio"))
+                                                            labels = c("LC", "LM", "SD"))
 
 ggplot(fixed_field_data_processed_sf_transformed.labels) +
   geom_bar(aes(x = locality, fill = fruiting), position = "fill")+
  # geom_sf(data =river_SD_trans, fill = "skyblue") +
  # geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
-  scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF")) +
+  scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+                    labels = c("No", "Yes", "NA")) +
   labs(fill = "Fruiting")+
   ylab("Proportion")+
   xlab("")+
   #labs(title = "San Dionisio")+
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        text = element_text(family = "serif"))
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 20))
 
 #looking at the pairwise differences
 chisq.test(chi_matrix[c(1, 2),], correct = FALSE)
