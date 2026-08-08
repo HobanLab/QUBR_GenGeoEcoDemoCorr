@@ -80,6 +80,7 @@ library(terra)
 library(caret) #for running cross-validations
 library(rstatix) #to run shapiro_wilk function
 library(lmtest) #to run breusch pagan test
+library(gratia) #for qq_plot function
 
 #### Loading and processing relevant data ####
 
@@ -2660,31 +2661,37 @@ all_known_pop_soils <- cbind(all_known_pop_soils, Distance)
 
 #### Figures for Paper ####
 
-
+SD_fixed_field_data_processed_terrain_plot <- SD_fixed_field_data_processed_terrain %>%
+  mutate(point_color = case_when(SD_elevation_raster_15_data_pts <= 450 ~ "DEM Elevation <= 450 m",
+                                 SD_elevation_raster_15_data_pts > 450 & vert_accuracy_m > 5  ~ "DEM Elevation > 450 m and Vertical Accuracy > 5 m",
+                                 SD_elevation_raster_15_data_pts > 450 & vert_accuracy_m <= 5  ~ "DEM Elevation > 450 m and Vertical Accuracy <= 5 m"))
 #plotting the SD GPS Elevation vs. DEM Elevation figures
-ggplot(SD_fixed_field_data_processed_terrain,
+ggplot(SD_fixed_field_data_processed_terrain_plot,
        aes(SD_elevation_raster_15_data_pts,
            altitude))+
   geom_errorbar(aes(ymin = altitude - vert_accuracy_m,
-                    ymax = altitude + vert_accuracy_m,
-                    linetype = vert_accuracy_m > 5),
+                    ymax = altitude + vert_accuracy_m), #linetype = vert_accuracy_m > 5
                 color = "grey70") +
-  geom_point(aes(color = SD_elevation_raster_15_data_pts > 450)) +
+  geom_point(aes(color = point_color)) + #SD_elevation_raster_15_data_pts > 450
   labs(title = "SD 2025 GPS Elevation vs. DEM-Derived Elevation",
        subtitle = "Errorbars Represent Vertical Accuracy",
        x = "DEM Elevation (m)",
        y = "2025 GPS Elevation (m)",
-       color = "DEM Elevation > 450 m")+
+       color = "Elevation and Vertical Accuracy")+
   scale_x_continuous(breaks = seq(from = 400, 
                                   to = 500, by = 10))+
-  scale_color_manual(values = c("FALSE" = "black",
-                                "TRUE" = "red"),
-                     labels = c("False", "True"))+
-  scale_linetype_manual(
-    name = "Vertical Accuracy > 5 m",
-    values = c("FALSE" = "solid",
-               "TRUE" = "dashed"),
-    labels = c("False", "True", ""))+
+  scale_color_manual(values = c("DEM Elevation <= 450 m" = "black",
+                                "DEM Elevation > 450 m and Vertical Accuracy <= 5 m" = "grey",
+                                "DEM Elevation > 450 m and Vertical Accuracy > 5 m" = "red"),
+                     labels = c("DEM Elevation <= 450 m", 
+                                "DEM Elevation > 450 m and Vertical Accuracy <= 5 m", 
+                                "DEM Elevation > 450 m and Vertical Accuracy > 5 m"),
+                     na.translate = FALSE)+
+  # scale_linetype_manual(
+  #   name = "Vertical Accuracy > 5 m",
+  #   values = c("FALSE" = "solid",
+  #              "TRUE" = "dashed"),
+  #   labels = c("False", "True", ""))+
   theme_classic() +
   theme(title=element_text(size=18), 
         plot.subtitle = element_text(size=15),

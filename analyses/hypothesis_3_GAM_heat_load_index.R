@@ -3537,18 +3537,32 @@ gam.check(SD_add.gam_DBH.inter)
 
 #there was no significant interaction term after checking combinations
 
-plot.gam(SD_add.gam_DBH.inter, select=1, 
-         all.terms=T, main = "s(Elevation:Slope:TWI)",
-         ylab = expression(f[1]*'(Elevation (m):Slope (º):TWI)'), se = TRUE,
-         cex.axis = 1, cex.main = 1, cex.lab = 1)
 
+# plot.gam(SD_add.gam_DBH.inter, select=1, 
+#          all.terms=T, main = "s(Elevation:Slope:TWI)",
+#          ylab = expression(f[1]*'(Elevation (m):Slope (º):TWI)'), se = TRUE,
+#          cex.axis = 1, cex.main = 1, cex.lab = 1)
 
-SD_add.gam_DBH.inter.plot +
-  scale_fill_viridis_c(
-    option = "plasma",
-    name = "Partial Effect",
-    na.value = "transparent"
-  )
+library(gratia)
+draw(SD_add.gam_DBH.inter,
+     select = 1) +
+  theme_bw(base_size = 16) +
+  facet_wrap(vars(SD_slope_raster_15_data_pts), 
+             labeller = as_labeller(function(x) round(as.numeric(x), 0))) +
+  scale_fill_viridis_c(option = "plasma", name = "Partial Effect", na.value = "transparent") +
+  labs(x = "Elevation (m)", y = "TWI", 
+       title = "Elevation × TWI × Slope interaction",
+       caption = paste0(expression(bold("Facet: "), "Slope (°); Basis: Tensor Product Int")),
+       fill = "Partial Effect") +
+  theme(panel.grid.major = element_line(color = "grey90", size = 0.5),
+        title=element_text(size=18), 
+        plot.caption=element_text(size=15),
+        axis.text=element_text(size=18),  
+        axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"))
+
 
 #checking to see whether interaction model outperforms our previously selected model
 AIC(SD_add.gam_DBH.inter, SD_add.gam_DBH.terrain_dist.dredge.6)
@@ -3568,8 +3582,8 @@ river_LC_trans_utm <-
                    crs = 26912)
 
 
-LC_add.gam_DBH.terrain_dist.dredge.3.2 <- 
-  draw(LC_add.gam_DBH.terrain_dist.dredge.3, select=2, residuals = T, 
+SD_add.gam_DBH.inter.plot <- 
+  draw(SD_add.gam_DBH.inter, select=2, residuals = T, 
        continuous_fill = scale_fill_viridis_c(option = "plasma",
                                               na.value = "transparent",
                                               name = "Partial Effect")) +

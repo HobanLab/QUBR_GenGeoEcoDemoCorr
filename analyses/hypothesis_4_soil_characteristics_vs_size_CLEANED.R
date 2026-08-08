@@ -130,7 +130,7 @@ slopes_simulations <- function () {
     #iterating over the number of soil variables
     for (j in 1:(ncol(fixed_field_data_processed_soils.condensed))){ 
       
-      #iterating over the number of soil variables
+      #iterating over the number of size variables
       for (k in 1:(ncol(fixed_field_data_processed_size_variables))) {
         
         #extracting slopes from comparing soil values with randomized shape/size values with linear regressions
@@ -528,6 +528,202 @@ ggarrange.VWC_10.plot
 
 ggsave("./VWC_10.plot.png", dpi = 1200, width = 15, 
        height = 5, units = "in") #units = "in"
+
+
+## Sand ##
+
+sand.plot.LM <- ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LM")+
+  ylim(c(0, 1.5))+
+  # xlim(c(600, 720))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.plot.LM <- sand.plot.LM + 
+  annotate("text", label = " * ", x = 710, y = 1.5, size = 10, color = shallower_soil_color)
+sand.plot.LM
+
+sand.plot.LC <- ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LC")+
+  ylim(c(0, 1.5))+
+  # xlim(c(600, 720))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+# sand.plot.LC <- sand.plot.LC + 
+#   annotate("text", label = " * ", x = 700, y = 1.5, size = 10, color = deeper_soil_color)
+sand.plot.LC
+
+
+sand.plot.SD <- ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(sand.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(sand.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "SD")+
+  ylim(c(0, 1.5))+
+  # xlim(c(600, 720))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.plot.SD <- sand.plot.SD + 
+  annotate("text", label = " * ", x = 660, y = 1.5, size = 10, color = shallower_soil_color) 
+sand.plot.SD
+
+ggarrange.sand.plot <- ggarrange(sand.plot.LM, sand.plot.LC, sand.plot.SD,
+                                   common.legend = TRUE, nrow = 1, legend = "right")
+
+
+ggarrange.sand.plot <- annotate_figure(ggarrange.sand.plot,
+                                         bottom = text_grob("Sand Content (g/kg)", color = "black", size = 20, family = "serif"),
+                                         left = text_grob("DBH (m)", color = "black", rot = 90, size = 20, family = "serif"))
+
+ggarrange.sand.plot
+
+
+ggsave("./sand.plot.png", dpi = 1200, width = 15, 
+       height = 5, units = "in") #units = "in"
+
+
+
+## Clay ##
+
+clay.plot.LM <- ggplot()+
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LM_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LM")+
+  ylim(c(0, 1.5))+
+  # xlim(c(600, 720))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.plot.LM <- clay.plot.LM + 
+  annotate("text", label = " * ", x = 120, y = 1.5, size = 10, color = shallower_soil_color)+
+  annotate("text", label = " * ", x = 165, y = 1.5, size = 10, color = deeper_soil_color)
+clay.plot.LM
+
+clay.plot.LC <- ggplot()+
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = LC_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "LC")+
+  ylim(c(0, 1.5))+
+  xlim(c(120, 158))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+# sand.plot.LC <- sand.plot.LC + 
+#   annotate("text", label = " * ", x = 700, y = 1.5, size = 10, color = deeper_soil_color)
+clay.plot.LC
+
+
+clay.plot.SD <- ggplot()+
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(clay.content.0.5, DBH_ag, color = "0-5"),   alpha = 0.3, fill = shallower_soil_color) +
+  geom_point(data = SD_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"), alpha = 0.3) +
+  geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
+  xlab(NULL)+
+  ylab(NULL)+
+  labs(title = "SD")+
+  ylim(c(0, 1.5))+
+  # xlim(c(600, 720))+
+  theme_minimal() +
+  scale_color_manual(
+    name = "Soil Depth (cm)",
+    values = c("0-5" = shallower_soil_color, 
+               "100-200" = deeper_soil_color)
+  ) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.plot.SD <- clay.plot.SD + 
+  annotate("text", label = " * ", x = 155, y = 1.5, size = 10, color = shallower_soil_color) 
+clay.plot.SD
+
+ggarrange.clay.plot <- ggarrange(clay.plot.LM, clay.plot.LC, clay.plot.SD,
+                                 common.legend = TRUE, nrow = 1, hjust = 0.5, legend = "right")
+
+
+ggarrange.clay.plot <- annotate_figure(ggarrange.clay.plot,
+                                       bottom = text_grob("Clay Content (g/kg)", color = "black", size = 20, family = "serif"),
+                                       left = text_grob("DBH (m)", color = "black", rot = 90, size = 20, family = "serif"))
+
+ggarrange.clay.plot
+
+
+ggsave("./clay.plot.png", dpi = 1200, width = 15, 
+       height = 5, units = "in") #units = "in"
+
+
 
 
 #### Session Info ####

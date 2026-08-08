@@ -104,20 +104,50 @@ SD_fixed_field_data_processed_terrain_dist_soils <- SD_fixed_field_data_processe
             "SD_aspect_raster_15_data_pts_radian", "SD_Eastness", "SD_Northness", "SD_TWI_values"))
 
 
+#subsetting the required columns 
+
+#LM
+LM_fixed_field_data_processed_terrain_dist_soils_subset <- subset(LM_fixed_field_data_processed_terrain_dist_soils, select = c(Metal_ID, QUBR_ID, locality, altitude, 
+                                                                                                                               altitude_2023, fruiting, DBH_ag, multistemmed,
+                                                                                                                               height, Canopy_short, Canopy_long, horiz_accuracy_m, 
+                                                                                                                               vert_accuracy_m, Crown_spread, eccentricity, Canopy_area,
+                                                                                                                               positionsourcetype, fixtype, numsats, X,
+                                                                                                                               Locality, Elevation..m., X.1, Y, Canopy_short_lg,
+                                                                                                                               Canopy_area_lg, Crown_spread_lg, DBH_ag_lg,
+                                                                                                                               Canopy_long_sqrt, Canopy_area_sqrt, Crown_spread_sqrt,
+                                                                                                                               Canopy_short_inv, Canopy_long_inv, Canopy_area_inv,
+                                                                                                                               DBH_ag_inv, Elevation..m.FIXED, Elevation..m.combo,
+                                                                                                                               heat.load, d, X_sequential,                                
+                                                                                                                               clay.content.0.5, clay.content.100.200, silt.0.5,
+                                                                                                                               silt.100.200, sand.0.5, sand.100.200, ph_0.5, 
+                                                                                                                               ph_100.200, OCD_0.5, OCR_100.200, coarse_fragments_0.5,
+                                                                                                                               coarse_fragments_100.200, Cat_exc_0.5, cat_exc_100.200,
+                                                                                                                               bulk_density_0.5, bulk_density_100.200, vol_water_.10_0.5,
+                                                                                                                               vol_water_.10_100.200, vol_water_0.5, vol_water_100.200,
+                                                                                                                               vol_water_.1500kPa_0.5, vol_water_.1500_100.200, nitrogen.0.5,
+                                                                                                                               nitrogen.100.200, SOC.0.5, SOC.100.200, sandy_avail_water_0.5,
+                                                                                                                               sandy_avail_water_100.200, clay_loam_avail_water_0.5, clay_loam_avail_water_100.200,               
+                                                                                                                               aspect_raster_15_data_pts, slope_raster_15_data_pts, elevation_raster_15_data_pts,
+                                                                                                                               aspect_raster_15_data_pts_8_categorical, aspect_raster_15_data_pts_4_categorical,
+                                                                                                                               aspect_raster_15_data_pts_radian, Eastness, Northness, TWI_values, geometry))
+
+
+
+#LC
+
+LC_fixed_field_data_processed_terrain_dist_soils_subset <- subset(LC_fixed_field_data_processed_terrain_dist_soils, select = names(LM_fixed_field_data_processed_terrain_dist_soils_subset))
+
+#SD
+
+SD_fixed_field_data_processed_terrain_dist_soils_subset <- subset(SD_fixed_field_data_processed_terrain_dist_soils, select = names(LM_fixed_field_data_processed_terrain_dist_soils_subset))
+
+
 #combine all three populations into one dataframe, subsetting what variables to remove to allow for rbinding
-fixed_field_data_processed_soils <- rbind(subset(LM_fixed_field_data_processed_terrain_dist_soils, select = -c(LM_aspect_raster_15_data_pts.1, LM_slope_raster_15_data_pts.1,
-                                                                                                             LM_elevation_raster_15_data_pts.1, LM_aspect_raster_15_data_pts_8_categorical.1,
-                                                                                                             LM_aspect_raster_15_data_pts_4_categorical.1, LM_aspect_raster_15_data_pts_radian.1, 
-                                                                                                             LM_Eastness.1, LM_Northness.1, LM_TWI_values.1)), 
-                                                subset(LC_fixed_field_data_processed_terrain_dist_soils, select = -c(LC_aspect_raster_15_data_pts.1, LC_slope_raster_15_data_pts.1,
-                                                                                                              LC_elevation_raster_15_data_pts.1, LC_aspect_raster_15_data_pts_8_categorical.1,
-                                                                                                              LC_aspect_raster_15_data_pts_4_categorical.1, LC_aspect_raster_15_data_pts_radian.1, 
-                                                                                                              LC_Eastness.1, LC_Northness.1, LC_TWI_values.1))) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_soils <- rbind(LM_fixed_field_data_processed_terrain_dist_soils_subset, 
+                                          LC_fixed_field_data_processed_terrain_dist_soils_subset) #combining the LM and LC soil and randomly chosen tree data
+
 fixed_field_data_processed_soils <- rbind(fixed_field_data_processed_soils, 
-                                                subset(SD_fixed_field_data_processed_terrain_dist_soils, select = -c(SD_aspect_raster_15_data_pts.1, SD_slope_raster_15_data_pts.1,
-                                                                                                              SD_elevation_raster_15_data_pts.1, SD_aspect_raster_15_data_pts_8_categorical.1,
-                                                                                                              SD_aspect_raster_15_data_pts_4_categorical.1, SD_aspect_raster_15_data_pts_radian.1, 
-                                                                                                              SD_Eastness.1, SD_Northness.1, SD_TWI_values.1))) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+                                          SD_fixed_field_data_processed_terrain_dist_soils_subset) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
 
 
 #### Creating the Function Comparing Average Soil Values from Inside Populations to Outside Populations ####
@@ -152,7 +182,7 @@ Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 
 
 pb <- txtProgressBar(min = 1, max = 29, style = 3)
 
-
+i = 20
 
 random_pop_soils <- function(){
   
@@ -674,6 +704,83 @@ ggplot() +
         axis.title.y =element_text(size= 15),
         label =element_text(size= 15, family = "serif"),
         text = element_text(family = "serif"))
+
+
+#### Figures for Paper ####
+
+random_points_BCS <- ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "black")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
+  geom_sf(data=random_20, color ="red")
+
+#plotting the randomly generated points just on the cropped polygon
+ggplot()+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "black")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates, color = "grey40")+
+  geom_sf(data=random_20, color ="blue")
+
+#plotting the original extent of the BCS polygon, the buffered polygon, the cropped extent, and the 20 population points
+main.plot <- ggplot()+
+  geom_sf(data=BCS_polygon_UTM)+
+  geom_sf(data=BCS_polygon_box_sf_cropped, color = "black", size = 1.5)+
+  geom_raster(data = as.data.frame(soil_stack_sandy_water, xy=T), aes(x=x, y=y, fill = layer.1))+
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=random_20, aes(color ="Randomly Generated"))+
+  # scale_fill_gradientn(colours=c("lightblue","darkblue"), na.value = NA) + #name = "Available Water in Sandy Soils 0-5 cm ()"
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates, aes(color = "Known Populations")) +
+  coord_sf(crs = crs(BCS_polygon_box_sf_cropped))+
+  xlab("")+
+  ylab("")+
+  scale_color_manual(
+    name = "Populations",
+    values = c("Randomly Generated" = "red", 
+               "Known Populations" = "black"),
+    labels = c("Known Populations", "Randomly Generated"))+
+  labs(
+       fill = expression(paste("Sandy Soil Water Content 0-5 cm (cm"^3*"/cm"^3*")"))) +
+  #title = "Available Water in Sandy Soils 0-5 cm across Study Region",
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        legend.text = element_text(size=15),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+main.plot
+
+BCS_polygon_box_sf_cropped.bbox <- st_bbox(BCS_polygon_box_sf_cropped)
+
+cropped.plot <-  main.plot +
+  geom_sf(data = random_20, color = "red")+
+  geom_sf(data = all_pop_locations.df_sf_trans_coordinates, color = "black")+
+  coord_sf(xlim = c(BCS_polygon_box_sf_cropped.bbox["xmin"], 
+                           BCS_polygon_box_sf_cropped.bbox["xmax"]),
+                  ylim = c(BCS_polygon_box_sf_cropped.bbox["ymin"], 
+                           BCS_polygon_box_sf_cropped.bbox["ymax"])) +
+  labs(x = NULL, y = NULL, title = NULL) +
+  scale_x_continuous(n.breaks = 5) +
+  guides(fill = "none", color = "none")+
+ # theme_bw(10) +
+  theme(legend.position = "none",
+        title=element_text(size=18), 
+        legend.text = element_text(size=15),
+        axis.text=element_text(size=13),  
+        axis.title.x =element_text(size= 18, color = "black"),
+        axis.title.y =element_text(size= 18, color = "black"),
+        text = element_text(family = "serif"))
+cropped.plot  
+
+
+df <- data.frame(plot = I(list(cropped.plot)))
+
+main.plot +
+  #expand_limits(x = 0, y = 0) +
+  geom_plot_npc(data = df,
+                aes(npcx = 0.00000025, npcy = 0.05, label = plot, 
+                    vp.width = 0.66, vp.height = 0.66,
+                    hjust = 0.15, vjust = 0.09))
+
+st_write(BCS_polygon_box_sf_cropped, "./data/BCS_polygon_box_sf_cropped.shp")
 
 
 #### Session Info ####

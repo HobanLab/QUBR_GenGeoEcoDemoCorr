@@ -686,20 +686,21 @@ ggplot()+
         text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+LM_ANN_plot <- as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, LM_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("Average Nearest Neighbor") +
+  xlab("Average Nearest Neighbor (m)") +
   ylab("Frequency")+
-  labs(title = "Las Matancitas")+
+  labs(title = "LM")+
   geom_text(aes(label = round(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 6.8, y = 50, color = "red", size = 6) + 
   theme_classic() +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
+LM_ANN_plot
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -771,21 +772,21 @@ ggplot()+
         text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+LC_ANN_plot <- as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, LC_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
-  xlab("Average Nearest Neighbor") +
+  xlab("Average Nearest Neighbor (m)") +
   ylab("Frequency")+
-  labs(title = "La Cobriza")+
+  labs(title = "LC")+
   geom_text(aes(label = round(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 5.2, y = 50, color = "red", size = 6) +
   theme_classic() +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
-
+LC_ANN_plot
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
 
@@ -859,21 +860,22 @@ ggplot()+
         text = element_text(family = "serif"))
 
 #graphing the histogram of simulated ANN values and the mean ANN from our trees
-as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+SD_ANN_plot <- as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
   ggplot()+
   geom_histogram(aes(x = value),  fill = "skyblue", color = "black", bins = 50) + 
   xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
   geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
   theme_classic()+
-  xlab("Average Nearest Neighbor") +
+  xlab("Average Nearest Neighbor (m)") +
   ylab("Frequency")+
-  labs(title = "San Dionisio")+
+  labs(title = "SD")+
   geom_text(aes(label = round(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7, y = 55, color = "red", size = 6) +
   theme_classic() +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
+SD_ANN_plot
 
 
 ## Version of ANN analysis controlling for the river with on and inside the river 
@@ -1096,7 +1098,7 @@ river_vect_LM <- project(vect(st_as_sf(river_LM)), rast(dist_near_river_buffer_L
 dist_near_river_buffer_LM_corrected <- rasterize(river_vect_LM, rast(dist_near_river_buffer_LM), field=0, update=TRUE, touches=TRUE)
 
 #making sure the projections are identifical for the buffer and the raster
-river_buffer_LM <- project(river_buffer_LM, rast(dist_near_river_buffer_LM_corrected))
+river_buffer_LM <- terra::project(river_buffer_LM, rast(dist_near_river_buffer_LM_corrected))
 
 #cropping the distance to river raster
 dist_near_river_buffer_LM_corrected_cropped <- raster::crop(dist_near_river_buffer_LM_corrected, river_buffer_LM, mask = T)
@@ -1233,8 +1235,8 @@ plot(effectfun(PPM1, "dist_near_river_buffer_SD_corrected_im", se.fit = TRUE), m
 
 # making examples of random point distributions vs. points only along the river's edge for presentation 
 
-points_box = sf::st_sample(river_buffer_LM, size=50) #randomizing points onlu in population bbox
-points_river = sf::st_sample(river_LM_trans_points, size=50) #randomizing points along river's edge
+points_box = sf::st_sample(river_buffer_LM, size=268) #randomizing points onlu in population bbox
+points_river = sf::st_sample(river_LM_trans_points, size=268) #randomizing points along river's edge
 
 sampled_points <- st_sample(
   x = river_buffer_LM, 
@@ -1288,6 +1290,34 @@ ggplot()+
         axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
 
+
+#st_cast(points_box, "POINT")
+#st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT")
+
+ggplot()+ 
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data = points_box, size = 2, alpha = 0.8, aes(color = "River Has No Effect"), fill = NA, shape = 16)+
+  geom_sf(data=st_cast(LM_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), size = 2, alpha = 0.8, aes(color = "River Has Effect"), fill = NA, shape = 16) + #plotting the random points
+  #geom_sf(data=LM_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
+  scale_color_manual(
+    name = "Randomly Generated Points",
+    values = c("River Has Effect" = "red", 
+               "River Has No Effect" = "grey40"),
+    labels = c("River Has Effect", "River Has No Effect"))+
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "LM")+
+  theme_classic() +
+  theme(title= element_text(size=18), 
+        legend.text = element_text(size=15), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+
 ggplot()+ 
   geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LM_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
   scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
@@ -1304,13 +1334,79 @@ ggplot()+
   # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
   labs(title = "LM")+
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
+  theme(title= element_text(size=18), 
+        legend.text = element_text(size=15), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))
 
+#### FIGURES FOR PAPER ####
 
 
+LM_ANN_plot <- as_tibble(LM_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, LM_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("") +
+  ylab("Frequency") +
+  labs(title = "LM")+
+  # scale_x_continuous(limits = c(0, 20))+
+  scale_y_continuous(limits = c(0, 80))+
+  geom_text(aes(label = round(LM_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7.1, y = 60, color = "red", size = 6) + 
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+LM_ANN_plot
+
+LC_ANN_plot <- as_tibble(LC_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, LC_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("Average Nearest Neighbor (m)") +
+  ylab("")+
+  labs(title = "LC")+
+  # scale_x_continuous(limits = c(0, 20))+
+  scale_y_continuous(limits = c(0, 80))+
+  geom_text(aes(label = round(LC_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 5.5, y = 60, color = "red", size = 6) + 
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+LC_ANN_plot
+
+SD_ANN_plot <- as_tibble(SD_ANN_Anlysis_inside_on_outside_river$ann.r) %>% #turning the ann.r vector as a tibble
+  ggplot()+
+  geom_histogram(aes(x = value), fill = "skyblue", color = "black", bins = 50) + 
+  xlim(range(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, SD_ANN_Anlysis_inside_on_outside_river$ann.r)) + #setting the range of the graph to include both the simulated ANN and our tree's mean ANN
+  geom_vline(xintercept=SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, col = "red") + #plotting our tree's mean ANN
+  xlab("") +
+  ylab("") +
+  labs(title = "SD")+
+  # scale_x_continuous(limits = c(0, 20))+
+  scale_y_continuous(limits = c(0, 80))+
+  geom_text(aes(label = round(SD_ANN_Anlysis_inside_on_outside_river$observed_ANN, 2)), x = 7.8, y = 60, color = "red", size = 6) + 
+  theme_classic() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        text = element_text(family = "serif"))
+SD_ANN_plot
+
+arranged_ANN_plot <- ggarrange(LM_ANN_plot, LC_ANN_plot, SD_ANN_plot, nrow = 1,
+                               label.x = 0, label.y = 0, common.legend = T, align = "v")
+arranged_ANN_plot
+arranged_ANN_plot <- arranged_ANN_plot +
+  xlab("Average Nearest Neighbor (m)") +
+  ylab("Frequency")
+annotate_figure(arranged_ANN_plot, left = textGrob("Common y-axis"), #rot = 90, vjust = 1, gp = gpar(cex = 1.3)
+                bottom = textGrob("Common x-axis"))
+arranged_ANN_plot
+  
 
 #### Session Info ####
 # 
@@ -1388,3 +1484,4 @@ ggplot()+
 # [97] scales_1.4.0          e1071_1.7-16          insight_1.4.6        
 # [100] crayon_1.5.3          rlang_1.1.7           multcomp_1.4-30  
 # 
+
