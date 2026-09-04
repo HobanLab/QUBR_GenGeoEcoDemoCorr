@@ -1939,12 +1939,40 @@ ggsave("./soil_fruiting_boxplots_reduced_plot.png", dpi = 1200, width = 14,
 
 plot_color <- c("#5C462B")
 library(colorBlindness)
-plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
-plot_colors <- c(deeper_soil_color, shallower_soil_color) #"#E37F3EFF",
+# plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
+# plot_colors <- c("#FECEA8FF", "#a6761d") #"#E37F3EFF",
+# 
+# scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+#                    labels = c("No", "Yes")) 
+
+# n_color = "#FECEA8FF"
+# y_color = "#a6761d"
+# 
+# plot_colors <- c( "#FDB863FF", "#a6761d") #"#E37F3EFF",
+# n_color = "#FDB863FF"
+# y_color = "#a6761d"
+# 
+# plot_colors <- c( "#FDB863FF", "#117733") #"#E37F3EFF",
+# n_color = "#FDB863FF"
+# y_color = "#117733"
 
 
-shallower_soil_color <- c("#C4B07B")
-deeper_soil_color <- c("#5C462B")
+plot_colors <- c( "#908D8E", "#117733") #"#E37F3EFF",
+n_color = "#908D8E"
+y_color = "#117733"
+
+# plot_colors <- c( "#E1BE6A", "#40B0A6") #"#E37F3EFF",
+# n_color = "#E1BE6A"
+# y_color = "#40B0A6" 
+# 
+# 
+# plot_colors <- c( "#a6761d", "#117733") #"#E37F3EFF",
+# n_color = "#a6761d"
+# y_color = "#117733"
+
+
+
+
 
 #"skyblue"
 #"#5C462B"
@@ -1952,17 +1980,29 @@ deeper_soil_color <- c("#5C462B")
 # deeper_soil_color <- c("#5C462B")
 
 elevation.plot <- ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.3, , outliers=F)+ #fill = plot_color,
   geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
   ylab("Elevation (m)")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_color_manual(values = c(plot_colors), #"Y" = "#a6761d", "N" = "#FECEA8FF"
+  #                    labels = c("N", "Y")) +
+  # scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+  #                    labels = c("N", "Y")) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   theme_minimal() +
-  scale_y_continuous(breaks = seq(round(min(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED)), 
-                                  round(max(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED)), 
+  scale_y_continuous(breaks = seq(round(min(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED, na.rm = T)), 
+                                  round(max(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED, na.rm = T)), 
                                   by = 30)) +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
@@ -1984,7 +2024,7 @@ significance_letters_elevation_df <- data.frame(
 elevation.plot <- elevation.plot +
   geom_text(data = significance_letters_elevation_df, 
             aes(x = fruiting, y=y, 
-                label = label),
+                label = label), 
             color = plot_colors,
             fontface = "bold",
             size = 7)
@@ -1998,8 +2038,18 @@ slope.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
@@ -2033,8 +2083,18 @@ Eastness.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
@@ -2068,8 +2128,18 @@ Northness.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
@@ -2103,8 +2173,18 @@ TWI_values.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   theme(title=element_text(size=18), 
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
@@ -2138,8 +2218,18 @@ d.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting",
+    values = c("N" = n_color, "Y" = y_color), 
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
+  scale_color_manual(
+    name = "Fruiting",
+    values = c("N" = n_color,"Y" = y_color),
+    breaks = c("N", "Y"),
+    labels = c("No", "Yes")) +
   scale_y_continuous(breaks = seq(round(min(fixed_field_data_processed_trees_terrain$d)), 
                                   round(max(fixed_field_data_processed_trees_terrain$d)), 
                                   by = 20)) +

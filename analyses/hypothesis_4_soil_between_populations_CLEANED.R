@@ -1221,14 +1221,14 @@ fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[3],] <- fixed
   mutate(sand = round(sand.0.5/10, digits = 1))
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[4],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[4],] %>%
-  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
-  mutate(silt = round(silt.0.5/10, digits = 1)) %>%
-  mutate(sand = 70.7)
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>% #round(clay.content.0.5/10, digits = 1)
+  mutate(silt = round(silt.0.5/10, digits = 1)) %>% #round(silt.0.5/10, digits = 1)
+  mutate(sand = 70.4) #70.6
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[5],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[5],] %>%
-  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
-  mutate(silt = 18.2) %>%
-  mutate(sand = round(sand.0.5/10, digits = 1))
+  mutate(clay = round(clay.content.0.5/10, digits = 1)) %>% #round(clay.content.0.5/10, digits = 1)
+  mutate(silt = 17.9) %>% 
+  mutate(sand = round(sand.0.5/10, digits = 1)) #round(sand.0.5/10, digits = 1)
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[6],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[6],] %>%
   mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
@@ -1241,14 +1241,14 @@ fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[7],] <- fixed
   mutate(sand = round(sand.0.5/10, digits = 1))
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[8],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[8],] %>%
-  mutate(clay = 16.2) %>%
+  mutate(clay = 15.5) %>% #round(clay.content.0.5/10, digits = 1)
   mutate(silt = round(silt.0.5/10, digits = 1)) %>%
   mutate(sand = round(sand.0.5/10, digits = 1))
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[9],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[9],] %>%
   mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
   mutate(silt = round(silt.0.5/10, digits = 1)) %>%
-  mutate(sand = 66.6)
+  mutate(sand = round(sand.0.5/10, digits = 1)) #66.6
 
 fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[10],] <- fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[10],] %>%
   mutate(clay = round(clay.content.0.5/10, digits = 1)) %>%
@@ -1257,10 +1257,21 @@ fixed_field_data_processed_trees_soils.texture.triangle.0.5[remove[10],] <- fixe
 
 #plotting the soil texture triangle
 plot.0.5 <- 
-  ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.0.5, class = "USDA") +
+  ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.0.5, 
+                class = "USDA", size = 3.5) +
   geom_point(aes(color = Locality), size = 1) +
   scale_color_discrete(type = "viridis")+
-  labs(title = "Soi Texture 0-5 cm")
+  labs(title = "Soi Texture 0-5 cm", 
+       x ="",
+       y = "") +
+  # theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  
+        axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(size= 18, family = "serif"),
+        legend.text = element_text(size= 18))
 
 plot.0.5
 
@@ -1277,24 +1288,24 @@ fixed_field_data_processed_trees_soils.texture.triangle.100.200 <- fixed_field_d
 remove <- which(fixed_field_data_processed_trees_soils.texture.triangle.100.200$clay+fixed_field_data_processed_trees_soils.texture.triangle.100.200$silt+fixed_field_data_processed_trees_soils.texture.triangle.100.200$sand != 100)
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[1],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[1],] %>%
+  mutate(clay = 16.9) %>% #round(clay.content.100.200/10, digits = 1)
+  mutate(silt = 15.4) %>% #round(silt.100.200/10, digits = 1)
+  mutate(sand = 67.7) #round(sand.100.200/10, digits = 1)
+
+fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] %>%
   mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
   mutate(silt = round(silt.100.200/10, digits = 1)) %>%
   mutate(sand = round(sand.100.200/10, digits = 1))
 
-fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[2],] %>%
-  mutate(clay = 17) %>%
-  mutate(silt = 15) %>%
-  mutate(sand = 68)
-
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[3],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[3],] %>%
-  mutate(clay = 16.3) %>%
-  mutate(silt = 15.5) %>%
-  mutate(sand = 68.2)
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = 68.8)
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[4],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[4],] %>%
-  mutate(clay = 15.5) %>%
-  mutate(silt = 15.7) %>%
-  mutate(sand = 68.8)
+  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
+  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
+  mutate(sand = round(sand.100.200/10, digits = 1))
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] %>%
   mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
@@ -1302,14 +1313,14 @@ fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[5],] <- f
   mutate(sand = round(sand.100.200/10, digits = 1))
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[6],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[6],] %>%
-  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
-  mutate(silt = round(silt.100.200/10, digits = 1)) %>%
-  mutate(sand = round(sand.100.200/10, digits = 1))
+  mutate(clay = 22.4) %>% #round(clay.content.100.200/10, digits = 1)
+  mutate(silt = 17.2) %>%
+  mutate(sand = 60.4) #round(sand.100.200/10, digits = 1)
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[7],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[7],] %>%
-  mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
-  mutate(silt = 17.5) %>%
-  mutate(sand = round(sand.100.200/10, digits = 1))
+  mutate(clay = 22.5) %>% #round(clay.content.100.200/10, digits = 1)
+  mutate(silt = 17.3) %>% #round(silt.100.200/10, digits = 1)
+  mutate(sand = 60.2) #round(sand.100.200/10, digits = 1)
 
 fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[8],] <- fixed_field_data_processed_trees_soils.texture.triangle.100.200[remove[8],] %>%
   mutate(clay = round(clay.content.100.200/10, digits = 1)) %>%
@@ -1330,7 +1341,15 @@ plot.100.200 <-
   ggsoiltexture(fixed_field_data_processed_trees_soils.texture.triangle.100.200, class = "USDA") +
   geom_point(aes(color = Locality), size = 1) +
   scale_color_discrete(type = "viridis")+
-  labs(title = "Soil Texture 100-200 cm")
+  labs(title = "Soil Texture 100-200 cm",
+       x = "",
+       y = "") +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(size= 18, family = "serif"),
+        legend.text = element_text(size= 18))
 
 plot.100.200
 
@@ -2116,10 +2135,14 @@ ggsave("./soil_boxplots_supplement_plot.png", dpi = 1200, width = 14,
        height = 6, units = "in") #units = "in", 14, 20
 
 #saving the reduced plot
-ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, vol_water_.10.plot, 
-                            vol_water.33.plot, vol_water_.1500kPa.plot, 
-                            sandy_avail_water.plot, clay_loam_avail_water.plot,
+ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, 
+                            SOC.plot, ph.plot, nitrogen.plot, 
                             common.legend = TRUE, ncol = 3, nrow = 4)
+
+# vol_water_.10.plot, 
+# vol_water.33.plot, vol_water_.1500kPa.plot, 
+# sandy_avail_water.plot, clay_loam_avail_water.plot,
+
 ggarrange.plot
 
 ggsave("./soil_boxplots_reduced_plot.png", dpi = 1200, width = 14, 

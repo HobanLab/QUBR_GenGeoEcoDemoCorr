@@ -182,23 +182,43 @@ Soil.metrics <- c("Clay 0-5", "Clay 100-200", "Silt 0-5", "Silt 100-200", "Sand 
 
 pb <- txtProgressBar(min = 1, max = 29, style = 3)
 
-i = 20
-
 random_pop_soils <- function(){
   
 
-  #creating empty list to collect know population soil means and p-values
-  known_soil_means <- c()  #for the p values of the known population means
-  random_soil_p_values <- c()  #for the p values of the randomly generated population means compared to our known soil mean
+  #creating empty list to collect know population soil means, medians, and sd and p-values
+  known_soil_means <- c()  #for the known population means
+  random_soil_p_values_mean <- c()  #for the p values of the randomly generated population means compared to our known soil mean
+  mean_of_random_soil_means <- c() #for the random population means
   
+  known_soil_medians <- c()  #for the known population medians
+  random_soil_p_values_median <- c()  #for the p values of the randomly generated population means compared to our known soil median
+  mean_of_random_soil_medians <- c() #for the random population medians
+  
+  known_soil_sds <- c()  #for the known population sds
+  random_soil_p_values_sd <- c()  #for the p values of the randomly generated population means compared to our known soil sd
+  mean_of_random_soil_sds <- c() #for the random population sds
+  
+
   #to store generated histogram plots
-  plot_list <- list()   
+  plot_list_mean <- list() 
+  plot_list_median <- list() 
+  plot_list_sd <- list() 
   
   #setting a seed
   set.seed(20) 
 
   #loop iterating over each soil metric
   for (i in 1:length(Soil.metrics)){
+    
+    cat("\n\n============================\n")
+    cat("Starting metric", i, "of", length(Soil.metrics), "\n")
+    cat("Metric:", Soil.metrics[i], "\n")
+    cat("============================\n")
+    
+    #clearing the soil stacks, rasters and metrics at the beginning of each iteration
+    soil_stack <- NULL
+    soil_raster <- NULL
+    soil_metric <- NULL
     
     #assigning the population based on the current soil metric in the list
     if (Soil.metrics[i] == "Clay 0-5"){ 
@@ -272,7 +292,7 @@ random_pop_soils <- function(){
       soil_metric = all_known_pop_soils$CEM_15_utm_all_populations
     } else if (Soil.metrics[i] == "Slope"){
       soil_raster = all_populations_slope_raster_15
-      soil_metric = all_known_pop_soils$all_known_pop_soil_slope
+      soil_metric = all_known_pop_soils$slope
     } else if (Soil.metrics[i] == "Eastness"){
       soil_metric = all_known_pop_soils$all_known_pop_soil_eastness
     } else if (Soil.metrics[i] == "Northness"){
@@ -294,10 +314,16 @@ random_pop_soils <- function(){
 
     #creating empty list to collect means
     random_soil_means <- numeric(1000)  #for the means of the randomly generated population means
-
+    random_soil_medians <- numeric(1000)  #for the means of the randomly generated population means
+    random_soil_sds <- numeric(1000)  #for the means of the randomly generated population means
+    
     
     #looping for 1000 permutations
     for (y in 1:1000){ 
+      
+      if (y %% 100 == 0) {
+        cat("  Randomization:", y, "\n")
+      }
       
       #generating and extracting the randomly distributed population soil metric mean
       random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
@@ -315,29 +341,48 @@ random_pop_soils <- function(){
           random_mean <- mean(random_20_pop_soil[,2], na.rm = TRUE) #storing the mean soil metric, using the 100-200 cm raster
         }
         
+        
+        #storing the median of the soil metric of the randomly generated populations depending on if it is the 0-5 or 100-200 cm version of the rasters
+        if (i %% 2 == 1){ #if the iteration we are on is odd, then we use the 0-5 cm variable
+          random_median <- median(random_20_pop_soil[,1], na.rm = TRUE) #storing the mean soil metric, using the 0-5 cm raster
+        } else {  #if the iteration we are on is odd, then we use the 100-200 cm variable
+          random_median <- median(random_20_pop_soil[,2], na.rm = TRUE) #storing the mean soil metric, using the 100-200 cm raster
+        }
+        
+        #storing the sd of the soil metric of the randomly generated populations depending on if it is the 0-5 or 100-200 cm version of the rasters
+        if (i %% 2 == 1){ #if the iteration we are on is odd, then we use the 0-5 cm variable
+          random_sd <- sd(random_20_pop_soil[,1], na.rm = TRUE) #storing the mean soil metric, using the 0-5 cm raster
+        } else {  #if the iteration we are on is odd, then we use the 100-200 cm variable
+          random_sd <- sd(random_20_pop_soil[,2], na.rm = TRUE) #storing the mean soil metric, using the 100-200 cm raster
+        }
+        
       } else if (Soil.metrics[i] == "Eastness") {   #calculating the Eastness for the randomly selected points
         
         random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
         
         #first, converting aspect values to radian
-        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
+        random_20_aspect_radian = ((random_20_aspect$aspect * pi) / 180) # creating a column that is the radians
         
         #creating eastness
         random_20_eastness = sin(random_20_aspect_radian) # creating the eastness column
         
         random_mean <- mean(random_20_eastness, na.rm = TRUE)
+        random_median <- median(random_20_eastness, na.rm = TRUE)
+        random_sd <- sd(random_20_eastness, na.rm = TRUE)
         
       } else if (Soil.metrics[i] == "Northness") {   #calculating the Eastness for the randomly selected points
         
         random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
         
         #first, converting aspect values to radian
-        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
+        random_20_aspect_radian = ((random_20_aspect$aspect * pi) / 180) # creating a column that is the radians
 
         #creating northness
         random_20_northness = cos(random_20_aspect_radian) # creating the northness column
         
         random_mean <- mean(random_20_northness, na.rm = TRUE)
+        random_median <- median(random_20_northness, na.rm = TRUE)
+        random_sd <- sd(random_20_northness, na.rm = TRUE)
         
       } else if (Soil.metrics[i] == "Distance to Coast") { #calculating the distance to river for the randomly selected points
         #  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances
@@ -351,8 +396,10 @@ random_pop_soils <- function(){
         #turn the matrix into a dataframe
         Distance <- as.data.frame(Distance)
         
-        # calculating the mean
+        # calculating the mean, median, and sd
         random_mean <- mean(Distance$distance, na.rm = TRUE)
+        random_median <- median(Distance$distance, na.rm = TRUE)
+        random_sd <- sd(Distance$distance, na.rm = TRUE)
         
         
       } else if (Soil.metrics[i] == "Elevation") { #if the metric does not have a soil stack (the topographic variables)
@@ -360,21 +407,39 @@ random_pop_soils <- function(){
         #extracting the soil metrics for the random points
         random_20_pop_soil <- raster::extract(soil_raster, random_20) 
         
-        #storing the mean metric
-        random_mean <- mean(random_20_pop_soil, na.rm = T) 
+        # calculating the mean, median, and sd
+        random_mean <- mean(random_20_pop_soil$CEM_15_utm_all_populations, na.rm = T) 
+        random_median <- median(random_20_pop_soil$CEM_15_utm_all_populations, na.rm = T) 
+        random_sd <- sd(random_20_pop_soil$CEM_15_utm_all_populations, na.rm = T) 
         
-      } else { #if the metric does not have a soil stack (the topographic variables)
+      } else if (Soil.metrics[i] == "Slope") {
         
         #extracting the soil metrics for the random points
         random_20_pop_soil <- raster::extract(soil_raster, random_20) 
         
-        #storing the mean metric
+        # calculating the mean, median, and sd
+        random_mean <- mean(random_20_pop_soil$slope, na.rm = TRUE) 
+        random_median <- median(random_20_pop_soil$slope, na.rm = TRUE) 
+        random_sd <- sd(random_20_pop_soil$slope, na.rm = TRUE) 
+        
+      }
+      
+      else { #if the metric does not have a soil stack (the topographic variables)
+        
+        #extracting the soil metrics for the random points
+        random_20_pop_soil <- raster::extract(soil_raster, random_20) 
+        
+        # calculating the mean, median, and sd
         random_mean <- mean(random_20_pop_soil, na.rm = TRUE) 
+        random_median <- median(random_20_pop_soil, na.rm = TRUE) 
+        random_sd <- sd(random_20_pop_soil, na.rm = TRUE) 
         
       }
         
-      #adding the created random mean to the list
+      #adding the created random mean, median, and sd to the list
       random_soil_means[y] <- random_mean
+      random_soil_medians[y] <- random_median
+      random_soil_sds[y] <- random_sd
       
       
     }
@@ -392,25 +457,71 @@ random_pop_soils <- function(){
       geom_sf(data=all_pop_locations.df_sf_trans_coordinates)+
       geom_sf(data=random_20, color ="blue")
   
-    #storing the real soil metric mean for our known populations
+    #storing the real soil metric mean, median, sd for our known populations
     all_known_mean <- mean(soil_metric, na.rm = TRUE)
+    all_known_median <- median(soil_metric, na.rm = TRUE)
+    all_known_sd <- sd(soil_metric, na.rm = TRUE)
     
-    #adding the current known population mean soil metric to the list
+    #adding the current known population mean, median, sd soil metric to the list
     known_soil_means <- c(known_soil_means, all_known_mean)
+    known_soil_medians <- c(known_soil_medians, all_known_median)
+    known_soil_sds <- c(known_soil_sds, all_known_sd)
+    
+    #mean
     
     #plotting the histogram of the randomly distributed means and our real mean
-    plot_out_histogram <- ggplot(data.frame(random_soil_means = random_soil_means))+ #data.frame(random_soil_means = random_soil_means)
+    plot_out_histogram_mean <- ggplot(data.frame(random_soil_means = random_soil_means))+ #data.frame(random_soil_means = random_soil_means)
       geom_histogram(aes(x=random_soil_means),  fill = "dodgerblue1", color = "black", bins = 50 )+
       geom_vline(xintercept=all_known_mean, col = "red")+ #line of our real slope
       xlab(paste0("Mean ", Soil.metrics[i], " of Random Populations vs. Known Populations (n=20)"))+
       theme_classic()
     
     # store the histogram in list with a descriptive name
-    plot_name_histogram <- paste(Soil.metrics[i], "Histogram",
+    plot_name_histogram_mean <- paste(Soil.metrics[i], "Histogram",
                        sep = "_")
-    plot_list[[plot_name_histogram]] <- plot_out_histogram
+    plot_list_mean[[plot_name_histogram_mean]] <- plot_out_histogram_mean
     
-    random_soil_means <- na.omit(random_soil_means) #removing NAs
+    
+    #median
+    
+    plot_out_histogram_median <- ggplot(data.frame(random_soil_medians = random_soil_medians))+ #data.frame(random_soil_means = random_soil_means)
+      geom_histogram(aes(x=random_soil_medians),  fill = "dodgerblue1", color = "black", bins = 50 )+
+      geom_vline(xintercept=all_known_median, col = "red")+ #line of our real slope
+      xlab(paste0("Median ", Soil.metrics[i], " of Random Populations vs. Known Populations (n=20)"))+
+      theme_classic()
+    
+    # store the histogram in list with a descriptive name
+    plot_name_histogram_median <- paste(Soil.metrics[i], "Histogram",
+                                      sep = "_")
+    plot_list_median[[plot_name_histogram_median]] <- plot_out_histogram_median
+    
+    #sd
+    
+    plot_out_histogram_sd <- ggplot(data.frame(random_soil_sds = random_soil_sds))+ #data.frame(random_soil_means = random_soil_means)
+      geom_histogram(aes(x=random_soil_sds),  fill = "dodgerblue1", color = "black", bins = 50 )+
+      geom_vline(xintercept=all_known_sd, col = "red")+ #line of our real slope
+      xlab(paste0("SD ", Soil.metrics[i], " of Random Populations vs. Known Populations (n=20)"))+
+      theme_classic()
+    
+    # store the histogram in list with a descriptive name
+    plot_name_histogram_sd <- paste(Soil.metrics[i], "Histogram",
+                                        sep = "_")
+    plot_list_sd[[plot_name_histogram_sd]] <- plot_out_histogram_sd
+    
+    #removing NAs
+    random_soil_means <- na.omit(random_soil_means) 
+    random_soil_medians <- na.omit(random_soil_medians)
+    random_soil_sds <- na.omit(random_soil_sds)
+    
+    #calculating the mean of the randomly generated means, medians, and sds
+    mean_of_random_soil_mean <- mean(random_soil_means, na.rm = TRUE)
+    mean_of_random_soil_median <- mean(random_soil_medians, na.rm = TRUE)
+    mean_of_random_soil_sd <- mean(random_soil_sds, na.rm = TRUE)
+    
+    #storing the mean of the randomly generated means, medians, and sds
+    mean_of_random_soil_means <- c(mean_of_random_soil_means, mean_of_random_soil_mean)
+    mean_of_random_soil_medians <- c(mean_of_random_soil_medians, mean_of_random_soil_median)
+    mean_of_random_soil_sds <- c(mean_of_random_soil_sds, mean_of_random_soil_sd)
     
     # if using greater than hypothesis
     
@@ -425,12 +536,26 @@ random_pop_soils <- function(){
     
     # using the significantly different alternative hypothesis, two-sided test
     
-    p_value_greater_than <- sum(random_soil_means >= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes higher than our real slope
-    p_value_less_than <- sum(random_soil_means <= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes lower than our real slope
-    random_p.value <- min(1, 2 * min(p_value_greater_than, p_value_less_than)) # take the smaller tail (the "more extreme" one), then double it
+    #mean
+    p_value_greater_than_mean <- sum(random_soil_means >= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes higher than our real slope
+    p_value_less_than_mean <- sum(random_soil_means <= all_known_mean)/length(random_soil_means)   # proportion of simulated slopes lower than our real slope
+    random_p.value_mean <- min(1, 2 * min(p_value_greater_than_mean, p_value_less_than_mean)) # take the smaller tail (the "more extreme" one), then double it
+    
+    #median
+    p_value_greater_than_median <- sum(random_soil_medians >= all_known_median)/length(random_soil_medians)   # proportion of simulated slopes higher than our real slope
+    p_value_less_than_median <- sum(random_soil_medians <= all_known_median)/length(random_soil_medians)   # proportion of simulated slopes lower than our real slope
+    random_p.value_median <- min(1, 2 * min(p_value_greater_than_median, p_value_less_than_median)) # take the smaller tail (the "more extreme" one), then double it
+    
+    #sd
+    p_value_greater_than_sd <- sum(random_soil_sds >= all_known_sd)/length(random_soil_sds)   # proportion of simulated slopes higher than our real slope
+    p_value_less_than_sd <- sum(random_soil_sds <= all_known_sd)/length(random_soil_sds)   # proportion of simulated slopes lower than our real slope
+    random_p.value_sd <- min(1, 2 * min(p_value_greater_than_sd, p_value_less_than_sd)) # take the smaller tail (the "more extreme" one), then double it
+    
     
     #adding the p value to total list of p-values for all soil metrics
-    random_soil_p_values <- c(random_soil_p_values, random_p.value)
+    random_soil_p_values_mean <- c(random_soil_p_values_mean, random_p.value_mean)
+    random_soil_p_values_median <- c(random_soil_p_values_median, random_p.value_median)
+    random_soil_p_values_sd <- c(random_soil_p_values_sd, random_p.value_sd)
     
     #print(paste("Updating:", i)) # printing the iteration number we are currently on
     
@@ -443,11 +568,22 @@ random_pop_soils <- function(){
   }
   
   return(list(known_soil_means = known_soil_means, #soil mean list
-         random_soil_p_values = random_soil_p_values, #p-value list
+              known_soil_medians = known_soil_medians, #soil median list
+              known_soil_sds = known_soil_sds, #soil median list
+              mean_of_random_soil_means = mean_of_random_soil_means,
+              mean_of_random_soil_medians = mean_of_random_soil_medians,
+              mean_of_random_soil_sds = mean_of_random_soil_sds, 
+         random_soil_p_values_mean = random_soil_p_values_mean, #p-value list
+         random_soil_p_values_median = random_soil_p_values_median, #p-value list
+         random_soil_p_values_sd = random_soil_p_values_sd, #p-value list
          all_known_mean = all_known_mean,
+         all_known_median = all_known_median,
+         all_known_sd = all_known_sd,
          random_points_BCS = random_points_BCS, #randomly generated points plot
          random_points_BCS_crop = random_points_BCS_crop, #randomly generated points plot with the crop
-         plot_list = plot_list)) #stored histogram plot list
+         plot_list_mean = plot_list_mean,
+         plot_list_median = plot_list_median,
+         plot_list_sd = plot_list_sd)) #stored histogram plot list
 
 }
 
@@ -455,53 +591,118 @@ random_pop_soils <- function(){
 #### Running and Storing the Function and its Results ####
 random_pop_soils_function <- random_pop_soils()
 
+random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`
+
 #Example of extracting one of the histograms comparing the slopes for our original soil vs. size metrics to the shuffled ones
 random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
 plot <- random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
 random_pop_soils_function$plot_list$`Ph 0-5_Histogram`
 random_pop_soils_function$plot_list$`Ph 100-200_Histogram`
 
+random_pop_soils_function$lot_list_median$`Clay 100-200_Histogram`
+
+
 #if you want to see all of the plots at once run: 
 #random_pop_soils_function$plot_list
 
 # Bonferroni correction for the p-values to protect against issues due to multiple testing
-p_bonf_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "bonferroni")
+p_bonf_corrected_mean <- p.adjust(random_pop_soils_function$random_soil_p_values_mean, method = "bonferroni")
+p_bonf_corrected_median <- p.adjust(random_pop_soils_function$random_soil_p_values_median, method = "bonferroni")
+p_bonf_corrected_sd <- p.adjust(random_pop_soils_function$random_soil_p_values_sd, method = "bonferroni")
 
 # Holm correction for the p-values to protect against issues due to multiple testing
-p_holm_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "holm")
+p_holm_corrected_mean <- p.adjust(random_pop_soils_function$random_soil_p_values_mean, method = "holm")
+p_holm_corrected_median <- p.adjust(random_pop_soils_function$random_soil_p_values_median, method = "holm")
+p_holm_corrected_sd <- p.adjust(random_pop_soils_function$random_soil_p_values_sd, method = "holm")
 
 # Hochberg correction for the p-values to protect against issues due to multiple testing
-p_hoch_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "hochberg")
+p_hoch_corrected_mean <- p.adjust(random_pop_soils_function$random_soil_p_values_mean, method = "hochberg")
+p_hoch_corrected_median <- p.adjust(random_pop_soils_function$random_soil_p_values_median, method = "hochberg")
+p_hoch_corrected_sd <- p.adjust(random_pop_soils_function$random_soil_p_values_sd, method = "hochberg")
 
 # FDR correction for the p-values to protect against issues due to multiple testing
-p_fdr_corrected <- p.adjust(random_pop_soils_function$random_soil_p_values, method = "fdr")
-  
+p_fdr_corrected_mean <- p.adjust(random_pop_soils_function$random_soil_p_values_mean, method = "fdr")
+p_fdr_corrected_median <- p.adjust(random_pop_soils_function$random_soil_p_values_median, method = "fdr")
+p_fdr_corrected_sd <- p.adjust(random_pop_soils_function$random_soil_p_values_sd, method = "fdr")
+
 #making a dataframe from the function output
 random_pop.df <- data.frame("Soil.metrics" = Soil.metrics, 
                             "Means" = random_pop_soils_function$known_soil_means,
-                            "P_values" = random_pop_soils_function$random_soil_p_values, 
-                            "P_values_bonf_corrected" = p_bonf_corrected,
-                            "p_holm_corrected" = p_holm_corrected,
-                            "p_hoch_corrected" = p_hoch_corrected,
-                            "p_fdr_corrected" = p_fdr_corrected,
-                            "Significance" = c(rep(NA, 29)),
-                            "Bonf_Significance" = c(rep(NA, 29)),
-                            "Holm_Significance" = c(rep(NA, 29)),
-                            "Hoch_Significance" = c(rep(NA, 29)),
-                            "FDR_Significance" = c(rep(NA, 29)))
+                            "Mean_of_Random_Mean" = random_pop_soils_function$mean_of_random_soil_means,
+                            "P_values_mean" = random_pop_soils_function$random_soil_p_values_mean, 
+                            "P_values_bonf_corrected_mean" = p_bonf_corrected_mean,
+                            "p_holm_corrected_mean" = p_holm_corrected_mean,
+                            "p_hoch_corrected_mean" = p_hoch_corrected_mean,
+                            "p_fdr_corrected_mean" = p_fdr_corrected_mean,
+                            "Significance_mean" = c(rep(NA, 29)),
+                            "Bonf_Significance_mean" = c(rep(NA, 29)),
+                            "Holm_Significance_mean" = c(rep(NA, 29)),
+                            "Hoch_Significance_mean" = c(rep(NA, 29)),
+                            "FDR_Significance_mean" = c(rep(NA, 29)),
+                            
+                            "Medians" = random_pop_soils_function$known_soil_medians,
+                            "Mean_of_Random_Median" = random_pop_soils_function$mean_of_random_soil_medians,
+                            "P_values_median" = random_pop_soils_function$random_soil_p_values_median, 
+                            "P_values_bonf_corrected_median" = p_bonf_corrected_median,
+                            "p_holm_corrected_median" = p_holm_corrected_median,
+                            "p_hoch_corrected_median" = p_hoch_corrected_median,
+                            "p_fdr_corrected_median" = p_fdr_corrected_median,
+                            "Significance_median" = c(rep(NA, 29)),
+                            "Bonf_Significance_median" = c(rep(NA, 29)),
+                            "Holm_Significance_median" = c(rep(NA, 29)),
+                            "Hoch_Significance_median" = c(rep(NA, 29)),
+                            "FDR_Significance_median" = c(rep(NA, 29)),
+                            
+                            "SDs" = random_pop_soils_function$known_soil_sds,
+                            "Mean_of_Random_SD" = random_pop_soils_function$mean_of_random_soil_sds,
+                            "P_values_sd" = random_pop_soils_function$random_soil_p_values_sd, 
+                            "P_values_bonf_corrected_sd" = p_bonf_corrected_sd,
+                            "p_holm_corrected_sd" = p_holm_corrected_sd,
+                            "p_hoch_corrected_sd" = p_hoch_corrected_sd,
+                            "p_fdr_corrected_sd" = p_fdr_corrected_sd,
+                            "Significance_sd" = c(rep(NA, 29)),
+                            "Bonf_Significance_sd" = c(rep(NA, 29)),
+                            "Holm_Significance_sd" = c(rep(NA, 29)),
+                            "Hoch_Significance_sd" = c(rep(NA, 29)),
+                            "FDR_Significance_sd" = c(rep(NA, 29)))
 
 #creating the significance column for the p-values (p<0.05 is significant)
 random_pop.df <- random_pop.df %>%
-  mutate(Significance = case_when(random_pop_soils_function$random_soil_p_values < 0.05 ~ "Y",
-                                  random_pop_soils_function$random_soil_p_values >= 0.05 ~ "N")) %>%
-  mutate(Bonf_Significance = case_when(p_bonf_corrected < 0.05 ~ "Y",
-                                  p_bonf_corrected >= 0.05 ~ "N")) %>%
-  mutate(Holm_Significance = case_when(p_holm_corrected < 0.05 ~ "Y",
-                                       p_holm_corrected >= 0.05 ~ "N")) %>%
-  mutate(Hoch_Significance = case_when(p_hoch_corrected < 0.05 ~ "Y",
-                                       p_hoch_corrected >= 0.05 ~ "N")) %>%
-  mutate(FDR_Significance = case_when(p_fdr_corrected < 0.05 ~ "Y",
-                                      p_fdr_corrected >= 0.05 ~ "N")) 
+  mutate(Significance_mean = case_when(random_pop_soils_function$random_soil_p_values_mean < 0.05 ~ "Y",
+                                  random_pop_soils_function$random_soil_p_values_mean >= 0.05 ~ "N")) %>%
+  mutate(Bonf_Significance_mean = case_when(p_bonf_corrected_mean < 0.05 ~ "Y",
+                                  p_bonf_corrected_mean >= 0.05 ~ "N")) %>%
+  mutate(Holm_Significance_mean = case_when(p_holm_corrected_mean < 0.05 ~ "Y",
+                                       p_holm_corrected_mean >= 0.05 ~ "N")) %>%
+  mutate(Hoch_Significance_mean = case_when(p_hoch_corrected_mean < 0.05 ~ "Y",
+                                       p_hoch_corrected_mean >= 0.05 ~ "N")) %>%
+  mutate(FDR_Significance_mean = case_when(p_fdr_corrected_mean < 0.05 ~ "Y",
+                                      p_fdr_corrected_mean >= 0.05 ~ "N")) %>%
+  
+  mutate(Significance_median = case_when(random_pop_soils_function$random_soil_p_values_median < 0.05 ~ "Y",
+                                       random_pop_soils_function$random_soil_p_values_median >= 0.05 ~ "N")) %>%
+  mutate(Bonf_Significance_median = case_when(p_bonf_corrected_median < 0.05 ~ "Y",
+                                            p_bonf_corrected_median >= 0.05 ~ "N")) %>%
+  mutate(Holm_Significance_median = case_when(p_holm_corrected_median < 0.05 ~ "Y",
+                                            p_holm_corrected_median >= 0.05 ~ "N")) %>%
+  mutate(Hoch_Significance_median = case_when(p_hoch_corrected_median < 0.05 ~ "Y",
+                                            p_hoch_corrected_median >= 0.05 ~ "N")) %>%
+  mutate(FDR_Significance_median = case_when(p_fdr_corrected_median < 0.05 ~ "Y",
+                                           p_fdr_corrected_median >= 0.05 ~ "N")) %>%
+
+mutate(Significance_sd = case_when(random_pop_soils_function$random_soil_p_values_sd < 0.05 ~ "Y",
+                                     random_pop_soils_function$random_soil_p_values_sd >= 0.05 ~ "N")) %>%
+  mutate(Bonf_Significance_sd = case_when(p_bonf_corrected_sd < 0.05 ~ "Y",
+                                            p_bonf_corrected_sd >= 0.05 ~ "N")) %>%
+  mutate(Holm_Significance_sd = case_when(p_holm_corrected_sd < 0.05 ~ "Y",
+                                            p_holm_corrected_sd >= 0.05 ~ "N")) %>%
+  mutate(Hoch_Significance_sd = case_when(p_hoch_corrected_sd < 0.05 ~ "Y",
+                                            p_hoch_corrected_sd >= 0.05 ~ "N")) %>%
+  mutate(FDR_Significance_sd = case_when(p_fdr_corrected_sd < 0.05 ~ "Y",
+                                           p_fdr_corrected_sd >= 0.05 ~ "N"))
+
+
+write.csv(random_pop.df, "./data/random_pop.df.csv", row.names = TRUE)
 
 
 #### Generating a Heat Map ####

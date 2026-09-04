@@ -2346,13 +2346,15 @@ heat.load.raster.all.pops <- hli(CEM_15_utm_all_populations, #our LM DEM
 
 #### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
 
-#downloading the data containing the locations (lat/lon) of the 20 known populations
+#downloading the data containing the locations (lat/lon) of the 22 known populations aggregated by Ash and Team
 all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPS coords for pops (12_2025).csv")
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
 all_pop_locations.df_sf <- st_as_sf(all_pop_locations.df, 
                                     coords = c("Classic.Longitude", "Classic.Latitude"), crs = 4326)
+
+
 
 #creating a transformed point shapefile with UTM 12 N an equal area projection
 all_pop_locations.df_sf_transformed <- st_transform(all_pop_locations.df_sf, crs = 26912)
@@ -2361,6 +2363,45 @@ all_pop_locations.df_sf_transformed <- st_transform(all_pop_locations.df_sf, crs
 all_pop_locations.df_sf_trans_coords <- st_coordinates(all_pop_locations.df_sf_transformed) #creates a dataframe with seperate x and y columns from the UTM 12N transformation
 all_pop_locations.df_sf_trans_coordinates <- all_pop_locations.df_sf_transformed %>%
   cbind(all_pop_locations.df_sf_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
+#downloading and processing the data for the 7 additional populations confirmed on inat (one point per observation)
+
+additional_pop_locations.df <- read.csv(file = "./data/Unobscured Inat QUBR observations.csv")
+additional_pop_locations.df <- additional_pop_locations.df %>% #filtering data for the 7 inat observations we want to use
+  filter(id %in% c(98659535, 74498413, 135337927, 135333695, 193945149, 256474168, 155291991))
+#creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
+additional_pop_locations.df <- st_as_sf(additional_pop_locations.df, 
+                                    coords = c("private_longitude", "private_latitude"), crs = 4326)
+#creating a transformed point shapefile with UTM 12 N an equal area projection
+additional_pop_locations.df_transformed <- st_transform(additional_pop_locations.df, crs = 26912)
+#creates a dataframe with seperate x and y columns from the UTM 12N transformation
+additional_pop_locations.df_trans_coords <- st_coordinates(additional_pop_locations.df_transformed) 
+additional_pop_locations.df_trans_coordinates <- additional_pop_locations.df_transformed %>%
+  cbind(additional_pop_locations.df_trans_coords) #combines the x and y coordinate data frame with the transformed sf dataframe
+
+
+#correcting the column names to be able to combine the additional populations with the 22 known populations
+additional_pop_locations.df_trans_coordinates <- additional_pop_locations.df_trans_coordinates %>%
+  mutate(Region = NA) %>%
+  mutate(Population.Name = id) %>%
+  mutate(Pop.size.estimate = NA) %>%
+  mutate(Notes = paste(user_name, " ", url)) %>%
+  mutate(X = X) %>%
+  mutate(Y = Y) %>%
+  mutate(geometry = geometry) %>%
+  select(c(Region, Population.Name, Pop.size.estimate, Notes, X, Y, geometry))
+
+#assigning region names 
+additional_pop_locations.df_trans_coordinates <- additional_pop_locations.df_trans_coordinates %>%
+  mutate(Region = case_when(Population.Name == "155291991" ~ "Norte",
+                            Population.Name == "256474168" ~ "Este",
+                            Population.Name %in% c("74498413", "98659535","193945149") ~ "Sur",
+                            Population.Name %in% c("135333695", "135337927") ~ "Pacifico"))
+  
+
+#combining the 22 known populations previously aggregated with the additional inat observed populations
+all_pop_locations.df_sf_trans_coordinates <- all_pop_locations.df_sf_trans_coordinates %>%
+  rbind(additional_pop_locations.df_trans_coordinates)
 
 # importing the Baja California Sur (BCS) shapefile data
 
@@ -2391,17 +2432,22 @@ BCS_polygon_box_sf_cropped <- st_intersection(BCS_polygon_UTM, bbox_poly_buffere
 # Checking the cropped polygon boundaries changed (should be smaller than original bounding box of points)
 print(st_bbox(BCS_polygon_box_sf_cropped))
 
+
 #plotting the original extent of the BCS polygon, the buffered polygon, the cropped extent, and the 20 population points
 ggplot()+
   geom_sf(data=BCS_polygon_UTM)+
   geom_sf(data=bbox_poly_buffered)+
   geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates) +
+  geom_sf(data=additional_pop_locations.df_trans_coordinates, color = "red") 
 
 #plotting the original extent of the cropped BCS polygon and the 20 population points
 ggplot()+
   geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates) +
+  geom_sf(data=additional_pop_locations.df_trans_coordinates, color = "red") +
+  geom_sf_text(data = all_pop_locations.df_sf_trans_coordinates, aes(label = Region)) +
+  geom_sf_text(data = additional_pop_locations.df_trans_coordinates, aes(label = Population.Name), color = "red", nudge.y = 0.1)
 
 #using the extent of the cropped river polygon to crop the raster for each soil texture layer
 #clay content 0-5 cm
@@ -2592,7 +2638,7 @@ all_known_pop_soil_HLI <- raster::extract(heat.load.raster.all.pops, all_pop_loc
 #creating the eastness and northness values
 all_populations_aspect_raster_15
 #first, converting aspect values to radian
-all_known_pop_soil_aspect_radian = ((all_known_pop_soil_aspect * pi) / 180) # creating a column that is the radians
+all_known_pop_soil_aspect_radian = ((all_known_pop_soil_aspect$aspect * pi) / 180) # creating a column that is the radians
   
 #creating eastness
 all_known_pop_soil_eastness = sin(all_known_pop_soil_aspect_radian) # creating the eastness column
@@ -2601,6 +2647,12 @@ all_known_pop_soil_eastness = sin(all_known_pop_soil_aspect_radian) # creating t
 all_known_pop_soil_northness = cos(all_known_pop_soil_aspect_radian) # creating the northness column
 
 
+all_pop_locations.df_sf_trans_coordinates <- st_drop_geometry(all_pop_locations.df_sf_trans_coordinates)
+write.csv(all_pop_locations.df_sf_trans_coordinates, file = "./data/all_pop_locations.df_sf_trans_coordinates.csv")
+
+BCS_polygon_box_sf_cropped$geometry
+st_write(BCS_polygon_box_sf_cropped$geometry, "./data/BCS_polygon_box_sf_cropped.geojson")
+st_write(BCS_polygon_box_sf_cropped, "./data/BCS_polygon_box_sf_cropped.shp", driver = "ESRI Shapefile")
 
 #combine all of the extracted population soil textures data across all soil metrics
 all_known_pop_soils <- cbind(all_pop_locations.df_sf_trans_coordinates, all_known_pop_soil_clay) #adding clay to the dataframe

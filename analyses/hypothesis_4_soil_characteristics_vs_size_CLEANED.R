@@ -541,7 +541,7 @@ sand.plot.LM <- ggplot()+
   ylab(NULL)+
   labs(title = "LM")+
   ylim(c(0, 1.5))+
-  # xlim(c(600, 720))+
+  xlim(c(600, 710))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -567,7 +567,7 @@ sand.plot.LC <- ggplot()+
   ylab(NULL)+
   labs(title = "LC")+
   ylim(c(0, 1.5))+
-  # xlim(c(600, 720))+
+  xlim(c(600, 710))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -594,7 +594,7 @@ sand.plot.SD <- ggplot()+
   ylab(NULL)+
   labs(title = "SD")+
   ylim(c(0, 1.5))+
-  # xlim(c(600, 720))+
+  xlim(c(600, 710))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -613,12 +613,9 @@ sand.plot.SD
 
 ggarrange.sand.plot <- ggarrange(sand.plot.LM, sand.plot.LC, sand.plot.SD,
                                    common.legend = TRUE, nrow = 1, legend = "right")
-
-
 ggarrange.sand.plot <- annotate_figure(ggarrange.sand.plot,
                                          bottom = text_grob("Sand Content (g/kg)", color = "black", size = 20, family = "serif"),
                                          left = text_grob("DBH (m)", color = "black", rot = 90, size = 20, family = "serif"))
-
 ggarrange.sand.plot
 
 
@@ -636,9 +633,9 @@ clay.plot.LM <- ggplot()+
   geom_smooth(method = "lm", data = LM_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
   xlab(NULL)+
   ylab(NULL)+
-  labs(title = "LM")+
+  # labs(title = "LM")+
   ylim(c(0, 1.5))+
-  # xlim(c(600, 720))+
+  xlim(c(100, 215))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -663,9 +660,9 @@ clay.plot.LC <- ggplot()+
   geom_smooth(method = "lm", data = LC_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
   xlab(NULL)+
   ylab(NULL)+
-  labs(title = "LC")+
+  # labs(title = "LC")+
   ylim(c(0, 1.5))+
-  xlim(c(120, 158))+
+  xlim(c(100, 215))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -690,9 +687,9 @@ clay.plot.SD <- ggplot()+
   geom_smooth(method = "lm", data = SD_fixed_field_data_processed_soils, aes(clay.content.100.200, DBH_ag, color = "100-200"),  alpha = 0.3, fill = deeper_soil_color) +
   xlab(NULL)+
   ylab(NULL)+
-  labs(title = "SD")+
+  # labs(title = "SD")+
   ylim(c(0, 1.5))+
-  # xlim(c(600, 720))+
+  xlim(c(100, 215))+
   theme_minimal() +
   scale_color_manual(
     name = "Soil Depth (cm)",
@@ -710,7 +707,7 @@ clay.plot.SD <- clay.plot.SD +
 clay.plot.SD
 
 ggarrange.clay.plot <- ggarrange(clay.plot.LM, clay.plot.LC, clay.plot.SD,
-                                 common.legend = TRUE, nrow = 1, hjust = 0.5, legend = "right")
+                                 common.legend = TRUE, nrow = 1, hjust = 0.5, vjust = 1, legend = "right")
 
 
 ggarrange.clay.plot <- annotate_figure(ggarrange.clay.plot,
@@ -724,7 +721,57 @@ ggsave("./clay.plot.png", dpi = 1200, width = 15,
        height = 5, units = "in") #units = "in"
 
 
+#clay and sand
 
+
+# Remove legends from individual plots
+
+#removing the legends to be able to use a communal one
+clay.plot.LM.nolegend <- clay.plot.LM + theme(legend.position = "none")
+clay.plot.LC.nolegend <- clay.plot.LC + theme(legend.position = "none")
+clay.plot.SD.nolegend <- clay.plot.SD + theme(legend.position = "none")
+
+sand.plot.LM.nolegend <- sand.plot.LM + theme(legend.position = "none")
+sand.plot.LC.nolegend <- sand.plot.LC + theme(legend.position = "none")
+sand.plot.SD.nolegend <- sand.plot.SD + theme(legend.position = "none")
+
+
+# extracting a legend
+common.legend <- get_legend(
+  clay.plot.LM + theme(legend.position = "right")
+)
+
+ggarrange.clay.plot <- ggarrange(clay.plot.LM.nolegend, clay.plot.LC.nolegend, clay.plot.SD.nolegend,
+                                  nrow = 1, hjust = 0.5, vjust = 1) #common.legend = TRUE,legend = "right"
+ggarrange.clay.plot <- annotate_figure(ggarrange.clay.plot,
+                                       bottom = text_grob("Clay Content (g/kg)", color = "black", size = 20, family = "serif"))
+ggarrange.clay.plot
+
+ggarrange.sand.plot <- ggarrange(sand.plot.LM.nolegend, sand.plot.LC.nolegend, sand.plot.SD.nolegend,
+                                 nrow = 1, vjust = 1)
+ggarrange.sand.plot <- annotate_figure(ggarrange.sand.plot,
+                                       bottom = text_grob("Sand Content (g/kg)", color = "black", size = 20, family = "serif"))
+ggarrange.sand.plot
+
+ggarrange.clay.sand.arrange <- ggarrange(ggarrange.sand.plot,
+                                         ggarrange.clay.plot,
+                                         nrow = 2, hjust = 0.5, vjust = 1)
+ggarrange.clay.sand.arrange
+# Add the common legend
+ggarrange.clay.sand.arrange <- ggarrange(ggarrange.clay.sand.arrange,common.legend,
+                                         ncol = 2,
+                                         widths = c(1, 0.15))
+ggarrange.clay.sand.arrange <- annotate_figure(ggarrange.clay.sand.arrange,
+                                       left = text_grob("DBH (m)", color = "black", rot = 90, size = 20, family = "serif"))
+ggarrange.clay.sand.arrange
+
+# Add the common legend
+ggarrange(
+  plot.grid,
+  common.legend,
+  ncol = 2,
+  widths = c(1, 0.15)
+)
 
 #### Session Info ####
 # 
