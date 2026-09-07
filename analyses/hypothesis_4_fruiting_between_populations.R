@@ -3621,6 +3621,350 @@ ggsave("./full_soil_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 14,
        height = 20, units = "in") #units = "in"
 
 
+
+fixed_field_data_processed_trees_soils <- bind_rows(
+  LM_fixed_field_data_processed_trees_soils,
+  LC_fixed_field_data_processed_trees_soils,
+  SD_fixed_field_data_processed_trees_soils)
+
+fixed_field_data_processed_trees_soils$locality <- fct_relevel(fixed_field_data_processed_trees_soils$locality, "LM", "LC", "SD")
+
+
+
+fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_dist %>%
+  mutate(slope = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(eastness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LM_fixed_field_data_processed_terrain_dist$LM_Eastness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LC_fixed_field_data_processed_terrain_dist$LC_Eastness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                SD_fixed_field_data_processed_terrain_dist$SD_Eastness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(northness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LM_fixed_field_data_processed_terrain_dist$LM_Northness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LC_fixed_field_data_processed_terrain_dist$LC_Northness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 SD_fixed_field_data_processed_terrain_dist$SD_Northness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(twi = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
+
+
+clay.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.0.5.plot
+
+clay.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.100.200.plot
+
+
+silt.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+silt.0.5.plot
+
+silt.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+silt.100.200.plot
+
+
+
+sand.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.0.5.plot
+
+sand.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.100.200.plot
+
+
+soc.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Soil Organic Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+soc.0.5.plot
+
+soc.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Soil Organic Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+soc.100.200.plot
+
+
+ph.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("pH 0-5 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+ph.0.5.plot
+
+ph.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("pH 100-200 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+ph.100.200.plot
+
+
+nitrogen.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Nitrogen Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+nitrogen.0.5.plot
+
+nitrogen.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Nitrogen Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+nitrogen.100.200.plot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### topographic metrics ###
 
 
@@ -3766,6 +4110,7 @@ SD.elevation.plot <- SD.elevation.plot +
             fontface = "bold",
             size = 7)
 SD.elevation.plot
+
 
 LM.slope.plot <- ggplot()+
   geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_slope_raster_15_data_pts, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
@@ -4472,6 +4817,218 @@ ggarrange.full.topo.fruiting.plot.b
 
 ggsave("./full_topo_fruiting_pop_boxplots_plot.b.png", dpi = 1200, width = 14, 
        height = 20, units = "in") #units = "in"
+
+
+
+
+fixed_field_data_processed_terrain_dist <- bind_rows(
+  LM_fixed_field_data_processed_terrain_dist,
+  LC_fixed_field_data_processed_terrain_dist,
+  SD_fixed_field_data_processed_terrain_dist)
+
+fixed_field_data_processed_terrain_dist$locality <- fct_relevel(fixed_field_data_processed_terrain_dist$locality, "LM", "LC", "SD")
+
+
+
+fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_dist %>%
+  mutate(slope = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+mutate(eastness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LM_fixed_field_data_processed_terrain_dist$LM_Eastness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LC_fixed_field_data_processed_terrain_dist$LC_Eastness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           SD_fixed_field_data_processed_terrain_dist$SD_Eastness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(northness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LM_fixed_field_data_processed_terrain_dist$LM_Northness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LC_fixed_field_data_processed_terrain_dist$LC_Northness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                SD_fixed_field_data_processed_terrain_dist$SD_Northness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+mutate(twi = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                               LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                             QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                               LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                             QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                               SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
+
+
+elevation.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+elevation.plot
+
+slope.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, slope, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, slope, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+slope.plot
+
+
+eastness.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, eastness, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, eastness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Eastness")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+eastness.plot
+
+
+
+northness.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, northness, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, northness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Northness")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+northness.plot
+
+
+twi.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, twi, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, twi, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("TWI")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", expression(bold("LC")), "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", expression(bold("LC")), "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+twi.plot
+
+d.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("TWI")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+d.plot
+
+
+hli.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Heat Load")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+hli.plot
 
 
 

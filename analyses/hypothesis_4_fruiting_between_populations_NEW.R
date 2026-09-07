@@ -1,0 +1,5100 @@
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%%Looking to see if the Quercus brandegeei populations have different mean soil metrics%%%%%%%%%%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# The purpose of this script is determine whether there are significantly different mean
+# soil metrics (clay content, pH, etc.) between the fruiting and not fruiting trees across the populations.
+# A lack of differences could indicate which characteristics may explain why the trees are found at
+# these distinct sites versus other locations. 
+# Observed differences could may explain other differences in tree growth/survival between the sites, 
+# as well as relate to environmental/topographic characteristics. 
+
+# To test this, we used difference in means tests based on which conditions were met for each soil metric.
+# If the residuals were not normal, we used a Kruskal-Wallis test and Post-Hoc Wilcoxon Rank Sum Test
+# If the residuals were normal but the variance was NOT equal, we used a Welch's ANOVA test and Post-Hoc Tamhane's T2 Test
+# If the residuals were normal and the variance was equal, we used a Traditional ANOVA test and Post-Hoc Pairwise T-test
+
+# The script is broken into sections of 
+# 1) Loading and processing the packages and processed data for the trees, topography, and soil metrics in the Las Matancitas,
+#San Dionisio, and La Cobriza populations. The processed data used in this script includes:
+# Processing the tree spatial/size data and river outline shapefiles to be in UTM 12 N Equal Area Projection, fixing errors in elevation,
+#generating river and point buffers and bounding boxes,
+# Processing the soil raster data: loading the data in projecting the data, cropping them to the bounding 
+#boxs around the  rivers, stacking the rasters for each population, and processing them into one dataframe for all and each population
+# Creating the four new soil metrics: Sandy available Water (0-5 and 100-200 cm) and Clay/Loam Available Water (0-5 and 100-200 cm)
+# 2) Choosing random trees per grid cell for each population to avoid independence issues during tests. 
+# 3) Making the function for checking conditions and running the appropriate difference in means test
+# 4) Running the function and storing the outputs for each soil metric
+# 5) Presenting the results as a heat map
+
+# NOTE: Uncomment and run line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+
+#### Loading libraries and Relevant Data ####
+
+library(tidyverse) # for graphing and data organization
+library(moments) # for calculating the moments of each variable
+library(sf) # for plotting spatial objects
+library(smatr)
+library(ggpmisc) # ggplot extension
+library(PMCMRplus) # for Dunn test
+library(geomtextpath) # for PCA graphing
+library(spatstat) # to run the nndist function
+library(raster) #to plot rasters
+library(rstatix) #to run the Games-Howell Test
+library(ggnewscale) #to be able to assign different colors to different layered rasters
+
+# loading in the processed tree data 
+# NOTE: Uncomment and run the line below, line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
+# source("./analyses/Data_Processing_Script.R")
+
+#### Choosing a Random Tree per Grid Cell ####
+
+# For each population, randomly selecting one tree from each grid cell to avoid issues because
+# the rasters are only 250 m resolution and certain populations might have more points in specific
+# cells, skewing the mean results away from the potentially real mean
+
+#### USE THIS CODE FOR THE TOPOGRAPHY CHANGES ####
+soil_stack_LM_soil_text_clay.content.0.5 <- rast(soil_stack_LM_soil_text$clay.content.0.5)
+LM_fixed_field_data_processed_spatvect <- vect(LM_fixed_field_data_processed_sf)
+LM_extracted_points <- extract(soil_stack_LM_soil_text_clay.content.0.5, LM_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+#adding in the fruiting information for each tree
+LM_extracted_points <- LM_extracted_points %>%
+  mutate(fruiting = LM_fixed_field_data_processed$fruiting)
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LM_extracted_points_thinned <- LM_extracted_points[!duplicated(LM_extracted_points$cell, LM_extracted_points$fruiting), ]
+
+
+
+#LM
+
+#to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
+soil_stack_LM_soil_text_clay.content.0.5 <- rast(soil_stack_LM_soil_text$clay.content.0.5)
+LM_fixed_field_data_processed_spatvect_fruiting <- vect(LM_fixed_field_data_processed_sf)
+
+#extracting the cell information (ID and cell number) for each tree 
+LM_extracted_points <- extract(soil_stack_LM_soil_text_clay.content.0.5, LM_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+
+#adding in the fruiting information for each tree
+LM_extracted_points <- LM_extracted_points %>%
+  mutate(fruiting = LM_fixed_field_data_processed$fruiting)
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+LM_extracted_points_fruiting <- LM_extracted_points %>%
+  filter(fruiting == "Y")
+LM_extracted_points_not_fruiting <- LM_extracted_points %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LM_extracted_points_thinned_fruiting <- LM_extracted_points_fruiting[!duplicated(LM_extracted_points_fruiting$cell), ]
+LM_extracted_points_thinned_not_fruiting <- LM_extracted_points_not_fruiting[!duplicated(LM_extracted_points_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+LM_extracted_points_thinned <- rbind(LM_extracted_points_thinned_fruiting, LM_extracted_points_thinned_not_fruiting)
+
+#filtering out point data to be just the focal points
+LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% LM_extracted_points_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = LM_tree_grid_cropped)+
+  #geom_sf(data= LM_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = LM_fixed_field_data_processed_trees_soils, aes(color = fruiting))
+
+
+
+#LC
+
+#to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
+soil_stack_LC_soil_text_clay.content.0.5 <- rast(soil_stack_LC_soil_text$clay.content.0.5)
+LC_fixed_field_data_processed_spatvect <- vect(LC_fixed_field_data_processed_sf)
+
+#extracting the cell information (ID and cell number) for each tree 
+LC_extracted_points <- extract(soil_stack_LC_soil_text_clay.content.0.5, LC_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+
+#adding in the fruiting information for each tree
+LC_extracted_points <- LC_extracted_points %>%
+  mutate(fruiting = LC_fixed_field_data_processed$fruiting)
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+LC_extracted_points_fruiting <- LC_extracted_points %>%
+  filter(fruiting == "Y")
+LC_extracted_points_not_fruiting <- LC_extracted_points %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LC_extracted_points_thinned_fruiting <- LC_extracted_points_fruiting[!duplicated(LC_extracted_points_fruiting$cell), ]
+LC_extracted_points_thinned_not_fruiting <- LC_extracted_points_not_fruiting[!duplicated(LC_extracted_points_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+LC_extracted_points_thinned <- rbind(LC_extracted_points_thinned_fruiting, LC_extracted_points_thinned_not_fruiting)
+
+#filtering out point data to be just the focal points
+LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_soils %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% LC_extracted_points_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = LC_tree_grid_cropped)+
+  #geom_sf(data= LC_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = LC_fixed_field_data_processed_trees_soils, aes(color = fruiting))
+
+
+
+
+#SD
+
+#to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
+soil_stack_SD_soil_text_clay.content.0.5 <- rast(soil_stack_SD_soil_text$clay.content.0.5)
+SD_fixed_field_data_processed_spatvect <- vect(SD_fixed_field_data_processed_sf)
+
+#extracting the cell information (ID and cell number) for each tree 
+SD_extracted_points <- extract(soil_stack_SD_soil_text_clay.content.0.5, SD_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+
+#adding in the fruiting information for each tree
+SD_extracted_points <- SD_extracted_points %>%
+  mutate(fruiting = SD_fixed_field_data_processed$fruiting)
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+SD_extracted_points_fruiting <- SD_extracted_points %>%
+  filter(fruiting == "Y")
+SD_extracted_points_not_fruiting <- SD_extracted_points %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+SD_extracted_points_thinned_fruiting <- SD_extracted_points_fruiting[!duplicated(SD_extracted_points_fruiting$cell), ]
+SD_extracted_points_thinned_not_fruiting <- SD_extracted_points_not_fruiting[!duplicated(SD_extracted_points_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+SD_extracted_points_thinned <- rbind(SD_extracted_points_thinned_fruiting, SD_extracted_points_thinned_not_fruiting)
+
+#filtering out point data to be just the focal points
+SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_soils %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% SD_extracted_points_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_sf(data = SD_tree_grid_cropped)+
+  #geom_sf(data= SD_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = SD_fixed_field_data_processed_trees_soils, aes(color = fruiting))
+
+
+
+
+
+## Finalizing the tree soil metric dataframe
+
+
+#combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell, subsetting what variables to remove to allow for rbinding
+
+fixed_field_data_processed_trees_soils <- rbind(subset(LM_fixed_field_data_processed_trees_soils,select = -c(LM_aspect_raster_15_data_pts, LM_slope_raster_15_data_pts,
+                                                                                                             LM_elevation_raster_15_data_pts, LM_aspect_raster_15_data_pts_8_categorical,
+                                                                                                             LM_aspect_raster_15_data_pts_4_categorical, LM_aspect_raster_15_data_pts_radian, 
+                                                                                                             LM_Eastness, LM_Northness, LM_TWI_values)), 
+                                                subset(LC_fixed_field_data_processed_trees_soils, select = -c(LC_aspect_raster_15_data_pts, LC_slope_raster_15_data_pts,
+                                                                                                              LC_elevation_raster_15_data_pts, LC_aspect_raster_15_data_pts_8_categorical,
+                                                                                                              LC_aspect_raster_15_data_pts_4_categorical, LC_aspect_raster_15_data_pts_radian, 
+                                                                                                              LC_Eastness, LC_Northness, LC_TWI_values))) #combining the LM and LC soil and randomly chosen tree data
+fixed_field_data_processed_trees_soils <- rbind(fixed_field_data_processed_trees_soils, 
+                                                subset(SD_fixed_field_data_processed_trees_soils, select = -c(SD_aspect_raster_15_data_pts, SD_slope_raster_15_data_pts,
+                                                                                                              SD_elevation_raster_15_data_pts, SD_aspect_raster_15_data_pts_8_categorical,
+                                                                                                              SD_aspect_raster_15_data_pts_4_categorical, SD_aspect_raster_15_data_pts_radian, 
+                                                                                                              SD_Eastness, SD_Northness, SD_TWI_values))) #combining the SD tree point data to the LM and LC soil and randomly chosen tree point data
+
+
+# removing the NAs from data (goes from 48 pts to 42)
+
+fixed_field_data_processed_trees_soils <- fixed_field_data_processed_trees_soils %>%
+  filter(!is.na(fruiting))
+
+#creating a column/variable with fruiting as a factor to be able to use it in the Tamhane's T2 Test later
+
+fixed_field_data_processed_trees_soils$fruiting_Factor <- as.factor(fixed_field_data_processed_trees_soils$fruiting)
+
+
+#### Making Function for Differences in Means ####
+
+# Function that checks the conditions and then runs the appropriate difference in means test
+# If the residuals were not normal, we used a Kruskal-Wallis test and Post-Hoc Wilcoxon Rank Sum Test.
+# We also performed this test for every soil metric because it is a non-parametric test allowing for comparisons across the soil metrics. 
+# If the residuals were normal but the variance was NOT equal, we used a Welch's ANOVA test and Post-Hoc Tamhane's T2 Test
+# If the residuals were normal and the variance was equal, we used a Traditional ANOVA test and Post-Hoc Pairwise T-test
+
+# For checking the residuals were normal, we used a Shapiro-Wilks Test
+# For checking equal variance, we check that test outcomes were both true, 1) rule of thumb (< 2 means equal variance) test and 
+# if the residuals were normal, 
+#we used the 2) Bartlett's test (p>0.05 means equal variance) to test if there was equal variance because it works better with normal residuals
+# if the residuals were NOT normal,
+#we used the 2) Fligner-Killeen test to test (p>0.05 means equal variance) if there was equal variance because it works better with non-normal residuals
+# We also computed the Levene's Test, as an additional, less robust test for additional evidence, but we did not factor it into our difference in means test decision.
+
+# The function returns:
+# a) an ANOVA model, 
+# b) the Shapiro-Wilks Test results, 
+# c) Fligner-Killeen Test Results,
+# d) Bartlett's Test results,
+# e) Levene's Test results,
+# f) Rule of Thumb Test results,
+# g) the chosen Difference in Means Test results,
+# h) the chosen Difference in Means Test Post-Hoc Test results,
+# i) a print of the difference in means tests chosen,
+# j) Kruskal-Wallis Test results,
+# k) and Post-Hoc Wilcoxon Rank Sum Test results.
+
+soil_group = "clay.content.0.5"
+Population = "SD"
+
+mean_soil_function <- function(soil_group, Fruiting = "fruiting", Population) {
+  
+  if (Population == "LM"){
+    data = LM_fixed_field_data_processed_trees_soils
+  } else if (Population == "LC"){
+    data = LC_fixed_field_data_processed_trees_soils
+  } else if (Population == "SD"){
+    data = SD_fixed_field_data_processed_trees_soils
+  }
+  
+  # Building the formula for the difference in means tests
+  formula <- as.formula(paste(soil_group, "~", Fruiting)) #creating the formula of the soil group as the y variable and the fruiting as the x variable for expediting the following tests
+  
+  # Initial ANOVA test 
+  #anova_model <- aov(formula, data = data) 
+  
+  # checking to see if the residuals are normal
+  shapiro_test <- shapiro.test(anova_model$residuals) #Shapiro-Wilks Test
+  
+  #Equal variance tests
+  
+  #Fligner-Killeen, more useful when data is not normal or there are outliers 
+  #fligner_test <- fligner.test(formula, data = data)
+  #bartlett's test for equal variances when data is normal
+  # bartlett_test <- bartlett.test(formula, data = data)
+  #levene's test, not super robust to strong differences to normality
+  # levenes_test <- car::leveneTest(formula, data = data)
+  #rule of thumb test
+  # thumb_test <- tapply(data[[soil_group]], data$fruiting, sd)
+  # thumb_test_results <- max(thumb_test, na.rm = T) / min(thumb_test, na.rm = T) # if the max sd divided by the min sd is greater than two,the test did not pass
+  
+  # # checking conditions to choose with difference in means test to use
+  # if (shapiro_test$p.value < 0.05) { #if the residuals are NOT normally distributed
+  #   #kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+  #   test <- kruskal.test(formula, data = data)
+  #   #post-hoc Wilcoxon rank sum tests
+  #   post_hoc <- pairwise.wilcox.test(data[[soil_group]], data$fruiting,
+  #                                    p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+  #   #storing the tests used
+  #   test_type = "kruskal-Wallis + Wilcoxon Rank Sum Test"
+  #   #printing out which test was used
+  #   print(paste("kruskal-Wallis Test with a Post-Hoc Wilcoxon Rank Sum Test"))
+  #   
+  # } else if (shapiro_test$p.value > 0.05) { #if the residuals are normally distributed
+  #   if (bartlett_test$p.value < 0.05 & thumb_test_results > 2) { #if the equal variance of residuals condition is NOT met
+  #     
+  #     #Welch's ANOVA, does not assume equal variances, but does meet normality condition
+  #     test <- oneway.test(formula, data = data, var.equal = F)
+  #     #post hoc Welch's ANOVA test: Tamhane's T2 Test
+  #     post_hoc <- tamhaneT2Test(data[[soil_group]]~fixed_field_data_processed_trees_soils$fruiting, data = fixed_field_data_processed_trees_soils)
+  #     #storing the tests used
+  #     test_type = "Welch's ANOVA + Tamhane's Test"
+  #     #printing out which test was used
+  #     print(paste("Welch's ANOVA with a Post-Hoc Tamhane's Test"))
+  #     
+  #   } else if (bartlett_test$p.value > 0.05 & thumb_test_results < 2) { #if the equal variance of residuals condition IS met
+  #     #traditional ANOVA because equal variance and normality were met
+  #     test <- anova(anova_model)
+  #     #post-hoc Tukey's HSD
+  #     post_hoc <- TukeyHSD(anova_model)
+  #     #storing the tests used
+  #     test_type = "ANOVA + Tukey's HSD"
+  #     #printing out which test was used
+  #     print(paste("ANOVA Test with a Post-Hoc Tukey's HSD"))
+  #   }
+  # }
+  # 
+  #kruskal-Wallis test because it is non-parametric
+  kruskal_test <- kruskal.test(formula, data = data)
+  #post-hoc Wilcoxon rank sum tests
+  kruskal_post_hoc <- pairwise.wilcox.test(data[[soil_group]], data$fruiting,
+                                           p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+  
+  
+  return(list(
+    anova_model = summary(anova_model),
+    shapiro_test = shapiro_test,
+    fligner_test = fligner_test,
+    bartlett_test = bartlett_test,
+    levenes_test = levenes_test,
+    thumb_test_results = thumb_test_results,
+    final_test = test,
+    posthoc = post_hoc,
+    test_type = test_type,
+    kruskal_test = kruskal_test, 
+    kruskal_post_hoc = kruskal_post_hoc
+  ))
+}
+
+
+
+
+#### Running the Function Results ####
+
+### SD ###
+
+##clay 0-5 cm
+
+#running the Difference in Means Analysis function
+mean_soil_function_clay_0.5 <- mean_soil_function(soil_group = "clay.content.0.5", Population = "LC")
+
+#CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
+mean_soil_function_clay_0.5$final_test
+
+#post hoc test of ANOVA test: Tamhane's Test
+mean_soil_function_clay_0.5$posthoc
+
+#Kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_0.5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_0.5_mean_p.value <- mean_soil_function_clay_0.5$kruskal_test$p.value
+
+#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_0.5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_clay_0_5 <- aov(clay.content.0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content vs. Population")
+
+
+##clay 100-200 
+
+#running the Difference in Means Analysis function
+mean_soil_function_clay_100.200 <- mean_soil_function(soil_group = "clay.content.100.200", Population = "LC")
+
+#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_clay_100.200$final_test
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_100.200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_100.200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_100.200_mean_p.value <- mean_soil_function_clay_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_100.200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_clay_100_200 <- aov(clay.content.100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+#silt 0-5
+
+#running the Difference in Means Analysis function
+mean_soil_function_silt_0.5 <- mean_soil_function(soil_group = "silt.0.5", Population = "LC")
+
+#CHOSEN TEST: ANOVA test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_silt_0.5$final_test
+
+#kruskal-Wallis test post-hoc Tukey's HSD sum tests
+mean_soil_function_silt_0.5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_silt_0.5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+silt_0.5_mean_p.value <- mean_soil_function_silt_0.5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_0.5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_silt_0_5 <- aov(silt.0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_silt_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+##silt 100-200
+
+#running the Difference in Means Analysis function
+mean_soil_function_silt_100.200 <- mean_soil_function(soil_group = "silt.100.200", Population = "LC")
+
+#CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
+mean_soil_function_silt_100.200$final_test
+
+#post-hoc Pairwise Tukey's HSD
+mean_soil_function_silt_100.200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_silt_100.200$kruskal_test
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+silt_100.200_mean_p.value <- mean_soil_function_silt_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_silt_100.200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+
+# checking to see if residuals are normal
+anova_silt_100_200 <- aov(silt.100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_silt_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+##sand  0-5 
+
+#running the Difference in Means Analysis function
+mean_soil_function_sand_0.5 <- mean_soil_function(soil_group = "sand.0.5", Population = "LC")
+
+#CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
+mean_soil_function_sand_0.5$final_test
+
+#post-hoc Pairwise Tukey's HSD Tests
+mean_soil_function_sand_0.5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sand_0.5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sand_0.5_mean_p.value <- mean_soil_function_sand_0.5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_0.5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_sand_0_5 <- aov(sand.0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+## sand 100-200
+
+#running the Difference in Means Analysis function
+mean_soil_function_sand_100.200 <- mean_soil_function(soil_group = "sand.100.200", Population = "LC")
+
+#CHOSEN TEST: Kruskal-Wallis
+mean_soil_function_sand_100.200$final_test
+
+#post hoc Kruskal-Wallis test: pairwise wilcoxon test, fdr adjustment
+mean_soil_function_sand_100.200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sand_100.200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sand_100.200_mean_p.value <- mean_soil_function_sand_100.200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sand_100.200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_sand_100_200 <- aov(sand.100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay Content at 100-200 cm vs. Population")
+
+## ph 0-5
+
+#running the Difference in Means Analysis function
+mean_soil_function_ph_0_5 <- mean_soil_function(soil_group = "ph_0.5", Population = "LC")
+
+#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_ph_0_5$final_test
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_ph_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+ph_0.5_mean_p.value <- mean_soil_function_ph_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("pH 0-5 cm")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_ph_0_5 <- aov(ph_0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for pH at 0-5 cm vs. Population")
+
+##ph 100-200
+
+#running the Difference in Means Analysis function
+mean_soil_function_ph_100_200 <- mean_soil_function(soil_group = "ph_100.200", Population = "LC")
+
+#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_ph_100_200$final_test
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_100_200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_ph_100_200$kruskal_test
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+ph_100.200_mean_p.value <- mean_soil_function_ph_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_ph_100_200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200))+
+  geom_boxplot(fill = "skyblue")+
+  geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
+  ylab("pH 100-200 cm")+
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=15), 
+        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
+        axis.title.y =element_text(size= 15),
+        label =element_text(size= 15, family = "serif"),
+        text = element_text(family = "serif"))
+
+# checking to see if residuals are normal
+anova_ph_100_200 <- aov(ph_100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for pH at 100-200 cm vs. Population")
+
+##soil organic carbon 0-5
+
+#running the Difference in Means Analysis function
+mean_soil_function_SOC_0_5 <- mean_soil_function(soil_group = "SOC.0.5", Population = "LC")
+
+#CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_SOC_0_5$final_test
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_SOC_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+soc_0.5_mean_p.value <- mean_soil_function_SOC_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_soc_0_5 <- aov(SOC.0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Organic Carbon at 0-5 cm vs. Population")
+
+#soil organic carbon 100-200
+
+#running the Difference in Means Analysis function
+mean_soil_function_SOC_100_200 <- mean_soil_function(soil_group = "SOC.100.200", Population = "LC")
+
+#CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
+mean_soil_function_SOC_100_200$final_test
+
+#post-hoc Pairwise T-Tests
+mean_soil_function_SOC_100_200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_SOC_100_200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+soc_100.200_mean_p.value <- mean_soil_function_SOC_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_SOC_100_200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.10_0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_soc_100_200 <- aov(SOC.100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Soil Organic Carbon at 100-200 cm vs. Population")
+
+#nitrogen 0-5
+
+#running the Difference in Means Analysis function
+mean_soil_function_nitrogen_0_5 <- mean_soil_function(soil_group = "nitrogen.0.5", Population = "LC")
+
+#CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_nitrogen_0_5$final_test
+
+#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_nitrogen_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+nitrogen_0.5_mean_p.value <- mean_soil_function_nitrogen_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_nitrogen_0.5 <- aov(nitrogen.0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Nitrogen Content at 0-5 cm vs. Population")
+
+# nitrogen 100-200
+
+#running the Difference in Means Analysis function
+mean_soil_function_nitrogen_100_200 <- mean_soil_function(soil_group = "nitrogen.100.200", Population = "LC")
+
+#CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_nitrogen_100_200$final_test
+
+#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_100_200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_nitrogen_100_200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+nitrogen_100.200_mean_p.value <- mean_soil_function_nitrogen_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_nitrogen_100_200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_nitrogen_100.200 <- aov(nitrogen.100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_nitrogen_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Nitrogen Content at 100-200 cm vs. Population")
+
+# sandy available water 0-5 cm
+
+#running the Difference in Means Analysis function
+mean_soil_function_sandy_avail_water_0_5 <- mean_soil_function("sandy_avail_water_0.5")
+
+#CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
+mean_soil_function_sandy_avail_water_0_5$final_test
+
+#post-hoc Pairwise T-Tests
+mean_soil_function_sandy_avail_water_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sandy_avail_water_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sandy_avail_water_0.5_mean_p.value <- mean_soil_function_sandy_avail_water_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_sandy_avail_water_0.5 <- aov(sandy_avail_water_0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_sandy_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Sand Available Water at 0-5 cm vs. Population")
+
+# sandy available water 100-200 cm
+
+#running the Difference in Means Analysis function
+mean_soil_function_sandy_avail_water_100_200 <- mean_soil_function("sandy_avail_water_100.200")
+
+#CHOSEN TEST: Welch's ANOVA test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_sandy_avail_water_100_200$final_test
+
+#Welch's ANOVA test post-hoc Tamhane's tests
+mean_soil_function_sandy_avail_water_100_200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_sandy_avail_water_100_200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+sandy_avail_water_100.200_mean_p.value <- mean_soil_function_sandy_avail_water_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_sandy_avail_water_100_200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_100.200))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_sandy_avail_water_100.200 <- aov(sandy_avail_water_100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_sandy_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Sand Available Water at 100-200 cm vs. Population")
+
+# clay loam available water 0-5 cm
+
+#running the Difference in Means Analysis function
+mean_soil_function_clay_loam_avail_water_0_5 <- mean_soil_function("clay_loam_avail_water_0.5")
+
+#CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
+mean_soil_function_clay_loam_avail_water_0_5$final_test
+
+#Kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_0_5$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_loam_avail_water_0_5$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_loam_avail_water_0.5_mean_p.value <- mean_soil_function_clay_loam_avail_water_0_5$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_0_5$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_0.5))+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_clay_loam_avail_water_0.5 <- aov(clay_loam_avail_water_0.5 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_loam_avail_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+# clay loam available water 100-200 cm
+
+#running the Difference in Means Analysis function
+mean_soil_function_clay_loam_avail_water_100_200 <- mean_soil_function("clay_loam_avail_water_100.200")
+
+#CHOSEN TEST: Kruskal Wallis test, assumes equal variance and normal residuals
+mean_soil_function_clay_loam_avail_water_100_200$final_test
+
+#post-hoc Wilcoxon Rank Sum Tests
+mean_soil_function_clay_loam_avail_water_100_200$posthoc
+
+#kruskal-Wallis test because it is non-parametric and comparable across soil metrics
+mean_soil_function_clay_loam_avail_water_100_200$kruskal_test 
+
+#storing the Kruskal-Wallis Test result p-values for a heat map
+clay_loam_avail_water_100.200_mean_p.value <- mean_soil_function_clay_loam_avail_water_100_200$kruskal_test$p.value
+
+#kruskal-Wallis test post-hoc Wilcoxon rank sum tests
+mean_soil_function_clay_loam_avail_water_100_200$kruskal_post_hoc
+
+#boxplots to show the spread of data
+ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_100.200))+
+  theme_minimal()
+
+
+# checking to see if residuals are normal
+anova_clay_loam_avail_water_100.200 <- aov(clay_loam_avail_water_100.200 ~ fruiting, data = fixed_field_data_processed_trees_soils)
+hist(anova_clay_loam_avail_water_100.200$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 100-200 cm vs. Population")
+
+
+#### Presenting Results ####
+
+#Heat Map 
+
+#Storing the p-values from the chosen Difference in Means test in a vector
+p_value_mean <- c(clay_0.5_mean_p.value, 
+                  clay_100.200_mean_p.value, 
+                  silt_0.5_mean_p.value,
+                  silt_100.200_mean_p.value,
+                  sand_0.5_mean_p.value,
+                  sand_100.200_mean_p.value,
+                  ph_0.5_mean_p.value,
+                  ph_100.200_mean_p.value,
+                  soc_0.5_mean_p.value,
+                  soc_100.200_mean_p.value,
+                  vol_wat_10kpa_0.5_mean_p.value,
+                  vol_wat_10kpa_100.200_mean_p.value,
+                  vol_wat_33kpa_0.5_mean_p.value,
+                  vol_wat_33kpa_100.200_mean_p.value,
+                  vol_wat_1500kpa_0.5_mean_p.value,
+                  vol_wat_1500kpa_100.200_mean_p.value,
+                  nitrogen_0.5_mean_p.value,
+                  nitrogen_100.200_mean_p.value,
+                  sandy_avail_water_0.5_mean_p.value,
+                  sandy_avail_water_100.200_mean_p.value,
+                  clay_loam_avail_water_0.5_mean_p.value,
+                  clay_loam_avail_water_100.200_mean_p.value
+)
+
+
+
+# Bonferroni correction of the p-values because of multiple testing
+p_bonf_corrected <- p.adjust(p_value_mean, method = "bonferroni")
+
+#creating empty dataframe for inputting the function into
+random_pop.df <- data.frame("Shape.Size" = rep(c("Clay 0-5 cm", "Clay 100-200 cm", "Silt 0-5 cm", "Silt 100-200 cm", "Sand 0-5 cm", "Sand 100-200 cm", #column of the soil metric names
+                                                 "pH 0-5 cm", "pH 100-200 cm", "Soil Organic Carbon 0-5 cm", "Soil Organic Carbon 100-200 cm", 
+                                                 "Volume of water content -10 kPa 0-5 cm", "Volume of water content -10 kPa 100-200 cm",
+                                                 "Volume of water content -33 kPa 0-5 cm", "Volume of water content -33 kPa 100-200 cm",
+                                                 "Volume of water content -1500 kPa 0-5 cm", "Volume of water content -1500 kPa 100-200 cm", 
+                                                 "Nitrogen 0-5 cm", "Nitrogen 100-200 cm", "Sand Available Water 0-5 cm", "Sand Available Water 100-200 cm",
+                                                 "Clay/Loam Available Water 0-5 cm", "Clay/Loam Available Water 100-200 cm")),
+                            "P_Value" = p_bonf_corrected, #Bonferonni-corrected p-values
+                            "Significance" = c(rep(NA, 22))) #whether the p-values are significant (p<0.05) or not
+
+#creating the significance column based on the significance of the p-values
+random_pop.df <- random_pop.df %>%
+  mutate(Significance = case_when(p_bonf_corrected < 0.05 ~ "Y",
+                                  p_bonf_corrected >= 0.05 ~ "N"))
+
+#Turning off scientific notation format
+options(scipen=999)
+
+#Creating a heat map in ggplot of the p-values for each soil metric (y-axis) and whether they are 
+#significant or not (x-axis), with significant p-values labeled
+ggplot(aes(x = fct_reorder(Shape.Size, P_Value), y = Significance, fill = P_Value), data = random_pop.df) +
+  geom_tile() + 
+  labs(y = "Significant P-Value", x  = "Soil Characteristic", 
+       fill = "P-Value",  
+       title = "Difference Between Mean Soil Metrics Between Populations",
+       subtitle = "P-Values Below 0.5 Labeled") + 
+  scale_fill_distiller(palette = "RdPu", direction = -1) + #setting color pallete
+  geom_text(aes(label = ifelse(P_Value < 0.001, "< 0.001", NA)), col = "white") + #labeling significant p-values if less than 0.001 as "<0.001"
+  geom_text(aes(label = ifelse(P_Value < 0.5 & P_Value > 0.001, round(P_Value, 8), NA)), col = "white") + #labeling cells with significant p-values less then 0.05 and greater than 0.001, rounding to 8 decimal places
+  coord_flip() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 13),
+        axis.title = element_text(size=13),
+        title = element_text(size = 13),
+        legend.title = element_text(size = 13),
+        plot.subtitle = element_text(size = 12))
+
+#### Comparing the means of the explanatory variables ####
+
+#creating a dataframe with the explanatory variables across all the populations for the comparison of means
+# fixed_field_data_processed_trees_soils <- tibble(Elevation..m.FIXED = c(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[LC_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                                LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                                SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         slope_raster_15_data_pts = c(LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                                      LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                                      SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         Eastness = c(LM_fixed_field_data_processed_terrain_dist$LM_Eastness[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                      LC_fixed_field_data_processed_terrain_dist$LC_Eastness[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                      SD_fixed_field_data_processed_terrain_dist$SD_Eastness[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         Northness = c(LM_fixed_field_data_processed_terrain_dist$LM_Northness[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                       LC_fixed_field_data_processed_terrain_dist$LC_Northness[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                       SD_fixed_field_data_processed_terrain_dist$SD_Northness[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         TWI_values = c(LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                        LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                        SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         heat.load = c(LM_fixed_field_data_processed_terrain_dist$heat.load[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                                       LC_fixed_field_data_processed_terrain_dist$heat.load[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                                       SD_fixed_field_data_processed_terrain_dist$heat.load[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]),
+#                                                         d = c(LM_fixed_field_data_processed_terrain_dist$d[LM_fixed_field_data_processed_terrain_dist$fruiting == "LM"],
+#                                                               LC_fixed_field_data_processed_terrain_dist$d[LC_fixed_field_data_processed_terrain_dist$fruiting == "LC"],
+#                                                               SD_fixed_field_data_processed_terrain_dist$d[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]))
+
+
+
+fixed_field_data_processed_trees_terrain <-  
+  tibble(Elevation..m.FIXED = c(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED,
+                                LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED,
+                                SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED),
+         slope_raster_15_data_pts = c(LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts,
+                                      LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts,
+                                      SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts),
+         Eastness = c(LM_fixed_field_data_processed_terrain_dist$LM_Eastness,
+                      LC_fixed_field_data_processed_terrain_dist$LC_Eastness,
+                      SD_fixed_field_data_processed_terrain_dist$SD_Eastness),
+         Northness = c(LM_fixed_field_data_processed_terrain_dist$LM_Northness,
+                       LC_fixed_field_data_processed_terrain_dist$LC_Northness,
+                       SD_fixed_field_data_processed_terrain_dist$SD_Northness),
+         TWI_values = c(LM_fixed_field_data_processed_terrain_dist$LM_TWI_values,
+                        LC_fixed_field_data_processed_terrain_dist$LC_TWI_values,
+                        SD_fixed_field_data_processed_terrain_dist$SD_TWI_values),
+         heat.load = c(LM_fixed_field_data_processed_terrain_dist$heat.load,
+                       LC_fixed_field_data_processed_terrain_dist$heat.load,
+                       SD_fixed_field_data_processed_terrain_dist$heat.load),
+         d = c(LM_fixed_field_data_processed_terrain_dist$d,
+               LC_fixed_field_data_processed_terrain_dist$d,
+               SD_fixed_field_data_processed_terrain_dist$d),
+         fruiting = c(LM_fixed_field_data_processed_terrain_dist$fruiting,
+                      LC_fixed_field_data_processed_terrain_dist$fruiting,
+                      SD_fixed_field_data_processed_terrain_dist$fruiting),
+         locality = c(LM_fixed_field_data_processed_terrain_dist$locality,
+                      LC_fixed_field_data_processed_terrain_dist$locality,
+                      SD_fixed_field_data_processed_terrain_dist$locality))
+
+#removing fruiting NAs, went from 786 to 760 individuals
+fixed_field_data_processed_trees_terrain <- fixed_field_data_processed_trees_terrain %>%
+  filter(!is.na(fruiting))
+
+#LM
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  filter(!is.na(fruiting))
+
+#LC
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  filter(!is.na(fruiting))
+
+#SD
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  filter(!is.na(fruiting))
+
+
+
+
+#elevation
+
+### LM ###
+
+ggplot()+
+  labs(title = "Elevation Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Elevation..m.FIXED ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Elevation..m.FIXED ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+### LC ###
+
+ggplot()+
+  labs(title = "Elevation Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Elevation..m.FIXED ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Elevation..m.FIXED ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+### SD ###
+
+ggplot()+
+  labs(title = "Elevation Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(Elevation..m.FIXED ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(Elevation..m.FIXED ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+#slope
+
+
+### LM ###
+
+ggplot()+
+  labs(title = "Slope Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_slope_raster_15_data_pts), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LM_slope_raster_15_data_pts ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LM_slope_raster_15_data_pt ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### LC ###
+
+ggplot()+
+  labs(title = "Slope Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_slope_raster_15_data_pts), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LC_slope_raster_15_data_pts ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LC_slope_raster_15_data_pts ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### SD ###
+
+ggplot()+
+  labs(title = "Slope Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_slope_raster_15_data_pts), fill = "light blue")+
+  # geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  # geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(SD_slope_raster_15_data_pts ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(SD_slope_raster_15_data_pts ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+#Eastness
+
+### LM ### 
+
+ggplot()+
+  labs(title = "Eastness Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Eastness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LM_Eastness ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LM_Eastness ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$LM_Eastness, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### LC ### 
+
+ggplot()+
+  labs(title = "Eastness Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Eastness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LC_Eastness ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LC_Eastness ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$LC_Eastness, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### SD ### 
+
+ggplot()+
+  labs(title = "Eastness Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Eastness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(SD_Eastness ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(SD_Eastness ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$SD_Eastness, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+#northness
+
+### LM ###
+
+ggplot()+
+  labs(title = "Northness Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Northness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LM_Northness ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LM_Northness ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$LM_Northness, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+### LC ###
+
+ggplot()+
+  labs(title = "Northness Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Northness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LC_Northness ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LC_Northness ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$LC_Northness, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+### SD ###
+
+ggplot()+
+  labs(title = "Northness Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Northness), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(SD_Northness ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(SD_Northness ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$SD_Northness, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+#TWI
+
+### LM ###
+
+ggplot()+
+  labs(title = "TWI Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_TWI_values), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LM_TWI_values ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LM_TWI_values ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$LM_TWI_values, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### LC ###
+
+ggplot()+
+  labs(title = "TWI Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_TWI_values), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(LC_TWI_values ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(LC_TWI_values ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$LC_TWI_values, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### SD ###
+
+ggplot()+
+  labs(title = "TWI Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_TWI_values), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(SD_TWI_values ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(SD_TWI_values ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$SD_TWI_values, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+#distance
+
+
+### LM ###
+
+ggplot()+
+  labs(title = "Distance Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, d), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(d ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(d ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$d, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### LC ###
+
+ggplot()+
+  labs(title = "Distance Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, d), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(d ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(d ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$d, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### SD ###
+
+ggplot()+
+  labs(title = "Distance Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, d), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(d ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(d ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$d, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+#Heat load index
+
+### LM ###
+
+ggplot()+
+  labs(title = "HLI Across Population")+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(heat.load ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(heat.load ~ fruiting, data = LM_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LM_fixed_field_data_processed_terrain_dist$heat.load, LM_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+### LC ###
+
+ggplot()+
+  labs(title = "HLI Across Population")+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(heat.load ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(heat.load ~ fruiting, data = LC_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(LC_fixed_field_data_processed_terrain_dist$heat.load, LC_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+### SD ###
+
+ggplot()+
+  labs(title = "HLI Across Population")+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load), fill = "light blue")+
+  theme_minimal()
+
+# checking to see if residuals are normal
+anova_available_water_0.5 <- aov(heat.load ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+anova_available_water_0.5
+hist(anova_available_water_0.5$residuals, xlab = "Residuals", main = "Distribution of Residuals for Clay/Loam Available Water at 0-5 cm vs. Population")
+
+#kruskal-Wallis test because the data does not have normally-distributed residuals and equal variance of residuals
+test <- kruskal.test(heat.load ~ fruiting, data = SD_fixed_field_data_processed_terrain_dist)
+test
+
+#post-hoc Wilcoxon rank sum tests
+post_hoc <- pairwise.wilcox.test(SD_fixed_field_data_processed_terrain_dist$heat.load, SD_fixed_field_data_processed_terrain_dist$fruiting,
+                                 p.adjust.method = "fdr") #p value adjusted using false discovery rate method
+post_hoc
+
+
+
+#### Figures for Paper ####
+
+
+
+#labels = c("LM", "LC", "SD"))
+#labels = c("Las Matancitas", "La Cobriza", "San Dionisio"))
+
+#shallower_soil_color <- c("#C4B07B")
+#deeper_soil_color <- c("#A3623A")
+
+#setting the colors for the boxplots/points for the shallower and deeper soils
+shallower_soil_color <- c("#C4B07B")
+deeper_soil_color <- c("#5C462B")
+colors = c(shallower_soil_color, shallower_soil_color,
+           deeper_soil_color, deeper_soil_color)
+
+
+#probably a better way to do this where it bases it off the boxplot whiskers
+
+clay.content.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = "skyblue",
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Clay Content (g/kg)")+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(round(min(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                              fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  round(max(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                              fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+clay.content.plot.build <- ggplot_build(clay.content.plot)
+clay.content.plot.build.shallow.df <- clay.content.plot.build$data[[1]] #storing the 0-5 cm boxplots
+clay.content.plot.build.deep.df <- clay.content.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(clay.content.plot.build.shallow.df$ymax[1] + 8,  #adding 5 units to the whisker y-maxs
+        clay.content.plot.build.shallow.df$ymax[2] + 8, 
+        clay.content.plot.build.deep.df$ymax[1] + 8, 
+        clay.content.plot.build.deep.df$ymax[2] + 8), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+clay.content.plot <- clay.content.plot +
+  geom_text(data = significance_letters_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+clay.content.plot
+
+silt.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.3, outliers=F)+ #fill = "skyblue",
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Silt Content (g/kg)")+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+silt.plot.build <- ggplot_build(silt.plot)
+silt.plot.build.shallow.df <- silt.plot.build$data[[1]] #storing the 0-5 cm boxplots
+silt.plot.build.deep.df <- silt.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_silt_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(silt.plot.build.shallow.df$ymax[1] + 2,  #adding 5 units to the whisker y-maxs
+        silt.plot.build.shallow.df$ymax[2] + 2, 
+        silt.plot.build.deep.df$ymin[1] - 2, 
+        silt.plot.build.deep.df$ymin[2] - 2), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+silt.plot <- silt.plot +
+  geom_text(data = significance_letters_silt_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+silt.plot
+
+
+SOC.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Soil Organic Content (g/kg)")+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+SOC.plot.build <- ggplot_build(SOC.plot)
+SOC.plot.build.shallow.df <- SOC.plot.build$data[[1]] #storing the 0-5 cm boxplots
+SOC.plot.build.deep.df <- SOC.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_SOC_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(SOC.plot.build.shallow.df$ymax[1] + 15,  #adding 5 units to the whisker y-maxs
+        SOC.plot.build.shallow.df$ymax[2] + 15, 
+        SOC.plot.build.deep.df$ymax[1] + 30, 
+        SOC.plot.build.deep.df$ymax[2] + 30), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+SOC.plot <- SOC.plot +
+  geom_text(data = significance_letters_SOC_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+SOC.plot
+
+vol_water_.10.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.10_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.10_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.10_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.10_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Field Capacity for Sandy Soil (cm"^3*"/cm"^3*")")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water_.10.plot.build <- ggplot_build(vol_water_.10.plot)
+vol_water_.10.plot.build.shallow.df <- vol_water_.10.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water_.10.plot.build.deep.df <- vol_water_.10.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water_.10_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(vol_water_.10.plot.build.shallow.df$ymax[1] + 1.5,  #adding 5 units to the whisker y-maxs
+        vol_water_.10.plot.build.shallow.df$ymax[2] + 1.5, 
+        vol_water_.10.plot.build.deep.df$ymin[1] - 1.5, 
+        vol_water_.10.plot.build.deep.df$ymin[2] - 1.5), 
+  label = c("a", "a", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+vol_water_.10.plot <- vol_water_.10.plot +
+  geom_text(data = significance_letters_vol_water_.10_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water_.10.plot
+
+
+
+sand.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("Sand Content (g/kg)")+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(signif(min(c(fixed_field_data_processed_trees_soils$sand.0.5, 
+                                               fixed_field_data_processed_trees_soils$sand.100.200)), 1), 
+                                  signif(max(c(fixed_field_data_processed_trees_soils$sand.0.5, 
+                                               fixed_field_data_processed_trees_soils$sand.100.200)), 1), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+sand.plot.build <- ggplot_build(sand.plot)
+sand.build.shallow.df <- sand.plot.build$data[[1]] #storing the 0-5 cm boxplots
+sand.build.deep.df <- sand.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_sand_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(sand.build.shallow.df$ymax[1] + 8,  #adding 5 units to the whisker y-maxs
+        sand.build.shallow.df$ymax[2] + 8, 
+        sand.build.deep.df$ymin[1] - 8, 
+        sand.build.deep.df$ymin[2] - 8), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+sand.plot <- sand.plot +
+  geom_text(data = significance_letters_sand_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+sand.plot
+
+
+
+vol_water_.1500kPa.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.1500kPa_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.1500kPa_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.1500_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_.1500_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Permantent Wilting Point (cm"^3*"/cm"^3*")")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water_.1500kPa.plot.build <- ggplot_build(vol_water_.1500kPa.plot)
+vol_water_.1500kPa.build.shallow.df <- vol_water_.1500kPa.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water_.1500kPa.build.deep.df <- vol_water_.1500kPa.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water_.1500kPa_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(vol_water_.1500kPa.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        vol_water_.1500kPa.build.shallow.df$ymax[2] + 5, 
+        vol_water_.1500kPa.build.deep.df$ymax[1] + 5, 
+        vol_water_.1500kPa.build.deep.df$ymax[2] + 5), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+vol_water_.1500kPa.plot <- vol_water_.1500kPa.plot +
+  geom_text(data = significance_letters_vol_water_.1500kPa_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water_.1500kPa.plot
+
+ph.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab("pH")+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+ph.plot.build <- ggplot_build(ph.plot)
+ph.build.shallow.df <- ph.plot.build$data[[1]] #storing the 0-5 cm boxplots
+ph.build.deep.df <- ph.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_ph_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(ph.build.shallow.df$ymin[1] - 0.05,  #adding 5 units to the whisker y-maxs
+        ph.build.shallow.df$ymin[2] - 0.05, 
+        ph.build.deep.df$ymax[1] + 0.07, 
+        ph.build.deep.df$ymax[2] + 0.07), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+ph.plot <- ph.plot +
+  geom_text(data = significance_letters_ph_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+ph.plot
+
+nitrogen.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Nitrogen Content (cg/kg)")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+nitrogen.plot.build <- ggplot_build(nitrogen.plot)
+nitrogen.build.shallow.df <- nitrogen.plot.build$data[[1]] #storing the 0-5 cm boxplots
+nitrogen.build.deep.df <- nitrogen.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_nitrogen_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(nitrogen.build.shallow.df$ymax[1] + 15,  #adding 5 units to the whisker y-maxs
+        nitrogen.build.shallow.df$ymax[2] + 15, 
+        nitrogen.build.deep.df$ymax[1] + 15, 
+        nitrogen.build.deep.df$ymax[2] + 15), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+nitrogen.plot <- nitrogen.plot +
+  geom_text(data = significance_letters_nitrogen_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+nitrogen.plot
+
+sandy_avail_water.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sandy_avail_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Water Available in Sandy Soil (cm"^3*"/cm"^3*")")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+sandy_avail_water.plot.build <- ggplot_build(sandy_avail_water.plot)
+sandy_avail_water.plot.build.shallow.df <- sandy_avail_water.plot.build$data[[1]] #storing the 0-5 cm boxplots
+sandy_avail_water.plot.build.deep.df <- sandy_avail_water.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_sandy_avail_water_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(sandy_avail_water.plot.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        sandy_avail_water.plot.build.shallow.df$ymax[2] + 5, 
+        sandy_avail_water.plot.build.deep.df$ymin[1] - 5, 
+        sandy_avail_water.plot.build.deep.df$ymin[2] - 5), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+sandy_avail_water.plot <- sandy_avail_water.plot +
+  geom_text(data = significance_letters_sandy_avail_water_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+sandy_avail_water.plot
+
+
+vol_water.33.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, vol_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Field Capacity for Clay/Loam Soil (cm"^3*"/cm"^3*")")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+vol_water.33.plot.build <- ggplot_build(vol_water.33.plot)
+vol_water.33.plot.build.shallow.df <- vol_water.33.plot.build$data[[1]] #storing the 0-5 cm boxplots
+vol_water.33.plot.build.deep.df <- vol_water.33.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_vol_water.33_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(vol_water.33.plot.build.shallow.df$ymin[1] - 4,  #adding 5 units to the whisker y-maxs
+        vol_water.33.plot.build.shallow.df$ymin[2] - 4, 
+        vol_water.33.plot.build.deep.df$ymax[1] + 4, 
+        vol_water.33.plot.build.deep.df$ymax[2] + 4), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+vol_water.33.plot <- vol_water.33.plot +
+  geom_text(data = significance_letters_vol_water.33_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+vol_water.33.plot
+
+clay_loam_avail_water.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_0.5, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.2, outliers=F)+ #fill = shallower_soil_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_0.5, width = 0.2, fill = "0–5 cm", color = "0–5 cm"),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_100.200, color = "100–200 cm", fill = "100–200 cm"),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay_loam_avail_water_100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
+  ylab(expression(paste("Water Available in Clay/Loam Soil (cm"^3*"/cm"^3*")")))+
+  xlab("Fruiting")+
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
+                               "100–200 cm" = deeper_soil_color),
+                    name = "Soil depth") +
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
+                                "100–200 cm" = deeper_soil_color),
+                     name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+#extracting the plot information and building a dataframe with the significance letters
+clay_loam_avail_water.plot.build <- ggplot_build(clay_loam_avail_water.plot)
+clay_loam_avail_water.plot.build.shallow.df <- clay_loam_avail_water.plot.build$data[[1]] #storing the 0-5 cm boxplots
+clay_loam_avail_water.plot.build.deep.df <- clay_loam_avail_water.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_clay_loam_avail_water_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(clay_loam_avail_water.plot.build.shallow.df$ymin[1] + 15,  #adding 5 units to the whisker y-maxs
+        clay_loam_avail_water.plot.build.shallow.df$ymin[2] + 15, 
+        clay_loam_avail_water.plot.build.deep.df$ymax[1] + 10, 
+        clay_loam_avail_water.plot.build.deep.df$ymax[2] + 10), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+clay_loam_avail_water.plot <- clay_loam_avail_water.plot +
+  geom_text(data = significance_letters_clay_loam_avail_water_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+clay_loam_avail_water.plot
+
+plots <- c(clay.content.plot, silt.plot, sand.plot, SOC.plot, vol_water_.10.plot, 
+           vol_water.33.plot, vol_water_.1500kPa.plot, ph.plot, nitrogen.plot, 
+           sandy_avail_water.plot, clay_loam_avail_water.plot)
+library(ggpubr)
+ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, SOC.plot, vol_water_.10.plot, 
+                            vol_water.33.plot, vol_water_.1500kPa.plot, ph.plot, nitrogen.plot, 
+                            sandy_avail_water.plot, clay_loam_avail_water.plot,
+                            common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.plot
+
+ggsave("./soil_fruiting_boxplots_plot.png", dpi = 1200, width = 14, 
+       height = 22, units = "in") #units = "in"
+
+#saving the individual plots not going into the reduced plot for the supplement
+ggsave("./SOC.plot_fruiting.png", plot = SOC.plot, dpi = 1200, width = 8, 
+       height = 6, units = "in") #units = "in", 14, 20
+ggsave("./ph.plot_fruiting.png", plot = ph.plot, dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in", 14, 20
+ggsave("./nitrogen.plot_fruiting.png", plot = nitrogen.plot, dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in", 14, 20
+
+#saving the supplement plots in a grid arrange
+ggarrange.plot <- ggarrange(SOC.plot, ph.plot, nitrogen.plot, 
+                            nrow = 1,
+                            common.legend = TRUE)
+ggarrange.plot
+ggsave("./soil_fruiting_boxplots_supplement_plot.png", dpi = 1200, width = 14, 
+       height = 6, units = "in") #units = "in", 14, 20
+
+#saving the reduced plot
+ggarrange.plot <- ggarrange(clay.content.plot, silt.plot, sand.plot, vol_water_.10.plot, 
+                            vol_water.33.plot, vol_water_.1500kPa.plot, 
+                            sandy_avail_water.plot, clay_loam_avail_water.plot,
+                            common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.plot
+
+ggsave("./soil_fruiting_boxplots_reduced_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in", 14, 20
+
+
+fixed_field_data_processed_trees_soils$locality
+
+
+#removing NAs
+LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_trees_soils %>%
+  filter(!is.na(fruiting))
+LC_fixed_field_data_processed_trees_soils <- LC_fixed_field_data_processed_trees_soils %>%
+  filter(!is.na(fruiting))
+SD_fixed_field_data_processed_trees_soils <- SD_fixed_field_data_processed_trees_soils %>%
+  filter(!is.na(fruiting))
+
+LM.clay.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.clay.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.clay.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5),
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.clay.0.5.plot <- LM.clay.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.clay.0.5.plot
+
+LC.clay.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.clay.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.clay.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.clay.0.5.plot <- LC.clay.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.clay.0.5.plot
+
+SD.clay.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_trees_soils$clay.content.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.clay.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.clay.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.clay.0.5.plot <- SD.clay.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.clay.0.5.plot
+
+
+LM.clay.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.clay.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.clay.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.clay.100.200.plot <- LM.clay.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.clay.100.200.plot
+
+LC.clay.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.clay.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.clay.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.clay.100.200.plot <- LC.clay.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.clay.100.200.plot
+
+SD.clay.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_trees_soils$clay.content.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.clay.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.clay.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.clay.100.200.plot <- SD.clay.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.clay.100.200.plot
+
+
+LM.silt.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.silt.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.silt.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.silt.0.5.plot <- LM.silt.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.silt.0.5.plot
+
+
+LC.silt.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.silt.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.silt.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.silt.0.5.plot <- LC.silt.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.silt.0.5.plot
+
+SD.silt.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_trees_soils$silt.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.silt.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.silt.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.silt.0.5.plot <- SD.silt.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.silt.0.5.plot
+
+LM.silt.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.silt.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.silt.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.silt.100.200.plot <- LM.silt.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.silt.100.200.plot
+
+
+LC.silt.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.silt.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.silt.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.silt.100.200.plot <- LC.silt.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.silt.100.200.plot
+
+SD.silt.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_trees_soils$silt.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.silt.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.silt.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.silt.100.200.plot <- SD.silt.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.silt.100.200.plot
+
+
+LM.sand.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_trees_soils$sand.0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_trees_soils$sand.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.sand.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.sand.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.sand.0.5.plot <- LM.sand.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.sand.0.5.plot
+
+LC.sand.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$sand.0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$sand.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.sand.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.sand.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.sand.0.5.plot <- LC.sand.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.sand.0.5.plot
+
+SD.sand.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$sand.0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$sand.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.sand.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.sand.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.sand.0.5.plot <- SD.sand.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.sand.0.5.plot
+
+
+LM.sand.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.sand.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.sand.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.sand.100.200.plot <- LM.sand.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.sand.100.200.plot
+
+LC.sand.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.sand.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.sand.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.sand.100.200.plot <- LC.sand.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.sand.100.200.plot
+
+SD.sand.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$sand.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.sand.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.sand.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.sand.100.200.plot <- SD.sand.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.sand.100.200.plot
+
+
+
+LM.soc.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.soc.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.soc.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.soc.0.5.plot <- LM.soc.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.soc.0.5.plot
+
+LC.soc.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.soc.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.soc.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.soc.0.5.plot <- LC.soc.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.soc.0.5.plot
+
+SD.soc.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$SOC.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.soc.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.soc.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.soc.0.5.plot <- SD.soc.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.soc.0.5.plot
+
+
+LM.soc.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.soc.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.soc.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.soc.100.200.plot <- LM.soc.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.soc.100.200.plot
+
+LC.soc.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.soc.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.soc.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.soc.100.200.plot <- LC.soc.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.soc.100.200.plot
+
+SD.soc.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Soil Organic Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$SOC.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.soc.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.soc.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.soc.100.200.plot <- SD.soc.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.soc.100.200.plot
+
+
+LM.ph.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 0-5 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.ph.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.ph.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.ph.0.5.plot <- LM.ph.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.ph.0.5.plot
+
+LC.ph.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 0-5 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.ph.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.ph.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.ph.0.5.plot <- LC.ph.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.ph.0.5.plot
+
+SD.ph.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 0-5 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$ph_0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.ph.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.ph.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.ph.0.5.plot <- SD.ph.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.ph.0.5.plot
+
+LM.ph.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 100-200 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.ph.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.ph.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.ph.100.200.plot <- LM.ph.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.ph.100.200.plot
+
+LC.ph.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 100-200 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.ph.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.ph.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.ph.100.200.plot <- LC.ph.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.ph.100.200.plot
+
+SD.ph.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("pH 100-200 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$ph_100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.ph.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.ph.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.ph.100.200.plot <- SD.ph.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.ph.100.200.plot
+
+
+LM.nitrogen.0.5.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.nitrogen.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.nitrogen.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.nitrogen.0.5.plot <- LM.nitrogen.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.nitrogen.0.5.plot
+
+
+LC.nitrogen.0.5.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.nitrogen.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.nitrogen.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.nitrogen.0.5.plot <- LC.nitrogen.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.nitrogen.0.5.plot
+
+
+
+SD.nitrogen.0.5.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$nitrogen.0.5)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.nitrogen.0.5.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.nitrogen.0.5.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.nitrogen.0.5.plot <- SD.nitrogen.0.5.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.nitrogen.0.5.plot
+
+
+LM.nitrogen.100.200.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 round(max(LM_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.nitrogen.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.nitrogen.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.nitrogen.100.200.plot <- LM.nitrogen.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.nitrogen.100.200.plot
+
+
+LC.nitrogen.100.200.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 round(max(LC_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.nitrogen.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.nitrogen.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.nitrogen.100.200.plot <- LC.nitrogen.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.nitrogen.100.200.plot
+
+SD.nitrogen.100.200.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Nitrogen Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 round(max(SD_fixed_field_data_processed_soils$nitrogen.100.200)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.nitrogen.100.200.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.nitrogen.100.200.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.nitrogen.100.200.plot <- SD.nitrogen.100.200.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.nitrogen.100.200.plot
+
+
+ggarrange.full.soil.fruiting.plot.a <- ggarrange(LM.clay.0.5.plot, LC.clay.0.5.plot, SD.clay.0.5.plot, 
+                                                 LM.clay.100.200.plot, LC.clay.100.200.plot, SD.clay.100.200.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.b <- ggarrange(LM.silt.0.5.plot, LC.silt.0.5.plot, SD.silt.0.5.plot,
+                                                 LM.silt.100.200.plot, LC.silt.100.200.plot, SD.silt.100.200.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.c <- ggarrange(LM.sand.0.5.plot, LC.sand.0.5.plot, SD.sand.0.5.plot, 
+                                                 LM.sand.100.200.plot, LC.sand.100.200.plot, SD.sand.100.200.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.d <- ggarrange(LM.soc.0.5.plot, LC.soc.0.5.plot, SD.soc.0.5.plot, 
+                                                 LM.soc.100.200.plot, LC.soc.100.200.plot, SD.soc.100.200.plot, 
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.e <- ggarrange(LM.ph.0.5.plot, LC.ph.0.5.plot, SD.ph.0.5.plot, 
+                                                 LM.ph.100.200.plot, LC.ph.100.200.plot, SD.ph.100.200.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.f <- ggarrange(LM.nitrogen.0.5.plot, LC.nitrogen.0.5.plot, SD.nitrogen.0.5.plot, 
+                                                 LM.nitrogen.100.200.plot, LC.nitrogen.100.200.plot, SD.nitrogen.100.200.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 2)
+
+ggarrange.full.soil.fruiting.plot.f
+
+ggsave("./full_soil_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in"
+
+
+
+fixed_field_data_processed_trees_soils <- bind_rows(
+  LM_fixed_field_data_processed_trees_soils,
+  LC_fixed_field_data_processed_trees_soils,
+  SD_fixed_field_data_processed_trees_soils)
+
+fixed_field_data_processed_trees_soils$locality <- fct_relevel(fixed_field_data_processed_trees_soils$locality, "LM", "LC", "SD")
+
+
+
+fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_dist %>%
+  mutate(slope = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(eastness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LM_fixed_field_data_processed_terrain_dist$LM_Eastness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LC_fixed_field_data_processed_terrain_dist$LC_Eastness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                SD_fixed_field_data_processed_terrain_dist$SD_Eastness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(northness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LM_fixed_field_data_processed_terrain_dist$LM_Northness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LC_fixed_field_data_processed_terrain_dist$LC_Northness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 SD_fixed_field_data_processed_terrain_dist$SD_Northness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(twi = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
+
+
+clay.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Clay Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.0.5.plot
+
+clay.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Clay Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+clay.100.200.plot
+
+
+silt.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Silt Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+silt.0.5.plot
+
+silt.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, silt.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Silt Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+silt.100.200.plot
+
+
+
+sand.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Sand Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.0.5.plot
+
+sand.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, sand.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Sand Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+sand.100.200.plot
+
+
+soc.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Soil Organic Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+soc.0.5.plot
+
+soc.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, SOC.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Soil Organic Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+soc.100.200.plot
+
+
+ph.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("pH 0-5 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+ph.0.5.plot
+
+ph.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, ph_100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("pH 100-200 cm")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+ph.100.200.plot
+
+
+nitrogen.0.5.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Nitrogen Content 0-5 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+nitrogen.0.5.plot
+
+nitrogen.100.200.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, nitrogen.100.200, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Nitrogen Content 100-200 cm (g/kg)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+nitrogen.100.200.plot
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### topographic metrics ###
+
+
+# ("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
+# c("#522201", "#C65102", "#228B22", "#b2df8a", "#5e8c2e")
+
+plot_color <- c("#5C462B")
+library(colorBlindness)
+plot_colors <- c("#1f78b4", "#a6cee3", "#7fb241")
+plot_colors <- c(deeper_soil_color, shallower_soil_color) #"#E37F3EFF",
+
+
+shallower_soil_color <- c("#C4B07B")
+deeper_soil_color <- c("#5C462B")
+
+
+plot_colors <- c( "#908D8E", "#117733") #"#E37F3EFF",
+n_color = "#908D8E"
+y_color = "#117733"
+
+#"skyblue"
+#"#5C462B"
+# shallower_soil_color <- c("#C4B07B")
+# deeper_soil_color <- c("#5C462B")
+
+LM.elevation.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+                                  round(max(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+                                  by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.elevation.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LM.elevation.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.elevation.plot <- LM.elevation.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.elevation.plot
+
+
+LC.elevation.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(LC_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.elevation.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(LC.elevation.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.elevation.plot <- LC.elevation.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.elevation.plot
+
+SD.elevation.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.elevation.plot
+#extracting the plot information and building a dataframe with the significance letters
+elevation.plot.build <- ggplot_build(SD.elevation.plot)
+elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_elevation_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymin[2] - 5), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.elevation.plot <- SD.elevation.plot +
+  geom_text(data = significance_letters_elevation_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.elevation.plot
+
+
+LM.slope.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_slope_raster_15_data_pts, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_slope_raster_15_data_pts, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  labs(fill = "Fruiting",
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.slope.plot
+#extracting the plot information and building a dataframe with the significance letters
+slope.plot.build <- ggplot_build(LM.slope.plot)
+slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_slope_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
+        slope.plot.build.df$ymin[2] - 2),
+  label = c("a", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.slope.plot <- LM.slope.plot +
+  geom_text(data = significance_letters_slope_df,
+            aes(x = fruiting, y=y,
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.slope.plot
+
+LC.slope.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_slope_raster_15_data_pts, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_slope_raster_15_data_pts, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  labs(fill = "Fruiting",
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.slope.plot
+#extracting the plot information and building a dataframe with the significance letters
+slope.plot.build <- ggplot_build(LC.slope.plot)
+slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_slope_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
+        slope.plot.build.df$ymin[2] - 2),
+  label = c("a", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.slope.plot <- LC.slope.plot +
+  geom_text(data = significance_letters_slope_df,
+            aes(x = fruiting, y=y,
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.slope.plot
+
+SD.slope.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_slope_raster_15_data_pts, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_slope_raster_15_data_pts, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  labs(fill = "Fruiting",
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18),
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.slope.plot
+#extracting the plot information and building a dataframe with the significance letters
+slope.plot.build <- ggplot_build(SD.slope.plot)
+slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_slope_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
+        slope.plot.build.df$ymin[2] - 2),
+  label = c("a", "a") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.slope.plot <- SD.slope.plot +
+  geom_text(data = significance_letters_slope_df,
+            aes(x = fruiting, y=y,
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.slope.plot
+
+LM.Eastness.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Eastness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Eastness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Eastness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.Eastness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Eastness.plot.build <- ggplot_build(LM.Eastness.plot)
+Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_eastness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Eastness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.Eastness.plot <- LM.Eastness.plot +
+  geom_text(data = significance_letters_eastness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.Eastness.plot
+
+LC.Eastness.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Eastness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Eastness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Eastness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.Eastness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Eastness.plot.build <- ggplot_build(LC.Eastness.plot)
+Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_eastness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Eastness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.Eastness.plot <- LC.Eastness.plot +
+  geom_text(data = significance_letters_eastness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.Eastness.plot
+
+SD.Eastness.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Eastness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Eastness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Eastness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.Eastness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Eastness.plot.build <- ggplot_build(SD.Eastness.plot)
+Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_eastness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Eastness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.Eastness.plot <- SD.Eastness.plot +
+  geom_text(data = significance_letters_eastness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.Eastness.plot
+
+
+LM.Northness.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Northness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_Northness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Northness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.Northness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Northness.plot.build <- ggplot_build(LM.Northness.plot)
+Northness.plot.build.df <- Northness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_northness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Northness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Northness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.Northness.plot <- LM.Northness.plot +
+  geom_text(data = significance_letters_northness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.Northness.plot
+
+LC.Northness.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Northness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_Northness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Northness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.Northness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Northness.plot.build <- ggplot_build(LC.Northness.plot)
+Northness.plot.build.df <- Northness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_northness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Northness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Northness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.Northness.plot <- LC.Northness.plot +
+  geom_text(data = significance_letters_northness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.Northness.plot
+
+
+SD.Northness.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Northness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_Northness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Northness (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.Northness.plot
+#extracting the plot information and building a dataframe with the significance letters
+Northness.plot.build <- ggplot_build(SD.Northness.plot)
+Northness.plot.build.df <- Northness.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_northness_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(Northness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        Northness.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.Northness.plot <- SD.Northness.plot +
+  geom_text(data = significance_letters_northness_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.Northness.plot
+
+
+LM.TWI_values.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_TWI_values, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, LM_TWI_values, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Topographic Wetness Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.TWI_values.plot
+#extracting the plot information and building a dataframe with the significance letters
+TWI_values.plot.build <- ggplot_build(LM.TWI_values.plot)
+TWI_values.plot.build.df <- TWI_values.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_twi_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(TWI_values.plot.build.df$ymax[1] + 1.6,  #adding 5 units to the whisker y-maxs
+        TWI_values.plot.build.df$ymax[2] + 3.3), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.TWI_values.plot <- LM.TWI_values.plot +
+  geom_text(data = significance_letters_twi_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.TWI_values.plot
+
+LC.TWI_values.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_TWI_values, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, LC_TWI_values, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Topographic Wetness Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.TWI_values.plot
+#extracting the plot information and building a dataframe with the significance letters
+TWI_values.plot.build <- ggplot_build(LC.TWI_values.plot)
+TWI_values.plot.build.df <- TWI_values.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_twi_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(TWI_values.plot.build.df$ymax[1] + 1.6,  #adding 5 units to the whisker y-maxs
+        TWI_values.plot.build.df$ymax[2] + 3.3), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.TWI_values.plot <- LC.TWI_values.plot +
+  geom_text(data = significance_letters_twi_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.TWI_values.plot
+
+
+SD.TWI_values.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_TWI_values, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, SD_TWI_values, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Topographic Wetness Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.TWI_values.plot
+#extracting the plot information and building a dataframe with the significance letters
+TWI_values.plot.build <- ggplot_build(SD.TWI_values.plot)
+TWI_values.plot.build.df <- TWI_values.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_twi_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(TWI_values.plot.build.df$ymax[1] + 1.6,  #adding 5 units to the whisker y-maxs
+        TWI_values.plot.build.df$ymax[2] + 3.3), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.TWI_values.plot <- SD.TWI_values.plot +
+  geom_text(data = significance_letters_twi_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.TWI_values.plot
+
+LM.d.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Distance from River (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_terrain_dist$d)), 
+                                  round(max(LM_fixed_field_data_processed_terrain_dist$d)), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.d.plot
+#extracting the plot information and building a dataframe with the significance letters
+d.plot.build <- ggplot_build(d.plot)
+d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_distance_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(d.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymin[2] - 5), 
+  label = c("a",  "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.d.plot <- LM.d.plot +
+  geom_text(data = significance_letters_distance_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.d.plot
+
+LC.d.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Distance from River (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  scale_y_continuous(breaks = seq(round(min(LC_fixed_field_data_processed_terrain_dist$d)), 
+                                  round(max(LC_fixed_field_data_processed_terrain_dist$d)), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.d.plot
+#extracting the plot information and building a dataframe with the significance letters
+d.plot.build <- ggplot_build(LC.d.plot)
+d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_distance_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(d.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymin[2] - 5), 
+  label = c("a",  "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LC.d.plot <- LC.d.plot +
+  geom_text(data = significance_letters_distance_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LC.d.plot
+
+
+SD.d.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  ylab("Distance from River (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$d)), 
+                                  round(max(SD_fixed_field_data_processed_terrain_dist$d)), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.d.plot
+#extracting the plot information and building a dataframe with the significance letters
+d.plot.build <- ggplot_build(d.plot)
+d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_distance_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(d.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymin[2] - 5), 
+  label = c("a",  "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.d.plot <- SD.d.plot +
+  geom_text(data = significance_letters_distance_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.d.plot
+
+LM.heat.load.plot <- ggplot()+
+  geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Heat Load Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LM")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LM.heat.load.plot
+#extracting the plot information and building a dataframe with the significance letters
+heat.load.plot.build <- ggplot_build(heat.load.plot)
+heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_heat_load_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        heat.load.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.heat.load.plot <- LM.heat.load.plot +
+  geom_text(data = significance_letters_heat_load_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.heat.load.plot
+
+LC.heat.load.plot <- ggplot()+
+  geom_boxplot(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = LC_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Heat Load Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "LC")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+LC.heat.load.plot
+#extracting the plot information and building a dataframe with the significance letters
+heat.load.plot.build <- ggplot_build(heat.load.plot)
+heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_heat_load_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        heat.load.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+LM.heat.load.plot <- LM.heat.load.plot +
+  geom_text(data = significance_letters_heat_load_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+LM.heat.load.plot
+
+
+SD.heat.load.plot <- ggplot()+
+  geom_boxplot(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = SD_fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  ylab("Heat Load Index")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "SD")+
+  theme_minimal() +
+  scale_fill_manual(values = plot_colors) +
+  scale_color_manual(values = plot_colors) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+SD.heat.load.plot
+#extracting the plot information and building a dataframe with the significance letters
+heat.load.plot.build <- ggplot_build(SD.heat.load.plot)
+heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
+significance_letters_heat_load_df <- data.frame(
+  fruiting = c("N", "Y"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+        heat.load.plot.build.df$ymax[2] + 0.1), 
+  label = c("a", "b") #adding the significance labels
+)
+#adding the significance letters to the plot
+SD.heat.load.plot <- SD.heat.load.plot +
+  geom_text(data = significance_letters_heat_load_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = plot_colors,
+            fontface = "bold",
+            size = 7)
+SD.heat.load.plot
+
+ggarrange.topo.fruiting.plot <- ggarrange(LM.elevation.plot, LC.Eastness.plot, SD.Eastness.plot, LM.Northness.plot, 
+                                          LC.TWI_values.plot, LM.d.plot, SD.d.plot, LM.heat.load.plot, LC.heat.load.plot,
+                                          common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.topo.fruiting.plot
+
+ggsave("./topo_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in"
+
+
+ggarrange.full.topo.fruiting.plot.a <- ggarrange(LM.elevation.plot, LC.elevation.plot, SD.elevation.plot,
+                                                 LM.slope.plot, LC.slope.plot, SD.slope.plot,
+                                                 LM.Eastness.plot, LC.Eastness.plot, SD.Eastness.plot, 
+                                                 LM.Northness.plot, LC.Northness.plot, SD.Northness.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.full.topo.fruiting.plot.a
+
+ggarrange.full.topo.fruiting.plot.b <- ggarrange(LM.TWI_values.plot, LC.TWI_values.plot, SD.TWI_values.plot,
+                                                 LM.d.plot, LC.d.plot, SD.d.plot,
+                                                 LM.heat.load.plot, LC.heat.load.plot, SD.heat.load.plot,
+                                                 common.legend = TRUE, ncol = 3, nrow = 3)
+ggarrange.full.topo.fruiting.plot.b
+
+ggsave("./full_topo_fruiting_pop_boxplots_plot.b.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in"
+
+
+
+
+fixed_field_data_processed_terrain_dist <- bind_rows(
+  LM_fixed_field_data_processed_terrain_dist,
+  LC_fixed_field_data_processed_terrain_dist,
+  SD_fixed_field_data_processed_terrain_dist)
+
+fixed_field_data_processed_terrain_dist$locality <- fct_relevel(fixed_field_data_processed_terrain_dist$locality, "LM", "LC", "SD")
+
+
+
+fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_dist %>%
+  mutate(slope = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LM_fixed_field_data_processed_terrain_dist$LM_slope_raster_15_data_pts[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             LC_fixed_field_data_processed_terrain_dist$LC_slope_raster_15_data_pts[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                           QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                             SD_fixed_field_data_processed_terrain_dist$SD_slope_raster_15_data_pts[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(eastness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LM_fixed_field_data_processed_terrain_dist$LM_Eastness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                LC_fixed_field_data_processed_terrain_dist$LC_Eastness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                              QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                SD_fixed_field_data_processed_terrain_dist$SD_Eastness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(northness = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LM_fixed_field_data_processed_terrain_dist$LM_Northness[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 LC_fixed_field_data_processed_terrain_dist$LC_Northness[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                               QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                                 SD_fixed_field_data_processed_terrain_dist$SD_Northness[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)])) %>%
+  mutate(twi = case_when(QUBR_ID %in% LM_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LM_fixed_field_data_processed_terrain_dist$LM_TWI_values[match(QUBR_ID, LM_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% LC_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           LC_fixed_field_data_processed_terrain_dist$LC_TWI_values[match(QUBR_ID, LC_fixed_field_data_processed_terrain_dist$QUBR_ID)],
+                         QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
+                           SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
+
+
+elevation.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Elevation (m)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+elevation.plot
+
+slope.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, slope, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, slope, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Slope (º)")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+slope.plot
+
+
+eastness.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, eastness, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, eastness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Eastness")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+eastness.plot
+
+
+
+northness.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, northness, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, northness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Northness")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), "LC", "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+northness.plot
+
+
+twi.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, twi, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, twi, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("TWI")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c("LM", expression(bold("LC")), "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c("LM", expression(bold("LC")), "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+twi.plot
+
+d.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("TWI")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+d.plot
+
+
+hli.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
+  ylab("Heat Load")+
+  xlab("")+
+  labs(fill = "Fruiting", 
+       color = "Fruiting",
+       title = "")+
+  scale_fill_manual(values = plot_colors,
+                    labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+  scale_color_manual(values = plot_colors,
+                     labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+  theme_minimal() +
+  # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
+  #                                 by = 30)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+hli.plot
+
+
+
+#### Session Info ####
+# 
+# R version 4.4.3 (2025-02-28)
+# Platform: aarch64-apple-darwin20
+# Running under: macOS Sequoia 15.2
+# 
+# Matrix products: default
+# BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib 
+# LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
+# 
+# locale:
+#   [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+# 
+# time zone: America/New_York
+# tzcode source: internal
+# 
+# attached base packages:
+#   [1] stats     graphics  grDevices utils     datasets  methods   base     
+# 
+# other attached packages:
+#   [1] lmtest_0.9-40          zoo_1.8-15             gdalUtilities_1.2.5   
+# [4] car_3.1-5              carData_3.0-6          googledrive_2.1.1     
+# [7] spdep_1.3-10           spData_2.3.4           performance_0.16.0    
+# [10] ggsoiltexture_1.1.1    whitebox_2.4.3         spatialEco_2.0-3      
+# [13] visreg_2.7.0           MuMIn_1.48.11          plotly_4.10.4         
+# [16] mgcv_1.9-1             tmaptools_3.2          geostatsp_2.0.8       
+# [19] terra_1.8-29           Matrix_1.7-2           starsExtra_0.2.8      
+# [22] stars_0.6-8            abind_1.4-8            ggnewscale_0.5.1      
+# [25] rstatix_0.7.2          raster_3.6-32          sp_2.2-1              
+# [28] spatstat_3.3-1         spatstat.linnet_3.2-5  spatstat.model_3.3-4  
+# [31] rpart_4.1.24           spatstat.explore_3.5-2 nlme_3.1-167          
+# [34] spatstat.random_3.4-1  spatstat.geom_3.5-0    spatstat.univar_3.1-4 
+# [37] spatstat.data_3.1-6    geomtextpath_0.1.5     PMCMRplus_1.9.12      
+# [40] ggpmisc_0.6.1          ggpp_0.5.8-1           smatr_3.4-8           
+# [43] sf_1.0-24              moments_0.14.1         lubridate_1.9.4       
+# [46] forcats_1.0.0          stringr_1.6.0          dplyr_1.2.0           
+# [49] purrr_1.2.1            readr_2.2.0            tidyr_1.3.2           
+# [52] tibble_3.3.1           ggplot2_4.0.2          tidyverse_2.0.0       
+# [55] emmeans_2.0.2         
+# 
+# loaded via a namespace (and not attached):
+#   [1] RColorBrewer_1.1-3    wk_0.9.4              rstudioapi_0.18.0    
+# [4] jsonlite_2.0.0        magrittr_2.0.4        TH.data_1.1-5        
+# [7] estimability_1.5.1    spatstat.utils_3.1-5  SuppDists_1.1-9.8    
+# [10] farver_2.1.2          fs_1.6.7              vctrs_0.7.2          
+# [13] memoise_2.0.1         usethis_3.2.1         htmltools_0.5.9      
+# [16] polynom_1.4-1         curl_6.2.1            broom_1.0.12         
+# [19] s2_1.1.7              BWStest_0.2.3         Formula_1.2-5        
+# [22] KernSmooth_2.23-26    htmlwidgets_1.6.4     sandwich_3.1-1       
+# [25] cachem_1.1.0          igraph_2.2.2          lifecycle_1.0.5      
+# [28] pkgconfig_2.0.3       R6_2.6.1              fastmap_1.2.0        
+# [31] digest_0.6.39         numDeriv_2016.8-1.1   colorspace_2.1-2     
+# [34] tensor_1.5            pkgload_1.4.1         nngeo_0.4.8          
+# [37] textshaping_1.0.0     labeling_0.4.3        lwgeom_0.2-14        
+# [40] spatstat.sparse_3.1-0 timechange_0.3.0      httr_1.4.7           
+# [43] polyclip_1.10-7       compiler_4.4.3        gargle_1.5.2         
+# [46] remotes_2.5.0         proxy_0.4-27          withr_3.0.2          
+# [49] backports_1.5.0       DBI_1.2.3             pkgbuild_1.4.8       
+# [52] MASS_7.3-64           quantreg_6.1          sessioninfo_1.2.3    
+# [55] classInt_0.4-11       tools_4.4.3           units_0.8-6          
+# [58] goftest_1.2-3         glue_1.8.0            grid_4.4.3           
+# [61] generics_0.1.4        gtable_0.3.6          tzdb_0.5.0           
+# [64] class_7.3-23          data.table_1.17.0     hms_1.1.4            
+# [67] pillar_1.11.1         splines_4.4.3         lattice_0.22-9       
+# [70] survival_3.8-3        gmp_0.7-5             deldir_2.0-4         
+# [73] SparseM_1.84-2        tidyselect_1.2.1      stats4_4.4.3         
+# [76] devtools_2.4.6        stringi_1.8.7         boot_1.3-31          
+# [79] lazyeval_0.2.2        codetools_0.2-20      kSamples_1.2-10      
+# [82] multcompView_0.1-10   cli_3.6.5             xtable_1.8-4         
+# [85] systemfonts_1.2.3     munsell_0.5.1         dichromat_2.0-0.1    
+# [88] Rcpp_1.1.1            coda_0.19-4.1         XML_3.99-0.20        
+# [91] parallel_4.4.3        ellipsis_0.3.2        MatrixModels_0.5-4   
+# [94] Rmpfr_1.0-0           viridisLite_0.4.3     mvtnorm_1.3-6        
+# [97] scales_1.4.0          e1071_1.7-16          insight_1.4.6        
+# [100] crayon_1.5.3          rlang_1.1.7           multcomp_1.4-30  
+# 
+
+
+
+
+
+
+
+
