@@ -1359,6 +1359,118 @@ colors = c(shallower_soil_color, shallower_soil_color,
            deeper_soil_color, deeper_soil_color)
 
 
+N_fruiting_color <- c("#908D8E")
+Y_fruiting_color <- c("#117733")
+
+
+
+plot_colors <- c( "#908D8E", "#117733") #"#E37F3EFF",
+n_color = "#908D8E"
+
+"#5e5e5e"
+"#424242"
+"#4d4d4d"
+
+"#255c34"
+"#084017"
+"#08c93c"
+"#62c47d"
+"#3a784b"
+y_color = "#117733"
+
+N_soil_color.0.5 <- c("#b8b4b4")
+N_soil_color.100.200 <- c("#424242")
+Y_soil_color.0.5 <- c("#08c93c")
+Y_soil_color.100.200 <- c("#117733")
+colors <- c(N_soil_color.0.5, Y_soil_color.0.5,
+            N_soil_color.100.200, Y_soil_color.100.200)
+
+c("#908D8E", "#424242")
+c("#117733", "#084017")
+
+scale_color_manual(
+  name = "Fruiting",
+  values = c("N" = n_color,"Y" = y_color),
+  breaks = c("N", "Y"),
+  labels = c("No", "Yes")) +
+  
+
+#could catergorize by 0.5 fruiting, 0.5 not fruiting, 100.200 fruiting, 100.200 not fruiting
+
+clay.content.plot <- ggplot()+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = paste(fruiting, "0-5 cm"), color = paste(fruiting, "0-5 cm"), group = fruiting),  alpha = 0.2, outliers=F)+ #fill = "skyblue",
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = paste(fruiting, "0-5 cm"), color = paste(fruiting, "0-5 cm")),  alpha = 0.7)+
+  geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, fill = paste(fruiting, "100-200 cm"), color = paste(fruiting, "100-200 cm"), group = fruiting),  alpha = 0.2, outliers=F)+
+  geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, fill = paste(fruiting, "100-200 cm"), color = paste(fruiting, "100-200 cm")), alpha = 0.7)+
+  ylab("Clay Content (g/kg)")+
+  xlab("Fruiting")+
+  scale_fill_manual(
+    values = c(
+      "N 0-5 cm"     = N_soil_color.0.5,
+      "N 100-200 cm" = N_soil_color.100.200,
+      "Y 0-5 cm"     = Y_soil_color.0.5,
+      "Y 100-200 cm" = Y_soil_color.100.200), 
+    name = 'Fruiting / Soil Depth') + #    label = "Fruiting / Soil depth"
+  scale_color_manual(
+    values = c(
+      "N 0-5 cm"     = N_soil_color.0.5,
+      "N 100-200 cm" = N_soil_color.100.200,
+      "Y 0-5 cm"     = Y_soil_color.0.5,
+      "Y 100-200 cm" = Y_soil_color.100.200),
+    name = 'Fruiting / Soil Depth') + #paste(fruiting, "0–5 cm")
+
+  # scale_fill_manual(values = c("N" = N_soil_color.0.5,
+  #                              "Y" = N_soil_color.100.200),
+  #                   name = "Fruiting") +
+  # scale_fill_manual(values = c("N 0–5 cm" = N_soil_color.0.5,
+  #                              "N 100–200 cm" = N_soil_color.100.200,
+  #                              "Y 0–5 cm" = N_soil_color.0.5,
+  #                              "Y 100–200 cm" = N_soil_color.100.200),
+  # #                   name = "Soil depth") +
+  # scale_color_manual(values = c("0–5 cm" = shallower_soil_color.100.200,
+  #                               "100–200 cm" = deeper_soil_color.100.200),
+  #                    name = "Soil depth") +
+  #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
+  theme_minimal() +
+  scale_y_continuous(breaks = seq(round(min(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                              fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  round(max(c(fixed_field_data_processed_trees_soils$clay.content.0.5, 
+                                              fixed_field_data_processed_trees_soils$clay.content.100.200))), 
+                                  by = 20)) +
+  theme(title=element_text(size=18), 
+        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.title.y =element_text(size= 18),
+        label =element_text(size= 18, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 18))
+
+#extracting the plot information and building a dataframe with the significance letters
+clay.content.plot.build <- ggplot_build(clay.content.plot)
+clay.content.plot.build.shallow.df <- clay.content.plot.build$data[[1]] #storing the 0-5 cm boxplots
+clay.content.plot.build.deep.df <- clay.content.plot.build$data[[3]] #storing the 100-200 cm boxplots
+significance_letters_df <- data.frame(
+  fruiting = c("N", "Y", #storing the localities
+               "N", "Y"),
+  y = c(clay.content.plot.build.shallow.df$ymax[1] + 8,  #adding 5 units to the whisker y-maxs
+        clay.content.plot.build.shallow.df$ymax[2] + 8, 
+        clay.content.plot.build.deep.df$ymax[1] + 8, 
+        clay.content.plot.build.deep.df$ymax[2] + 8), 
+  label = c("a", "b", #adding the significance labels
+            "x", "y")
+  
+)
+#adding the significance letters to the plot
+clay.content.plot <- clay.content.plot +
+  geom_text(data = significance_letters_df, 
+            aes(x = fruiting, y=y, 
+                label = label),
+            color = colors,
+            fontface = "bold",
+            size = 7)
+clay.content.plot
+
+
+
 #probably a better way to do this where it bases it off the boxplot whiskers
 
 clay.content.plot <- ggplot()+
@@ -1368,11 +1480,11 @@ clay.content.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200, width = 0.2, color = "100–200 cm", fill = "100–200 cm"), alpha = 0.7)+
   ylab("Clay Content (g/kg)")+
   xlab("Fruiting")+
-  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color,
-                               "100–200 cm" = deeper_soil_color),
+  scale_fill_manual(values = c("0–5 cm" = shallower_soil_color.0.5,
+                               "100–200 cm" = deeper_soil_color.0.5),
                     name = "Soil depth") +
-  scale_color_manual(values = c("0–5 cm" = shallower_soil_color,
-                                "100–200 cm" = deeper_soil_color),
+  scale_color_manual(values = c("0–5 cm" = shallower_soil_color.100.200,
+                                "100–200 cm" = deeper_soil_color.100.200),
                      name = "Soil depth") +
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +

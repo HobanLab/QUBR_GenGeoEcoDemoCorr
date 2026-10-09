@@ -152,7 +152,7 @@ SD_tree_grid_cropped <- st_make_grid(soil_stack_SD_soil_text, cellsize = c(230, 
 
 #plotting the grid over an example soil raster to ensure they were made properly
 ggplot()+
-  geom_raster(data= as.data.frame(soil_stack_SD_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_raster(data= as.data.frame(soil_stack_SD_extra, xy = T), aes(x=x, y=y, fill = nitrogen.0.5))+
   geom_sf(data = SD_tree_grid_cropped, fill = NA)
 
 #selecting a point from each grid cell with trees within them

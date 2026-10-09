@@ -594,10 +594,10 @@ random_pop_soils_function <- random_pop_soils()
 random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`
 
 #Example of extracting one of the histograms comparing the slopes for our original soil vs. size metrics to the shuffled ones
-random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
-plot <- random_pop_soils_function$plot_list$`Clay 0-5_Histogram`
-random_pop_soils_function$plot_list$`Ph 0-5_Histogram`
-random_pop_soils_function$plot_list$`Ph 100-200_Histogram`
+random_pop_soils_function$plot_list_mean$`Clay 0-5_Histogram`
+plot <- random_pop_soils_function$plot_list_mean$`Clay 0-5_Histogram`
+random_pop_soils_function$plot_list_mean$`Ph 0-5_Histogram`
+random_pop_soils_function$plot_list_mean$`Ph 100-200_Histogram`
 
 random_pop_soils_function$lot_list_median$`Clay 100-200_Histogram`
 

@@ -147,7 +147,6 @@ p.adjust(my_p_values, method = "fdr")
 
 #### Figures for Paper ####
 
-
 plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
 
 DBH_summary <- fixed_field_data_processed %>%

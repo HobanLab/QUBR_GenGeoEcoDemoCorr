@@ -395,6 +395,10 @@ ggplot()+
   geom_raster(data= as.data.frame(CEM_15_utm_all_points, xy = T), aes(x=x, y=y, fill = layer))+
   geom_sf(data = fixed_field_data_processed_sf_transformed)
 
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm_LM))+
+  geom_sf(data = LM_fixed_field_data_processed_sf)
+
 ## Extracting the slope 
 
 #all points 
@@ -2021,33 +2025,30 @@ silt_05_utm <- projectRaster(silt_05, crs=26912)
 silt_200_utm <- projectRaster(silt_200, crs=26912)
 sand_05_utm <- projectRaster(sand_05, crs=26912)
 sand_200_utm <- projectRaster(sand_200, crs=26912)
-ph_05_utm <- projectRaster(ph_05, crs=26912) 
-ph_200_utm <- projectRaster(ph_200, crs=26912) 
-ocd_05_utm <- projectRaster(ocd_05, crs=26912)
-ocd_200_utm <- projectRaster(ocd_200, crs=26912)
-coarse_frag_05_utm <- projectRaster(coarse_frag_05, crs=26912)
-coarse_frag_200_utm <- projectRaster(coarse_frag_200, crs=26912)
-cat_ex_cap_05_utm <- projectRaster(cat_ex_cap_05, crs=26912)
-cat_ex_cap_200_utm <- projectRaster(cat_ex_cap_200, crs=26912)
-bulk_dens_05_utm <- projectRaster(bulk_dens_05, crs=26912)
-bulk_dens_200_utm <- projectRaster(bulk_dens_200, crs=26912)
-vol_wat_10kpa_05_utm <- projectRaster(vol_wat_10kpa_05, crs=26912)
-vol_wat_10kpa_200_utm <- projectRaster(vol_wat_10kpa_200, crs=26912)
-vol_wat_33kpa_05_utm <- projectRaster(vol_wat_33kpa_05, crs=26912)
-vol_wat_33kpa_200_utm <- projectRaster(vol_wat_33kpa_200, crs=26912)
-vol_wat_1500kpa_05_utm <- projectRaster(vol_wat_1500kpa_05, crs=26912)
-vol_wat_1500kpa_200_utm <- projectRaster(vol_wat_1500kpa_200, crs=26912)
-nitrogen_05_utm <- projectRaster(nitrogen_05, crs=26912)
-nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
-Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, crs=26912)
-Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, crs=26912)
+ph_05_utm <- projectRaster(ph_05, clay_05_utm) #crs=26912
+ph_200_utm <- projectRaster(ph_200, clay_05_utm) #crs=26912
+ocd_05_utm <- projectRaster(ocd_05, clay_05_utm) #crs=26912
+ocd_200_utm <- projectRaster(ocd_200, clay_05_utm) #crs=26912
+coarse_frag_05_utm <- projectRaster(coarse_frag_05, clay_05_utm) #crs=26912
+coarse_frag_200_utm <- projectRaster(coarse_frag_200, clay_05_utm) #crs=26912
+cat_ex_cap_05_utm <- projectRaster(cat_ex_cap_05, clay_05_utm) #crs=26912
+cat_ex_cap_200_utm <- projectRaster(cat_ex_cap_200, clay_05_utm) #crs=26912
+bulk_dens_05_utm <- projectRaster(bulk_dens_05, clay_05_utm) #crs=26912
+bulk_dens_200_utm <- projectRaster(bulk_dens_200, clay_05_utm) #crs=26912
+vol_wat_10kpa_05_utm <- projectRaster(vol_wat_10kpa_05, clay_05_utm) #crs=26912
+vol_wat_10kpa_200_utm <- projectRaster(vol_wat_10kpa_200, clay_05_utm) #crs=26912
+vol_wat_33kpa_05_utm <- projectRaster(vol_wat_33kpa_05, clay_05_utm) #crs=26912
+vol_wat_33kpa_200_utm <- projectRaster(vol_wat_33kpa_200, clay_05_utm) #crs=26912
+vol_wat_1500kpa_05_utm <- projectRaster(vol_wat_1500kpa_05, clay_05_utm) #crs=26912
+vol_wat_1500kpa_200_utm <- projectRaster(vol_wat_1500kpa_200, clay_05_utm) #crs=26912
+nitrogen_05_utm <- projectRaster(nitrogen_05, clay_05_utm) #crs=26912
+nitrogen_200_utm <- projectRaster(nitrogen_200, clay_05_utm) #crs=26912
+Soil_Organic_Carbon_05_utm <- projectRaster(Soil_Organic_Carbon_05, clay_05_utm) #crs=26912
+Soil_Organic_Carbon_200_utm <- projectRaster(Soil_Organic_Carbon_200, clay_05_utm) #crs=26912
 sandy_avail_water_0.5_utm <- vol_wat_33kpa_05_utm - vol_wat_1500kpa_05_utm # Sand Available Water 0-5 cm
 sandy_avail_water_100.200_utm <- vol_wat_33kpa_200_utm - vol_wat_1500kpa_200_utm # Sand Available Water 100-200 cm
 clay_loam_avail_water_0.5_utm <- vol_wat_10kpa_05_utm - vol_wat_1500kpa_05_utm # Clay/Loam Available Water 0-5 cm
 clay_loam_avail_water_100.200_utm <- vol_wat_10kpa_200_utm - vol_wat_1500kpa_200_utm # Clay/Loam Available Water 100-200 cm
-
-nitrogen_200_utm <- projectRaster(nitrogen_200, crs=26912)
-
 
 ## cropping the soil metrics to bounding boxes around each population ##
 
@@ -2086,7 +2087,7 @@ Soil_Organic_Carbon_200_LM <- crop(Soil_Organic_Carbon_200_utm, extent(LM_box[1]
 ggplot()+
   geom_raster(data = as.data.frame(Soil_Organic_Carbon_05_LM, xy=T), aes(x=x, y=y, fill = SOC.0.5))+
   geom_sf(data = river_LM_trans)+
-  geom_sf(data = LM_fixed_field_data_processed)
+  geom_sf(data = LM_fixed_field_data_processed_sf)
 
 #creating stacks of the soil raster layers (using multiple for visualization purposes)
 soil_stack_LM_soil_text <- stack(clay_05_LM, clay_200_LM, silt_05_LM, silt_200_LM, sand_05_LM, sand_200_LM) #the stack of all of the soil texture rasters
@@ -2344,7 +2345,7 @@ heat.load.raster.all.pops <- hli(CEM_15_utm_all_populations, #our LM DEM
                                  force.hemisphere = "northern") #calculated based on our rasters being in the northern hemisphere
 
 
-#### Generating the 20 QUBR Population Soil and Spatial Dataframe ####
+#### Generating the 29 QUBR Population Soil and Spatial Dataframe ####
 
 #downloading the data containing the locations (lat/lon) of the 22 known populations aggregated by Ash and Team
 all_pop_locations.df <- read.csv(file = "./data/Known QUBR populations.xlsx - More accurate GPS coords for pops (12_2025).csv")
@@ -2647,8 +2648,8 @@ all_known_pop_soil_eastness = sin(all_known_pop_soil_aspect_radian) # creating t
 all_known_pop_soil_northness = cos(all_known_pop_soil_aspect_radian) # creating the northness column
 
 
-all_pop_locations.df_sf_trans_coordinates <- st_drop_geometry(all_pop_locations.df_sf_trans_coordinates)
-write.csv(all_pop_locations.df_sf_trans_coordinates, file = "./data/all_pop_locations.df_sf_trans_coordinates.csv")
+all_pop_locations.df_sf_trans_coordinates_no_geo <- st_drop_geometry(all_pop_locations.df_sf_trans_coordinates)
+write.csv(all_pop_locations.df_sf_trans_coordinates_no_geo, file = "./data/all_pop_locations.df_sf_trans_coordinates.csv")
 
 BCS_polygon_box_sf_cropped$geometry
 st_write(BCS_polygon_box_sf_cropped$geometry, "./data/BCS_polygon_box_sf_cropped.geojson")
@@ -2691,8 +2692,8 @@ all_known_pop_soils <- all_known_pop_soils %>%
 ggplot()+
   geom_sf(data=BCS_polygon_UTM)+
   geom_sf(data=bbox_poly_buffered)+
-  geom_sf(data=BCS_polygon_box_sf_cropped, color = "red")+
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates)
+  geom_sf(data=BCS_polygon_box_sf_cropped$geometry, color = "red")+
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates_sp)
 
 
 #  converting the all populations locations to spatial data with longitudes and latitudes to be able to calculate distances

@@ -53,17 +53,6 @@ library(ggnewscale) #to be able to assign different colors to different layered 
 # the rasters are only 250 m resolution and certain populations might have more points in specific
 # cells, skewing the mean results away from the potentially real mean
 
-#### USE THIS CODE FOR THE TOPOGRAPHY CHANGES ####
-soil_stack_LM_soil_text_clay.content.0.5 <- rast(soil_stack_LM_soil_text$clay.content.0.5)
-LM_fixed_field_data_processed_spatvect <- vect(LM_fixed_field_data_processed_sf)
-LM_extracted_points <- extract(soil_stack_LM_soil_text_clay.content.0.5, LM_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
-#adding in the fruiting information for each tree
-LM_extracted_points <- LM_extracted_points %>%
-  mutate(fruiting = LM_fixed_field_data_processed$fruiting)
-#thinning points to get 1 tree per cell with fruiting or not fruiting
-LM_extracted_points_thinned <- LM_extracted_points[!duplicated(LM_extracted_points$cell, LM_extracted_points$fruiting), ]
-
-
 
 #LM
 
@@ -140,8 +129,6 @@ ggplot()+
   geom_sf(data = LC_tree_grid_cropped)+
   #geom_sf(data= LC_fixed_field_data_processed_soils, aes(color = fruiting))+
   geom_sf(data = LC_fixed_field_data_processed_trees_soils, aes(color = fruiting))
-
-
 
 
 #SD
@@ -346,7 +333,7 @@ mean_soil_function <- function(soil_group, Fruiting = "fruiting", Population) {
 ##clay 0-5 cm
 
 #running the Difference in Means Analysis function
-mean_soil_function_clay_0.5 <- mean_soil_function(soil_group = "clay.content.0.5", Population = "LC")
+mean_soil_function_clay_0.5 <- mean_soil_function(soil_group = "clay.content.0.5", Population = "SD")
 
 #CHOSEN TEST: Welch's ANOVA, does not assume equal variances 
 mean_soil_function_clay_0.5$final_test
@@ -384,7 +371,7 @@ hist(anova_clay_0_5$residuals, xlab = "Residuals", main = "Distribution of Resid
 ##clay 100-200 
 
 #running the Difference in Means Analysis function
-mean_soil_function_clay_100.200 <- mean_soil_function(soil_group = "clay.content.100.200", Population = "LC")
+mean_soil_function_clay_100.200 <- mean_soil_function(soil_group = "clay.content.100.200", Population = "SD")
 
 #CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_clay_100.200$final_test
@@ -402,7 +389,7 @@ clay_100.200_mean_p.value <- mean_soil_function_clay_100.200$kruskal_test$p.valu
 mean_soil_function_clay_100.200$kruskal_post_hoc
 
 #boxplots to show the spread of data
-ggplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200))+
+ggplot(data = SD_fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.100.200))+
   geom_boxplot(fill = "skyblue")+
   geom_jitter(width = 0.2, alpha = 0.4, color = "black")+
   ylab("Clay Content 100-200 cm (g/kg)")+
@@ -421,7 +408,7 @@ hist(anova_clay_100_200$residuals, xlab = "Residuals", main = "Distribution of R
 #silt 0-5
 
 #running the Difference in Means Analysis function
-mean_soil_function_silt_0.5 <- mean_soil_function(soil_group = "silt.0.5", Population = "LC")
+mean_soil_function_silt_0.5 <- mean_soil_function(soil_group = "silt.0.5", Population = "SD")
 
 #CHOSEN TEST: ANOVA test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_silt_0.5$final_test
@@ -458,7 +445,7 @@ hist(anova_silt_0_5$residuals, xlab = "Residuals", main = "Distribution of Resid
 ##silt 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_silt_100.200 <- mean_soil_function(soil_group = "silt.100.200", Population = "LC")
+mean_soil_function_silt_100.200 <- mean_soil_function(soil_group = "silt.100.200", Population = "SD")
 
 #CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
 mean_soil_function_silt_100.200$final_test
@@ -496,7 +483,7 @@ hist(anova_silt_100_200$residuals, xlab = "Residuals", main = "Distribution of R
 ##sand  0-5 
 
 #running the Difference in Means Analysis function
-mean_soil_function_sand_0.5 <- mean_soil_function(soil_group = "sand.0.5", Population = "LC")
+mean_soil_function_sand_0.5 <- mean_soil_function(soil_group = "sand.0.5", Population = "SD")
 
 #CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
 mean_soil_function_sand_0.5$final_test
@@ -533,7 +520,7 @@ hist(anova_sand_0_5$residuals, xlab = "Residuals", main = "Distribution of Resid
 ## sand 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_sand_100.200 <- mean_soil_function(soil_group = "sand.100.200", Population = "LC")
+mean_soil_function_sand_100.200 <- mean_soil_function(soil_group = "sand.100.200", Population = "SD")
 
 #CHOSEN TEST: Kruskal-Wallis
 mean_soil_function_sand_100.200$final_test
@@ -570,7 +557,7 @@ hist(anova_sand_100_200$residuals, xlab = "Residuals", main = "Distribution of R
 ## ph 0-5
 
 #running the Difference in Means Analysis function
-mean_soil_function_ph_0_5 <- mean_soil_function(soil_group = "ph_0.5", Population = "LC")
+mean_soil_function_ph_0_5 <- mean_soil_function(soil_group = "ph_0.5", Population = "SD")
 
 #CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_ph_0_5$final_test
@@ -607,7 +594,7 @@ hist(anova_ph_0_5$residuals, xlab = "Residuals", main = "Distribution of Residua
 ##ph 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_ph_100_200 <- mean_soil_function(soil_group = "ph_100.200", Population = "LC")
+mean_soil_function_ph_100_200 <- mean_soil_function(soil_group = "ph_100.200", Population = "SD")
 
 #CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_ph_100_200$final_test
@@ -644,7 +631,7 @@ hist(anova_ph_100_200$residuals, xlab = "Residuals", main = "Distribution of Res
 ##soil organic carbon 0-5
 
 #running the Difference in Means Analysis function
-mean_soil_function_SOC_0_5 <- mean_soil_function(soil_group = "SOC.0.5", Population = "LC")
+mean_soil_function_SOC_0_5 <- mean_soil_function(soil_group = "SOC.0.5", Population = "SD")
 
 #CHOSEN TEST: kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_SOC_0_5$final_test
@@ -673,7 +660,7 @@ hist(anova_soc_0_5$residuals, xlab = "Residuals", main = "Distribution of Residu
 #soil organic carbon 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_SOC_100_200 <- mean_soil_function(soil_group = "SOC.100.200", Population = "LC")
+mean_soil_function_SOC_100_200 <- mean_soil_function(soil_group = "SOC.100.200", Population = "SD")
 
 #CHOSEN TEST: ANOVA test, assumes equal variance and normal residuals
 mean_soil_function_SOC_100_200$final_test
@@ -703,7 +690,7 @@ hist(anova_soc_100_200$residuals, xlab = "Residuals", main = "Distribution of Re
 #nitrogen 0-5
 
 #running the Difference in Means Analysis function
-mean_soil_function_nitrogen_0_5 <- mean_soil_function(soil_group = "nitrogen.0.5", Population = "LC")
+mean_soil_function_nitrogen_0_5 <- mean_soil_function(soil_group = "nitrogen.0.5", Population = "SD")
 
 #CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_nitrogen_0_5$final_test
@@ -732,7 +719,7 @@ hist(anova_nitrogen_0.5$residuals, xlab = "Residuals", main = "Distribution of R
 # nitrogen 100-200
 
 #running the Difference in Means Analysis function
-mean_soil_function_nitrogen_100_200 <- mean_soil_function(soil_group = "nitrogen.100.200", Population = "LC")
+mean_soil_function_nitrogen_100_200 <- mean_soil_function(soil_group = "nitrogen.100.200", Population = "SD")
 
 #CHOSEN TEST: Kruskal-Wallis test, non-parametric for non-normal residuals and non-equal variance
 mean_soil_function_nitrogen_100_200$final_test
@@ -974,6 +961,112 @@ ggplot(aes(x = fct_reorder(Shape.Size, P_Value), y = Significance, fill = P_Valu
 #                                                               SD_fixed_field_data_processed_terrain_dist$d[SD_fixed_field_data_processed_terrain_dist$fruiting == "SD"]))
 
 
+#### CODE FOR THE TOPOGRAPHY CHANGES ONE TREE PER 15 m CELL ####
+
+#LM
+LM_fixed_field_data_processed_spatvect <- vect(LM_fixed_field_data_processed_sf)
+LM_extracted_points_topo <- extract(CEM_15_utm_LM$CEM_15_utm_LM, LM_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+#adding in the fruiting information for each tree
+LM_extracted_points_topo <- LM_extracted_points_topo %>%
+  mutate(fruiting = LM_fixed_field_data_processed$fruiting)
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+LM_extracted_points_topo_fruiting <- LM_extracted_points_topo %>%
+  filter(fruiting == "Y")
+LM_extracted_points_topo_not_fruiting <- LM_extracted_points_topo %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LM_extracted_points_thinned_topo_fruiting <- LM_extracted_points_topo_fruiting[!duplicated(LM_extracted_points_topo_fruiting$cell), ]
+LM_extracted_points_thinned_topo_not_fruiting <- LM_extracted_points_topo_not_fruiting[!duplicated(LM_extracted_points_topo_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+LM_extracted_points_topo_thinned <- rbind(LM_extracted_points_thinned_topo_fruiting, LM_extracted_points_thinned_topo_not_fruiting)
+
+
+#filtering out point data to be just the focal points
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% LM_extracted_points_topo_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_LM, xy = T), aes(x=x, y=y, fill = CEM_15_utm_LM))+
+  #geom_sf(data= SD_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = LM_fixed_field_data_processed_terrain_dist, aes(color = fruiting))
+
+
+#LC
+LC_fixed_field_data_processed_spatvect <- vect(LC_fixed_field_data_processed_sf)
+LC_extracted_points_topo <- extract(CEM_15_utm_LC$CEM_15_utm_LC, LC_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+#adding in the fruiting information for each tree
+LC_extracted_points_topo <- LC_extracted_points_topo %>%
+  mutate(fruiting = LC_fixed_field_data_processed$fruiting)
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LC_extracted_points_topo_thinned <- LC_extracted_points_topo[!duplicated(LC_extracted_points_topo$cell), ]
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+LC_extracted_points_topo_fruiting <- LC_extracted_points_topo %>%
+  filter(fruiting == "Y")
+LC_extracted_points_topo_not_fruiting <- LC_extracted_points_topo %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+LC_extracted_points_thinned_topo_fruiting <- LC_extracted_points_topo_fruiting[!duplicated(LC_extracted_points_topo_fruiting$cell), ]
+LC_extracted_points_thinned_topo_not_fruiting <- LC_extracted_points_topo_not_fruiting[!duplicated(LC_extracted_points_topo_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+LC_extracted_points_topo_thinned <- rbind(LC_extracted_points_thinned_topo_fruiting, LC_extracted_points_thinned_topo_not_fruiting)
+
+
+#filtering out point data to be just the focal points
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% LC_extracted_points_topo_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_LC, xy = T), aes(x=x, y=y, fill = CEM_15_utm_LC))+
+  #geom_sf(data= SD_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting))
+
+
+#SD
+SD_fixed_field_data_processed_spatvect <- vect(SD_fixed_field_data_processed_sf)
+SD_extracted_points_topo <- extract(CEM_15_utm_SD$CEM_15_utm_SD, SD_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+#adding in the fruiting information for each tree
+SD_extracted_points_topo <- SD_extracted_points_topo %>%
+  mutate(fruiting = SD_fixed_field_data_processed$fruiting)
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+SD_extracted_points_topo_thinned <- SD_extracted_points_topo[!duplicated(SD_extracted_points_topo$cell), ]
+
+#creating dataframes for just fruiting or not fruiting trees to be able to select unique cells per fruiting and not fruiting
+SD_extracted_points_topo_fruiting <- SD_extracted_points_topo %>%
+  filter(fruiting == "Y")
+SD_extracted_points_topo_not_fruiting <- SD_extracted_points_topo %>%
+  filter(fruiting == "N")
+
+#thinning points to get 1 tree per cell with fruiting or not fruiting
+SD_extracted_points_thinned_topo_fruiting <- SD_extracted_points_topo_fruiting[!duplicated(SD_extracted_points_topo_fruiting$cell), ]
+SD_extracted_points_thinned_topo_not_fruiting <- SD_extracted_points_topo_not_fruiting[!duplicated(SD_extracted_points_topo_not_fruiting$cell), ]
+
+#bind the extracted point dataframes
+SD_extracted_points_topo_thinned <- rbind(SD_extracted_points_thinned_topo_fruiting, SD_extracted_points_thinned_topo_not_fruiting)
+
+#filtering out point data to be just the focal points
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  mutate(X_sequential = row_number()) %>%
+  filter(X_sequential %in% SD_extracted_points_topo_thinned$ID)  #creating a dataframe with the row numbers that match between the overall tree points dataframe and the focal tree points dataframe
+
+#plotting the points, grid, and randomly selected points from each grid
+ggplot()+
+  geom_raster(data= as.data.frame(CEM_15_utm_SD, xy = T), aes(x=x, y=y, fill = CEM_15_utm_SD))+
+  #geom_sf(data= SD_fixed_field_data_processed_soils, aes(color = fruiting))+
+  geom_sf(data = SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting))
+
+
+
+
 
 fixed_field_data_processed_trees_terrain <-  
   tibble(Elevation..m.FIXED = c(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED,
@@ -1010,7 +1103,7 @@ fixed_field_data_processed_trees_terrain <- fixed_field_data_processed_trees_ter
 
 #LM
 LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
-  filter(!is.na(fruiting))
+  filter(!is.na(fruiting)) 
 
 #LC
 LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
@@ -2107,6 +2200,10 @@ ggsave("./soil_fruiting_boxplots_reduced_plot.png", dpi = 1200, width = 14,
 
 fixed_field_data_processed_trees_soils$locality
 
+
+plot_colors <- c( "#908D8E", "#117733") #"#E37F3EFF",
+n_color = "#908D8E"
+y_color = "#117733"
 
 #removing NAs
 LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_trees_soils %>%
@@ -3640,6 +3737,9 @@ fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_di
                            SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
 
 
+plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
+
+
 clay.0.5.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
   geom_jitter(data = fixed_field_data_processed_trees_soils, aes(fruiting, clay.content.0.5, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
@@ -4775,13 +4875,13 @@ SD.heat.load.plot <- SD.heat.load.plot +
             size = 7)
 SD.heat.load.plot
 
-ggarrange.topo.fruiting.plot <- ggarrange(LM.elevation.plot, LC.Eastness.plot, SD.Eastness.plot, LM.Northness.plot, 
-                                          LC.TWI_values.plot, LM.d.plot, SD.d.plot, LM.heat.load.plot, LC.heat.load.plot,
-                                          common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.topo.fruiting.plot <- ggarrange(LM.elevation.plot, LC.Eastness.plot, 
+                                          LM.d.plot, LC.heat.load.plot,
+                                          common.legend = TRUE, ncol = 2, nrow = 2)
 ggarrange.topo.fruiting.plot
 
-ggsave("./topo_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 14, 
-       height = 20, units = "in") #units = "in"
+ggsave("./topo_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 10, 
+       height = 10, units = "in") #units = "in"
 
 
 ggarrange.full.topo.fruiting.plot.a <- ggarrange(LM.elevation.plot, LC.elevation.plot, SD.elevation.plot,
@@ -4838,6 +4938,7 @@ fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_di
                          QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
                            SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
 
+plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
 
 elevation.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
@@ -4897,9 +4998,9 @@ eastness.plot <- ggplot()+
        color = "Fruiting",
        title = "")+
   scale_fill_manual(values = plot_colors,
-                    labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
   scale_color_manual(values = plot_colors,
-                     labels = c("LM", expression(bold("LC")), expression(bold("SD")))) +
+                     labels = c(expression(bold("LM")), "LC", "SD")) +
   theme_minimal() +
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
@@ -4923,9 +5024,9 @@ northness.plot <- ggplot()+
        color = "Fruiting",
        title = "")+
   scale_fill_manual(values = plot_colors,
-                    labels = c(expression(bold("LM")), "LC", "SD")) +
+                    labels = c("LM", "LC", "SD")) +
   scale_color_manual(values = plot_colors,
-                     labels = c(expression(bold("LM")), "LC", "SD")) +
+                     labels = c("LM", "LC", "SD")) +
   theme_minimal() +
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
@@ -4948,9 +5049,9 @@ twi.plot <- ggplot()+
        color = "Fruiting",
        title = "")+
   scale_fill_manual(values = plot_colors,
-                    labels = c("LM", expression(bold("LC")), "SD")) +
+                    labels = c("LM", "LC", "SD")) +
   scale_color_manual(values = plot_colors,
-                     labels = c("LM", expression(bold("LC")), "SD")) +
+                     labels = c("LM", "LC", "SD")) +
   theme_minimal() +
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
@@ -4966,15 +5067,15 @@ twi.plot
 d.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
-  ylab("TWI")+
+  ylab("Distance to River (m)")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting",
        title = "")+
   scale_fill_manual(values = plot_colors,
-                    labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+                    labels = c(expression(bold("LM")), "LC", "SD")) +
   scale_color_manual(values = plot_colors,
-                     labels = c(expression(bold("LM")), "LC", expression(bold("SD")))) +
+                     labels = c(expression(bold("LM")), "LC", "SD")) +
   theme_minimal() +
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
@@ -4991,15 +5092,15 @@ d.plot
 hli.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, fill = locality, color = locality), alpha = 0.2, , outliers=F)+ #fill = plot_color,
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
-  ylab("Heat Load")+
+  ylab("Heat Load Index")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting",
        title = "")+
   scale_fill_manual(values = plot_colors,
-                    labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+                    labels = c("LM", expression(bold("LC")), "SD")) +
   scale_color_manual(values = plot_colors,
-                     labels = c(expression(bold("LM")), expression(bold("LC")), "SD")) +
+                     labels = c("LM", expression(bold("LC")), "SD")) +
   theme_minimal() +
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
