@@ -1070,6 +1070,11 @@ ggplot() +
 
 # Join Count Statistic tests whether a binary map (categories A/B) shows spatial clustering
 
+N_fruiting_color <- c("#908D8E")
+Y_fruiting_color <- c("#117733")
+
+c("Y" = "#a6761d", "N" = "#FECEA8FF")
+
 ###Test for LM###
 
 #removing the NAs and turning the fruiting variable into a factor
@@ -1083,7 +1088,7 @@ tree.coord.matrix <- as.matrix(cbind(LM_fixed_field_data_processed_terrain_dist$
                                      LM_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.LM <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LM_fixed_field_data_processed_terrain_dist$DBH_ag)))
+knn.dist.LM <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = 15/2) #(40*mean(LM_fixed_field_data_processed_terrain_dist$DBH_ag))
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
 lw.dist.LM <- nb2listwdist(knn.dist.LM, LM_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
@@ -1096,6 +1101,8 @@ joincount.test(fx = LM_fixed_field_data_processed_terrain_dist$fruiting, listw =
 set.seed(42) #need to set a seed first before the permutation test
 joincount.mc.LM <- joincount.mc(fx = LM_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LM, nsim = 1000, zero.policy=T,
              alternative="greater", spChk=NULL)
+joincount.mc.LM
+joincount.mc.LM
 
 
 #plotting the fruiting trees
@@ -1103,7 +1110,7 @@ ggplot() +
   geom_sf(data =river_LM_trans, fill = "#a6cee3") +
   geom_sf(data =LM_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
           size = 2) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+  scale_color_manual(values = c("Y" = Y_fruiting_color, "N" = N_fruiting_color),
                      labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
   labs(title = "LM")+
@@ -1150,7 +1157,7 @@ tree.coord.matrix <- as.matrix(cbind(LC_fixed_field_data_processed_terrain_dist$
                                      LC_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.LC <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(LC_fixed_field_data_processed_terrain_dist$DBH_ag)))
+knn.dist.LC <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = 15/2) #(40*mean(LC_fixed_field_data_processed_terrain_dist$DBH_ag)
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
 lw.dist.LC <- nb2listwdist(knn.dist.LC, LC_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
@@ -1162,11 +1169,16 @@ joincount.test(fx = LC_fixed_field_data_processed_terrain_dist$fruiting, listw =
 #running the monte carlo, permutation test for join count statistics 
 set.seed(42) #need to set a seed first before the permutation test
 joincount.mc(fx = LC_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.LC, nsim = 1000, zero.policy=T,
-             alternative="two.sided", spChk=NULL)
+             alternative="greater", spChk=NULL)
 
 #plotting the fruiting trees
 ggplot() +
   geom_sf(data =river_LC_trans) +
+  geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting)) +
+  labs(color = "Fruiting")
+
+ggplot() +
+  geom_sf(data = BCS_polygon) +
   geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting)) +
   labs(color = "Fruiting")
 
@@ -1175,7 +1187,7 @@ ggplot() +
   geom_sf(data =river_LC_trans, fill = "#a6cee3") +
   geom_sf(data =LC_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
   size = 2) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+  scale_color_manual(values = c("Y" = Y_fruiting_color, "N" = N_fruiting_color),
                      labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
   labs(title = "LC")+
@@ -1200,7 +1212,7 @@ tree.coord.matrix <- as.matrix(cbind(SD_fixed_field_data_processed_terrain_dist$
                                      SD_fixed_field_data_processed_terrain_dist$Y))
 
 #creates nearest neighbor matrix of the tree coordinates within 40 meters of the mean DBH of the population
-knn.dist.SD <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = (40*mean(SD_fixed_field_data_processed_terrain_dist$DBH_ag)))
+knn.dist.SD <- dnearneigh(tree.coord.matrix, d1 = 0, d2 = 15/2) #(40*mean(SD_fixed_field_data_processed_terrain_dist$DBH_ag))
 
 #inverse distance weighting with raw distance-based weights without applying any normalization
 lw.dist.SD <- nb2listwdist(knn.dist.SD, SD_fixed_field_data_processed_terrain_dist, type="idw", style="W", 
@@ -1212,7 +1224,7 @@ joincount.test(fx = SD_fixed_field_data_processed_terrain_dist$fruiting, listw =
 #running the monte carlo, permutation test for join count statistics 
 set.seed(42) #need to set a seed first before the permutation test
 joincount.mc(fx = SD_fixed_field_data_processed_terrain_dist$fruiting, listw = lw.dist.SD, nsim = 1000, zero.policy=T,
-             alternative="two.sided", spChk=NULL)
+             alternative="greater", spChk=NULL)
 
 #plotting the fruiting trees
 ggplot() +
@@ -1225,7 +1237,7 @@ ggplot() +
   geom_sf(data =river_SD_trans, fill = "#a6cee3") +
   geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8,
   size = 2) +
-  scale_color_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
+  scale_color_manual(values = c("Y" = Y_fruiting_color, "N" = N_fruiting_color),
                      labels = c("No", "Yes")) +
   labs(color = "Fruiting")+
   labs(title = "SD")+
@@ -1273,12 +1285,17 @@ fixed_field_data_processed_sf_transformed.labels$locality <- factor(fixed_field_
                                                             #labels = c("LM", "LC", "SD"))
                                                             labels = c("LC", "LM", "SD"))
 
+
+ggplot(fixed_field_data_processed_sf_transformed.labels) +
+  geom_bar(aes(x = locality, y = DBH_ag), stat = "identity")
+
 ggplot(fixed_field_data_processed_sf_transformed.labels) +
   geom_bar(aes(x = locality, fill = fruiting), position = "fill")+
  # geom_sf(data =river_SD_trans, fill = "skyblue") +
  # geom_sf(data =SD_fixed_field_data_processed_terrain_dist, aes(color = fruiting), alpha = 0.8) +
-  scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
-                    labels = c("No", "Yes", "NA")) +
+  scale_fill_manual(values = c("Y" = Y_fruiting_color, "N" = N_fruiting_color),
+                    labels = c("No", "Yes", "NA"),
+                    na.value = "black") +
   labs(fill = "Fruiting")+
   ylab("Proportion")+
   xlab("")+

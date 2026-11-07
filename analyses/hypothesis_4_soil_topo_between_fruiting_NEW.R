@@ -42,6 +42,7 @@ library(spatstat) # to run the nndist function
 library(raster) #to plot rasters
 library(rstatix) #to run the Games-Howell Test
 library(ggnewscale) #to be able to assign different colors to different layered rasters
+library(ggpubr)
 
 # loading in the processed tree data 
 # NOTE: Uncomment and run the line below, line 48, sourcing Data_Processing_Script.R, if the line has not yet to be run across any of the scripts/the environment has been cleared 
@@ -61,7 +62,7 @@ soil_stack_LM_soil_text_clay.content.0.5 <- rast(soil_stack_LM_soil_text$clay.co
 LM_fixed_field_data_processed_spatvect_fruiting <- vect(LM_fixed_field_data_processed_sf)
 
 #extracting the cell information (ID and cell number) for each tree 
-LM_extracted_points <- extract(soil_stack_LM_soil_text_clay.content.0.5, LM_fixed_field_data_processed_spatvect, cells = TRUE, xy = TRUE)
+LM_extracted_points <- extract(soil_stack_LM_soil_text_clay.content.0.5, LM_fixed_field_data_processed_spatvect_fruiting, cells = TRUE, xy = TRUE)
 
 #adding in the fruiting information for each tree
 LM_extracted_points <- LM_extracted_points %>%
@@ -1388,15 +1389,16 @@ ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion
 fruiting_prop_clay_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(clay.content.0.5, fruiting_proportion)) +
   geom_point()+
   xlab("Clay Content 0-5 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") + #Fruiting Proportion
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_clay_content_0.5
 hist(fruiting_soil_grids_df_filtered$clay.content.0.5)
 fitted_line <- lm(fruiting_proportion ~ clay.content.0.5, data = fruiting_soil_grids_df_filtered)
@@ -1418,15 +1420,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_clay_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(clay.content.100.200, fruiting_proportion)) +
   geom_point()+
   xlab("Clay Content 100-200 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_clay_content_100.200
 hist(fruiting_soil_grids_df$clay.content.100.200)
 fitted_line <- lm(fruiting_proportion ~ clay.content.100.200, data = fruiting_soil_grids_df_filtered)
@@ -1446,15 +1450,18 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_silt_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion)) +
   geom_point()+
   xlab("Silt Content 0-5 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(160, 195, by = 10)) + 
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_silt_content_0.5
 hist(fruiting_soil_grids_df_filtered$silt.0.5)
 fitted_line <- lm(fruiting_proportion ~ silt.0.5, data = fruiting_soil_grids_df_filtered)
@@ -1474,15 +1481,16 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_silt_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.100.200, fruiting_proportion)) +
   geom_point()+
   xlab("Silt Content 100-200 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_silt_content_100.200
 hist(fruiting_soil_grids_df_filtered$silt.100.200)
 fitted_line <- lm(fruiting_proportion ~ silt.100.200, data = fruiting_soil_grids_df_filtered)
@@ -1502,15 +1510,16 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_sand_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.0.5, fruiting_proportion)) +
   geom_point()+
   xlab("Sand Content 0-5 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_sand_content_0.5
 hist(fruiting_soil_grids_df_filtered$sand.0.5)
 fitted_line <- lm(fruiting_proportion ~ sand.0.5, data = fruiting_soil_grids_df_filtered)
@@ -1530,15 +1539,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_sand_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.100.200, fruiting_proportion)) +
   geom_point()+
   xlab("Sand Content 100-200 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  scale_x_continuous(breaks = seq(600, 700, by = 30)) + 
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_sand_content_100.200
 hist(fruiting_soil_grids_df_filtered$sand.100.200)
 fitted_line <- lm(fruiting_proportion ~ sand.100.200, data = fruiting_soil_grids_df_filtered)
@@ -1557,16 +1568,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 #SOC content  0-5
 fruiting_prop_soc_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.0.5, fruiting_proportion)) +
   geom_point()+
-  xlab("Soil Organic Content 0-5 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  xlab("SOC 0-5 cm (g/kg)") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_soc_content_0.5
 hist(fruiting_soil_grids_df_filtered$SOC.0.5)
 fitted_line <- lm(fruiting_proportion ~ SOC.0.5, data = fruiting_soil_grids_df_filtered)
@@ -1585,16 +1597,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 #soc content 100-200
 fruiting_prop_soc_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.100.200, fruiting_proportion)) +
   geom_point()+
-  xlab("Soil Organic Content 100-200 cm (g/kg)") +
-  ylab("Fruiting Proportion") +
+  xlab("SOC 100-200 cm (g/kg)") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_soc_content_100.200
 hist(fruiting_soil_grids_df_filtered$SOC.100.200)
 fitted_line <- lm(fruiting_proportion ~ SOC.100.200, data = fruiting_soil_grids_df_filtered)
@@ -1615,15 +1628,16 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_ph_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
   geom_point()+
   xlab("pH 0-5 cm") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_ph_content_0.5
 ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
   geom_point()+
@@ -1647,15 +1661,16 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 fruiting_prop_ph_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_100.200, fruiting_proportion)) +
   geom_point()+
   xlab("pH 100-200 cm") +
-  ylab("Fruiting Proportion") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_ph_content_100.200
 hist(fruiting_soil_grids_df_filtered$ph_100.200)
 fitted_line <- lm(fruiting_proportion ~ ph_100.200, data = fruiting_soil_grids_df_filtered)
@@ -1675,16 +1690,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 #nitrogen content 0-5
 fruiting_prop_nitrogen_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.0.5, fruiting_proportion)) +
   geom_point()+
-  xlab("Nitrogen Content 0-5 cm (cg/kg)") +
-  ylab("Fruiting Proportion") +
+  xlab("Nitrogen 0-5 cm (cg/kg)") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_nitrogen_content_0.5
 hist(fruiting_soil_grids_df_filtered$nitrogen.0.5)
 fitted_line_nitrogen_content_0.5 <- lm(fruiting_proportion ~ nitrogen.0.5, data = fruiting_soil_grids_df_filtered)
@@ -1703,16 +1719,17 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 #nitrogen content 100-200
 fruiting_prop_nitrogen_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
   geom_point()+
-  xlab("Nitrogen Content 100-200 cm (cg/kg)") +
-  ylab("Fruiting Proportion") +
+  xlab("Nitrogen 100-200 cm (cg/kg)") +
+  ylab("") +
   geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
   theme_minimal() +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 24))
 fruiting_prop_nitrogen_content_100.200
 ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
   geom_point() +
@@ -1735,15 +1752,22 @@ qqnorm(fitted_line$residuals) #qqnorm plot
 
 
 #combing all the plots into one figure
-ggarrange(fruiting_prop_clay_content_0.5, fruiting_prop_clay_content_100.200, 
+ggarrange_fruting_slr <- ggarrange(fruiting_prop_clay_content_0.5, fruiting_prop_clay_content_100.200, 
           fruiting_prop_silt_content_0.5, fruiting_prop_silt_content_100.200, 
           fruiting_prop_sand_content_0.5, fruiting_prop_sand_content_100.200, 
           fruiting_prop_ph_content_0.5, fruiting_prop_ph_content_100.200, 
           fruiting_prop_nitrogen_content_0.5, fruiting_prop_nitrogen_content_100.200,
           fruiting_prop_soc_content_0.5, fruiting_prop_soc_content_100.200,
-          nrow = 4, ncol = 3)
-ggsave("./fruiting_prop.slr.plot.png", dpi = 1200, height = 15, 
-       width = 20, units = "in") #units = "in"
+          nrow = 3, ncol = 4)
+ggarrange_fruting_slr
+annotate_figure(ggarrange_fruting_slr,
+                left = text_grob("Fruiting Proportion", color = "black", rot=90, 
+                                 family = "serif", size = 26))
+
+
+
+ggsave("./fruiting_prop.slr.plot.png", dpi = 1200, height = 12, 
+       width = 23, units = "in") #units = "in"
 
 ggsave("./fruiting_prop.slr.plot.png", dpi = 1200, height = 20, 
        width = 15, units = "in") #units = "in"
@@ -2727,12 +2751,13 @@ y_color = "#117733"
 
 
 
+fixed_field_data_processed_terrain_dist
 
 
-#"skyblue"
-#"#5C462B"
-# shallower_soil_color <- c("#C4B07B")
-# deeper_soil_color <- c("#5C462B")
+fixed_field_data_processed_trees_terrain <- fixed_field_data_processed_terrain_dist %>%
+  mutate(fruiting = case_when(fruiting == "N" ~ "Not Fruiting",
+                              fruiting == "Y" ~ "Fruiting",
+                              TRUE ~ NA))
 
 elevation.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.3, , outliers=F)+ #fill = plot_color,
@@ -2746,21 +2771,24 @@ elevation.plot <- ggplot()+
   # scale_fill_manual(values = c("Y" = "#a6761d", "N" = "#FECEA8FF"),
   #                    labels = c("N", "Y")) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme_minimal() +
   scale_y_continuous(breaks = seq(round(min(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED, na.rm = T)), 
                                   round(max(fixed_field_data_processed_trees_terrain$Elevation..m.FIXED, na.rm = T)), 
                                   by = 30)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  
+        axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2770,10 +2798,10 @@ elevation.plot
 elevation.plot.build <- ggplot_build(elevation.plot)
 elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_elevation_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
-        elevation.plot.build.df$ymin[2] - 5), 
-  label = c("a", "b") #adding the significance labels
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(elevation.plot.build.df$ymax[1] + 17,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymax[2] + 8), 
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 elevation.plot <- elevation.plot +
@@ -2786,8 +2814,8 @@ elevation.plot <- elevation.plot +
 elevation.plot
 
 slope.plot <- ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, slope_raster_15_data_pts, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
-  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, slope_raster_15_data_pts, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, slope, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, slope, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
   ylab("Slope (º)")+
   xlab("")+
   labs(fill = "Fruiting", 
@@ -2796,27 +2824,28 @@ slope.plot <- ggplot()+
   # scale_fill_manual(values = plot_colors) +
   # scale_color_manual(values = plot_colors) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
-slope.plot
 #extracting the plot information and building a dataframe with the significance letters
 slope.plot.build <- ggplot_build(slope.plot)
 slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_slope_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
   y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
         slope.plot.build.df$ymin[2] - 2), 
   label = c("a", "a") #adding the significance labels
@@ -2832,8 +2861,8 @@ slope.plot <- slope.plot +
 slope.plot
 
 Eastness.plot <- ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Eastness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
-  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Eastness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, eastness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, eastness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
   ylab("Eastness (º)")+
   xlab("")+
   labs(fill = "Fruiting", 
@@ -2842,17 +2871,19 @@ Eastness.plot <- ggplot()+
   # scale_fill_manual(values = plot_colors) +
   # scale_color_manual(values = plot_colors) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2861,10 +2892,10 @@ Eastness.plot <- ggplot()+
 Eastness.plot.build <- ggplot_build(Eastness.plot)
 Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_eastness_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
   y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
         Eastness.plot.build.df$ymax[2] + 0.1), 
-  label = c("a", "b") #adding the significance labels
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 Eastness.plot <- Eastness.plot +
@@ -2877,8 +2908,8 @@ Eastness.plot <- Eastness.plot +
 Eastness.plot
 
 Northness.plot <- ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Northness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
-  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, Northness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, northness, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, northness, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
   ylab("Northness (º)")+
   xlab("")+
   labs(fill = "Fruiting", 
@@ -2887,22 +2918,23 @@ Northness.plot <- ggplot()+
   # scale_fill_manual(values = plot_colors) +
   # scale_color_manual(values = plot_colors) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
-Northness.plot
 #extracting the plot information and building a dataframe with the significance letters
 Northness.plot.build <- ggplot_build(Northness.plot)
 Northness.plot.build.df <- Northness.plot.build$data[[1]] #storing the 0-5 cm boxplots
@@ -2923,8 +2955,8 @@ Northness.plot <- Northness.plot +
 Northness.plot
 
 TWI_values.plot <- ggplot()+
-  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, TWI_values, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
-  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, TWI_values, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
+  geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, twi, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
+  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, twi, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
   ylab("Topographic Wetness Index")+
   xlab("")+
   labs(fill = "Fruiting", 
@@ -2933,17 +2965,19 @@ TWI_values.plot <- ggplot()+
   # scale_fill_manual(values = plot_colors) +
   # scale_color_manual(values = plot_colors) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2952,10 +2986,10 @@ TWI_values.plot <- ggplot()+
 TWI_values.plot.build <- ggplot_build(TWI_values.plot)
 TWI_values.plot.build.df <- TWI_values.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_twi_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(TWI_values.plot.build.df$ymax[1] + 1.6,  #adding 5 units to the whisker y-maxs
-        TWI_values.plot.build.df$ymax[2] + 3.3), 
-  label = c("a", "b") #adding the significance labels
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(TWI_values.plot.build.df$ymax[1] + 3.7,  #adding 5 units to the whisker y-maxs
+        TWI_values.plot.build.df$ymax[2] + 2), 
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 TWI_values.plot <- TWI_values.plot +
@@ -2978,25 +3012,26 @@ d.plot <- ggplot()+
   # scale_fill_manual(values = plot_colors) +
   # scale_color_manual(values = plot_colors) +
   scale_fill_manual(
-    name = "Fruiting",
-    values = c("N" = n_color, "Y" = y_color), 
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_color_manual(
-    name = "Fruiting",
-    values = c("N" = n_color,"Y" = y_color),
-    breaks = c("N", "Y"),
-    labels = c("No", "Yes")) +
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_y_continuous(breaks = seq(round(min(fixed_field_data_processed_trees_terrain$d)), 
                                   round(max(fixed_field_data_processed_trees_terrain$d)), 
                                   by = 20)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
-d.plot
 #extracting the plot information and building a dataframe with the significance letters
 d.plot.build <- ggplot_build(d.plot)
 d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
@@ -3018,16 +3053,26 @@ d.plot
 
 heat.load.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, heat.load, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
-  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, heat.load, width = 0.2, fill = fruiting, color = fruiting),  alpha = 0.3)+
+  geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, heat.load, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
   ylab("Heat Load Index")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting")+
+  scale_fill_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -3036,10 +3081,10 @@ heat.load.plot <- ggplot()+
 heat.load.plot.build <- ggplot_build(heat.load.plot)
 heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_heat_load_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(heat.load.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.08,  #adding 5 units to the whisker y-maxs
         heat.load.plot.build.df$ymax[2] + 0.1), 
-  label = c("a", "b") #adding the significance labels
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 heat.load.plot <- heat.load.plot +
@@ -3050,6 +3095,15 @@ heat.load.plot <- heat.load.plot +
             fontface = "bold",
             size = 7)
 heat.load.plot
+
+library(ggpubr)
+ggarrange.topo.plot <- ggarrange(elevation.plot, slope.plot, Eastness.plot, 
+                                 Northness.plot, TWI_values.plot, d.plot, heat.load.plot,
+                                 common.legend = TRUE, ncol = 3, nrow = 4)
+ggarrange.topo.plot
+
+ggsave("./topo_fruiting_boxplots_plot.png", dpi = 1200, width = 14, 
+       height = 20, units = "in") #units = "in"
 
 ggarrange.topo.plot <- ggarrange(elevation.plot, slope.plot, Eastness.plot, 
                                  Northness.plot, TWI_values.plot, d.plot, heat.load.plot,

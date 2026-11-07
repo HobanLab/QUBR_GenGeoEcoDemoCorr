@@ -106,7 +106,7 @@ ggplot(data = BCS_polygon) +
   geom_sf(data = fixed_field_data_processed_sf_transformed, aes(color = Locality)) + 
   coord_sf(xlim = c(LM_min_all_locality_long, LM_max_all_locality_long), 
            ylim = c(LM_min_all_locality_lat, LM_max_all_locality_lat))+
-  theme_classic()
+  theme_minimal()
 
 #creating LM boundary shapefile, turning sf of all points into sfc
 LM_fixed_field_data_processed_sf <- fixed_field_data_processed_sf_transformed %>%
@@ -154,7 +154,7 @@ LC_fixed_field_data_processed_box <- fixed_field_data_processed_sf_transformed %
   st_as_sfc()
 
 # plotting the points, river, and bounding box
-ggplot(LC_fixed_field_data_processed_box)+
+ggplot()+
   geom_sf() +
   geom_sf(data = river_LC_trans) +
   geom_sf(data = LC_fixed_field_data_processed_sf)

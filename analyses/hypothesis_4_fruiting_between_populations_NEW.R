@@ -4072,6 +4072,16 @@ y_color = "#117733"
 # shallower_soil_color <- c("#C4B07B")
 # deeper_soil_color <- c("#5C462B")
 
+LM_fixed_field_data_processed_terrain_dist <- LM_fixed_field_data_processed_terrain_dist %>%
+  mutate(fruiting = case_when(fruiting == "N" ~ "Not Fruiting",
+                              fruiting == "Y" ~ "Fruiting",
+                              TRUE ~ NA))
+
+LC_fixed_field_data_processed_terrain_dist <- LC_fixed_field_data_processed_terrain_dist %>%
+  mutate(fruiting = case_when(fruiting == "N" ~ "Not Fruiting",
+                              fruiting == "Y" ~ "Fruiting",
+                              TRUE ~ NA))
+
 LM.elevation.plot <- ggplot()+
   geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, fill = fruiting, color = fruiting), alpha = 0.2, , outliers=F)+ #fill = plot_color,
   geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
@@ -4080,14 +4090,26 @@ LM.elevation.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting",
        title = "LM")+
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme_minimal() +
-  scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
-                                  round(max(LM_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
-                                  by = 30)) +
+  scale_y_continuous(breaks = seq(460, 510, 
+                                  by = 10)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  
+        axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -4097,10 +4119,10 @@ LM.elevation.plot
 elevation.plot.build <- ggplot_build(LM.elevation.plot)
 elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_elevation_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(elevation.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
-        elevation.plot.build.df$ymin[2] - 5), 
-  label = c("a", "b") #adding the significance labels
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(elevation.plot.build.df$ymax[1] + 13.5,  #adding 5 units to the whisker y-maxs
+        elevation.plot.build.df$ymax[2] + 5), 
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 LM.elevation.plot <- LM.elevation.plot +
@@ -4317,7 +4339,7 @@ LM.Eastness.plot <- ggplot()+
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -4350,11 +4372,23 @@ LC.Eastness.plot <- ggplot()+
   labs(fill = "Fruiting", 
        color = "Fruiting",
        title = "LC")+
+  scale_fill_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  # scale_fill_manual(values = plot_colors) +
+  # scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -4364,10 +4398,10 @@ LC.Eastness.plot
 Eastness.plot.build <- ggplot_build(LC.Eastness.plot)
 Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_eastness_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(Eastness.plot.build.df$ymax[1] + 1.1,  #adding 5 units to the whisker y-maxs
         Eastness.plot.build.df$ymax[2] + 0.1), 
-  label = c("a", "b") #adding the significance labels
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 LC.Eastness.plot <- LC.Eastness.plot +
@@ -4651,13 +4685,23 @@ LM.d.plot <- ggplot()+
        color = "Fruiting",
        title = "LM")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
   scale_y_continuous(breaks = seq(round(min(LM_fixed_field_data_processed_terrain_dist$d)), 
                                   round(max(LM_fixed_field_data_processed_terrain_dist$d)), 
                                   by = 20)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -4667,10 +4711,10 @@ LM.d.plot
 d.plot.build <- ggplot_build(d.plot)
 d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_distance_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(d.plot.build.df$ymin[1] - 5,  #adding 5 units to the whisker y-maxs
-        d.plot.build.df$ymin[2] - 5), 
-  label = c("a",  "b") #adding the significance labels
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(d.plot.build.df$ymax[1] + 57.5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymax[2] + 58), 
+  label = c("b",  "a") #adding the significance labels
 )
 #adding the significance letters to the plot
 LM.d.plot <- LM.d.plot +
@@ -4809,33 +4853,44 @@ LC.heat.load.plot <- ggplot()+
        color = "Fruiting",
        title = "LC")+
   theme_minimal() +
-  scale_fill_manual(values = plot_colors) +
-  scale_color_manual(values = plot_colors) +
+  scale_fill_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color, "Fruiting" = y_color), 
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_color_manual(
+    name = "Fruiting?",
+    values = c("Not Fruiting" = n_color,"Fruiting" = y_color),
+    breaks = c("Not Fruiting", "Fruiting"),
+    labels = c("Not Fruiting", "Fruiting"),
+    guide = guide_legend(reverse = TRUE)) +
+  scale_y_continuous(breaks = seq(0.50, 1, by = 0.05)) + 
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
         legend.text = element_text(size= 18))
 LC.heat.load.plot
 #extracting the plot information and building a dataframe with the significance letters
-heat.load.plot.build <- ggplot_build(heat.load.plot)
+heat.load.plot.build <- ggplot_build(LC.heat.load.plot)
 heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_heat_load_df <- data.frame(
-  fruiting = c("N", "Y"), #storing the localities
-  y = c(heat.load.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
-        heat.load.plot.build.df$ymax[2] + 0.1), 
-  label = c("a", "b") #adding the significance labels
+  fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
+  y = c(heat.load.plot.build.df$ymax[1] + 0.058,  #adding 5 units to the whisker y-maxs
+        heat.load.plot.build.df$ymax[2] + 0.05), 
+  label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
-LM.heat.load.plot <- LM.heat.load.plot +
+LC.heat.load.plot <- LC.heat.load.plot +
   geom_text(data = significance_letters_heat_load_df, 
             aes(x = fruiting, y=y, 
                 label = label),
             color = plot_colors,
             fontface = "bold",
             size = 7)
-LM.heat.load.plot
+LC.heat.load.plot
 
 
 SD.heat.load.plot <- ggplot()+
@@ -4853,7 +4908,7 @@ SD.heat.load.plot <- ggplot()+
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
-        text = element_text(family = "serif"),
+        text = element_text(family = "serif", color = "black"),
         legend.text = element_text(size= 18))
 SD.heat.load.plot
 #extracting the plot information and building a dataframe with the significance letters
@@ -4881,7 +4936,7 @@ ggarrange.topo.fruiting.plot <- ggarrange(LM.elevation.plot, LC.Eastness.plot,
 ggarrange.topo.fruiting.plot
 
 ggsave("./topo_fruiting_pop_boxplots_plot.png", dpi = 1200, width = 10, 
-       height = 10, units = "in") #units = "in"
+       height = 8, units = "in") #units = "in"
 
 
 ggarrange.full.topo.fruiting.plot.a <- ggarrange(LM.elevation.plot, LC.elevation.plot, SD.elevation.plot,

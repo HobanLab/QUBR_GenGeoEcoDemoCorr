@@ -101,8 +101,9 @@ fixed_field_data_processed <- fixed_field_data_processed %>%
 
 #creating a point shapefile of all points with lat lon coordinates and other attributes in WGS 1984
 #sf objects are dataframes with rows representing simple features with attributes and a simple feature geometry list-column (sfc)
-fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed, 
+fixed_field_data_processed_sf <- st_as_sf(fixed_field_data_processed,
                                           coords = c("long", "lat"), crs = 4326)
+
 
 #creating a transformed point shapefile with UTM 12 N an equal area projection
 fixed_field_data_processed_sf_transformed <- st_transform(fixed_field_data_processed_sf, crs = 26912)
@@ -2639,7 +2640,7 @@ all_known_pop_soil_HLI <- raster::extract(heat.load.raster.all.pops, all_pop_loc
 #creating the eastness and northness values
 all_populations_aspect_raster_15
 #first, converting aspect values to radian
-all_known_pop_soil_aspect_radian = ((all_known_pop_soil_aspect$aspect * pi) / 180) # creating a column that is the radians
+all_known_pop_soil_aspect_radian = ((all_known_pop_soil_aspect * pi) / 180) # creating a column that is the radians
   
 #creating eastness
 all_known_pop_soil_eastness = sin(all_known_pop_soil_aspect_radian) # creating the eastness column
