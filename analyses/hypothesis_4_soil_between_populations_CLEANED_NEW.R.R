@@ -1488,7 +1488,7 @@ clay.content.plot <- ggplot()+
                                               fixed_field_data_processed_trees_soils$clay.content.100.200))), 
                                   by = 20)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1501,12 +1501,12 @@ clay.content.plot.build.deep.df <- clay.content.plot.build$data[[3]] #storing th
 significance_letters_df <- data.frame(
   Locality = c("LM", "LC", "SD", #storing the localities
                "LM", "LC", "SD"),
-  y = c(clay.content.plot.build.shallow.df$ymax[1] + 8,  #adding 5 units to the whisker y-maxs
-        clay.content.plot.build.shallow.df$ymax[2] + 8, 
-        clay.content.plot.build.shallow.df$ymax[3] + 8,
-        clay.content.plot.build.deep.df$ymax[1] + 8, 
-        clay.content.plot.build.deep.df$ymax[2] + 8, 
-        clay.content.plot.build.deep.df$ymax[3] + 8), 
+  y = c(clay.content.plot.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
+        clay.content.plot.build.shallow.df$ymax[2] + 5, 
+        clay.content.plot.build.shallow.df$ymax[3] + 5,
+        clay.content.plot.build.deep.df$ymax[1] + 7, 
+        clay.content.plot.build.deep.df$ymax[2] + 7, 
+        clay.content.plot.build.deep.df$ymax[3] + 7), 
   label = c("a", "a", "b", #adding the significance labels
             "x", "y", "z")
   
@@ -1537,7 +1537,7 @@ silt.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1550,9 +1550,9 @@ silt.plot.build.deep.df <- silt.plot.build$data[[3]] #storing the 100-200 cm box
 significance_letters_silt_df <- data.frame(
   Locality = c("LM", "LC", "SD", #storing the localities
                "LM", "LC", "SD"),
-  y = c(silt.plot.build.shallow.df$ymax[1] + 2,  #adding 5 units to the whisker y-maxs
-        silt.plot.build.shallow.df$ymax[2] + 2, 
-        silt.plot.build.shallow.df$ymax[3] + 2,
+  y = c(silt.plot.build.shallow.df$ymax[1] + 3,  #adding 5 units to the whisker y-maxs
+        silt.plot.build.shallow.df$ymax[2] + 3, 
+        silt.plot.build.shallow.df$ymax[3] + 3,
         silt.plot.build.deep.df$ymin[1] - 2, 
         silt.plot.build.deep.df$ymin[2] - 2, 
         silt.plot.build.deep.df$ymin[3] - 2), 
@@ -1587,7 +1587,7 @@ SOC.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1600,9 +1600,9 @@ SOC.plot.build.deep.df <- SOC.plot.build$data[[3]] #storing the 100-200 cm boxpl
 significance_letters_SOC_df <- data.frame(
   Locality = c("LM", "LC", "SD", #storing the localities
                "LM", "LC", "SD"),
-  y = c(SOC.plot.build.shallow.df$ymax[1] + 15,  #adding 5 units to the whisker y-maxs
-        SOC.plot.build.shallow.df$ymax[2] + 15, 
-        SOC.plot.build.shallow.df$ymax[3] + 15,
+  y = c(SOC.plot.build.shallow.df$ymax[1] + 17,  #adding 5 units to the whisker y-maxs
+        SOC.plot.build.shallow.df$ymax[2] + 17, 
+        SOC.plot.build.shallow.df$ymax[3] + 17,
         SOC.plot.build.deep.df$ymax[1] + 15, 
         SOC.plot.build.deep.df$ymax[2] + 15, 
         SOC.plot.build.deep.df$ymax[3] + 15), 
@@ -1636,7 +1636,7 @@ vol_water_.10.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1691,7 +1691,7 @@ sand.plot <- ggplot()+
                                                fixed_field_data_processed_trees_soils$sand.100.200)), 1), 
                                   by = 20)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1703,9 +1703,9 @@ sand.build.deep.df <- sand.plot.build$data[[3]] #storing the 100-200 cm boxplots
 significance_letters_sand_df <- data.frame(
   Locality = c("LM", "LC", "SD", #storing the localities
                "LM", "LC", "SD"),
-  y = c(sand.build.shallow.df$ymax[1] + 5,  #adding 5 units to the whisker y-maxs
-        sand.build.shallow.df$ymax[2] + 5, 
-        sand.build.shallow.df$ymax[3] + 5,
+  y = c(sand.build.shallow.df$ymax[1] + 7,  #adding 5 units to the whisker y-maxs
+        sand.build.shallow.df$ymax[2] + 7, 
+        sand.build.shallow.df$ymax[3] + 7,
         sand.build.deep.df$ymin[1] - 5, 
         sand.build.deep.df$ymin[2] - 5, 
         sand.build.deep.df$ymin[3] - 5), 
@@ -1741,7 +1741,7 @@ vol_water_.1500kPa.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1789,7 +1789,7 @@ ph.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18,color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1804,9 +1804,9 @@ significance_letters_ph_df <- data.frame(
   y = c(ph.build.shallow.df$ymin[1] - 0.05,  #adding 5 units to the whisker y-maxs
         ph.build.shallow.df$ymin[2] - 0.05, 
         ph.build.shallow.df$ymin[3] - 0.05,
-        ph.build.deep.df$ymax[1] + 0.05, 
-        ph.build.deep.df$ymax[2] + 0.05, 
-        ph.build.deep.df$ymax[3] + 0.05), 
+        ph.build.deep.df$ymax[1] + 0.06, 
+        ph.build.deep.df$ymax[2] + 0.06, 
+        ph.build.deep.df$ymax[3] + 0.06), 
   label = c("a", "b", "c", #adding the significance labels
             "x", "y", "z")
   
@@ -1837,7 +1837,7 @@ nitrogen.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1885,7 +1885,7 @@ sandy_avail_water.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1934,7 +1934,7 @@ vol_water.33.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -1982,7 +1982,7 @@ clay_loam_avail_water.plot <- ggplot()+
   #ylab(expression(paste("Clay Content 0-5 cm (cm"^3*"/cm"^3*")")))+
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2084,6 +2084,8 @@ elevation.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Elevation..m.FIXED, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
   ylab("Elevation (m)")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme_minimal() +
@@ -2091,7 +2093,7 @@ elevation.plot <- ggplot()+
                                   round(max(means_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED, na.rm = T)), 
                                   by = 30)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2122,11 +2124,13 @@ slope.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, slope_raster_15_data_pts, width = 0.2, fill = Locality, color = Locality),  alpha = 0.3)+
   ylab("Slope (º)")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2136,7 +2140,7 @@ slope.plot.build <- ggplot_build(slope.plot)
 slope.plot.build.df <- slope.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_slope_df <- data.frame(
   Locality = c("LM", "LC", "SD"), #storing the localities
-  y = c(slope.plot.build.df$ymin[1] - 2,  #adding 5 units to the whisker y-maxs
+  y = c(slope.plot.build.df$ymin[1] - 2.5,  #adding 5 units to the whisker y-maxs
         slope.plot.build.df$ymin[2] - 2, 
         slope.plot.build.df$ymin[3] - 2), 
   label = c("a", "b", "a") #adding the significance labels
@@ -2156,11 +2160,13 @@ Eastness.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Eastness, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
   ylab("Eastness (º)")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2170,7 +2176,7 @@ Eastness.plot.build <- ggplot_build(Eastness.plot)
 Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_eastness_df <- data.frame(
   Locality = c("LM", "LC", "SD"), #storing the localities
-  y = c(Eastness.plot.build.df$ymax[1] + 0.1,  #adding 5 units to the whisker y-maxs
+  y = c(Eastness.plot.build.df$ymax[1] + 0.2,  #adding 5 units to the whisker y-maxs
         Eastness.plot.build.df$ymax[2] + 0.1, 
         Eastness.plot.build.df$ymax[3] + 0.1), 
   label = c("a", "a", "b") #adding the significance labels
@@ -2190,11 +2196,13 @@ Northness.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, Northness, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
   ylab("Northness (º)")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2224,11 +2232,13 @@ TWI_values.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, TWI_values, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
   ylab("Topographic Wetness Index")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2256,8 +2266,10 @@ TWI_values.plot
 d.plot <- ggplot()+
   geom_boxplot(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, d, fill = Locality, color = Locality), alpha = 0.2, outliers=F)+ #fill = plot_color,
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, d, width = 0.2, fill = Locality, color = Locality), alpha = 0.3)+
-  ylab("Distance from River (m)")+
+  ylab("Distance to Riverbed (m)")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
@@ -2265,7 +2277,7 @@ d.plot <- ggplot()+
                                   round(max(means_fixed_field_data_processed_terrain_dist$d)), 
                                   by = 20)) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2295,11 +2307,13 @@ heat.load.plot <- ggplot()+
   geom_jitter(data = means_fixed_field_data_processed_terrain_dist, aes(Locality, heat.load, width = 0.2, fill = Locality, color = Locality),  alpha = 0.3)+
   ylab("Heat Load Index")+
   xlab("")+
+  labs(fill = "Focal Population",
+       color = "Focal Population") +
   theme_minimal() +
   scale_fill_manual(values = plot_colors) +
   scale_color_manual(values = plot_colors) +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
         text = element_text(family = "serif"),
@@ -2310,7 +2324,7 @@ heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm bo
 significance_letters_heat_load_df <- data.frame(
   Locality = c("LM", "LC", "SD"), #storing the localities
   y = c(heat.load.plot.build.df$ymax[1] + 0.03,  #adding 5 units to the whisker y-maxs
-        heat.load.plot.build.df$ymax[2] + 0.075, 
+        heat.load.plot.build.df$ymax[2] + 0.077, 
         heat.load.plot.build.df$ymax[3] + 0.13), 
   label = c("a", "a", "b") #adding the significance labels
 )

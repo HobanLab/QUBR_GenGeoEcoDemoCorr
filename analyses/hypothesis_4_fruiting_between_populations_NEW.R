@@ -4120,7 +4120,7 @@ elevation.plot.build <- ggplot_build(LM.elevation.plot)
 elevation.plot.build.df <- elevation.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_elevation_df <- data.frame(
   fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
-  y = c(elevation.plot.build.df$ymax[1] + 13.5,  #adding 5 units to the whisker y-maxs
+  y = c(elevation.plot.build.df$ymax[1] + 11,  #adding 5 units to the whisker y-maxs
         elevation.plot.build.df$ymax[2] + 5), 
   label = c("b", "a") #adding the significance labels
 )
@@ -4399,7 +4399,7 @@ Eastness.plot.build <- ggplot_build(LC.Eastness.plot)
 Eastness.plot.build.df <- Eastness.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_eastness_df <- data.frame(
   fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
-  y = c(Eastness.plot.build.df$ymax[1] + 1.1,  #adding 5 units to the whisker y-maxs
+  y = c(Eastness.plot.build.df$ymax[1] + 1.3,  #adding 5 units to the whisker y-maxs
         Eastness.plot.build.df$ymax[2] + 0.1), 
   label = c("b", "a") #adding the significance labels
 )
@@ -4679,7 +4679,7 @@ SD.TWI_values.plot
 LM.d.plot <- ggplot()+
   geom_boxplot(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, d, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
   geom_jitter(data = LM_fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
-  ylab("Distance from River (m)")+
+  ylab("Distance to Riverbed (m)")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting",
@@ -4712,8 +4712,8 @@ d.plot.build <- ggplot_build(d.plot)
 d.plot.build.df <- d.plot.build$data[[1]] #storing the 0-5 cm boxplots
 significance_letters_distance_df <- data.frame(
   fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
-  y = c(d.plot.build.df$ymax[1] + 57.5,  #adding 5 units to the whisker y-maxs
-        d.plot.build.df$ymax[2] + 58), 
+  y = c(d.plot.build.df$ymax[1] + 49.5,  #adding 5 units to the whisker y-maxs
+        d.plot.build.df$ymax[2] + 50), 
   label = c("b",  "a") #adding the significance labels
 )
 #adding the significance letters to the plot
@@ -4879,7 +4879,7 @@ heat.load.plot.build.df <- heat.load.plot.build$data[[1]] #storing the 0-5 cm bo
 significance_letters_heat_load_df <- data.frame(
   fruiting = c("Not Fruiting", "Fruiting"), #storing the localities
   y = c(heat.load.plot.build.df$ymax[1] + 0.058,  #adding 5 units to the whisker y-maxs
-        heat.load.plot.build.df$ymax[2] + 0.05), 
+        heat.load.plot.build.df$ymax[2] + 0.072), 
   label = c("b", "a") #adding the significance labels
 )
 #adding the significance letters to the plot
@@ -4956,7 +4956,10 @@ ggsave("./full_topo_fruiting_pop_boxplots_plot.b.png", dpi = 1200, width = 14,
        height = 20, units = "in") #units = "in"
 
 
-
+SD_fixed_field_data_processed_terrain_dist <- SD_fixed_field_data_processed_terrain_dist %>%
+  mutate(fruiting = case_when(fruiting == "Y" ~ "Fruiting",
+                              fruiting == "N" ~ "Not Fruiting",
+                              fruiting == NA ~ NA))
 
 fixed_field_data_processed_terrain_dist <- bind_rows(
   LM_fixed_field_data_processed_terrain_dist,
@@ -4993,6 +4996,9 @@ fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_di
                          QUBR_ID %in% SD_fixed_field_data_processed_terrain_dist$QUBR_ID ~
                            SD_fixed_field_data_processed_terrain_dist$SD_TWI_values[match(QUBR_ID, SD_fixed_field_data_processed_terrain_dist$QUBR_ID)]))
 
+fixed_field_data_processed_terrain_dist <- fixed_field_data_processed_terrain_dist %>%
+  filter(!is.na(fruiting))
+
 plot_colors <- c("#875E3BFF", "#E37F3EFF", "#B3C6ADFF")
 
 elevation.plot <- ggplot()+
@@ -5000,8 +5006,8 @@ elevation.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, Elevation..m.FIXED, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Elevation (m)")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c(expression(bold("LM")), "LC", "SD")) +
@@ -5011,12 +5017,12 @@ elevation.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 elevation.plot
 
 slope.plot <- ggplot()+
@@ -5024,8 +5030,8 @@ slope.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, slope, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Slope (º)")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c("LM", "LC", "SD")) +
@@ -5035,12 +5041,12 @@ slope.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 slope.plot
 
 
@@ -5049,8 +5055,8 @@ eastness.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, eastness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Eastness")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c(expression(bold("LM")), "LC", "SD")) +
@@ -5060,12 +5066,12 @@ eastness.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 eastness.plot
 
 
@@ -5075,8 +5081,8 @@ northness.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, northness, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Northness")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c("LM", "LC", "SD")) +
@@ -5086,12 +5092,12 @@ northness.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 northness.plot
 
 
@@ -5100,8 +5106,8 @@ twi.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, twi, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("TWI")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c("LM", "LC", "SD")) +
@@ -5111,12 +5117,12 @@ twi.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 twi.plot
 
 d.plot <- ggplot()+
@@ -5124,8 +5130,8 @@ d.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, d, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Distance to River (m)")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c(expression(bold("LM")), "LC", "SD")) +
@@ -5135,12 +5141,12 @@ d.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 d.plot
 
 
@@ -5149,8 +5155,8 @@ hli.plot <- ggplot()+
   geom_jitter(data = fixed_field_data_processed_terrain_dist, aes(fruiting, heat.load, width = 0.2, fill = locality, color = locality), alpha = 0.3)+
   ylab("Heat Load Index")+
   xlab("")+
-  labs(fill = "Fruiting", 
-       color = "Fruiting",
+  labs(fill = "Focal Population", 
+       color = "Focal Population",
        title = "")+
   scale_fill_manual(values = plot_colors,
                     labels = c("LM", expression(bold("LC")), "SD")) +
@@ -5160,12 +5166,12 @@ hli.plot <- ggplot()+
   # scale_y_continuous(breaks = seq(round(min(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 round(max(SD_fixed_field_data_processed_terrain_dist$Elevation..m.FIXED)), 
   #                                 by = 30)) +
-  theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
-        label =element_text(size= 18, family = "serif"),
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20, color = "black"),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"),
-        legend.text = element_text(size= 18))
+        legend.text = element_text(size= 20))
 hli.plot
 
 

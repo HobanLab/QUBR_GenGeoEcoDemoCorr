@@ -1329,15 +1329,61 @@ ggplot()+
   scale_color_manual(
     name = "Trees",
     values = c("Actual Trees" = "red", 
-               "Randomly Generated" = "grey40"))+
+               "Randomly Generated" = "grey60"))+
   theme_minimal()+
   # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
   labs(title = "LM")+
   theme_classic() +
-  theme(title= element_text(size=18), 
-        legend.text = element_text(size=15), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
-        axis.title.y =element_text(size= 18),
+  theme(title= element_text(size= 20), 
+        legend.text = element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        text = element_text(family = "serif"))
+
+
+ggplot()+ 
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_LC_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(LC_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=LC_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", 
+               "Randomly Generated" = "grey60"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "LC")+
+  theme_classic() +
+  theme(title= element_text(size= 20), 
+        legend.text = element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        text = element_text(family = "serif"))
+
+
+ggplot()+ 
+  geom_stars(data=na.omit(st_as_stars(dist_near_river_buffer_SD_inverse_im_cropped), aes(fill = layer)))+ #plotting the distance inverse raster 
+  scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
+  geom_sf(data=st_cast(SD_ANN_Anlysis_inside_on_outside_river$random_points$geom, "POINT"), aes(color = "Randomly Generated"), fill = NA, shape = 16) + #plotting the random points
+  geom_sf(data=SD_fixed_field_data_processed_sf, aes(color = "Actual Trees"), shape = 16)+ #plotting the tree points
+  labs(color = "Actual Trees", fill = "Inverse Distance (1/m)", 
+       x = "Longitude", 
+       y = "Latitude")+
+  scale_color_manual(
+    name = "Trees",
+    values = c("Actual Trees" = "red", 
+               "Randomly Generated" = "grey60"))+
+  theme_minimal()+
+  # guides(color = guide_legend(override.aes = list(shape = c(16,16), linetype = 0)))+
+  labs(title = "SD")+
+  theme_classic() +
+  theme(title= element_text(size= 20), 
+        legend.text = element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
         text = element_text(family = "serif"))
 
 #### FIGURES FOR PAPER ####

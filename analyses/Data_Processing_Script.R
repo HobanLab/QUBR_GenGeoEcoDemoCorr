@@ -1986,7 +1986,6 @@ LC_fixed_field_data_processed_terrain_dist <- cbind(LC_fixed_field_data_processe
 #SD
 SD_fixed_field_data_processed_terrain_dist <- cbind(SD_fixed_field_data_processed_terrain, SD_fixed_field_data_processed_distance)
 
-
 #### Load in Soil Metric Data ####
 
 # loading in soil textures raster tifs from CONABIO

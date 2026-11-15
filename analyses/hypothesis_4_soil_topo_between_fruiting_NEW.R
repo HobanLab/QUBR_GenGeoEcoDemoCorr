@@ -3004,7 +3004,7 @@ TWI_values.plot
 d.plot <- ggplot()+
   geom_boxplot(data = fixed_field_data_processed_trees_terrain, aes(fruiting, d, fill = fruiting, color = fruiting), alpha = 0.2, outliers=F)+ #fill = plot_color,
   geom_jitter(data = fixed_field_data_processed_trees_terrain, aes(fruiting, d, width = 0.2, fill = fruiting, color = fruiting), alpha = 0.3)+
-  ylab("Distance from River (m)")+
+  ylab("Distance to Riverbed (m)")+
   xlab("")+
   labs(fill = "Fruiting", 
        color = "Fruiting")+

@@ -292,7 +292,7 @@ random_pop_soils <- function(){
       soil_metric = all_known_pop_soils$CEM_15_utm_all_populations
     } else if (Soil.metrics[i] == "Slope"){
       soil_raster = all_populations_slope_raster_15
-      soil_metric = all_known_pop_soils$slope
+      soil_metric = all_known_pop_soils$all_known_pop_soil_slope
     } else if (Soil.metrics[i] == "Eastness"){
       soil_metric = all_known_pop_soils$all_known_pop_soil_eastness
     } else if (Soil.metrics[i] == "Northness"){
@@ -326,7 +326,7 @@ random_pop_soils <- function(){
       }
       
       #generating and extracting the randomly distributed population soil metric mean
-      random_20 <- st_sample(BCS_polygon_box_sf_cropped, 20) #select random 20 points within the cropped BCS polygon
+      random_20 <- st_sample(BCS_polygon_box_sf_cropped, 29) #select random 20 points within the cropped BCS polygon
       random_20 <- random_20 %>%
         st_as_sf() #making sure the random points are stored as simple features
       
@@ -361,7 +361,7 @@ random_pop_soils <- function(){
         random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
         
         #first, converting aspect values to radian
-        random_20_aspect_radian = ((random_20_aspect$aspect * pi) / 180) # creating a column that is the radians
+        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
         
         #creating eastness
         random_20_eastness = sin(random_20_aspect_radian) # creating the eastness column
@@ -375,7 +375,7 @@ random_pop_soils <- function(){
         random_20_aspect <- raster::extract(all_populations_aspect_raster_15, random_20) #extracting the soil metrics for the random points
         
         #first, converting aspect values to radian
-        random_20_aspect_radian = ((random_20_aspect$aspect * pi) / 180) # creating a column that is the radians
+        random_20_aspect_radian = ((random_20_aspect * pi) / 180) # creating a column that is the radians
 
         #creating northness
         random_20_northness = cos(random_20_aspect_radian) # creating the northness column
@@ -418,9 +418,9 @@ random_pop_soils <- function(){
         random_20_pop_soil <- raster::extract(soil_raster, random_20) 
         
         # calculating the mean, median, and sd
-        random_mean <- mean(random_20_pop_soil$slope, na.rm = TRUE) 
-        random_median <- median(random_20_pop_soil$slope, na.rm = TRUE) 
-        random_sd <- sd(random_20_pop_soil$slope, na.rm = TRUE) 
+        random_mean <- mean(random_20_pop_soil, na.rm = TRUE) 
+        random_median <- median(random_20_pop_soil, na.rm = TRUE) 
+        random_sd <- sd(random_20_pop_soil, na.rm = TRUE) 
         
       }
       
@@ -814,97 +814,231 @@ mean(sandy_water_0.5, na.rm = T)
 # editing the histograms for the paper
 options(scipen=999)
 random_pop_soils_function$known_soil_means
-#sand available water
-sandy_water_0.5 <- random_pop_soils_function$plot_list$`Sand Available Water 0-5_Histogram`[1]$data$random_soil_means
+
+random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`
+
+random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`[1]$data
+
+
+#clay content 0.5
+clay_content_0.5 <- random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`[1]$data$random_soil_sds
 ggplot() +
-  geom_histogram(aes(x=random_pop_soils_function$plot_list$`Sand Available Water 0-5_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
-  geom_vline(xintercept=random_pop_soils_function$known_soil_means[19], col = "red") + 
-  xlab(expression(paste("Mean Sandy Available Water (cm"^3*"/cm"^3*")")))+
+  geom_histogram(aes(x=random_pop_soils_function$plot_list_sd$`Clay 0-5_Histogram`[1]$data$random_soil_sds), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[1], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Clay Content 0-5 cm (g/kg)")))+
   ylab("Frequency")+
   #labs(title = "Mean Sandy Available Water (cm3/m3)") +
-  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[19], 2)), 
-            x = 195, y = 75, color = "red", size= 6, family = "serif") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[1], 2)), 
+            x = 21, y = 75, color = "red", size= 6, family = "serif") +
   theme_classic() +
-  xlim(c(min(sandy_water_0.5), max(sandy_water_0.5)))+ 
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
+  #xlim(c(min(clay_content_0.5), max(clay_content_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"))
 
-
-#Volumetric Water Content -33 kPa 100-200 cm available water
-random_pop_soils_function$known_soil_means[12]
-vwc_100_200_means <- random_pop_soils_function$plot_list$`Volume of water content -33 kpa 100-200_Histogram`[1]$data$random_soil_means
-ggplot()+ 
-  geom_histogram(aes(x = random_pop_soils_function$plot_list$`Volume of water content -33 kpa 100-200_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20)+
-  geom_vline(xintercept=random_pop_soils_function$known_soil_means[12], col = "red") + 
-  xlab(expression(paste("Mean Volumetric Water Content -33 kPa 100-200 cm (cm"^3*"/cm"^3*")")))+
-  ylab("Frequency")+
-  #labs(title = "VOC -33 kPa 100-200 cm") +
-  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[12], 2)), 
-            x = 303, y = 125, color = "red", size= 6, family = "serif") +
-  xlim(c(min(vwc_100_200_means), max(vwc_100_200_means)))+ #230,290
-  theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
-        text = element_text(family = "serif"))
-
-#Volumetric Water Content -33 kPa 0-5 cm available water
-vwc_0_5_means <- random_pop_soils_function$plot_list$`Volume of water content -33 kpa 0-5_Histogram`[1]$data$random_soil_means
+#clay content 100.200
+clay_content_100.200 <- random_pop_soils_function$plot_list_sd$`Clay 100-200_Histogram`[1]$data$random_soil_sds
 ggplot() +
-  geom_histogram(aes(x = random_pop_soils_function$plot_list$`Volume of water content -33 kpa 0-5_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
-  geom_vline(xintercept=random_pop_soils_function$known_soil_means[11], col = "red") + 
-  xlab(expression(paste("Mean Volumetric Water Content -33 kPa 0-5 cm (cm"^3*"/cm"^3*")")))+
+  geom_histogram(aes(x=clay_content_100.200), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[2], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Clay Content 100-200 cm (g/kg)")))+
   ylab("Frequency")+
-  #labs(title = "Mean VOC -33 kPa 0-5 cm") +
-  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[11], 2)), 
-            x = 287, y = 125, color = "red", size= 6, family = "serif") +
-  xlim(c(min(vwc_0_5_means), max(vwc_100_200_means)))+ #230,290
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[2], 2)), 
+            x = 44, y = 75, color = "red", size= 6, family = "serif") +
   theme_classic() +
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
+  #xlim(c(min(clay_content_100.200), max(clay_content_100.200)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"))
 
-#TWI_Histogram
-twi_means <- random_pop_soils_function$plot_list$TWI_Histogram[1]$data$random_soil_means
+#silt content 0.5
+silt_content_0.5 <- random_pop_soils_function$plot_list_sd$`Silt 0-5_Histogram`[1]$data$random_soil_sds
 ggplot() +
-  geom_histogram(aes(x = random_pop_soils_function$plot_list$TWI_Histogram[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
-  geom_vline(xintercept=random_pop_soils_function$known_soil_means[27], col = "red") + 
-  xlab(paste0("Mean Topographic Wetness Index"))+
+  geom_histogram(aes(x=silt_content_0.5), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[3], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Silt Content 0-5 cm (g/kg)")))+
   ylab("Frequency")+
-  #labs(title = "Mean Topographic Wetness Index") +
-  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[27], 2)), 
-            x = 8.35, y = 125, color = "red", size= 6, family = "serif") +
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[3], 2)), 
+            x = 20, y = 75, color = "red", size= 6, family = "serif") +
   theme_classic() +
-  xlim(c(min(twi_means), max(twi_means)))+ #230,290
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
+ # xlim(c(min(silt_content_0.5), max(silt_content_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"))
 
-#distance to coast
-d_coast_means <- random_pop_soils_function$plot_list$`Distance to Coast_Histogram`[1]$data$random_soil_means
+#silt content 100.200
+silt_content_100.200 <- random_pop_soils_function$plot_list_sd$`Silt 100-200_Histogram`[1]$data$random_soil_sds
 ggplot() +
-  geom_histogram(aes(x=random_pop_soils_function$plot_list$`Distance to Coast_Histogram`[1]$data$random_soil_means), fill = "skyblue", color = "black", bins = 20) +
-  geom_vline(xintercept=random_pop_soils_function$known_soil_means[29], col = "red") + 
-  xlab(paste0("Mean Distance to Coast (m)"))+
+  geom_histogram(aes(x=silt_content_100.200), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[4], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Silt Content 100-200 cm (g/kg)")))+
   ylab("Frequency")+
-  #labs(title = "Mean Distance to Coast") +
-  geom_text(aes(label = round(random_pop_soils_function$known_soil_means[29], 2)), 
-            x = 22000, y = 100, color = "red", size= 6, family = "serif") +
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[4], 2)), 
+            x = 23, y = 75, color = "red", size= 6, family = "serif") +
   theme_classic() +
-  xlim(c(min(d_coast_means), max(d_coast_means)))+ #230,290
-  theme(title=element_text(size=15), 
-        axis.text=element_text(size=15),  axis.title.x =element_text(size= 15),
-        axis.title.y =element_text(size= 15),
-        label =element_text(size= 15, family = "serif"),
+  # xlim(c(min(silt_content_0.5), max(silt_content_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
         text = element_text(family = "serif"))
+
+
+#Sand content 0.5
+sand_content_0.5 <- random_pop_soils_function$plot_list_sd$`Sand 0-5_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=sand_content_0.5), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[5], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Sand Content 0-5 cm (g/kg)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[5], 2)), 
+            x = 43, y = 175, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+ # xlim(c(min(sand_content_0.5), max(sand_content_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+#Sand content 100.200
+sand_content_100.200 <- random_pop_soils_function$plot_list_sd$`Sand 100-200_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=sand_content_100.200), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[6], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Sand Content 100-200 cm (g/kg)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[6], 2)), 
+            x = 64, y = 175, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(min(sand_content_0.5), max(sand_content_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+#ph 0.5
+ph_0.5 <- random_pop_soils_function$plot_list_sd$`Ph 0-5_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=ph_0.5), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[7], col = "red") + 
+  xlab(expression(paste("Standard Deviation of pH 0-5 cm")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[7], 2)), 
+            x = 0.32, y = 275, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(min(ph_0.5), max(ph_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+#ph 100.200
+ph_100.200 <- random_pop_soils_function$plot_list_sd$`Ph 100-200_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=ph_100.200), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[8], col = "red") + 
+  xlab(expression(paste("Standard Deviation of pH 100-200 cm")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[8], 2)), 
+            x = 0.4, y = 175, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(min(ph_100.200), max(ph_100.200)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+
+#nitrogen 0.5
+nitrogen_0.5 <- random_pop_soils_function$plot_list_sd$`Nitrogen 0-5_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=nitrogen_0.5), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[15], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Nitrogen 0-5 cm (cg/kg)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[15], 2)), 
+            x = 40, y = 75, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(min(nitrogen_0.5), max(nitrogen_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+#nitrogen 100.200
+nitrogen_100.200 <- random_pop_soils_function$plot_list_sd$`Nitrogen 100-200_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=nitrogen_100.200), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[16], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Nitrogen 100-200 cm (cg/kg)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[16], 2)), 
+            x = 11, y = 75, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(nitrogen_100.200, max(nitrogen_100.200)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+
+#soil organic carbon 0.5
+soc_0.5 <- random_pop_soils_function$plot_list_sd$`Soil Organic Carbon 0-5_Histogram`[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=soc_0.5), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[17], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Soil Organic Carbon 0-5 cm (g/kg)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[17], 2)), 
+            x = 53, y = 75, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(soc_0.5, max(soc_0.5)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
+#elevation
+elevation <- random_pop_soils_function$plot_list_sd$Elevation_Histogram[1]$data$random_soil_sds
+ggplot() +
+  geom_histogram(aes(x=elevation), fill = "skyblue", color = "black", bins = 20) +
+  geom_vline(xintercept=random_pop_soils_function$known_soil_sds[23], col = "red") + 
+  xlab(expression(paste("Standard Deviation of Elevation (m)")))+
+  ylab("Frequency")+
+  #labs(title = "Mean Sandy Available Water (cm3/m3)") +
+  geom_text(aes(label = round(random_pop_soils_function$known_soil_sds[23], 2)), 
+            x = 175, y = 75, color = "red", size= 6, family = "serif") +
+  theme_classic() +
+  #xlim(c(elevation, max(elevation)))+ 
+  theme(title=element_text(size=20), 
+        axis.text=element_text(size=20),  axis.title.x =element_text(size= 20),
+        axis.title.y =element_text(size= 20),
+        label =element_text(size= 20, family = "serif"),
+        text = element_text(family = "serif"))
+
 
 
 #### Figures for Paper ####
@@ -920,30 +1054,30 @@ ggplot()+
   geom_sf(data=BCS_polygon_box_sf_cropped, color = "black")+
   geom_sf(data=all_pop_locations.df_sf_trans_coordinates, color = "grey40")+
   geom_sf(data=random_20, color ="blue")
-
+soil_stack$clay.content.0.5
 #plotting the original extent of the BCS polygon, the buffered polygon, the cropped extent, and the 20 population points
 main.plot <- ggplot()+
   geom_sf(data=BCS_polygon_UTM)+
   geom_sf(data=BCS_polygon_box_sf_cropped, color = "black", size = 1.5)+
-  geom_raster(data = as.data.frame(soil_stack_sandy_water, xy=T), aes(x=x, y=y, fill = layer.1))+
+  geom_raster(data = as.data.frame(soil_stack, xy=T), aes(x=x, y=y, fill = clay.content.0.5))+ #sand.0.5
   scale_fill_distiller(palette = "Blues", na.value = "transparent", trans = "reverse")+
   geom_sf(data=random_20, aes(color ="Randomly Generated"))+
   # scale_fill_gradientn(colours=c("lightblue","darkblue"), na.value = NA) + #name = "Available Water in Sandy Soils 0-5 cm ()"
-  geom_sf(data=all_pop_locations.df_sf_trans_coordinates, aes(color = "Known Populations")) +
+  geom_sf(data=all_pop_locations.df_sf_trans_coordinates, aes(color = "Known")) +
   coord_sf(crs = crs(BCS_polygon_box_sf_cropped))+
   xlab("")+
   ylab("")+
   scale_color_manual(
     name = "Populations",
     values = c("Randomly Generated" = "red", 
-               "Known Populations" = "black"),
-    labels = c("Known Populations", "Randomly Generated"))+
+               "Known" = "black"),
+    labels = c("Known", "Randomly Generated"))+
   labs(
-       fill = expression(paste("Sandy Soil Water Content 0-5 cm (cm"^3*"/cm"^3*")"))) +
+       fill = expression(paste("Clay Content 0-5 cm (g/kg)"))) +
   #title = "Available Water in Sandy Soils 0-5 cm across Study Region",
   theme_classic() +
   theme(title=element_text(size=18), 
-        legend.text = element_text(size=15),
+        legend.text = element_text(size=18),
         axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         text = element_text(family = "serif"))

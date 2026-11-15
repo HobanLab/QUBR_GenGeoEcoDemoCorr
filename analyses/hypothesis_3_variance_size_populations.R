@@ -161,28 +161,28 @@ fixed_field_data_processed$locality <- factor(fixed_field_data_processed$localit
 DBH_summary$locality <- factor(DBH_summary$locality, levels = c("LM", "LC", "SD"))
 
 histograms_populations <- ggplot(data = fixed_field_data_processed, aes(x = DBH_ag))+
-  geom_histogram(aes(fill = locality)) +
+  geom_histogram(aes(y = after_stat(count) / sum(after_stat(count)),fill = locality)) +
   geom_vline(data = DBH_summary, aes(xintercept = mean_DBH), color = "red", linewidth = 0.5) +
   geom_vline(data = DBH_summary, aes(xintercept = median_DBH), color = "blue", linewidth = 0.5) +
   geom_text(data = DBH_summary, aes(x = mean_DBH, y = Inf, label = paste0("Mean = ", round(mean_DBH, 3))),
     color = "red", size = 5,  vjust = 1.5, hjust = -0.2) +
   geom_text(data = DBH_summary, aes(x = median_DBH, y = Inf, label = paste0("Median = ", round(median_DBH, 3))),
             color = "blue", size = 5, vjust = 1.5, hjust = 1.25) +
-  geom_text(data = DBH_summary, x = 1.5, y = 20, aes(label = paste0("SD = ", round(sd_DBH, 3))),
+  geom_text(data = DBH_summary, x = 1.5, y = 0.04, aes(label = paste0("Std Dev = ", round(sd_DBH, 3))),
             color = "black", size = 5, vjust = 1.5, hjust = 1.3) +
   # geom_vline(x = mean(fixed_field_data_processed$DBH_ag, na.rm = T), color = "blue") + 
   # geom_vline(x = median(fixed_field_data_processed$DBH_ag, na.rm = T), color = "red") + 
   facet_wrap(~ locality, nrow = 3, ncol = 1) +
   labs(x = "DBH (m)",
-       y = "Frequency",
-       fill = "Locality") +
+       y = "Proportion",
+       fill = "Focal Population") +
   scale_fill_manual(values = plot_colors) +
   theme_minimal() +
   theme(title=element_text(size=18), 
-        axis.text=element_text(size=18),  axis.title.x =element_text(size= 18),
+        axis.text=element_text(size=18, color = "black"), axis.title.x =element_text(size= 18),
         axis.title.y =element_text(size= 18),
         label =element_text(size= 18, family = "serif"),
-        text = element_text(family = "serif"),
+        text = element_text(family = "serif", color = "black"),
         legend.text = element_text(size= 18),
         strip.text = element_text(size = 18, family = "serif", face = "bold"))
 
