@@ -2352,7 +2352,11 @@ beta_regression_analysis <- function(){
   b0 <- c()
   b1 <- c()
   slope_transformed <- c()
+  p_value <- c()
   phi <- c()
+  z_value <- c()
+  phi_z_value <- c()
+  phi_p_value <- c()
   log_likelihood <- c()
   Pseudo_r_squared <- c()
   Proportion_Sign_LOO <- c()
@@ -2405,11 +2409,21 @@ beta_regression_analysis <- function(){
 
   model_formula <- as.formula(paste("fruiting_proportion ~", soil_metric_name))
   fruiting_prop_model <- betareg(model_formula, data = fruiting_soil_grids_df_filtered)
-  summary(fruiting_prop_model)
+  model_summary <- summary(fruiting_prop_model)
+  model_summary
+  z_value_index <- summary(fruiting_prop_model)$coefficients$mean[soil_metric_name, "z value"]
+  p_value_index <- summary(fruiting_prop_model)$coefficients$mean[soil_metric_name, "Pr(>|z|)"]
+  phi_z_value_index <- summary(fruiting_prop_model)$coefficients$precision["z value"]
+  phi_p_value_index <- summary(fruiting_prop_model)$coefficients$precision["Pr(>|z|)"]
+  
   
   #storing plot metrics
   log_likelihood <- c(log_likelihood, fruiting_prop_model$loglik)
   Pseudo_r_squared <- c(Pseudo_r_squared, fruiting_prop_model$pseudo.r.squared)
+  z_value <- c(z_value, z_value_index)
+  p_value <- c(p_value, p_value_index)
+  phi_z_value <- c(phi_z_value, phi_z_value_index)
+  phi_p_value <- c(phi_p_value, phi_p_value_index)
   
   #checking randomized quantile residuals
   res_quantile <- residuals(fruiting_prop_model, type = "quantile")
@@ -2616,8 +2630,8 @@ beta_regression_analysis <- function(){
   
   #adding metris to lists
   b0 <- c(b0, b0_index) #intercept (log-odds scale)
-  slope_transformed <- c(slope_transformed, exp(b0_index))
   b1 <- c(b1, b1_index) #slope (change in log-odds per 1-unit clay increase)
+  slope_transformed <- c(slope_transformed, exp(b1_index)) #the odds
   phi <- c(phi, phi_index) #precision parameter
   
   
@@ -2626,7 +2640,11 @@ beta_regression_analysis <- function(){
   return(list(b0 = b0,
               b1 = b1,
               slope_transformed = slope_transformed, 
+              p_value = p_value,
+              z_value = z_value,
               phi = phi,
+              phi_z_value = phi_z_value, 
+              phi_p_value = phi_p_value,
               log_likelihood = log_likelihood, 
               Pseudo_r_squared = Pseudo_r_squared,
               Proportion_Sign_LOO = Proportion_Sign_LOO,
@@ -2634,24 +2652,28 @@ beta_regression_analysis <- function(){
               quantile_residual_list = quantile_residual_list,
               qq_norm_list = qq_norm_list,
               scatterplot_list = scatterplot_list))
-  
+
 }
 
 
 beta_regression_analysis_results <- beta_regression_analysis()
-
 
 beta_regression_analysis_dataframe <- data.frame(
   "Soil.metrics" = Soil.metrics,
   "Intercept" = beta_regression_analysis_results$b0, 
   "Slope" = beta_regression_analysis_results$b1,
   "Slope_Untransformed" = beta_regression_analysis_results$slope_transformed,
+  "Z_value" = beta_regression_analysis_results$z_value,
+  "P-value" = beta_regression_analysis_results$p_value,
   "Phi" = beta_regression_analysis_results$phi,
+  "Phi_z_value" = beta_regression_analysis_results$phi_z_value,
+  "Phi_p_value" = beta_regression_analysis_results$phi_p_value,
   "log_likelihood" = beta_regression_analysis_results$log_likelihood, 
   "Pseudo_r_squared" = beta_regression_analysis_results$Pseudo_r_squared, 
   "Proportion_Sign_LOO" = beta_regression_analysis_results$Proportion_Sign_LOO, 
   "Power" = beta_regression_analysis_results$power)
-
+write.csv(beta_regression_analysis_dataframe, file = "beta_regression_analysis_dataframe.csv")
+View(beta_regression_analysis_dataframe)
 
 #clay content 0.5
 
