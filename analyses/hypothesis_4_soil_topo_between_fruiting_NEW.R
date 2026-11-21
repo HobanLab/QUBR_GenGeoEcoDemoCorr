@@ -57,6 +57,8 @@ library(ggpubr)
 
 #LM
 
+LM_tree_grid_cropped <- st_make_grid(soil_stack_LM_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
+
 #to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
 soil_stack_LM_soil_text_clay.content.0.5 <- rast(soil_stack_LM_soil_text$clay.content.0.5)
 LM_fixed_field_data_processed_spatvect_fruiting <- vect(LM_fixed_field_data_processed_sf)
@@ -89,13 +91,13 @@ LM_fixed_field_data_processed_trees_soils <- LM_fixed_field_data_processed_soils
 #plotting the points, grid, and randomly selected points from each grid
 ggplot()+
   geom_sf(data = LM_tree_grid_cropped)+
-  geom_sf(data = soil_stack_LC_soil_text$clay.content.0.5) +
-  #geom_sf(data= LM_fixed_field_data_processed_soils, aes(color = fruiting))+
   geom_sf(data = LM_fixed_field_data_processed_trees_soils, aes(color = fruiting))
 
 
 
 #LC
+
+LC_tree_grid_cropped <- st_make_grid(soil_stack_LC_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
 
 #to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
 soil_stack_LC_soil_text_clay.content.0.5 <- rast(soil_stack_LC_soil_text$clay.content.0.5)
@@ -135,6 +137,9 @@ ggplot()+
 
 #SD
 
+SD_tree_grid_cropped <- st_make_grid(soil_stack_SD_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
+
+
 #to use the extract functiont to extract cell information for each tree we spatraster and spatvector versions of our tree dataframe and soil raster
 soil_stack_SD_soil_text_clay.content.0.5 <- rast(soil_stack_SD_soil_text$clay.content.0.5)
 SD_fixed_field_data_processed_spatvect <- vect(SD_fixed_field_data_processed_sf)
@@ -173,14 +178,17 @@ ggplot()+
 
 
 ## Finalizing the tree soil metric dataframe
-
+library(janitor)
+compare_df_cols(LM_fixed_field_data_processed_trees_soils, LC_fixed_field_data_processed_trees_soils, return = "mismatch")
 
 #combining the LM, LC, and SD tree dataframes with the soil metrics and randomly chosen points within each grid cell, subsetting what variables to remove to allow for rbinding
+
+head(LM_fixed_field_data_processed_trees_soils)
 
 fixed_field_data_processed_trees_soils <- rbind(subset(LM_fixed_field_data_processed_trees_soils,select = -c(LM_aspect_raster_15_data_pts, LM_slope_raster_15_data_pts,
                                                                                                              LM_elevation_raster_15_data_pts, LM_aspect_raster_15_data_pts_8_categorical,
                                                                                                              LM_aspect_raster_15_data_pts_4_categorical, LM_aspect_raster_15_data_pts_radian, 
-                                                                                                             LM_Eastness, LM_Northness, LM_TWI_values)), 
+                                                                                                             LM_Eastness, LM_Northness, LM_TWI_values, Elevation..m.combo)), 
                                                 subset(LC_fixed_field_data_processed_trees_soils, select = -c(LC_aspect_raster_15_data_pts, LC_slope_raster_15_data_pts,
                                                                                                               LC_elevation_raster_15_data_pts, LC_aspect_raster_15_data_pts_8_categorical,
                                                                                                               LC_aspect_raster_15_data_pts_4_categorical, LC_aspect_raster_15_data_pts_radian, 
@@ -1405,6 +1413,7 @@ fitted_line <- lm(fruiting_proportion ~ clay.content.0.5, data = fruiting_soil_g
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
 cor(fruiting_soil_grids_df_filtered$clay.content.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+bptest(fitted_line)
 #residuals meet normality condition
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1436,6 +1445,7 @@ hist(fruiting_soil_grids_df$clay.content.100.200)
 fitted_line <- lm(fruiting_proportion ~ clay.content.100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$clay.content.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1467,6 +1477,7 @@ hist(fruiting_soil_grids_df_filtered$silt.0.5)
 fitted_line <- lm(fruiting_proportion ~ silt.0.5, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$silt.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1496,6 +1507,7 @@ hist(fruiting_soil_grids_df_filtered$silt.100.200)
 fitted_line <- lm(fruiting_proportion ~ silt.100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$silt.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1525,6 +1537,7 @@ hist(fruiting_soil_grids_df_filtered$sand.0.5)
 fitted_line <- lm(fruiting_proportion ~ sand.0.5, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$sand.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1555,6 +1568,7 @@ hist(fruiting_soil_grids_df_filtered$sand.100.200)
 fitted_line <- lm(fruiting_proportion ~ sand.100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$sand.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1584,6 +1598,7 @@ hist(fruiting_soil_grids_df_filtered$SOC.0.5)
 fitted_line <- lm(fruiting_proportion ~ SOC.0.5, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$SOC.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1613,6 +1628,7 @@ hist(fruiting_soil_grids_df_filtered$SOC.100.200)
 fitted_line <- lm(fruiting_proportion ~ SOC.100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$SOC.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1647,6 +1663,7 @@ hist(fruiting_soil_grids_df_filtered$ph_0.5)
 fitted_line <- lm(fruiting_proportion ~ ph_0.5, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$ph_0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1676,6 +1693,7 @@ hist(fruiting_soil_grids_df_filtered$ph_100.200)
 fitted_line <- lm(fruiting_proportion ~ ph_100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
 cor(fruiting_soil_grids_df_filtered$ph_100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1705,7 +1723,8 @@ fruiting_prop_nitrogen_content_0.5
 hist(fruiting_soil_grids_df_filtered$nitrogen.0.5)
 fitted_line_nitrogen_content_0.5 <- lm(fruiting_proportion ~ nitrogen.0.5, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line_nitrogen_content_0.5)
-shapiro_test(fitted_line$residuals)
+shapiro_test(fitted_line_nitrogen_content_0.5$residuals)
+bptest(fitted_line_nitrogen_content_0.5)
 cor(fruiting_soil_grids_df_filtered$nitrogen.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
 ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
@@ -1739,6 +1758,7 @@ hist(fruiting_soil_grids_df_filtered$nitrogen.100.200)
 fitted_line <- lm(fruiting_proportion ~ nitrogen.100.200, data = fruiting_soil_grids_df_filtered)
 summary(fitted_line)
 shapiro_test(fitted_line$residuals)
+bptest(fitted_line_nitrogen_content_0.5)
 cor(fruiting_soil_grids_df_filtered$nitrogen.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
 
 #looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
@@ -2053,6 +2073,1156 @@ sample_size_power(0.51)
 # nitrogen 100-200
 
 sample_size_power(0.50)
+
+
+#### Beta Regressions ####
+
+
+library(betareg) #for fitting beta regression library(statmod)
+library(BetaPASS) #for checking diagnostics of beta regression
+
+
+
+# need to create a dataframe for each population with soil value per cell and then 
+# the proportion of fruiting trees per cell
+
+## proportion of fruiting trees per cell
+
+#creating a grid over the soil cells
+LM_tree_grid_cropped <- st_make_grid(soil_stack_LM_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
+
+#plotting the grid over an example soil raster to ensure they were made properly
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_LM_other, xy = T), aes(x=x, y=y, fill = ph_0.5))+
+  geom_sf(data = LM_tree_grid_cropped, fill = NA) +
+  geom_sf(data = LM_fixed_field_data_processed_soils, aes(color = fruiting)) 
+
+#selecting a point from each grid cell with trees within them
+LM_list_grids_and_points <- st_contains(LM_tree_grid_cropped, LM_fixed_field_data_processed_sf, sparse =T) #making sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+fruiting_prop <- c()
+LM_list_grids_and_trees <- lapply(LM_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) >= 1){ #for each grid cell, if there is more than one tree in each cell
+    count <- sum(LM_fixed_field_data_processed$fruiting[cell] == "Y", na.rm = T)
+    fruiting_prop <- c(fruiting_prop, count/length(cell))
+  } else { # if there are no trees
+    fruiting_prop <- fruiting_prop  # doesn't add any fruiting proportions
+  }
+  return(fruiting_prop)
+})
+
+
+#creating a dataframe with the fruiting proportion in each cell
+LM_list_grids_and_trees[sapply(LM_list_grids_and_trees, is.null)] <- NA #setting null indices to NA
+LM_fruiting_proportions_df <- as.data.frame(unlist(LM_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
+colnames(LM_fruiting_proportions_df) <- c("fruiting_proportion") #changes the column name
+
+#creating a dataframe of soil metrics per cell
+
+#extracting soil grid values per cell
+LM_soil_grid_textures <- extract(soil_stack_LM_soil_text, st_as_sf(LM_tree_grid_cropped), cells = TRUE) 
+LM_soil_grid_extra <- extract(soil_stack_LM_extra, st_as_sf(LM_tree_grid_cropped), cells = TRUE) 
+LM_soil_grid_other <- extract(soil_stack_LM_other, st_as_sf(LM_tree_grid_cropped), cells = TRUE) 
+#creating an empty dataframe for each of the soil metrics for each grid cell
+LM_soil_grids_df <-   data.frame(
+  clay.content.0.5 = rep(NA, length(LM_soil_grid_textures)),
+  clay.content.100.200 = rep(NA, length(LM_soil_grid_textures)),
+  silt.0.5 = rep(NA, length(LM_soil_grid_textures)),
+  silt.100.200 = rep(NA, length(LM_soil_grid_textures)),
+  sand.0.5 = rep(NA, length(LM_soil_grid_textures)),
+  sand.100.200 = rep(NA, length(LM_soil_grid_textures)),
+  nitrogen.0.5 = rep(NA, length(LM_soil_grid_textures)),
+  nitrogen.100.200 = rep(NA, length(LM_soil_grid_textures)),
+  SOC.0.5 = rep(NA, length(LM_soil_grid_textures)),
+  SOC.100.200 = rep(NA, length(LM_soil_grid_textures)),
+  ph_0.5 = rep(NA, length(LM_soil_grid_textures)),
+  ph_100.200 = rep(NA, length(LM_soil_grid_textures)))
+#creating te dataframe of soil values for each grid cell
+LM_soil_grids_df <- LM_soil_grids_df %>%
+  mutate(clay.content.0.5 = sapply(LM_soil_grid_textures, function(cell) cell[1])) %>%
+  mutate(clay.content.100.200 = sapply(LM_soil_grid_textures, function(cell) cell[2])) %>%
+  mutate(silt.0.5 = sapply(LM_soil_grid_textures, function(cell) cell[3])) %>%
+  mutate(silt.100.200 = sapply(LM_soil_grid_textures, function(cell) cell[4])) %>%
+  mutate(sand.0.5 = sapply(LM_soil_grid_textures, function(cell) cell[5])) %>%
+  mutate(sand.100.200 = sapply(LM_soil_grid_textures, function(cell) cell[6])) %>%
+  mutate(nitrogen.0.5 = sapply(LM_soil_grid_extra, function(cell) cell[1])) %>%
+  mutate(nitrogen.100.200 = sapply(LM_soil_grid_extra, function(cell) cell[2])) %>%
+  mutate(SOC.0.5 = sapply(LM_soil_grid_extra, function(cell) cell[3])) %>%
+  mutate(SOC.100.200 = sapply(LM_soil_grid_extra, function(cell) cell[4])) %>%
+  mutate(ph_0.5 = sapply(LM_soil_grid_other, function(cell) cell[1])) %>%
+  mutate(ph_100.200 = sapply(LM_soil_grid_other, function(cell) cell[2]))
+
+
+#combining the fruiting proportion dtaframe with the soil grid dataframe 
+LM_fruiting_soil_grids_df <- cbind(LM_fruiting_proportions_df, LM_soil_grids_df)
+
+ggplot() +
+  geom_raster(data= as.data.frame(soil_stack_LM_extra, xy = T), aes(x=x, y=y, fill = nitrogen.0.5))
+
+# LC
+
+#creating a grid over the soil cells
+LC_tree_grid_cropped <- st_make_grid(soil_stack_LC_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
+ggplot()+
+  geom_sf(data = LC_tree_grid_cropped)
+
+#plotting the grid over an example soil raster to ensure they were made properly
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_LC_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = LC_tree_grid_cropped, fill = NA) +
+  geom_sf(data = LC_fixed_field_data_processed_soils, aes(color = fruiting)) 
+
+#selecting a point from each grid cell with trees within them
+LC_list_grids_and_points <- st_contains(LC_tree_grid_cropped, LC_fixed_field_data_processed_sf, sparse =T) #making sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+fruiting_prop <- c()
+LC_list_grids_and_trees <- lapply(LC_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) >= 1){ #for each grid cell, if there is more than one tree in each cell
+    count <- sum(LC_fixed_field_data_processed$fruiting[cell] == "Y", na.rm = T)
+    fruiting_prop <- c(fruiting_prop, count/length(cell))
+  } else { # if there are no trees
+    fruiting_prop <- fruiting_prop  # doesn't add any fruiting proportions
+  }
+  return(fruiting_prop)
+})
+
+
+#creating a dataframe with the fruiting proportion in each cell
+LC_list_grids_and_trees[sapply(LC_list_grids_and_trees, is.null)] <- NA #setting null indices to NA
+LC_fruiting_proportions_df <- as.data.frame(unlist(LC_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
+colnames(LC_fruiting_proportions_df) <- c("fruiting_proportion") #changes the column name
+
+#creating a dataframe of soil metrics per cell
+
+LC_tree_grid_cropped <- st_as_sf(LC_tree_grid_cropped)
+
+#extracting soil grid values per cell
+LC_soil_grid_textures <- extract(soil_stack_LC_soil_text, LC_tree_grid_cropped, cells = TRUE) 
+LC_soil_grid_extra <- extract(soil_stack_LC_extra, LC_tree_grid_cropped, cells = TRUE) 
+LC_soil_grid_other <- extract(soil_stack_LC_other, LC_tree_grid_cropped, cells = TRUE) 
+#creating an empty dataframe for each of the soil metrics for each grid cell
+LC_soil_grids_df <-   data.frame(
+  clay.content.0.5 = rep(NA, length(LC_soil_grid_textures)),
+  clay.content.100.200 = rep(NA, length(LC_soil_grid_textures)),
+  silt.0.5 = rep(NA, length(LC_soil_grid_textures)),
+  silt.100.200 = rep(NA, length(LC_soil_grid_textures)),
+  sand.0.5 = rep(NA, length(LC_soil_grid_textures)),
+  sand.100.200 = rep(NA, length(LC_soil_grid_textures)),
+  nitrogen.0.5 = rep(NA, length(LC_soil_grid_textures)),
+  nitrogen.100.200 = rep(NA, length(LC_soil_grid_textures)),
+  SOC.0.5 = rep(NA, length(LC_soil_grid_textures)),
+  SOC.100.200 = rep(NA, length(LC_soil_grid_textures)),
+  ph_0.5 = rep(NA, length(LC_soil_grid_textures)),
+  ph_100.200 = rep(NA, length(LC_soil_grid_textures)))
+#creating te dataframe of soil values for each grid cell
+LC_soil_grids_df <- LC_soil_grids_df %>%
+  mutate(clay.content.0.5 = sapply(LC_soil_grid_textures, function(cell) cell[1])) %>%
+  mutate(clay.content.100.200 = sapply(LC_soil_grid_textures, function(cell) cell[2])) %>%
+  mutate(silt.0.5 = sapply(LC_soil_grid_textures, function(cell) cell[3])) %>%
+  mutate(silt.100.200 = sapply(LC_soil_grid_textures, function(cell) cell[4])) %>%
+  mutate(sand.0.5 = sapply(LC_soil_grid_textures, function(cell) cell[5])) %>%
+  mutate(sand.100.200 = sapply(LC_soil_grid_textures, function(cell) cell[6])) %>%
+  mutate(nitrogen.0.5 = sapply(LC_soil_grid_extra, function(cell) cell[1])) %>%
+  mutate(nitrogen.100.200 = sapply(LC_soil_grid_extra, function(cell) cell[2])) %>%
+  mutate(SOC.0.5 = sapply(LC_soil_grid_extra, function(cell) cell[3])) %>%
+  mutate(SOC.100.200 = sapply(LC_soil_grid_extra, function(cell) cell[4])) %>%
+  mutate(ph_0.5 = sapply(LC_soil_grid_other, function(cell) cell[1])) %>%
+  mutate(ph_100.200 = sapply(LC_soil_grid_other, function(cell) cell[2]))
+
+
+#combining the fruiting proportion dtaframe with the soil grid dataframe 
+LC_fruiting_soil_grids_df <- cbind(LC_fruiting_proportions_df, LC_soil_grids_df)
+
+
+# SD
+
+#creating a grid over the soil cells
+SD_tree_grid_cropped <- st_make_grid(soil_stack_SD_soil_text, cellsize = c(230, 265)) #230, 265 were used for cellsize because that is the dimensions of soil stack
+ggplot()+
+  geom_sf(data = SD_tree_grid_cropped)
+
+#plotting the grid over an example soil raster to ensure they were made properly
+ggplot()+
+  geom_raster(data= as.data.frame(soil_stack_SD_soil_text, xy = T), aes(x=x, y=y, fill = clay.content.0.5))+
+  geom_sf(data = SD_tree_grid_cropped, fill = NA) +
+  geom_sf(data = SD_fixed_field_data_processed_soils, aes(color = fruiting)) 
+
+#selecting a point from each grid cell with trees within them
+SD_list_grids_and_points <- st_contains(SD_tree_grid_cropped, SD_fixed_field_data_processed_sf, sparse =T) #making sure row number in the data frame of grid cells corresponds to the order of what is in the points dataframe within st_contains
+set.seed(24) #setting the seed
+fruiting_prop <- c()
+SD_list_grids_and_trees <- lapply(SD_list_grids_and_points, function(cell){ #iterates over the list of each grid cell with what row of points is within that grid cell made by st_contains
+  if(length(cell) >= 1){ #for each grid cell, if there is more than one tree in each cell
+    count <- sum(SD_fixed_field_data_processed$fruiting[cell] == "Y", na.rm = T)
+    fruiting_prop <- c(fruiting_prop, count/length(cell))
+  } else { # if there are no trees
+    fruiting_prop <- fruiting_prop  # doesn't add any fruiting proportions
+  }
+  return(fruiting_prop)
+})
+
+
+#creating a dataframe with the fruiting proportion in each cell
+SD_list_grids_and_trees[sapply(SD_list_grids_and_trees, is.null)] <- NA #setting null indices to NA
+SD_fruiting_proportions_df <- as.data.frame(unlist(SD_list_grids_and_trees)) #turns the list of grid cells and what focal trees were within them into a dataframe
+colnames(SD_fruiting_proportions_df) <- c("fruiting_proportion") #changes the column name
+
+#creating a dataframe of soil metrics per cell
+
+SD_tree_grid_cropped <- st_as_sf(SD_tree_grid_cropped)
+
+
+#extracting soil grid values per cell
+SD_soil_grid_textures <- extract(soil_stack_SD_soil_text, SD_tree_grid_cropped, cells = TRUE) 
+SD_soil_grid_extra <- extract(soil_stack_SD_extra, SD_tree_grid_cropped, cells = TRUE) 
+SD_soil_grid_other <- extract(soil_stack_SD_other, SD_tree_grid_cropped, cells = TRUE) 
+#creating an empty dataframe for each of the soil metrics for each grid cell
+SD_soil_grids_df <-   data.frame(
+  clay.content.0.5 = rep(NA, length(SD_soil_grid_textures)),
+  clay.content.100.200 = rep(NA, length(SD_soil_grid_textures)),
+  silt.0.5 = rep(NA, length(SD_soil_grid_textures)),
+  silt.100.200 = rep(NA, length(SD_soil_grid_textures)),
+  sand.0.5 = rep(NA, length(SD_soil_grid_textures)),
+  sand.100.200 = rep(NA, length(SD_soil_grid_textures)),
+  nitrogen.0.5 = rep(NA, length(SD_soil_grid_textures)),
+  nitrogen.100.200 = rep(NA, length(SD_soil_grid_textures)),
+  SOC.0.5 = rep(NA, length(SD_soil_grid_textures)),
+  SOC.100.200 = rep(NA, length(SD_soil_grid_textures)),
+  ph_0.5 = rep(NA, length(SD_soil_grid_textures)),
+  ph_100.200 = rep(NA, length(SD_soil_grid_textures)))
+#creating te dataframe of soil values for each grid cell
+SD_soil_grids_df <- SD_soil_grids_df %>%
+  mutate(clay.content.0.5 = sapply(SD_soil_grid_textures, function(cell) cell[1])) %>%
+  mutate(clay.content.100.200 = sapply(SD_soil_grid_textures, function(cell) cell[2])) %>%
+  mutate(silt.0.5 = sapply(SD_soil_grid_textures, function(cell) cell[3])) %>%
+  mutate(silt.100.200 = sapply(SD_soil_grid_textures, function(cell) cell[4])) %>%
+  mutate(sand.0.5 = sapply(SD_soil_grid_textures, function(cell) cell[5])) %>%
+  mutate(sand.100.200 = sapply(SD_soil_grid_textures, function(cell) cell[6])) %>%
+  mutate(nitrogen.0.5 = sapply(SD_soil_grid_extra, function(cell) cell[1])) %>%
+  mutate(nitrogen.100.200 = sapply(SD_soil_grid_extra, function(cell) cell[2])) %>%
+  mutate(SOC.0.5 = sapply(SD_soil_grid_extra, function(cell) cell[3])) %>%
+  mutate(SOC.100.200 = sapply(SD_soil_grid_extra, function(cell) cell[4])) %>%
+  mutate(ph_0.5 = sapply(SD_soil_grid_other, function(cell) cell[1])) %>%
+  mutate(ph_100.200 = sapply(SD_soil_grid_other, function(cell) cell[2]))
+
+
+#combining the fruiting proportion dtaframe with the soil grid dataframe 
+SD_fruiting_soil_grids_df <- cbind(SD_fruiting_proportions_df, SD_soil_grids_df)
+
+
+## Combining the fruiting proportion dataframes into one ##
+
+fruiting_soil_grids_df <- rbind(LM_fruiting_soil_grids_df, LC_fruiting_soil_grids_df)
+fruiting_soil_grids_df <- rbind(fruiting_soil_grids_df, SD_fruiting_soil_grids_df)
+
+fruiting_soil_grids_df <- fruiting_soil_grids_df %>%
+  mutate(locality = c(rep("LM", times = nrow(LM_fruiting_soil_grids_df)),
+                      rep("LC", times = nrow(LC_fruiting_soil_grids_df)),
+                      rep("SD", times = nrow(SD_fruiting_soil_grids_df))))
+
+
+#all pops
+
+#removing 0 proportions
+fruiting_soil_grids_df_filtered <- fruiting_soil_grids_df %>%
+  filter(!(fruiting_proportion == 0 | fruiting_proportion == 1))
+#removing ones and zreros so I can use a standard beta regression and not an extended support
+
+#example to see if it worked
+ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion)) +
+  geom_point()
+
+
+# Function for running standard beta regression
+
+#creating an empty dataframe to store values 
+
+
+#creating the list of soil metrics to iterate over
+Soil.metrics <- c("Clay Content 0-5", "Clay Content 100-200", "Silt Content 0-5", "Silt Content 100-200", 
+                  "Sand Content 0-5", "Sand Content 100-200",
+                  "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
+                  "Ph 0-5", "Ph 100-200", 
+                  "Nitrogen 0-5", "Nitrogen 100-200")
+
+
+beta_regression_analysis <- function(){
+  
+  #create empty vectors to store in the dataframe
+  b0 <- c()
+  b1 <- c()
+  slope_transformed <- c()
+  phi <- c()
+  log_likelihood <- c()
+  Pseudo_r_squared <- c()
+  Proportion_Sign_LOO <- c()
+  power <- c()
+  quantile_residual_list <- list()
+  qq_norm_list <- list()
+  scatterplot_list <- list()
+  
+  for (i in 1:length(Soil.metrics)){
+    
+    #assigning the soil metric based on the current soil metric in the list
+    if (Soil.metrics[i] == "Clay Content 0-5"){ 
+      soil_metric_name <- "clay.content.0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$clay.content.0.5
+    } else if (Soil.metrics[i] == "Clay Content 100-200"){
+      soil_metric_name <- "clay.content.100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$clay.content.100.200
+    } else if (Soil.metrics[i] == "Silt Content 0-5"){
+      soil_metric_name <- "silt.0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$silt.0.5
+    } else if (Soil.metrics[i] == "Silt Content 100-200"){
+      soil_metric_name <- "silt.100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$silt.100.200
+    } else if (Soil.metrics[i] == "Sand Content 0-5"){
+      soil_metric_name <- "sand.0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$sand.0.5
+    } else if (Soil.metrics[i] == "Sand Content 100-200"){
+      soil_metric_name <- "sand.100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$sand.100.200
+    } else if (Soil.metrics[i] == "Soil Organic Carbon 0-5"){
+      soil_metric_name <- "SOC.0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$SOC.0.5
+    } else if (Soil.metrics[i] == "Soil Organic Carbon 100-200"){
+      soil_metric_name <- "SOC.100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$SOC.100.200
+    } else if (Soil.metrics[i] == "Ph 0-5"){
+      soil_metric_name <- "ph_0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$ph_0.5
+    } else if (Soil.metrics[i] == "Ph 100-200"){
+      soil_metric_name <- "ph_100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$ph_100.200
+    } else if (Soil.metrics[i] == "Nitrogen 0-5"){
+      soil_metric_name <- "nitrogen.0.5"
+      soil_metric = fruiting_soil_grids_df_filtered$nitrogen.0.5
+    } else if (Soil.metrics[i] == "Nitrogen 100-200"){
+      soil_metric_name <- "nitrogen.100.200"
+      soil_metric = fruiting_soil_grids_df_filtered$nitrogen.100.200
+    }
+    
+
+  model_formula <- as.formula(paste("fruiting_proportion ~", soil_metric_name))
+  fruiting_prop_model <- betareg(model_formula, data = fruiting_soil_grids_df_filtered)
+  summary(fruiting_prop_model)
+  
+  #storing plot metrics
+  log_likelihood <- c(log_likelihood, fruiting_prop_model$loglik)
+  Pseudo_r_squared <- c(Pseudo_r_squared, fruiting_prop_model$pseudo.r.squared)
+  
+  #checking randomized quantile residuals
+  res_quantile <- residuals(fruiting_prop_model, type = "quantile")
+  res_pearson <- residuals(fruiting_prop_model, type = "pearson")
+  
+  hist(res_quantile, main = "Randomized Quantile Residuals", xlab = "Residuals")
+  # store the quantile residual histogram in list with a descriptive name
+  plot_name_hist <- paste(Soil.metrics[i], "Histogram",
+                          sep = "_")
+  quantile_residual_list[[plot_name_hist]] <- plot_name_hist
+  
+  qqnorm(res_quantile)
+  qqline(res_quantile)
+  # store the quantile residual histogram in list with a descriptive name
+  plot_name_qq_norm <- paste(Soil.metrics[i], "QQ_Norm",
+                          sep = "_")
+  qq_norm_list[[plot_name_qq_norm]] <- plot_name_qq_norm
+  
+  # Pearson residuals vs fitted
+  pearson_resid <- residuals(fruiting_prop_model, type = "pearson")
+  plot(fruiting_prop_model$fitted.values, pearson_resid,
+       xlab = "Fitted Values",
+       ylab = "Pearson Residuals",
+       main = "Pearson Residuals vs Fitted")
+  abline(h = 0, lty = 2)
+  
+  # identifying influential points
+  model <- fruiting_prop_model
+  rq_resid <- residuals(model, type = "quantile")
+  # Identify observations with large residuals
+  influential_candidates <- which(abs(rq_resid) > 2)
+  influential_candidates
+  fruiting_soil_grids_df_filtered[
+    influential_candidates,
+    c("fruiting_proportion", soil_metric_name)
+  ]
+  #examining leverage manually
+  # Leverage from a simple linear predictor
+  X <- model.matrix(~ soil_metric)
+  leverage_approx <- hat(X)
+  plot(leverage_approx,
+       ylab = "Approximate Leverage",
+       xlab = "Observation",
+       main = "Predictor Leverage")
+  abline(h = 2 * ncol(X) / nrow(X),
+         col = "red",
+         lty = 2)
+  #LOO sensitivity analysis
+  original_beta <- coef(fruiting_prop_model, model = "mu")["soil_metric"]
+  loo_beta <- sapply(seq_len(nrow(fruiting_soil_grids_df_filtered)), function(i) {
+    model_loo <- betareg(
+      model_formula,
+      data = fruiting_soil_grids_df_filtered[-i,])
+    coef(model_loo, model = "mu")[soil_metric_name]
+  })
+  plot(loo_beta,
+       ylab = paste0(Soil.metrics[i]," Soil Metric Coefficient"),
+       xlab = "Observation Removed",
+       main = "Leave-One-Out Sensitivity Analysis")
+  abline(h = original_beta,
+         col = "red",
+         lty = 2)
+  # Summary of leave-one-out coefficients
+  summary(loo_beta)
+  # Range
+  range(loo_beta)
+  # Standard deviation
+  sd(loo_beta)
+  # Percent change from original coefficient
+  loo_percent_change <- 
+    100 * (loo_beta - original_beta) / original_beta
+  range(loo_percent_change)
+  # Largest absolute change
+  max(abs(loo_percent_change))
+  
+  #checking if removing individual observations changes statistical significance
+  loo_pvalues <- sapply(seq_len(nrow(fruiting_soil_grids_df_filtered)), function(i) {
+    model_loo <- betareg(model_formula,
+                         data = fruiting_soil_grids_df_filtered[-i, ])
+    coef_table <- summary(model_loo)$coefficients$mean
+    
+    coef_table[soil_metric_name, "Pr(>|z|)"]
+  })
+  #range of p-values
+  range(loo_pvalues)
+  #number of models remaining significant
+  sum(loo_pvalues < 0.05)
+  #proportion of models remaining significant
+  mean(loo_pvalues < 0.05)
+  Proportion_Sign_LOO <- c(Proportion_Sign_LOO, mean(loo_pvalues < 0.05))  #storing the proportion for the dataframe 
+  
+  #creating bootstrapped 95% confidence intervals 
+  
+  
+  set.seed(180) #set seed 
+  
+  #creating the prediction dataset
+  pred_data <- data.frame(
+    seq(min(fruiting_soil_grids_df_filtered[[soil_metric_name]], na.rm = TRUE),
+        max(fruiting_soil_grids_df_filtered[[soil_metric_name]], na.rm = TRUE),
+      length.out = 1000))
+  names(pred_data) <- soil_metric_name
+  pred_data$fruiting_proportion <- predict(fruiting_prop_model, newdata = pred_data, type = "response") #then we store predictions based on this model
+  pred_data$lower <- predict(fruiting_prop_model, newdata = pred_data, type = "quantile", at = 0.025) #generating initial confidence interval values at the lower quantile
+  pred_data$upper <- predict(fruiting_prop_model, newdata = pred_data, type = "quantile", at = 0.975) #generating initial confidence interval values at the higher quantile
+  
+  pred_data$fruiting_proportion <- predict(fruiting_prop_model, newdata = pred_data, type = "response") #generating the predicted fruiting proportion for each of the 1000 soil values using the beta regression model
+  
+  #for each repetition (perm=1000), generates a new bootstrap sample and fits a new model and predicts a new proportion across the 1000 soil values
+  bootstrap_predictions <- replicate(1000, { 
+    boot_data <- fruiting_soil_grids_df_filtered[sample(seq_len(nrow(fruiting_soil_grids_df_filtered)), 
+                                                        replace = TRUE),] #randomly resamples original dataset, with replacement
+    boot_model <- tryCatch(betareg(
+      model_formula,
+      data = boot_data), error = function(e) NULL) #fits new beta regression, try catch in-case model fails
+    
+    #creates NA values for each predicted value in the case of a failed beta regression model
+    if (is.null(boot_model)) {
+      return(rep(NA_real_, nrow(pred_data)))
+    }
+    
+    #predicts the response for each 1000 soil values using the generated model from the bootstrap sample
+    tryCatch(predict(boot_model, newdata = pred_data, type = "response"),
+             error = function(e) rep(NA_real_, nrow(pred_data)))
+  })
+  
+  #calculating the lower 95% pointwise confidence intervals
+  pred_data$lower_CI <- apply(bootstrap_predictions,
+                              1, quantile, probs = 0.025, na.rm = TRUE)
+  
+  #calculating the upper 95% pointwise confidence intervals
+  pred_data$upper_CI <- apply(bootstrap_predictions, 
+                              1, quantile, probs = 0.975, na.rm = TRUE)
+  
+  #plotting
+  fruiting_prop_plot <- ggplot(data = fruiting_soil_grids_df_filtered, aes(.data[[soil_metric_name]], fruiting_proportion)) +
+    geom_point()+
+    xlab(paste0(Soil.metrics[i], " cm (g/kg)")) +
+    ylab("") + #Fruiting Proportion
+    geom_ribbon(data = pred_data, aes(x = .data[[soil_metric_name]], ymin = lower_CI, ymax = upper_CI),
+                inherit.aes = FALSE,
+                alpha = 0.2,
+                fill = "#908D8E") +
+    # geom_ribbon(data = pred_data, aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "steelblue") +
+    geom_line(data = pred_data, color = "#117733", linewidth = 1) +
+    #geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+    theme_minimal() +
+    theme(title=element_text(size=24), 
+          axis.text=element_text(size=24),  
+          axis.title.x =element_text(size= 24),
+          axis.title.y =element_text(size= 24),
+          label =element_text(size= 24, family = "serif"),
+          text = element_text(family = "serif"),
+          legend.text = element_text(size= 24))
+  
+  # store the histogram in list with a descriptive name
+  plot_name_scatterplot <- paste(Soil.metrics[i], "Scatterplot",
+                                    sep = "_")
+  scatterplot_list[[plot_name_scatterplot]] <- plot_name_scatterplot
+  
+  #checking power and sample size using monte carlo simulation
+  
+  set.seed(180)
+  
+  #defining  model parameters
+  x <- fruiting_soil_grids_df_filtered[[soil_metric_name]]  # soil values
+  n <- length(x)
+  b0_index <- fruiting_prop_model$coefficients$mean[1] #intercept (log-odds scale)
+  b1_index <- fruiting_prop_model$coefficients$mean[2] #slope (change in log-odds per 1-unit clay increase)
+  phi_index <- fruiting_prop_model$coefficients$precision #precision parameter
+  
+  #calculating the expected mean for each observation via inverse logit
+  eta <- b0_index + b1_index * x
+  mu <- plogis(eta) #gets the logistic distribution of the response
+  
+  #converts (mu, phi) to R's beta distribution shape parameters
+  shape1 <- mu * phi_index
+  shape2 <- (1 - mu) * phi_index
+  
+  #runs a Monte Carlo simulation (perm=1000)
+  permutations <- 1000
+  p_values <- rep(NA, length.out=1000)
+  
+  for (i in 1:permutations) {
+    # Simulate new beta-distributed fruiting proportions
+    y_sim <- rbeta(n, shape1 = shape1, shape2 = shape2)
+    
+    # Keep values strictly inside (0, 1) in case of extreme rounding
+    y_sim <- pmin(pmax(y_sim, 1e-6), 1 - 1e-6)
+    
+    # Fit beta regression and extract the p-value for clay.content.0.5
+    fit <- try(betareg(y_sim ~ x), silent = TRUE)
+    if (!inherits(fit, "try-error")) {
+      p_values[i] <- summary(fit)$coefficients$mean["x", "Pr(>|z|)"]
+    } else {
+      p_values[i] <- NA
+    }
+  }
+  
+  #power = proportion of simulations where p < 0.05
+  print(mean(p_values < 0.05, na.rm = TRUE))
+  power <- c(power, mean(p_values < 0.05, na.rm = TRUE))
+  
+  
+  #adding metris to lists
+  b0 <- c(b0, b0_index) #intercept (log-odds scale)
+  slope_transformed <- c(slope_transformed, exp(b0_index))
+  b1 <- c(b1, b1_index) #slope (change in log-odds per 1-unit clay increase)
+  phi <- c(phi, phi_index) #precision parameter
+  
+  
+  }
+  
+  return(list(b0 = b0,
+              b1 = b1,
+              slope_transformed = slope_transformed, 
+              phi = phi,
+              log_likelihood = log_likelihood, 
+              Pseudo_r_squared = Pseudo_r_squared,
+              Proportion_Sign_LOO = Proportion_Sign_LOO,
+              power = power,
+              quantile_residual_list = quantile_residual_list,
+              qq_norm_list = qq_norm_list,
+              scatterplot_list = scatterplot_list))
+  
+}
+
+
+beta_regression_analysis_results <- beta_regression_analysis()
+
+
+beta_regression_analysis_dataframe <- data.frame(
+  "Soil.metrics" = Soil.metrics,
+  "Intercept" = beta_regression_analysis_results$b0, 
+  "Slope" = beta_regression_analysis_results$b1,
+  "Slope_Untransformed" = beta_regression_analysis_results$slope_transformed,
+  "Phi" = beta_regression_analysis_results$phi,
+  "log_likelihood" = beta_regression_analysis_results$log_likelihood, 
+  "Pseudo_r_squared" = beta_regression_analysis_results$Pseudo_r_squared, 
+  "Proportion_Sign_LOO" = beta_regression_analysis_results$Proportion_Sign_LOO, 
+  "Power" = beta_regression_analysis_results$power)
+
+
+#clay content 0.5
+
+fruiting_prop_clay_content_0.5 <- betareg(fruiting_proportion ~ clay.content.0.5, data = fruiting_soil_grids_df_filtered)
+summary(fruiting_prop_clay_content_0.5)
+plot(fruiting_prop_clay_content_0.5)
+
+#checking randomized quantile residuals
+res_quantile <- residuals(fruiting_prop_clay_content_0.5, type = "quantile")
+res_pearson <- residuals(fruiting_prop_clay_content_0.5, type = "pearson")
+plot(fruiting_prop_clay_content_0.5, which = 1:4)
+
+hist(res_quantile,
+     main = "Randomized Quantile Residuals",
+     xlab = "Residuals")
+qqnorm(res_quantile)
+qqline(res_quantile)
+
+# Pearson residuals vs fitted
+pearson_resid <- residuals(fruiting_prop_clay_content_0.5, type = "pearson")
+plot(fruiting_prop_clay_content_0.5$fitted.values, pearson_resid,
+     xlab = "Fitted Values",
+     ylab = "Pearson Residuals",
+     main = "Pearson Residuals vs Fitted")
+abline(h = 0, lty = 2)
+
+# identifying influential points
+model <- fruiting_prop_clay_content_0.5
+rq_resid <- residuals(model, type = "quantile")
+# Identify observations with large residuals
+influential_candidates <- which(abs(rq_resid) > 2)
+influential_candidates
+fruiting_soil_grids_df_filtered[
+  influential_candidates,
+  c("fruiting_proportion", "clay.content.0.5")
+]
+#examining leverage manually
+# Leverage from a simple linear predictor
+X <- model.matrix(~ fruiting_soil_grids_df_filtered$clay.content.0.5)
+leverage_approx <- hat(X)
+plot(leverage_approx,
+     ylab = "Approximate Leverage",
+     xlab = "Observation",
+     main = "Predictor Leverage")
+abline(h = 2 * ncol(X) / nrow(X),
+       col = "red",
+       lty = 2)
+#LOO sensitivity analysis
+original_beta <- coef(fruiting_prop_clay_content_0.5, model = "mu")["clay.content.0.5"]
+loo_beta <- sapply(seq_len(nrow(fruiting_soil_grids_df_filtered)), function(i) {
+  model_loo <- betareg(
+    fruiting_proportion ~ clay.content.0.5,
+    data = fruiting_soil_grids_df_filtered[-i, ])
+  coef(model_loo, model = "mu")["clay.content.0.5"]
+})
+plot(loo_beta,
+     ylab = "Clay Coefficient",
+     xlab = "Observation Removed",
+     main = "Leave-One-Out Sensitivity Analysis")
+abline(h = original_beta,
+       col = "red",
+       lty = 2)
+# Summary of leave-one-out coefficients
+summary(loo_beta)
+# Range
+range(loo_beta)
+# Standard deviation
+sd(loo_beta)
+# Percent change from original coefficient
+loo_percent_change <- 
+  100 * (loo_beta - original_beta) / original_beta
+range(loo_percent_change)
+# Largest absolute change
+max(abs(loo_percent_change))
+
+#checking if removing individual observations changes statistical significance
+loo_pvalues <- sapply(seq_len(nrow(fruiting_soil_grids_df_filtered)), function(i) {
+  model_loo <- betareg(fruiting_proportion ~ clay.content.0.5,
+    data = fruiting_soil_grids_df_filtered[-i, ])
+  coef_table <- summary(model_loo)$coefficients$mean
+  
+  coef_table["clay.content.0.5", "Pr(>|z|)"]
+})
+#range of p-values
+range(loo_pvalues)
+#number of models remaining significant
+sum(loo_pvalues < 0.05)
+#proportion of models remaining significant
+mean(loo_pvalues < 0.05)
+
+
+#creating bootstrapped 95% confidence intervals 
+
+
+set.seed(180) #set seed 
+
+#creating the prediction dataset
+pred_data <- data.frame(clay.content.0.5 = seq(min(fruiting_soil_grids_df_filtered$clay.content.0.5), 
+                                               max(fruiting_soil_grids_df_filtered$clay.content.0.5), 
+                                               length.out = 1000)) #creates a sequences of 1000 evenly spaced numbers between our minimum and maximum clay content
+pred_data$fruiting_proportion <- predict(fruiting_prop_clay_content_0.5, newdata = pred_data, type = "response") #then we store predictions based on this model
+pred_data$lower <- predict(fruiting_prop_clay_content_0.5, newdata = pred_data, type = "quantile", at = 0.025) #generating initial confidence interval values at the lower quantile
+pred_data$upper <- predict(fruiting_prop_clay_content_0.5, newdata = pred_data, type = "quantile", at = 0.975) #generating initial confidence interval values at the higher quantile
+
+pred_data$fruiting_proportion <- predict(fruiting_prop_clay_content_0.5, newdata = pred_data, type = "response") #generating the predicted fruiting proportion for each of the 1000 soil values using the beta regression model
+
+#for each repetition (perm=1000), generates a new bootstrap sample and fits a new model and predicts a new proportion across the 1000 soil values
+bootstrap_predictions <- replicate(1000, { 
+  boot_data <- fruiting_soil_grids_df_filtered[sample(seq_len(nrow(fruiting_soil_grids_df_filtered)), 
+                                                      replace = TRUE),] #randomly resamples original dataset, with replacement
+  boot_model <- tryCatch(betareg(
+      fruiting_proportion ~ clay.content.0.5,
+      data = boot_data), error = function(e) NULL) #fits new beta regression, try catch in-case model fails
+  
+  #creates NA values for each predicted value in the case of a failed beta regression model
+  if (is.null(boot_model)) {
+    return(rep(NA_real_, nrow(pred_data)))
+  }
+  
+  #predicts the response for each 1000 soil values using the generated model from the bootstrap sample
+  tryCatch(predict(boot_model, newdata = pred_data, type = "response"),
+    error = function(e) rep(NA_real_, nrow(pred_data)))
+})
+
+#calculating the lower 95% pointwise confidence intervals
+pred_data$lower_CI <- apply(bootstrap_predictions,
+  1, quantile, probs = 0.025, na.rm = TRUE)
+
+#calculating the upper 95% pointwise confidence intervals
+pred_data$upper_CI <- apply(bootstrap_predictions, 
+  1, quantile, probs = 0.975, na.rm = TRUE)
+
+#plotting
+fruiting_prop_clay_content_0.5_plot <- ggplot(data = fruiting_soil_grids_df_filtered, aes(clay.content.0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("Clay Content 0-5 cm (g/kg)") +
+  ylab("") + #Fruiting Proportion
+  geom_ribbon(data = pred_data, aes(x = clay.content.0.5, ymin = lower_CI, ymax = upper_CI),
+    inherit.aes = FALSE,
+    alpha = 0.2,
+    fill = "#908D8E") +
+ # geom_ribbon(data = pred_data, aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "steelblue") +
+  geom_line(data = pred_data, color = "#117733", linewidth = 1) +
+  #geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_clay_content_0.5_plot
+
+
+#checking power and sample size using monte carlo simulation
+
+set.seed(180)
+
+#defining  model parameters
+x <- fruiting_soil_grids_df_filtered$clay.content.0.5  # soil values
+n <- length(x)
+b0 <- fruiting_prop_clay_content_0.5$coefficients$mean[1] #intercept (log-odds scale)
+b1 <- fruiting_prop_clay_content_0.5$coefficients$mean[2] #slope (change in log-odds per 1-unit clay increase)
+phi <- fruiting_prop_clay_content_0.5$coefficients$precision #precision parameter
+
+#calculating the expected mean for each observation via inverse logit
+eta <- b0 + b1 * x
+mu <- plogis(eta) #gets the logistic distribution of the response
+
+#converts (mu, phi) to R's beta distribution shape parameters
+shape1 <- mu * phi
+shape2 <- (1 - mu) * phi
+
+#runs a Monte Carlo simulation (perm=1000)
+permutations <- 1000
+p_values <- rep(NA, length.out=1000)
+
+for (i in 1:permutations) {
+  # Simulate new beta-distributed fruiting proportions
+  y_sim <- rbeta(n, shape1 = shape1, shape2 = shape2)
+  
+  # Keep values strictly inside (0, 1) in case of extreme rounding
+  y_sim <- pmin(pmax(y_sim, 1e-6), 1 - 1e-6)
+  
+  # Fit beta regression and extract the p-value for clay.content.0.5
+  fit <- try(betareg(y_sim ~ x), silent = TRUE)
+  if (!inherits(fit, "try-error")) {
+    p_values[i] <- summary(fit)$coefficients$mean["x", "Pr(>|z|)"]
+  } else {
+    p_values[i] <- NA
+  }
+}
+
+#power = proportion of simulations where p < 0.05
+power <- mean(p_values < 0.05, na.rm = TRUE)
+print(power)
+
+
+
+
+#clay content 100.200
+
+fruiting_prop_clay_content_100.200 <- betareg(fruiting_proportion ~ clay.content.100.200 + locality, data = fruiting_soil_grids_df_filtered)
+summary(fruiting_prop_clay_content_100.200)
+
+
+
+
+fruiting_prop_clay_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(clay.content.100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("Clay Content 100-200 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_clay_content_100.200
+hist(fruiting_soil_grids_df$clay.content.100.200)
+fitted_line <- lm(fruiting_proportion ~ clay.content.100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$clay.content.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#silt content 0-5
+fruiting_prop_silt_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("Silt Content 0-5 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(160, 195, by = 10)) + 
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_silt_content_0.5
+hist(fruiting_soil_grids_df_filtered$silt.0.5)
+fitted_line <- lm(fruiting_proportion ~ silt.0.5, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$silt.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#silt content 100-200
+fruiting_prop_silt_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("Silt Content 100-200 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_silt_content_100.200
+hist(fruiting_soil_grids_df_filtered$silt.100.200)
+fitted_line <- lm(fruiting_proportion ~ silt.100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$silt.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#sand content 0-5
+fruiting_prop_sand_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("Sand Content 0-5 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_sand_content_0.5
+hist(fruiting_soil_grids_df_filtered$sand.0.5)
+fitted_line <- lm(fruiting_proportion ~ sand.0.5, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$sand.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#sand content 100-200
+fruiting_prop_sand_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("Sand Content 100-200 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(600, 700, by = 30)) + 
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_sand_content_100.200
+hist(fruiting_soil_grids_df_filtered$sand.100.200)
+fitted_line <- lm(fruiting_proportion ~ sand.100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$sand.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#SOC content  0-5
+fruiting_prop_soc_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("SOC 0-5 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_soc_content_0.5
+hist(fruiting_soil_grids_df_filtered$SOC.0.5)
+fitted_line <- lm(fruiting_proportion ~ SOC.0.5, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$SOC.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#soc content 100-200
+fruiting_prop_soc_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("SOC 100-200 cm (g/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_soc_content_100.200
+hist(fruiting_soil_grids_df_filtered$SOC.100.200)
+fitted_line <- lm(fruiting_proportion ~ SOC.100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$SOC.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+
+#ph content 0-5
+fruiting_prop_ph_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("pH 0-5 cm") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_ph_content_0.5
+ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
+  geom_point()+
+  geom_smooth(method = "lm") + 
+  theme_minimal()
+hist(fruiting_soil_grids_df_filtered$ph_0.5)
+fitted_line <- lm(fruiting_proportion ~ ph_0.5, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$ph_0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#ph content 100-200
+fruiting_prop_ph_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("pH 100-200 cm") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_ph_content_100.200
+hist(fruiting_soil_grids_df_filtered$ph_100.200)
+fitted_line <- lm(fruiting_proportion ~ ph_100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line)
+cor(fruiting_soil_grids_df_filtered$ph_100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+
+#nitrogen content 0-5
+fruiting_prop_nitrogen_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.0.5, fruiting_proportion)) +
+  geom_point()+
+  xlab("Nitrogen 0-5 cm (cg/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_nitrogen_content_0.5
+hist(fruiting_soil_grids_df_filtered$nitrogen.0.5)
+fitted_line_nitrogen_content_0.5 <- lm(fruiting_proportion ~ nitrogen.0.5, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line_nitrogen_content_0.5)
+shapiro_test(fitted_line_nitrogen_content_0.5$residuals)
+bptest(fitted_line_nitrogen_content_0.5)
+cor(fruiting_soil_grids_df_filtered$nitrogen.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+#nitrogen content 100-200
+fruiting_prop_nitrogen_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
+  geom_point()+
+  xlab("Nitrogen 100-200 cm (cg/kg)") +
+  ylab("") +
+  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
+  theme_minimal() +
+  theme(title=element_text(size=24), 
+        axis.text=element_text(size=24),  
+        axis.title.x =element_text(size= 24),
+        axis.title.y =element_text(size= 24),
+        label =element_text(size= 24, family = "serif"),
+        text = element_text(family = "serif"),
+        legend.text = element_text(size= 24))
+fruiting_prop_nitrogen_content_100.200
+ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
+  geom_point() +
+  geom_smooth(method = "lm") + 
+  theme_minimal()
+hist(fruiting_soil_grids_df_filtered$nitrogen.100.200)
+fitted_line <- lm(fruiting_proportion ~ nitrogen.100.200, data = fruiting_soil_grids_df_filtered)
+summary(fitted_line)
+shapiro_test(fitted_line$residuals)
+bptest(fitted_line_nitrogen_content_0.5)
+cor(fruiting_soil_grids_df_filtered$nitrogen.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
+
+#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
+ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 0)+
+  xlab("Fitted Values")+
+  ylab("Residuals")+
+  labs(title = "Residuals vs. Fitted Values")
+qqnorm(fitted_line$residuals) #qqnorm plot
+
+
+#combing all the plots into one figure
+ggarrange_fruting_slr <- ggarrange(fruiting_prop_clay_content_0.5, fruiting_prop_clay_content_100.200, 
+                                   fruiting_prop_silt_content_0.5, fruiting_prop_silt_content_100.200, 
+                                   fruiting_prop_sand_content_0.5, fruiting_prop_sand_content_100.200, 
+                                   fruiting_prop_ph_content_0.5, fruiting_prop_ph_content_100.200, 
+                                   fruiting_prop_nitrogen_content_0.5, fruiting_prop_nitrogen_content_100.200,
+                                   fruiting_prop_soc_content_0.5, fruiting_prop_soc_content_100.200,
+                                   nrow = 3, ncol = 4)
+ggarrange_fruting_slr
+annotate_figure(ggarrange_fruting_slr,
+                left = text_grob("Fruiting Proportion", color = "black", rot=90, 
+                                 family = "serif", size = 26))
+
+
+#### Extended Support Beta Regressions ####
+
+#### Zero-Inflated Beta Regressions ####
 
 #### Figures for Paper ####
 

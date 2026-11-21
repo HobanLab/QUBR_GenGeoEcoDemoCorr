@@ -1519,6 +1519,7 @@ terra::crs(twi_all_points) <- CRS("EPSG:26912")
 ## LM
 
 # 1. we fill in the depressions in the DEM
+library(whitebox)
 dem_path <- normalizePath("./data/15m_Elevation_Raster/CEM_15_utm_LM.tif")
 out_path <- normalizePath("./data/topographic_wetness_index", mustWork = TRUE)
 wbt_fill_depressions(dem = dem_path, output = file.path(out_path, "dem_filled_LM.tif"), )
