@@ -2341,8 +2341,8 @@ ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion
 #creating the list of soil metrics to iterate over
 Soil.metrics <- c("Clay Content 0-5", "Clay Content 100-200", "Silt Content 0-5", "Silt Content 100-200", 
                   "Sand Content 0-5", "Sand Content 100-200",
-                  "Soil Organic Carbon 0-5", "Soil Organic Carbon 100-200",
-                  "Ph 0-5", "Ph 100-200", 
+                  "SOC 0-5", "SOC 100-200",
+                  "pH 0-5", "pH 100-200", 
                   "Nitrogen 0-5", "Nitrogen 100-200")
 
 
@@ -2386,16 +2386,16 @@ beta_regression_analysis <- function(){
     } else if (Soil.metrics[i] == "Sand Content 100-200"){
       soil_metric_name <- "sand.100.200"
       soil_metric = fruiting_soil_grids_df_filtered$sand.100.200
-    } else if (Soil.metrics[i] == "Soil Organic Carbon 0-5"){
+    } else if (Soil.metrics[i] == "SOC 0-5"){
       soil_metric_name <- "SOC.0.5"
       soil_metric = fruiting_soil_grids_df_filtered$SOC.0.5
-    } else if (Soil.metrics[i] == "Soil Organic Carbon 100-200"){
+    } else if (Soil.metrics[i] == "SOC 100-200"){
       soil_metric_name <- "SOC.100.200"
       soil_metric = fruiting_soil_grids_df_filtered$SOC.100.200
-    } else if (Soil.metrics[i] == "Ph 0-5"){
+    } else if (Soil.metrics[i] == "pH 0-5"){
       soil_metric_name <- "ph_0.5"
       soil_metric = fruiting_soil_grids_df_filtered$ph_0.5
-    } else if (Soil.metrics[i] == "Ph 100-200"){
+    } else if (Soil.metrics[i] == "pH 100-200"){
       soil_metric_name <- "ph_100.200"
       soil_metric = fruiting_soil_grids_df_filtered$ph_100.200
     } else if (Soil.metrics[i] == "Nitrogen 0-5"){
@@ -2413,8 +2413,8 @@ beta_regression_analysis <- function(){
   model_summary
   z_value_index <- summary(fruiting_prop_model)$coefficients$mean[soil_metric_name, "z value"]
   p_value_index <- summary(fruiting_prop_model)$coefficients$mean[soil_metric_name, "Pr(>|z|)"]
-  phi_z_value_index <- summary(fruiting_prop_model)$coefficients$precision["z value"]
-  phi_p_value_index <- summary(fruiting_prop_model)$coefficients$precision["Pr(>|z|)"]
+  phi_z_value_index <- summary(fruiting_prop_model)$coefficients$precision["(phi)", "z value"]
+  phi_p_value_index <- summary(fruiting_prop_model)$coefficients$precision["(phi)", "Pr(>|z|)"]
   
   
   #storing plot metrics
@@ -2429,18 +2429,18 @@ beta_regression_analysis <- function(){
   res_quantile <- residuals(fruiting_prop_model, type = "quantile")
   res_pearson <- residuals(fruiting_prop_model, type = "pearson")
   
-  hist(res_quantile, main = "Randomized Quantile Residuals", xlab = "Residuals")
+  plot_hist <- hist(res_quantile, main = "Randomized Quantile Residuals", xlab = "Residuals")
   # store the quantile residual histogram in list with a descriptive name
   plot_name_hist <- paste(Soil.metrics[i], "Histogram",
                           sep = "_")
-  quantile_residual_list[[plot_name_hist]] <- plot_name_hist
+  quantile_residual_list[[plot_name_hist]] <- plot_hist
   
-  qqnorm(res_quantile)
+  qq_norm_plot <- qqnorm(res_quantile) 
   qqline(res_quantile)
   # store the quantile residual histogram in list with a descriptive name
   plot_name_qq_norm <- paste(Soil.metrics[i], "QQ_Norm",
                           sep = "_")
-  qq_norm_list[[plot_name_qq_norm]] <- plot_name_qq_norm
+  qq_norm_list[[plot_name_qq_norm]] <- qq_norm_plot
   
   # Pearson residuals vs fitted
   pearson_resid <- residuals(fruiting_prop_model, type = "pearson")
@@ -2582,7 +2582,7 @@ beta_regression_analysis <- function(){
   # store the histogram in list with a descriptive name
   plot_name_scatterplot <- paste(Soil.metrics[i], "Scatterplot",
                                     sep = "_")
-  scatterplot_list[[plot_name_scatterplot]] <- plot_name_scatterplot
+  scatterplot_list[[plot_name_scatterplot]] <- fruiting_prop_plot
   
   #checking power and sample size using monte carlo simulation
   
@@ -2672,8 +2672,33 @@ beta_regression_analysis_dataframe <- data.frame(
   "Pseudo_r_squared" = beta_regression_analysis_results$Pseudo_r_squared, 
   "Proportion_Sign_LOO" = beta_regression_analysis_results$Proportion_Sign_LOO, 
   "Power" = beta_regression_analysis_results$power)
-write.csv(beta_regression_analysis_dataframe, file = "beta_regression_analysis_dataframe.csv")
+write.csv(beta_regression_analysis_dataframe, file = "./data/beta_regression_analysis_dataframe.csv")
 View(beta_regression_analysis_dataframe)
+
+#visualizing a scatterplot
+beta_regression_analysis_results$scatterplot_list$`Clay Content 0-5_Scatterplot`
+
+#combing all the plots into one figure
+ggarrange_fruting_beta_reg <- ggarrange(beta_regression_analysis_results$scatterplot_list$`Clay Content 0-5_Scatterplot`, 
+                                        beta_regression_analysis_results$scatterplot_list$`Clay Content 100-200_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Silt Content 0-5_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Silt Content 100-200_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Sand Content 0-5_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Sand Content 100-200_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`SOC 0-5_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`SOC 100-200_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Ph 0-5_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Ph 100-200_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Nitrogen 0-5_Scatterplot`,
+                                        beta_regression_analysis_results$scatterplot_list$`Nitrogen 100-200_Scatterplot`,
+                                   nrow = 3, ncol = 4)
+ggarrange_fruting_beta_reg
+annotate_figure(ggarrange_fruting_beta_reg,
+                left = text_grob("Fruiting Proportion", color = "black", rot=90, 
+                                 family = "serif", size = 26))
+
+ggsave("./soil_beta_regression_plot.png", dpi = 1200, width = 24, 
+       height = 15, units = "in") #units = "in"
 
 #clay content 0.5
 
@@ -2873,378 +2898,6 @@ power <- mean(p_values < 0.05, na.rm = TRUE)
 print(power)
 
 
-
-
-#clay content 100.200
-
-fruiting_prop_clay_content_100.200 <- betareg(fruiting_proportion ~ clay.content.100.200 + locality, data = fruiting_soil_grids_df_filtered)
-summary(fruiting_prop_clay_content_100.200)
-
-
-
-
-fruiting_prop_clay_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(clay.content.100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("Clay Content 100-200 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_clay_content_100.200
-hist(fruiting_soil_grids_df$clay.content.100.200)
-fitted_line <- lm(fruiting_proportion ~ clay.content.100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$clay.content.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#silt content 0-5
-fruiting_prop_silt_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.0.5, fruiting_proportion)) +
-  geom_point()+
-  xlab("Silt Content 0-5 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme_minimal() +
-  scale_x_continuous(breaks = seq(160, 195, by = 10)) + 
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_silt_content_0.5
-hist(fruiting_soil_grids_df_filtered$silt.0.5)
-fitted_line <- lm(fruiting_proportion ~ silt.0.5, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$silt.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#silt content 100-200
-fruiting_prop_silt_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(silt.100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("Silt Content 100-200 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_silt_content_100.200
-hist(fruiting_soil_grids_df_filtered$silt.100.200)
-fitted_line <- lm(fruiting_proportion ~ silt.100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$silt.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#sand content 0-5
-fruiting_prop_sand_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.0.5, fruiting_proportion)) +
-  geom_point()+
-  xlab("Sand Content 0-5 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_sand_content_0.5
-hist(fruiting_soil_grids_df_filtered$sand.0.5)
-fitted_line <- lm(fruiting_proportion ~ sand.0.5, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$sand.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#sand content 100-200
-fruiting_prop_sand_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(sand.100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("Sand Content 100-200 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  scale_x_continuous(breaks = seq(600, 700, by = 30)) + 
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_sand_content_100.200
-hist(fruiting_soil_grids_df_filtered$sand.100.200)
-fitted_line <- lm(fruiting_proportion ~ sand.100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$sand.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#SOC content  0-5
-fruiting_prop_soc_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.0.5, fruiting_proportion)) +
-  geom_point()+
-  xlab("SOC 0-5 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_soc_content_0.5
-hist(fruiting_soil_grids_df_filtered$SOC.0.5)
-fitted_line <- lm(fruiting_proportion ~ SOC.0.5, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$SOC.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#soc content 100-200
-fruiting_prop_soc_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(SOC.100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("SOC 100-200 cm (g/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_soc_content_100.200
-hist(fruiting_soil_grids_df_filtered$SOC.100.200)
-fitted_line <- lm(fruiting_proportion ~ SOC.100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$SOC.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-
-#ph content 0-5
-fruiting_prop_ph_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
-  geom_point()+
-  xlab("pH 0-5 cm") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_ph_content_0.5
-ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_0.5, fruiting_proportion)) +
-  geom_point()+
-  geom_smooth(method = "lm") + 
-  theme_minimal()
-hist(fruiting_soil_grids_df_filtered$ph_0.5)
-fitted_line <- lm(fruiting_proportion ~ ph_0.5, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$ph_0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#ph content 100-200
-fruiting_prop_ph_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(ph_100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("pH 100-200 cm") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_ph_content_100.200
-hist(fruiting_soil_grids_df_filtered$ph_100.200)
-fitted_line <- lm(fruiting_proportion ~ ph_100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line)
-cor(fruiting_soil_grids_df_filtered$ph_100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-
-#nitrogen content 0-5
-fruiting_prop_nitrogen_content_0.5 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.0.5, fruiting_proportion)) +
-  geom_point()+
-  xlab("Nitrogen 0-5 cm (cg/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_nitrogen_content_0.5
-hist(fruiting_soil_grids_df_filtered$nitrogen.0.5)
-fitted_line_nitrogen_content_0.5 <- lm(fruiting_proportion ~ nitrogen.0.5, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line_nitrogen_content_0.5)
-shapiro_test(fitted_line_nitrogen_content_0.5$residuals)
-bptest(fitted_line_nitrogen_content_0.5)
-cor(fruiting_soil_grids_df_filtered$nitrogen.0.5, fruiting_soil_grids_df_filtered$fruiting_proportion)
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-#nitrogen content 100-200
-fruiting_prop_nitrogen_content_100.200 <- ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
-  geom_point()+
-  xlab("Nitrogen 100-200 cm (cg/kg)") +
-  ylab("") +
-  geom_smooth(method = "lm", color = "#117733", fill = "#908D8E", alpha = 0.3) + 
-  theme_minimal() +
-  theme(title=element_text(size=24), 
-        axis.text=element_text(size=24),  
-        axis.title.x =element_text(size= 24),
-        axis.title.y =element_text(size= 24),
-        label =element_text(size= 24, family = "serif"),
-        text = element_text(family = "serif"),
-        legend.text = element_text(size= 24))
-fruiting_prop_nitrogen_content_100.200
-ggplot(data = fruiting_soil_grids_df_filtered, aes(nitrogen.100.200, fruiting_proportion)) +
-  geom_point() +
-  geom_smooth(method = "lm") + 
-  theme_minimal()
-hist(fruiting_soil_grids_df_filtered$nitrogen.100.200)
-fitted_line <- lm(fruiting_proportion ~ nitrogen.100.200, data = fruiting_soil_grids_df_filtered)
-summary(fitted_line)
-shapiro_test(fitted_line$residuals)
-bptest(fitted_line_nitrogen_content_0.5)
-cor(fruiting_soil_grids_df_filtered$nitrogen.100.200, fruiting_soil_grids_df_filtered$fruiting_proportion)
-
-#looking at equal variance of residuals with a residuals vs. fitted values plot with a residuals vs. fitted values plot
-ggplot(data = fitted_line, aes(x = fitted_line$fitted.values, y = fitted_line$residuals))+
-  geom_point()+
-  geom_abline(intercept = 0, slope = 0)+
-  xlab("Fitted Values")+
-  ylab("Residuals")+
-  labs(title = "Residuals vs. Fitted Values")
-qqnorm(fitted_line$residuals) #qqnorm plot
-
-
-#combing all the plots into one figure
-ggarrange_fruting_slr <- ggarrange(fruiting_prop_clay_content_0.5, fruiting_prop_clay_content_100.200, 
-                                   fruiting_prop_silt_content_0.5, fruiting_prop_silt_content_100.200, 
-                                   fruiting_prop_sand_content_0.5, fruiting_prop_sand_content_100.200, 
-                                   fruiting_prop_ph_content_0.5, fruiting_prop_ph_content_100.200, 
-                                   fruiting_prop_nitrogen_content_0.5, fruiting_prop_nitrogen_content_100.200,
-                                   fruiting_prop_soc_content_0.5, fruiting_prop_soc_content_100.200,
-                                   nrow = 3, ncol = 4)
-ggarrange_fruting_slr
-annotate_figure(ggarrange_fruting_slr,
-                left = text_grob("Fruiting Proportion", color = "black", rot=90, 
-                                 family = "serif", size = 26))
-
-
-#### Extended Support Beta Regressions ####
-
-#### Zero-Inflated Beta Regressions ####
 
 #### Figures for Paper ####
 
